@@ -116,6 +116,23 @@ export async function runSession(
   hooks.log(`session start: ${adapter.id} / ${spec.key} / ${item.cacheState}`);
 
   // ---- load (download + init) --------------------------------------------
+  // Init-stage tombstone: written immediately before load, cleared at ready.
+  // An iOS tab kill during download/init otherwise leaves the session pending
+  // with no error row, and auto-resume retries it forever (observed on
+  // iPhone: 4 consecutive sessions ended_at:null).
+  store.writeTombstone({
+    stage: "init",
+    engine: adapter.id,
+    engineVersion: adapter.version(),
+    backend: null,
+    modelKey: spec.key,
+    modelId: ref.modelId,
+    quant: ref.quant,
+    prompt: null,
+    cacheState: item.cacheState,
+    startedAt: new Date().toISOString(),
+  });
+
   const tLoadStart = performance.now();
   let lastDownloadEventAt: number | null = null;
   let sawIncompleteDownload = false;
@@ -145,6 +162,9 @@ export async function runSession(
     loadError = toBenchError(sawIncompleteDownload ? "download" : "init", e);
     hooks.log(`load failed (${loadError.stage}): ${loadError.error_message}`);
   }
+  // Ready (or explicit load failure recorded below) — either way the page
+  // survived, so the init tombstone is consumed here.
+  store.clearTombstone();
   const tReady = performance.now();
 
   const downloadMs =
@@ -194,6 +214,7 @@ export async function runSession(
       // Tombstone (operator requirement ii): written before generate, cleared
       // on completion. Survives an OOM tab kill and becomes an error row.
       store.writeTombstone({
+        stage: "generate",
         engine: adapter.id,
         engineVersion: adapter.version(),
         backend,

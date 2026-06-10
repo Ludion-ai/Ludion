@@ -48,6 +48,7 @@ describe("BenchStore state machine", () => {
     );
     // generate() started, tombstone written…
     store.writeTombstone({
+      stage: "generate",
       engine: "webllm",
       engineVersion: "0.2.84",
       backend: "webgpu",
@@ -62,24 +63,78 @@ describe("BenchStore state machine", () => {
     state = store.loadState()!;
     const recovered = store.recoverTombstone(state);
 
-    expect(recovered).not.toBeNull();
-    expect(recovered!.error?.error_name).toBe("probable_oom_tab_kill");
-    expect(recovered!.error?.stage).toBe("generate");
-    expect(recovered!.prompt).toBe("long-context");
+    expect(recovered).toHaveLength(1);
+    expect(recovered[0]!.error?.error_name).toBe("probable_oom_tab_kill");
+    expect(recovered[0]!.error?.stage).toBe("generate");
+    expect(recovered[0]!.prompt).toBe("long-context");
     // The webllm session is aborted, not retried in a loop…
     expect(state.queue[0]!.status).toBe("aborted");
     // …and the next engine is still runnable.
     expect(store.nextPending(state)?.engine).toBe("transformersjs");
     // Tombstone is consumed exactly once.
-    expect(store.recoverTombstone(state)).toBeNull();
+    expect(store.recoverTombstone(state)).toEqual([]);
     // The row is persisted.
     expect(store.loadState()!.runs).toHaveLength(1);
+  });
+
+  it("converts a surviving init-stage tombstone into error rows for every prompt and advances the plan", () => {
+    const store = new BenchStore(makeKv());
+    let state = store.enqueue(
+      store.newState("iphone"),
+      ["webllm", "transformersjs"],
+      ["qwen2.5-1.5b"],
+      "cold",
+    );
+    // Session open, load() started, init tombstone written…
+    store.appendSession(state, {
+      engine: "webllm",
+      model_id: "Qwen2.5-1.5B-Instruct-q4f16_1-MLC",
+      cache_state: "cold",
+      started_at: new Date().toISOString(),
+      ended_at: null,
+      battery_start: null,
+      battery_end: null,
+    });
+    store.writeTombstone({
+      stage: "init",
+      engine: "webllm",
+      engineVersion: "0.2.84",
+      backend: null,
+      modelKey: "qwen2.5-1.5b",
+      modelId: "Qwen2.5-1.5B-Instruct-q4f16_1-MLC",
+      quant: "q4f16_1",
+      prompt: null,
+      cacheState: "cold",
+      startedAt: new Date().toISOString(),
+    });
+    // …and the tab was killed mid-download. Page reloads:
+    state = store.loadState()!;
+    const recovered = store.recoverTombstone(state);
+
+    // One error row per prompt (same shape as an explicit load failure).
+    expect(recovered).toHaveLength(2);
+    expect(recovered.map((r) => r.prompt).sort()).toEqual(["long-context", "short"]);
+    for (const row of recovered) {
+      expect(row.error?.error_name).toBe("probable_oom_tab_kill");
+      expect(row.error?.stage).toBe("init");
+      expect(row.error?.error_message).toContain("never reached ready");
+    }
+    // Session aborted — no infinite retry loop…
+    expect(state.queue[0]!.status).toBe("aborted");
+    // …the dangling session row is closed…
+    expect(state.sessions[0]!.ended_at).not.toBeNull();
+    // …and the next engine is still runnable.
+    expect(store.nextPending(state)?.engine).toBe("transformersjs");
+    // Tombstone is consumed exactly once.
+    expect(store.recoverTombstone(state)).toEqual([]);
+    expect(store.loadState()!.runs).toHaveLength(2);
   });
 
   it("clearTombstone after successful generate leaves nothing to recover", () => {
     const store = new BenchStore(makeKv());
     const state = store.enqueue(store.newState(""), ["wllama"], ["llama-3.2-1b"], "cold");
     store.writeTombstone({
+      stage: "generate",
       engine: "wllama",
       engineVersion: "3.4.1",
       backend: "wasm-singlethread",
@@ -91,7 +146,7 @@ describe("BenchStore state machine", () => {
       startedAt: new Date().toISOString(),
     });
     store.clearTombstone();
-    expect(store.recoverTombstone(state)).toBeNull();
+    expect(store.recoverTombstone(state)).toEqual([]);
     expect(state.runs).toHaveLength(0);
   });
 });

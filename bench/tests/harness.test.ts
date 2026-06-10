@@ -27,11 +27,15 @@ function failingAdapter(): BenchAdapter {
   };
 }
 
-function workingAdapter(): BenchAdapter {
+/** `store` lets the adapter assert which tombstone stage is live mid-call. */
+function workingAdapter(store: BenchStore): BenchAdapter {
   return {
     id: "wllama",
     version: () => "test",
     load: async (_model, onProgress) => {
+      // The init tombstone must be on disk while load is in flight, so a tab
+      // kill here becomes data instead of an infinite retry loop.
+      expect(store.readTombstone()?.stage).toBe("init");
       const total = 100 * 1024 * 1024; // 100 MiB
       onProgress({ kind: "download", loadedBytes: total / 2, totalBytes: total, approxMb: null, text: "half" });
       await delay(5);
@@ -40,6 +44,7 @@ function workingAdapter(): BenchAdapter {
       return { backend: "wasm-singlethread" as const, timingSource: "engine" as const };
     },
     generate: async (_req, onToken) => {
+      expect(store.readTombstone()?.stage).toBe("generate");
       for (let i = 0; i < 4; i++) {
         await delay(2);
         onToken({ textDelta: "tok " });
@@ -81,7 +86,7 @@ describe("runSession (acceptance criterion 4: induced failure isolates)", () => 
     // Engine 2 is not blocked
     const nextItem = store.nextPending(state)!;
     expect(nextItem.engine).toBe("wllama");
-    await runSession(store, state, nextItem, workingAdapter(), spec, hooks);
+    await runSession(store, state, nextItem, workingAdapter(store), spec, hooks);
     expect(nextItem.status).toBe("done");
 
     // 2 error rows + 2 prompts × 3 timed runs

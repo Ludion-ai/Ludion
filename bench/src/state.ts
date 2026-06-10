@@ -44,16 +44,28 @@ export interface PersistedState {
 }
 
 export interface Tombstone {
+  /**
+   * "init": written immediately before adapter.load(), cleared at "ready".
+   *         Covers tab kills during download/model init (observed on iPhone:
+   *         sessions left ended_at:null with no error row, causing an infinite
+   *         retry loop because only generate was tombstoned).
+   * "generate": written immediately before generate(), cleared on completion.
+   */
+  stage: "init" | "generate";
   engine: EngineId;
   engineVersion: string;
   backend: Backend | null;
   modelKey: ModelKey;
   modelId: string;
   quant: string;
-  prompt: PromptId;
+  /** null for stage "init" (no prompt in flight yet). */
+  prompt: PromptId | null;
   cacheState: CacheState;
   startedAt: string;
 }
+
+/** All prompt ids, used to emit one error row per prompt for init-stage kills. */
+const ALL_PROMPTS: readonly PromptId[] = ["short", "long-context"];
 
 export class BenchStore {
   constructor(private kv: KV) {}
@@ -139,19 +151,25 @@ export class BenchStore {
 
   /**
    * Call on page load. If a tombstone survived a reload, the previous
-   * generation never completed: record it as an error row, abort the session
-   * it belonged to, and clear the marker. Returns the recovered row, if any.
+   * load/generation never completed: record error row(s), abort the session
+   * it belonged to (so the plan advances instead of retrying the same session
+   * in a kill loop), and clear the marker. Returns the recovered rows, if any.
+   *
+   * Stage "generate" yields one row for the in-flight prompt; stage "init"
+   * yields one row per prompt (same shape as a load failure), since no prompt
+   * ever ran.
    */
-  recoverTombstone(state: PersistedState): RunRow | null {
+  recoverTombstone(state: PersistedState): RunRow[] {
     const t = this.readTombstone();
-    if (!t) return null;
-    const row: RunRow = {
+    if (!t) return [];
+
+    const makeRow = (prompt: PromptId): RunRow => ({
       engine: t.engine,
       engine_version: t.engineVersion,
       backend: t.backend,
       model_id: t.modelId,
       quant: t.quant,
-      prompt: t.prompt,
+      prompt,
       cache_state: t.cacheState,
       download_ms: null,
       download_mb: null,
@@ -165,12 +183,23 @@ export class BenchStore {
       timing_source: null,
       peak_mem_mb: null,
       error: {
-        stage: "generate",
+        stage: t.stage,
         error_name: "probable_oom_tab_kill",
-        error_message: `run started ${t.startedAt} never completed; page reloaded mid-generation (likely OOM tab kill)`,
+        error_message:
+          t.stage === "init"
+            ? `session load started ${t.startedAt} never reached ready; page reloaded mid-download/init (likely OOM tab kill)`
+            : `run started ${t.startedAt} never completed; page reloaded mid-generation (likely OOM tab kill)`,
       },
-    };
-    state.runs.push(row);
+    });
+
+    const rows =
+      t.stage === "generate" && t.prompt !== null
+        ? [makeRow(t.prompt)]
+        : ALL_PROMPTS.map(makeRow);
+    state.runs.push(...rows);
+
+    // Shared advancement logic for both stages: abort the session so
+    // nextPending() moves on, and close the dangling session row.
     const session = state.queue.find(
       (q) =>
         q.status === "pending" &&
@@ -185,7 +214,7 @@ export class BenchStore {
     if (openSession) openSession.ended_at = new Date().toISOString();
     this.clearTombstone();
     this.saveState(state);
-    return row;
+    return rows;
   }
 }
 

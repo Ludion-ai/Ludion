@@ -304,9 +304,9 @@ async function boot(): Promise<void> {
     ui.label().value = state.operatorLabel;
     ui.notes().value = state.operatorNotes;
     const recovered = store.recoverTombstone(state);
-    if (recovered) {
+    for (const row of recovered) {
       log(
-        `tombstone recovered: ${recovered.engine}/${recovered.prompt} marked as ${recovered.error?.error_name} — the tab kill is now data.`,
+        `tombstone recovered (${row.error?.stage}): ${row.engine}/${row.prompt} marked as ${row.error?.error_name} — the tab kill is now data.`,
       );
     }
     renderResults();
