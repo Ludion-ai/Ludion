@@ -1,0 +1,54 @@
+{
+  "policy_version": "v0-20260610",
+  "default_max_tokens": 256,
+  "rules": [
+    {
+      "rule_id": "R1",
+      "target": "server",
+      "privacy_local_eligible": false,
+      "hw": { "env": "webview-iab" },
+      "request": {},
+      "rationale": "In-app browsers stall/kill local inference regardless of hardware (LINE IAB, Pixel 8a 2026-06-10). NOTE: IAB does NOT hide WebGPU — the archived LINE-IAB probe export (12:43, runs empty) shows webgpu:true with a fully visible adapter, so R2 cannot be relied on to catch IABs; UA detection here is load-bearing. UA-list misses are accepted v0 residual risk, self-healed by the strike rule (first stall → tombstone → strike → server)."
+    },
+    {
+      "rule_id": "R2",
+      "target": "server",
+      "privacy_local_eligible": false,
+      "hw": { "webgpu": false },
+      "request": {},
+      "rationale": "No WebGPU → no local path (WebLLM is WebGPU-only)."
+    },
+    {
+      "rule_id": "R3",
+      "target": "server",
+      "privacy_local_eligible": false,
+      "hw": { "os_class": "ios-webkit" },
+      "request": {},
+      "rationale": "0 successful iOS rows in Gate 0. iPhone 11 Pro Max (4GB, Safari 26.5): Qwen1.5B died at 728MB fetched (TypeError + silent tab kill x4); wllama 0.5B init-killed x2; WebLLM Llama ctx2048 generate-killed. Device RAM is not detectable on iOS → conservative all-iOS server in v0. Includes iPadOS masquerading as desktop (MacIntel + maxTouchPoints>1)."
+    },
+    {
+      "rule_id": "R4",
+      "target": "local",
+      "privacy_local_eligible": true,
+      "hw": { "os_class": "desktop", "webgpu": true },
+      "request": { "max_est_prompt_tokens": 3000 },
+      "rationale": "Desktop WebGPU: 121-196 tps decode, prefill ~2.6k tps (Gate 0). est_prompt_tokens <= 3000 guard keeps prompts inside the default 4096-token local KV window (B-4); overflow routes to server."
+    },
+    {
+      "rule_id": "R5",
+      "target": "local",
+      "privacy_local_eligible": true,
+      "hw": { "os_class": "android-chromium", "webgpu": true },
+      "request": { "max_est_prompt_tokens": 200, "max_max_tokens": 256, "stream": true },
+      "rationale": "Pixel 8a: decode ~10 tps OK, prefill ~15 tps → long context unusable (77s TTFT @1.2k tok). The 200-token threshold is a 2-point interpolation between measured short (~52 tok) and long (~1213 tok) prompts — the 200-token region itself is UNMEASURED. stream:true is required (Q6): a non-streaming 256-token generation at ~10 tps blocks ~26s with zero feedback, which is perceived failure; non-streaming Android requests go to server."
+    },
+    {
+      "rule_id": "R6",
+      "target": "server",
+      "privacy_local_eligible": false,
+      "hw": {},
+      "request": {},
+      "rationale": "Default: unknown territory routes safe."
+    }
+  ]
+}

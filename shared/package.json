@@ -1,0 +1,22 @@
+{
+  "name": "@entelic/shared",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "Entelic shared browser types + capability probe (router-facing copy; bench keeps its own)",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@webgpu/types": "^0.1.70",
+    "typescript": "5.9.3",
+    "vitest": "4.1.8"
+  }
+}

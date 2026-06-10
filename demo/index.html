@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>entelic demo</title>
+  </head>
+  <body>
+    <div id="app">
+      <header>
+        <h1>entelic</h1>
+        <button id="settings-toggle" type="button">settings</button>
+      </header>
+
+      <section id="settings" hidden>
+        <label>
+          fallback /chat/completions URL
+          <input id="cfg-url" type="url" placeholder="https://api.example.com/v1/chat/completions" />
+        </label>
+        <label>
+          API key (optional)
+          <input id="cfg-key" type="password" autocomplete="off" />
+        </label>
+        <label>
+          fallback model
+          <input id="cfg-model" type="text" placeholder="gpt-4o-mini" />
+        </label>
+        <p class="note">
+          Stored in localStorage. The endpoint must allow browser CORS from this
+          origin — direct browser call, no proxy.
+        </p>
+        <button id="cfg-save" type="button">save &amp; reload</button>
+      </section>
+
+      <main id="chat"></main>
+
+      <form id="composer">
+        <textarea id="input" rows="2" placeholder="message…"></textarea>
+        <button id="send" type="submit">send</button>
+      </form>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
