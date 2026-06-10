@@ -5,12 +5,18 @@ import type { EngineId } from "./schema";
  * Primary: Qwen2.5-1.5B-Instruct — same checkpoint published in all three formats.
  * Secondary: Llama-3.2-1B-Instruct — smaller, safer on iPhone memory ceilings.
  *
+ * Floor: Qwen2.5-0.5B-Instruct — added 2026-06-10 after iPhone 11 Pro Max
+ * (4 GB) killed Llama-3.2-1B seconds into generate (probable_oom_tab_kill).
+ * Purpose: bisect whether the memory ceiling sits between 1B and 0.5B.
+ * Artifacts verified on HF: MLC shards ~265 MB, ONNX q4f16 ~461 MB,
+ * GGUF Q4_K_M ~379 MB; model record present in WebLLM 0.2.84.
+ *
  * Operator protocol: desktop starts with Qwen; iPhone runs Llama first, then
  * attempts Qwen. An OOM tab kill on Qwen is a routing-table row, not a failure
  * (recorded via the tombstone marker, see state.ts).
  */
 
-export type ModelKey = "qwen2.5-1.5b" | "llama-3.2-1b";
+export type ModelKey = "qwen2.5-1.5b" | "llama-3.2-1b" | "qwen2.5-0.5b";
 
 export interface EngineModelRef {
   /** Identifier passed to the engine (and recorded as model_id). */
@@ -74,6 +80,29 @@ export const MODELS: readonly ModelSpec[] = [
         file: "Llama-3.2-1B-Instruct-Q4_K_M.gguf",
         quant: "Q4_K_M",
         approxMb: 808,
+      },
+    },
+  },
+  {
+    key: "qwen2.5-0.5b",
+    label: "Qwen2.5-0.5B-Instruct (floor)",
+    engines: {
+      webllm: {
+        modelId: "Qwen2.5-0.5B-Instruct-q4f16_1-MLC",
+        quant: "q4f16_1",
+        approxMb: 265,
+      },
+      transformersjs: {
+        modelId: "onnx-community/Qwen2.5-0.5B-Instruct",
+        quant: "q4f16",
+        dtype: "q4f16",
+        approxMb: 461,
+      },
+      wllama: {
+        modelId: "bartowski/Qwen2.5-0.5B-Instruct-GGUF",
+        file: "Qwen2.5-0.5B-Instruct-Q4_K_M.gguf",
+        quant: "Q4_K_M",
+        approxMb: 379,
       },
     },
   },

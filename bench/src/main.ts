@@ -269,6 +269,8 @@ function modelOrder(): ModelKey[] {
       return ["qwen2.5-1.5b"];
     case "llama-only":
       return ["llama-3.2-1b"];
+    case "qwen-0.5b-only":
+      return ["qwen2.5-0.5b"];
     default:
       return ["qwen2.5-1.5b", "llama-3.2-1b"];
   }
