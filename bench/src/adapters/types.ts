@@ -27,6 +27,14 @@ export interface LoadInfo {
   backend: Backend;
   /** Whether the download/init phase split came from engine events or parsing. */
   timingSource: MetricSource;
+  /**
+   * KV-cache sizing actually in effect — a measurement condition, recorded per
+   * run (kv_context_window / prefill_chunk). WebLLM preallocates the KV cache
+   * at the full context window on load, so this drives baseline memory.
+   * null where the engine does not expose / we do not control the value.
+   */
+  kvContextWindow: number | null;
+  prefillChunk: number | null;
 }
 
 export interface TokenEvent {

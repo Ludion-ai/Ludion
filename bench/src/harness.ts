@@ -50,6 +50,8 @@ function emptyRow(
     token_count_source: null,
     timing_source: null,
     peak_mem_mb: null,
+    kv_context_window: null,
+    prefill_chunk: null,
     error: null,
   };
 }
@@ -131,6 +133,8 @@ export async function runSession(
     prompt: null,
     cacheState: item.cacheState,
     startedAt: new Date().toISOString(),
+    kvContextWindow: null,
+    prefillChunk: null,
   });
 
   const tLoadStart = performance.now();
@@ -199,6 +203,8 @@ export async function runSession(
 
   const backend = loadInfo!.backend;
   const timingSource: MetricSource = loadInfo!.timingSource;
+  const kvContextWindow = loadInfo!.kvContextWindow;
+  const prefillChunk = loadInfo!.prefillChunk;
   hooks.log(
     `ready: backend=${backend} download_ms=${downloadMs ?? "n/a"} init_ms=${initMs ?? "n/a"} download_mb=${downloadMb ?? "n/a"}`,
   );
@@ -224,6 +230,8 @@ export async function runSession(
         prompt: prompt.id,
         cacheState: item.cacheState,
         startedAt: new Date().toISOString(),
+        kvContextWindow,
+        prefillChunk,
       });
 
       const mem = new MemSampler();
@@ -267,6 +275,8 @@ export async function runSession(
         row.token_count_source = tokenSource;
         row.timing_source = timingSource;
         row.peak_mem_mb = peakMb;
+        row.kv_context_window = kvContextWindow;
+        row.prefill_chunk = prefillChunk;
         store.appendRun(state, row);
         hooks.onRow(row);
         if (result.engineReported) {
@@ -282,6 +292,8 @@ export async function runSession(
         row.download_ms = downloadMs;
         row.download_mb = downloadMb;
         row.init_ms = initMs;
+        row.kv_context_window = kvContextWindow;
+        row.prefill_chunk = prefillChunk;
         row.error = toBenchError("generate", e);
         store.appendRun(state, row);
         hooks.onRow(row);

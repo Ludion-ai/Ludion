@@ -62,6 +62,12 @@ export interface Tombstone {
   prompt: PromptId | null;
   cacheState: CacheState;
   startedAt: string;
+  /**
+   * KV sizing in effect, known once load resolves — null for stage "init".
+   * Carried so an OOM-kill row records the measurement condition it died under.
+   */
+  kvContextWindow: number | null;
+  prefillChunk: number | null;
 }
 
 /** All prompt ids, used to emit one error row per prompt for init-stage kills. */
@@ -182,6 +188,8 @@ export class BenchStore {
       token_count_source: null,
       timing_source: null,
       peak_mem_mb: null,
+      kv_context_window: t.kvContextWindow,
+      prefill_chunk: t.prefillChunk,
       error: {
         stage: t.stage,
         error_name: "probable_oom_tab_kill",

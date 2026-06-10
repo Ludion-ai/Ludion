@@ -58,6 +58,8 @@ describe("BenchStore state machine", () => {
       prompt: "long-context",
       cacheState: "warm",
       startedAt: new Date().toISOString(),
+      kvContextWindow: 2048,
+      prefillChunk: 1024,
     });
     // …and the tab was killed. Page reloads:
     state = store.loadState()!;
@@ -67,6 +69,9 @@ describe("BenchStore state machine", () => {
     expect(recovered[0]!.error?.error_name).toBe("probable_oom_tab_kill");
     expect(recovered[0]!.error?.stage).toBe("generate");
     expect(recovered[0]!.prompt).toBe("long-context");
+    // The OOM-kill row records the KV condition it died under.
+    expect(recovered[0]!.kv_context_window).toBe(2048);
+    expect(recovered[0]!.prefill_chunk).toBe(1024);
     // The webllm session is aborted, not retried in a loop…
     expect(state.queue[0]!.status).toBe("aborted");
     // …and the next engine is still runnable.
@@ -106,6 +111,8 @@ describe("BenchStore state machine", () => {
       prompt: null,
       cacheState: "cold",
       startedAt: new Date().toISOString(),
+      kvContextWindow: null,
+      prefillChunk: null,
     });
     // …and the tab was killed mid-download. Page reloads:
     state = store.loadState()!;
@@ -144,6 +151,8 @@ describe("BenchStore state machine", () => {
       prompt: "short",
       cacheState: "cold",
       startedAt: new Date().toISOString(),
+      kvContextWindow: 4096,
+      prefillChunk: null,
     });
     store.clearTombstone();
     expect(store.recoverTombstone(state)).toEqual([]);

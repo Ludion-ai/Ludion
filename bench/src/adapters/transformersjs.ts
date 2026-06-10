@@ -54,11 +54,14 @@ export function createTransformersJsAdapter(): BenchAdapter {
           progress_callback: progressCallback as never,
         });
 
+      // Transformers.js does not preallocate/cap a KV window we control.
+      const kv = { kvContextWindow: null, prefillChunk: null };
+
       if (hasWebGpu) {
         try {
           pipe = await create("webgpu");
           backend = "webgpu";
-          return { backend, timingSource: "engine" };
+          return { backend, timingSource: "engine", ...kv };
         } catch (e) {
           onProgress({
             kind: "init",
@@ -71,7 +74,7 @@ export function createTransformersJsAdapter(): BenchAdapter {
       }
       pipe = await create("wasm");
       backend = wasmBackend;
-      return { backend, timingSource: "engine" };
+      return { backend, timingSource: "engine", ...kv };
     },
 
     async generate(req: GenRequest, onToken: (t: TokenEvent) => void): Promise<GenResult> {

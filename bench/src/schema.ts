@@ -13,6 +13,10 @@
  *    fetch+compile inside reload(); the split is parsed from progress text).
  *  - decode_tps is null when tokens_out <= 1 (division by zero otherwise).
  *  - Metric fields are nullable so error rows fit the same row shape.
+ *  - kv_context_window / prefill_chunk (added 2026-06-10): KV-cache sizing in
+ *    effect is a measurement condition (WebLLM preallocates KV at the full
+ *    context window — capped to 2048 to test the 4 GB-iPhone OOM hypothesis).
+ *    null where the engine does not expose / we do not control it.
  */
 
 export const SCHEMA_ID = "entelic.bench.v0" as const;
@@ -77,6 +81,8 @@ export interface RunRow {
   token_count_source: MetricSource | null;
   timing_source: MetricSource | null;
   peak_mem_mb: number | null;
+  kv_context_window: number | null;
+  prefill_chunk: number | null;
   error: BenchError | null;
 }
 
@@ -247,6 +253,8 @@ export function validateBenchDocument(doc: unknown): ValidationResult {
           token_count_source: orNull(oneOf(SOURCES)),
           timing_source: orNull(oneOf(SOURCES)),
           peak_mem_mb: isNumOrNull,
+          kv_context_window: isNumOrNull,
+          prefill_chunk: isNumOrNull,
         },
         errors,
       );

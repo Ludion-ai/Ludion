@@ -41,7 +41,12 @@ function workingAdapter(store: BenchStore): BenchAdapter {
       await delay(5);
       onProgress({ kind: "download", loadedBytes: total, totalBytes: total, approxMb: null, text: "full" });
       await delay(5);
-      return { backend: "wasm-singlethread" as const, timingSource: "engine" as const };
+      return {
+        backend: "wasm-singlethread" as const,
+        timingSource: "engine" as const,
+        kvContextWindow: 2048,
+        prefillChunk: 1024,
+      };
     },
     generate: async (_req, onToken) => {
       expect(store.readTombstone()?.stage).toBe("generate");
@@ -99,6 +104,9 @@ describe("runSession (acceptance criterion 4: induced failure isolates)", () => 
       expect(row.tokens_out).toBe(4);
       expect(row.decode_tps).not.toBeNull();
       expect(row.download_mb).toBe(100);
+      // KV sizing is a measurement condition: persisted per run.
+      expect(row.kv_context_window).toBe(2048);
+      expect(row.prefill_chunk).toBe(1024);
     }
 
     // Sessions recorded for both engines, both closed

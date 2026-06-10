@@ -36,11 +36,12 @@ export function createWllamaAdapter(): BenchAdapter {
       wllama = new Wllama({ default: wllamaWasmUrl });
       if (!model.file) throw new Error("wllama: ModelSpec.file (GGUF path) is required");
 
+      const N_CTX = 4096;
       let downloadDone = false;
       await wllama.loadModelFromHF(
         { repo: model.modelId, file: model.file },
         {
-          n_ctx: 4096,
+          n_ctx: N_CTX,
           progressCallback: ({ loaded, total }) => {
             downloadDone = total > 0 && loaded >= total;
             onProgress({
@@ -59,7 +60,8 @@ export function createWllamaAdapter(): BenchAdapter {
         : wllama.isMultithread()
           ? "wasm-multithread"
           : "wasm-singlethread";
-      return { backend, timingSource: "engine" };
+      // n_ctx is the KV sizing we set; llama.cpp's batch size is not surfaced.
+      return { backend, timingSource: "engine", kvContextWindow: N_CTX, prefillChunk: null };
     },
 
     async generate(req: GenRequest, onToken: (t: TokenEvent) => void): Promise<GenResult> {

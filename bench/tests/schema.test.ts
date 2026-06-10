@@ -21,6 +21,8 @@ function validRun(overrides: Partial<RunRow> = {}): RunRow {
     token_count_source: "engine",
     timing_source: "estimated",
     peak_mem_mb: null,
+    kv_context_window: 2048,
+    prefill_chunk: 1024,
     error: null,
     ...overrides,
   };
