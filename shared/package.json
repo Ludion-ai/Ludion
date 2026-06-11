@@ -1,9 +1,9 @@
 {
-  "name": "@entelic/shared",
+  "name": "@ludion/shared",
   "private": true,
   "version": "0.0.0",
   "type": "module",
-  "description": "Entelic shared browser types + capability probe (router-facing copy; bench keeps its own)",
+  "description": "Ludion shared browser types + capability probe (router-facing copy; bench keeps its own)",
   "exports": {
     ".": {
       "types": "./src/index.ts",

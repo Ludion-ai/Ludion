@@ -1,6 +1,6 @@
-import type { ChatCompletion, ChatCompletionChunk, ChatUsage, RouterProbe } from "@entelic/shared";
-import { probeRouterDevice } from "@entelic/shared";
-import { EntelicMidStreamError, EntelicPrivacyUnroutable, errorMessage, isContextOverflowError } from "./errors";
+import type { ChatCompletion, ChatCompletionChunk, ChatUsage, RouterProbe } from "@ludion/shared";
+import { probeRouterDevice } from "@ludion/shared";
+import { LudionMidStreamError, LudionPrivacyUnroutable, errorMessage, isContextOverflowError } from "./errors";
 import type { LocalExecutor } from "./local";
 import { createWebLLMExecutor } from "./local";
 import type { PolicyTable, RequestFacts } from "./policy";
@@ -9,13 +9,13 @@ import type { ServerExecutor } from "./server";
 import { createFetchServerExecutor } from "./server";
 import { createSafeBrowserKV, DEFAULT_STRIKE_TTL_MS, STRIKE_CAUGHT, StrikeStore } from "./strikes";
 import { estimatePromptTokens } from "./tokens";
-import type { DecisionLog, EntelicChatRequest, EntelicOptions, GenRequest } from "./types";
+import type { DecisionLog, LudionChatRequest, LudionOptions, GenRequest } from "./types";
 import policyV0 from "./policy.v0.json";
 
 export type {
   DecisionLog,
-  EntelicChatRequest,
-  EntelicOptions,
+  LudionChatRequest,
+  LudionOptions,
   FallbackConfig,
   GenRequest,
 } from "./types";
@@ -31,7 +31,7 @@ export {
   STRIKE_THRESHOLD,
 } from "./strikes";
 export type { KV, RouterTombstone } from "./strikes";
-export { EntelicMidStreamError, EntelicPrivacyUnroutable, isContextOverflowError } from "./errors";
+export { LudionMidStreamError, LudionPrivacyUnroutable, isContextOverflowError } from "./errors";
 export { sseDataEvents, createFetchServerExecutor } from "./server";
 export type { ServerExecutor } from "./server";
 export type { LocalExecutor } from "./local";
@@ -43,19 +43,19 @@ export const DEFAULT_LOCAL_CONTEXT_WINDOW = 4096;
 /** The bundled v0 policy table. */
 export const POLICY_V0 = policyV0 as PolicyTable;
 
-export type EntelicStreamResponse = AsyncIterable<ChatCompletionChunk> & {
-  readonly _entelic: DecisionLog;
+export type LudionStreamResponse = AsyncIterable<ChatCompletionChunk> & {
+  readonly _ludion: DecisionLog;
 };
-export type EntelicCompletionResponse = ChatCompletion & { readonly _entelic: DecisionLog };
+export type LudionCompletionResponse = ChatCompletion & { readonly _ludion: DecisionLog };
 
-function attachLog<T extends object>(obj: T, log: DecisionLog): T & { readonly _entelic: DecisionLog } {
-  Object.defineProperty(obj, "_entelic", { value: log, enumerable: false });
-  return obj as T & { readonly _entelic: DecisionLog };
+function attachLog<T extends object>(obj: T, log: DecisionLog): T & { readonly _ludion: DecisionLog } {
+  Object.defineProperty(obj, "_ludion", { value: log, enumerable: false });
+  return obj as T & { readonly _ludion: DecisionLog };
 }
 
-export class Entelic {
+export class Ludion {
   readonly probe: RouterProbe;
-  readonly chat: { completions: { create: Entelic["createCompletion"] } };
+  readonly chat: { completions: { create: Ludion["createCompletion"] } };
 
   private readonly policy: PolicyTable;
   private readonly localModel: string;
@@ -68,7 +68,7 @@ export class Entelic {
   private readonly fallbackModel: string;
   private readonly now: () => number;
 
-  private constructor(options: EntelicOptions, probe: RouterProbe, strikes: StrikeStore, now: () => number) {
+  private constructor(options: LudionOptions, probe: RouterProbe, strikes: StrikeStore, now: () => number) {
     this.probe = probe;
     this.policy = options.policy ?? POLICY_V0;
     this.localModel = options.localModel ?? DEFAULT_LOCAL_MODEL;
@@ -83,31 +83,31 @@ export class Entelic {
     this.chat = { completions: { create: this.createCompletion.bind(this) } };
   }
 
-  static async create(options: EntelicOptions): Promise<Entelic> {
+  static async create(options: LudionOptions): Promise<Ludion> {
     const kv = options._test?.kv ?? createSafeBrowserKV();
     const now = options._test?.now ?? Date.now;
     const strikes = new StrikeStore(kv, options.strikeTtlMs ?? DEFAULT_STRIKE_TTL_MS, now);
     // Spec Section 6: a tombstone surviving into this boot means the previous
     // local load/generate killed the tab → +1.0 strike for that model.
     strikes.recoverTombstone();
-    // Probe once per Entelic instance (per page load). Never imports WebLLM.
+    // Probe once per Ludion instance (per page load). Never imports WebLLM.
     const probe = options._test?.probe ?? (await probeRouterDevice());
-    return new Entelic(options, probe, strikes, now);
+    return new Ludion(options, probe, strikes, now);
   }
 
   private createCompletion(
-    req: EntelicChatRequest & { stream: true },
-  ): Promise<EntelicStreamResponse>;
+    req: LudionChatRequest & { stream: true },
+  ): Promise<LudionStreamResponse>;
   private createCompletion(
-    req: EntelicChatRequest & { stream?: false },
-  ): Promise<EntelicCompletionResponse>;
+    req: LudionChatRequest & { stream?: false },
+  ): Promise<LudionCompletionResponse>;
   private createCompletion(
-    req: EntelicChatRequest,
-  ): Promise<EntelicStreamResponse | EntelicCompletionResponse>;
+    req: LudionChatRequest,
+  ): Promise<LudionStreamResponse | LudionCompletionResponse>;
   private async createCompletion(
-    req: EntelicChatRequest,
-  ): Promise<EntelicStreamResponse | EntelicCompletionResponse> {
-    const privacy = req.entelic?.privacy ?? this.privacyDefault;
+    req: LudionChatRequest,
+  ): Promise<LudionStreamResponse | LudionCompletionResponse> {
+    const privacy = req.ludion?.privacy ?? this.privacyDefault;
     const facts: RequestFacts = {
       est_prompt_tokens: estimatePromptTokens(req.messages),
       max_tokens: req.max_tokens ?? null,
@@ -157,7 +157,7 @@ export class Entelic {
     })();
 
     if (decision.kind === "privacy-unroutable") {
-      const err = new EntelicPrivacyUnroutable(decision.rule_id, decision.reason);
+      const err = new LudionPrivacyUnroutable(decision.rule_id, decision.reason);
       log.error = errorMessage(err);
       emitOnce();
       throw err;
@@ -201,7 +201,7 @@ export class Entelic {
     privacy: boolean,
     log: DecisionLog,
     emitOnce: () => void,
-  ): Promise<EntelicCompletionResponse> {
+  ): Promise<LudionCompletionResponse> {
     if (target === "local") {
       try {
         await this.ensureLocalLoaded();
@@ -259,7 +259,7 @@ export class Entelic {
     privacy: boolean,
     log: DecisionLog,
     emitOnce: () => void,
-  ): EntelicStreamResponse {
+  ): LudionStreamResponse {
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const self = this;
 
@@ -332,7 +332,7 @@ export class Entelic {
                   // A-2: yielded tokens cannot be recalled — no transparent
                   // retry after the first content token. Typed stream error.
                   log.degraded_failed = true;
-                  throw new EntelicMidStreamError(
+                  throw new LudionMidStreamError(
                     "local generation failed after first token; transparent retry impossible",
                     { cause: e },
                   );

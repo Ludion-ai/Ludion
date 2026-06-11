@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { RouterProbe } from "@entelic/shared";
+import type { RouterProbe } from "@ludion/shared";
 import { POLICY_V0 } from "../src/index";
 import type { RequestFacts } from "../src/policy";
 import { evaluatePolicy } from "../src/policy";

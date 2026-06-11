@@ -1,9 +1,9 @@
 {
-  "name": "entelic-bench",
+  "name": "ludion-bench",
   "private": true,
   "version": "0.0.0",
   "type": "module",
-  "description": "Entelic Gate 0: browser inference engine benchmark harness",
+  "description": "Ludion Gate 0: browser inference engine benchmark harness",
   "scripts": {
     "dev": "vite",
     "build": "vite build",

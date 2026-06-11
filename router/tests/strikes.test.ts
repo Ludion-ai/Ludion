@@ -91,8 +91,8 @@ describe("StrikeStore (Q5)", () => {
 
   it("corrupted persisted JSON degrades to a fresh store", () => {
     const { store, kv } = makeStore();
-    kv.setItem("entelic.router.strikes.v1", "{not json");
-    kv.setItem("entelic.router.tombstone.v1", "also not json");
+    kv.setItem("ludion.router.strikes.v1", "{not json");
+    kv.setItem("ludion.router.tombstone.v1", "also not json");
     expect(store.getScore(MODEL)).toBe(0);
     expect(store.readTombstone()).toBeNull();
     store.addStrike(MODEL, STRIKE_KILL); // recovers by overwriting

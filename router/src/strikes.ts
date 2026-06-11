@@ -1,7 +1,7 @@
 /**
  * Strike store — production reuse of the bench tombstone lesson (spec
  * Section 6, decisions Q5). Same mechanism as bench, separate keys and
- * schema, zero interference (`entelic.bench.*` vs `entelic.router.*`).
+ * schema, zero interference (`ludion.bench.*` vs `ludion.router.*`).
  *
  * Scoring: kill (tombstone survives reload) = +1.0; caught local failure
  * = +0.5; score >= 1 short-circuits policy to server for that model_id.
@@ -19,8 +19,8 @@ export interface KV {
   removeItem(key: string): void;
 }
 
-const STRIKES_KEY = "entelic.router.strikes.v1";
-const TOMBSTONE_KEY = "entelic.router.tombstone.v1";
+const STRIKES_KEY = "ludion.router.strikes.v1";
+const TOMBSTONE_KEY = "ludion.router.tombstone.v1";
 
 export const DEFAULT_STRIKE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 export const STRIKE_KILL = 1.0;
@@ -59,8 +59,8 @@ export function createSafeBrowserKV(): KV {
   let inner: KV;
   try {
     const ls = globalThis.localStorage;
-    ls.setItem("entelic.router.kvprobe", "1");
-    ls.removeItem("entelic.router.kvprobe");
+    ls.setItem("ludion.router.kvprobe", "1");
+    ls.removeItem("ludion.router.kvprobe");
     inner = ls;
   } catch {
     inner = memoryKV();

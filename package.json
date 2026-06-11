@@ -1,13 +1,13 @@
 {
-  "name": "entelic",
+  "name": "ludion",
   "private": true,
   "version": "0.0.0",
   "type": "module",
   "scripts": {
     "typecheck": "pnpm -r typecheck",
     "test": "pnpm -r test",
-    "supplier-table": "pnpm --filter entelic-bench supplier-table",
-    "dev:bench": "pnpm --filter entelic-bench dev",
-    "dev:demo": "pnpm --filter entelic-demo dev"
+    "supplier-table": "pnpm --filter ludion-bench supplier-table",
+    "dev:bench": "pnpm --filter ludion-bench dev",
+    "dev:demo": "pnpm --filter ludion-demo dev"
   }
 }

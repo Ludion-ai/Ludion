@@ -1,5 +1,5 @@
 /**
- * entelic.bench.v0 — stable result schema (versioned contract).
+ * ludion.bench.v0 — stable result schema (versioned contract).
  *
  * Amendments approved at spec review (2026-06-10):
  *  - runs[].backend: 3-value enum ("webgpu" | "wasm-singlethread" | "wasm-multithread").
@@ -19,7 +19,16 @@
  *    null where the engine does not expose / we do not control it.
  */
 
-export const SCHEMA_ID = "entelic.bench.v0" as const;
+export const SCHEMA_ID = "ludion.bench.v0" as const;
+
+/**
+ * Legacy alias (project rename entelic → ludion, 2026-06-11): archived Gate 0
+ * exports in results/ are inviolable measurement records and keep the old
+ * schema id. The format is byte-identical; only the id string differs.
+ */
+export const LEGACY_SCHEMA_IDS = ["entelic.bench.v0"] as const;
+
+export type SchemaId = typeof SCHEMA_ID | (typeof LEGACY_SCHEMA_IDS)[number];
 
 export type EngineId = "webllm" | "transformersjs" | "wllama";
 export type Backend = "webgpu" | "wasm-singlethread" | "wasm-multithread";
@@ -87,7 +96,7 @@ export interface RunRow {
 }
 
 export interface BenchDocument {
-  schema: typeof SCHEMA_ID;
+  schema: SchemaId; // SCHEMA_ID on new exports; LEGACY_SCHEMA_IDS accepted on read
   collected_at: string;
   device: DeviceInfo;
   sessions: SessionRow[];
@@ -152,7 +161,9 @@ export function validateBenchDocument(doc: unknown): ValidationResult {
     doc,
     "$",
     {
-      schema: (v) => v === SCHEMA_ID,
+      schema: (v) =>
+        v === SCHEMA_ID ||
+        (typeof v === "string" && (LEGACY_SCHEMA_IDS as readonly string[]).includes(v)),
       collected_at: isStr,
       operator_notes: isStr,
     },

@@ -1,4 +1,4 @@
-import type { ChatCompletion, ChatCompletionChunk } from "@entelic/shared";
+import type { ChatCompletion, ChatCompletionChunk } from "@ludion/shared";
 import type { FallbackConfig, GenRequest } from "./types";
 
 /**
@@ -65,7 +65,7 @@ async function httpError(res: Response): Promise<Error> {
   } catch {
     // body unavailable
   }
-  return new Error(`entelic-router: fallback endpoint HTTP ${res.status}${detail ? `: ${detail}` : ""}`);
+  return new Error(`ludion-router: fallback endpoint HTTP ${res.status}${detail ? `: ${detail}` : ""}`);
 }
 
 export function createFetchServerExecutor(cfg: FallbackConfig): ServerExecutor {
@@ -92,7 +92,7 @@ export function createFetchServerExecutor(cfg: FallbackConfig): ServerExecutor {
         }),
       });
       if (!res.ok) throw await httpError(res);
-      if (!res.body) throw new Error("entelic-router: fallback endpoint returned no body for stream");
+      if (!res.body) throw new Error("ludion-router: fallback endpoint returned no body for stream");
       for await (const data of sseDataEvents(res.body)) {
         if (data === "[DONE]") return;
         yield JSON.parse(data) as ChatCompletionChunk;

@@ -1,9 +1,9 @@
 {
-  "name": "entelic-demo",
+  "name": "ludion-demo",
   "private": true,
   "version": "0.0.0",
   "type": "module",
-  "description": "Entelic Gate 1 demo chat page (doubles as Gate 2 public demo)",
+  "description": "Ludion Gate 1 demo chat page (doubles as Gate 2 public demo)",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
@@ -11,7 +11,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "entelic-router": "workspace:*"
+    "ludion-router": "workspace:*"
   },
   "devDependencies": {
     "@vitejs/plugin-basic-ssl": "2.3.0",

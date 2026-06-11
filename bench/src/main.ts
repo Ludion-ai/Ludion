@@ -17,7 +17,7 @@ const ADAPTERS: Record<EngineId, () => BenchAdapter> = {
   wllama: createWllamaAdapter,
 };
 
-const AUTORUN_KEY = "entelic.bench.autorun";
+const AUTORUN_KEY = "ludion.bench.autorun";
 
 const store = createBrowserStore();
 let state: PersistedState | null = store.loadState();

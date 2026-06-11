@@ -1,4 +1,4 @@
-import type { ChatMessage } from "@entelic/shared";
+import type { ChatMessage } from "@ludion/shared";
 
 /**
  * CJK-weighted prompt token estimate (Gate 1 decisions Q4, A-4).

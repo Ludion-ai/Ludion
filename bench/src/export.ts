@@ -17,7 +17,7 @@ export function buildDocument(state: PersistedState, device: DeviceInfo): BenchD
 export function exportFilename(label: string): string {
   const safeLabel = (label || "unlabeled").replace(/[^a-zA-Z0-9._-]+/g, "-").slice(0, 40);
   const ts = new Date().toISOString().replace(/[:.]/g, "-");
-  return `entelic-bench-${safeLabel}-${ts}.json`;
+  return `ludion-bench-${safeLabel}-${ts}.json`;
 }
 
 export async function copyToClipboard(doc: BenchDocument): Promise<void> {

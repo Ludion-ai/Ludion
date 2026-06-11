@@ -1,9 +1,9 @@
 {
-  "name": "entelic-router",
+  "name": "ludion-router",
   "private": true,
   "version": "0.0.0",
   "type": "module",
-  "description": "Entelic Gate 1: thin deterministic router — local WebLLM or customer server fallback",
+  "description": "Ludion Gate 1: thin deterministic router — local WebLLM or customer server fallback",
   "exports": {
     ".": {
       "types": "./src/index.ts",
@@ -15,7 +15,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@entelic/shared": "workspace:*",
+    "@ludion/shared": "workspace:*",
     "@mlc-ai/web-llm": "0.2.84"
   },
   "devDependencies": {

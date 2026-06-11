@@ -5,8 +5,8 @@
  * class), or the local model is struck (B-2: forcing local on a device with
  * kill history would kill the customer's tab). Never silently sent to server.
  */
-export class EntelicPrivacyUnroutable extends Error {
-  override name = "EntelicPrivacyUnroutable";
+export class LudionPrivacyUnroutable extends Error {
+  override name = "LudionPrivacyUnroutable";
   constructor(
     public readonly rule_id: string,
     reason: string,
@@ -21,8 +21,8 @@ export class EntelicPrivacyUnroutable extends Error {
  * impossible by principle (A-2); the stream terminates with this typed error
  * and the decision log records `degraded_failed`.
  */
-export class EntelicMidStreamError extends Error {
-  override name = "EntelicMidStreamError";
+export class LudionMidStreamError extends Error {
+  override name = "LudionMidStreamError";
   constructor(message: string, options?: { cause?: unknown }) {
     super(message, options);
   }

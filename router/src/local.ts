@@ -1,4 +1,4 @@
-import type { ChatCompletion, ChatCompletionChunk } from "@entelic/shared";
+import type { ChatCompletion, ChatCompletionChunk } from "@ludion/shared";
 import type { GenRequest } from "./types";
 
 /**
@@ -42,7 +42,7 @@ export function createWebLLMExecutor(): LocalExecutor {
     },
 
     async stream(req: GenRequest): Promise<AsyncIterable<ChatCompletionChunk>> {
-      if (!engine) throw new Error("entelic-router: local stream() before ensureLoaded()");
+      if (!engine) throw new Error("ludion-router: local stream() before ensureLoaded()");
       const chunks = await engine.chat.completions.create({
         messages: req.messages,
         max_tokens: req.max_tokens,
@@ -55,7 +55,7 @@ export function createWebLLMExecutor(): LocalExecutor {
     },
 
     async complete(req: GenRequest): Promise<ChatCompletion> {
-      if (!engine) throw new Error("entelic-router: local complete() before ensureLoaded()");
+      if (!engine) throw new Error("ludion-router: local complete() before ensureLoaded()");
       const completion = await engine.chat.completions.create({
         messages: req.messages,
         max_tokens: req.max_tokens,

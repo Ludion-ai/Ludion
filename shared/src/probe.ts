@@ -92,7 +92,7 @@ async function probeAdapter(): Promise<RouterAdapterInfo | null> {
 }
 
 /**
- * Probe the current browser. Cached per Entelic instance (per page load) by
+ * Probe the current browser. Cached per Ludion instance (per page load) by
  * the router facade. Only touches `navigator.gpu.requestAdapter()` — never
  * imports WebLLM (Gate 1 decisions Q2).
  */

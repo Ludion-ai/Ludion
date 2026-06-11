@@ -30,7 +30,7 @@ function validRun(overrides: Partial<RunRow> = {}): RunRow {
 
 function validDoc(): BenchDocument {
   return {
-    schema: "entelic.bench.v0",
+    schema: "ludion.bench.v0",
     collected_at: new Date().toISOString(),
     device: {
       ua: "test-agent",
@@ -97,12 +97,22 @@ describe("validateBenchDocument", () => {
     expect(validateBenchDocument(doc).ok).toBe(true);
   });
 
+  it("accepts the legacy schema id (archived Gate 0 exports)", () => {
+    const doc = validDoc();
+    doc.schema = "entelic.bench.v0";
+    const result = validateBenchDocument(doc);
+    expect(result.errors).toEqual([]);
+    expect(result.ok).toBe(true);
+  });
+
   it("rejects wrong schema id", () => {
     const doc = validDoc() as unknown as Record<string, unknown>;
-    doc.schema = "entelic.bench.v1";
-    const result = validateBenchDocument(doc);
-    expect(result.ok).toBe(false);
-    expect(result.errors.some((e) => e.includes("$.schema"))).toBe(true);
+    for (const bad of ["ludion.bench.v1", "entelic.bench.v1"]) {
+      doc.schema = bad;
+      const result = validateBenchDocument(doc);
+      expect(result.ok).toBe(false);
+      expect(result.errors.some((e) => e.includes("$.schema"))).toBe(true);
+    }
   });
 
   it("rejects invalid backend enum value", () => {

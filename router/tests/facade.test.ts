@@ -1,14 +1,14 @@
 import { describe, expect, it } from "vitest";
-import type { ChatCompletion, ChatCompletionChunk, RouterProbe } from "@entelic/shared";
+import type { ChatCompletion, ChatCompletionChunk, RouterProbe } from "@ludion/shared";
 import {
   DEFAULT_LOCAL_MODEL,
   DEFAULT_STRIKE_TTL_MS,
-  Entelic,
-  EntelicMidStreamError,
-  EntelicPrivacyUnroutable,
+  Ludion,
+  LudionMidStreamError,
+  LudionPrivacyUnroutable,
   StrikeStore,
 } from "../src/index";
-import type { DecisionLog, EntelicOptions } from "../src/index";
+import type { DecisionLog, LudionOptions } from "../src/index";
 import type { LocalExecutor } from "../src/local";
 import type { ServerExecutor } from "../src/server";
 import type { KV } from "../src/strikes";
@@ -141,7 +141,7 @@ function mockLocal(spy: LocalSpy, mode: LocalMode = { kind: "ok" }): LocalExecut
 }
 
 interface Harness {
-  entelic: Entelic;
+  ludion: Ludion;
   kv: KV;
   serverSpy: ServerSpy;
   localSpy: LocalSpy;
@@ -153,7 +153,7 @@ async function harness(opts: {
   probe?: RouterProbe;
   localMode?: LocalMode;
   kv?: KV;
-  hints?: EntelicOptions["hints"];
+  hints?: LudionOptions["hints"];
   startClock?: number;
 }): Promise<Harness> {
   // starts at real time so verification reads via `new StrikeStore(kv)`
@@ -163,7 +163,7 @@ async function harness(opts: {
   const serverSpy: ServerSpy = { streamCalls: 0, completeCalls: 0, lastSignal: null };
   const localSpy: LocalSpy = { loadCalls: 0, streamCalls: 0, completeCalls: 0, interruptCalls: 0 };
   const decisions: DecisionLog[] = [];
-  const entelic = await Entelic.create({
+  const ludion = await Ludion.create({
     fallback: { url: "https://example.test/v1/chat/completions", model: "server-model" },
     ...(opts.hints ? { hints: opts.hints } : {}),
     onDecision: (log) => decisions.push(log),
@@ -176,7 +176,7 @@ async function harness(opts: {
       serverExecutor: mockServer(serverSpy),
     },
   });
-  return { entelic, kv, serverSpy, localSpy, decisions, tick: (ms) => (t += ms) };
+  return { ludion, kv, serverSpy, localSpy, decisions, tick: (ms) => (t += ms) };
 }
 
 const MESSAGES = [{ role: "user" as const, content: "hello there" }];
@@ -189,15 +189,15 @@ async function drain(stream: AsyncIterable<ChatCompletionChunk>): Promise<string
 
 // --- tests --------------------------------------------------------------------
 
-describe("Entelic facade: routing + execution", () => {
+describe("Ludion facade: routing + execution", () => {
   it("desktop → local stream (R4), measurements + onDecision once (acceptance 1)", async () => {
     const h = await harness({});
-    const stream = await h.entelic.chat.completions.create({
+    const stream = await h.ludion.chat.completions.create({
       messages: MESSAGES,
       max_tokens: 64,
       stream: true,
     });
-    const log = stream._entelic;
+    const log = stream._ludion;
     expect(log.target).toBe("local");
     expect(log.rule_id).toBe("R4");
     expect(log.policy_version).toBe("v0-20260610");
@@ -214,47 +214,47 @@ describe("Entelic facade: routing + execution", () => {
     expect(h.decisions).toEqual([log]); // exactly once, same (mutated) object
     expect(h.serverSpy.streamCalls).toBe(0);
     // tombstone cleared after success
-    expect(h.kv.getItem("entelic.router.tombstone.v1")).toBeNull();
+    expect(h.kv.getItem("ludion.router.tombstone.v1")).toBeNull();
   });
 
-  it("_entelic is non-enumerable (A-6 / acceptance 8)", async () => {
+  it("_ludion is non-enumerable (A-6 / acceptance 8)", async () => {
     const h = await harness({});
-    const stream = await h.entelic.chat.completions.create({
+    const stream = await h.ludion.chat.completions.create({
       messages: MESSAGES,
       stream: true,
     });
-    expect(Object.keys(stream)).not.toContain("_entelic");
+    expect(Object.keys(stream)).not.toContain("_ludion");
     await drain(stream);
   });
 
   it("iPhone → server (R3) with zero local engine involvement (acceptance 2)", async () => {
     const h = await harness({ probe: IPHONE });
-    const stream = await h.entelic.chat.completions.create({
+    const stream = await h.ludion.chat.completions.create({
       messages: MESSAGES,
       stream: true,
     });
     expect(await drain(stream)).toBe("srv-asrv-b");
-    expect(stream._entelic.rule_id).toBe("R2"); // no webgpu matches before R3 on this probe
-    expect(stream._entelic.target).toBe("server");
+    expect(stream._ludion.rule_id).toBe("R2"); // no webgpu matches before R3 on this probe
+    expect(stream._ludion.target).toBe("server");
     expect(h.localSpy.loadCalls).toBe(0);
     expect(h.localSpy.streamCalls).toBe(0);
   });
 
   it("iPhone with WebGPU-looking probe still hits R3", async () => {
     const h = await harness({ probe: probeOf({ os_class: "ios-webkit" }) });
-    const res = await h.entelic.chat.completions.create({ messages: MESSAGES, stream: true });
+    const res = await h.ludion.chat.completions.create({ messages: MESSAGES, stream: true });
     await drain(res);
-    expect(res._entelic.rule_id).toBe("R3");
+    expect(res._ludion.rule_id).toBe("R3");
     expect(h.localSpy.loadCalls).toBe(0);
   });
 
-  it("non-stream local success returns OpenAI-shaped completion + _entelic", async () => {
+  it("non-stream local success returns OpenAI-shaped completion + _ludion", async () => {
     const h = await harness({});
-    const res = await h.entelic.chat.completions.create({ messages: MESSAGES });
+    const res = await h.ludion.chat.completions.create({ messages: MESSAGES });
     expect(res.choices[0]?.message.content).toBe("local says hi");
-    expect(res._entelic.target).toBe("local");
-    expect(res._entelic.completed).toBe(true);
-    expect(Object.keys(res)).not.toContain("_entelic");
+    expect(res._ludion.target).toBe("local");
+    expect(res._ludion.completed).toBe(true);
+    expect(Object.keys(res)).not.toContain("_ludion");
     expect(h.decisions.length).toBe(1);
   });
 });
@@ -262,9 +262,9 @@ describe("Entelic facade: routing + execution", () => {
 describe("degrade (A-2 two-branch)", () => {
   it("stream: pre-first-token local failure → transparent server retry (acceptance 6)", async () => {
     const h = await harness({ localMode: { kind: "fail-pre-token", error: new Error("boom") } });
-    const stream = await h.entelic.chat.completions.create({ messages: MESSAGES, stream: true });
+    const stream = await h.ludion.chat.completions.create({ messages: MESSAGES, stream: true });
     expect(await drain(stream)).toBe("srv-asrv-b"); // consumer sees a seamless stream
-    const log = stream._entelic;
+    const log = stream._ludion;
     expect(log.degraded).toBe("local→server");
     expect(log.degraded_failed).toBe(false);
     expect(log.completed).toBe(true);
@@ -277,20 +277,20 @@ describe("degrade (A-2 two-branch)", () => {
 
   it("stream: load failure also degrades transparently", async () => {
     const h = await harness({ localMode: { kind: "fail-load", error: new Error("oom-ish") } });
-    const stream = await h.entelic.chat.completions.create({ messages: MESSAGES, stream: true });
+    const stream = await h.ludion.chat.completions.create({ messages: MESSAGES, stream: true });
     expect(await drain(stream)).toBe("srv-asrv-b");
-    expect(stream._entelic.degraded).toBe("local→server");
+    expect(stream._ludion.degraded).toBe("local→server");
   });
 
   it("stream: post-first-token failure ends the stream with a typed error (A-2)", async () => {
     const h = await harness({ localMode: { kind: "fail-mid-stream", error: new Error("died") } });
-    const stream = await h.entelic.chat.completions.create({ messages: MESSAGES, stream: true });
+    const stream = await h.ludion.chat.completions.create({ messages: MESSAGES, stream: true });
     let text = "";
     await expect(async () => {
       for await (const c of stream) text += c.choices[0]?.delta?.content ?? "";
-    }).rejects.toThrow(EntelicMidStreamError);
+    }).rejects.toThrow(LudionMidStreamError);
     expect(text).toBe("loc-a"); // yielded tokens cannot be recalled
-    const log = stream._entelic;
+    const log = stream._ludion;
     expect(log.degraded_failed).toBe(true);
     expect(log.degraded).toBeNull();
     expect(log.completed).toBe(false);
@@ -302,9 +302,9 @@ describe("degrade (A-2 two-branch)", () => {
 
   it("non-stream: local failure always retries transparently on server", async () => {
     const h = await harness({ localMode: { kind: "fail-load", error: new Error("boom") } });
-    const res = await h.entelic.chat.completions.create({ messages: MESSAGES });
+    const res = await h.ludion.chat.completions.create({ messages: MESSAGES });
     expect(res.choices[0]?.message.content).toBe("server says hi");
-    expect(res._entelic.degraded).toBe("local→server");
+    expect(res._ludion.degraded).toBe("local→server");
     expect(h.decisions.length).toBe(1);
   });
 
@@ -313,9 +313,9 @@ describe("degrade (A-2 two-branch)", () => {
     const h = await harness({
       localMode: { kind: "fail-pre-token", error: new ContextWindowSizeExceededError("ctx") },
     });
-    const stream = await h.entelic.chat.completions.create({ messages: MESSAGES, stream: true });
+    const stream = await h.ludion.chat.completions.create({ messages: MESSAGES, stream: true });
     expect(await drain(stream)).toBe("srv-asrv-b");
-    expect(stream._entelic.degraded).toBe("local→server");
+    expect(stream._ludion.degraded).toBe("local→server");
     expect(new StrikeStore(h.kv).getScore(DEFAULT_LOCAL_MODEL)).toBe(0);
   });
 });
@@ -327,11 +327,11 @@ describe("strikes across sessions (acceptance 4)", () => {
     new StrikeStore(kv).writeTombstone(DEFAULT_LOCAL_MODEL, "generate");
     // session 2 boots
     const h = await harness({ kv });
-    const stream = await h.entelic.chat.completions.create({ messages: MESSAGES, stream: true });
+    const stream = await h.ludion.chat.completions.create({ messages: MESSAGES, stream: true });
     expect(await drain(stream)).toBe("srv-asrv-b");
-    expect(stream._entelic.rule_id).toBe("R4+strike");
-    expect(stream._entelic.target).toBe("server");
-    expect(stream._entelic.strike_state[DEFAULT_LOCAL_MODEL]).toBe(1);
+    expect(stream._ludion.rule_id).toBe("R4+strike");
+    expect(stream._ludion.target).toBe("server");
+    expect(stream._ludion.strike_state[DEFAULT_LOCAL_MODEL]).toBe(1);
     expect(h.localSpy.loadCalls).toBe(0);
   });
 
@@ -340,18 +340,18 @@ describe("strikes across sessions (acceptance 4)", () => {
     new StrikeStore(kv).writeTombstone(DEFAULT_LOCAL_MODEL, "load");
     const h = await harness({ kv });
     h.tick(DEFAULT_STRIKE_TTL_MS + 1);
-    const stream = await h.entelic.chat.completions.create({ messages: MESSAGES, stream: true });
+    const stream = await h.ludion.chat.completions.create({ messages: MESSAGES, stream: true });
     expect(await drain(stream)).toBe("loc-aloc-b");
-    expect(stream._entelic.rule_id).toBe("R4");
+    expect(stream._ludion.rule_id).toBe("R4");
   });
 });
 
 describe("privacy (B-1 / B-2, acceptance 5)", () => {
-  it("privacy on iPhone probe throws EntelicPrivacyUnroutable, no server call", async () => {
+  it("privacy on iPhone probe throws LudionPrivacyUnroutable, no server call", async () => {
     const h = await harness({ probe: probeOf({ os_class: "ios-webkit" }), hints: { privacy: true } });
     await expect(
-      h.entelic.chat.completions.create({ messages: MESSAGES, stream: true }),
-    ).rejects.toThrow(EntelicPrivacyUnroutable);
+      h.ludion.chat.completions.create({ messages: MESSAGES, stream: true }),
+    ).rejects.toThrow(LudionPrivacyUnroutable);
     expect(h.serverSpy.streamCalls).toBe(0);
     expect(h.serverSpy.completeCalls).toBe(0);
     expect(h.localSpy.loadCalls).toBe(0);
@@ -363,14 +363,14 @@ describe("privacy (B-1 / B-2, acceptance 5)", () => {
 
   it("B-1: privacy forces local on Android beyond R5 request limits", async () => {
     const h = await harness({ probe: probeOf({ os_class: "android-chromium" }) });
-    const stream = await h.entelic.chat.completions.create({
+    const stream = await h.ludion.chat.completions.create({
       messages: [{ role: "user", content: "x".repeat(2000) }], // est 500 > 200
       stream: true,
-      entelic: { privacy: true },
+      ludion: { privacy: true },
     });
     expect(await drain(stream)).toBe("loc-aloc-b");
-    expect(stream._entelic.rule_id).toBe("R5+privacy");
-    expect(stream._entelic.target).toBe("local");
+    expect(stream._ludion.rule_id).toBe("R5+privacy");
+    expect(stream._ludion.target).toBe("local");
   });
 
   it("B-2: privacy × struck model throws instead of forcing local", async () => {
@@ -378,8 +378,8 @@ describe("privacy (B-1 / B-2, acceptance 5)", () => {
     new StrikeStore(kv).writeTombstone(DEFAULT_LOCAL_MODEL, "generate");
     const h = await harness({ kv, hints: { privacy: true } });
     await expect(
-      h.entelic.chat.completions.create({ messages: MESSAGES, stream: true }),
-    ).rejects.toThrow(EntelicPrivacyUnroutable);
+      h.ludion.chat.completions.create({ messages: MESSAGES, stream: true }),
+    ).rejects.toThrow(LudionPrivacyUnroutable);
   });
 
   it("privacy: local failure does NOT fall back to server (stream)", async () => {
@@ -387,10 +387,10 @@ describe("privacy (B-1 / B-2, acceptance 5)", () => {
       localMode: { kind: "fail-pre-token", error: new Error("boom") },
       hints: { privacy: true },
     });
-    const stream = await h.entelic.chat.completions.create({ messages: MESSAGES, stream: true });
+    const stream = await h.ludion.chat.completions.create({ messages: MESSAGES, stream: true });
     await expect(drain(stream)).rejects.toThrow("boom");
     expect(h.serverSpy.streamCalls).toBe(0);
-    expect(stream._entelic.degraded).toBeNull();
+    expect(stream._ludion.degraded).toBeNull();
     expect(h.decisions.length).toBe(1);
   });
 });
@@ -398,14 +398,14 @@ describe("privacy (B-1 / B-2, acceptance 5)", () => {
 describe("cancellation (Q3)", () => {
   it("consumer break on local stream → interruptGenerate, tombstone cleared, log once", async () => {
     const h = await harness({ localMode: { kind: "hang-after-first" } });
-    const stream = await h.entelic.chat.completions.create({ messages: MESSAGES, stream: true });
+    const stream = await h.ludion.chat.completions.create({ messages: MESSAGES, stream: true });
     for await (const c of stream) {
       if (c.choices[0]?.delta?.content) break; // stop after first token
     }
     expect(h.localSpy.interruptCalls).toBe(1);
-    expect(stream._entelic.cancelled).toBe(true);
-    expect(stream._entelic.completed).toBe(false);
-    expect(h.kv.getItem("entelic.router.tombstone.v1")).toBeNull();
+    expect(stream._ludion.cancelled).toBe(true);
+    expect(stream._ludion.completed).toBe(false);
+    expect(h.kv.getItem("ludion.router.tombstone.v1")).toBeNull();
     expect(h.decisions.length).toBe(1);
     // cancellation is not a failure: no strike
     expect(new StrikeStore(h.kv).getScore(DEFAULT_LOCAL_MODEL)).toBe(0);
@@ -413,11 +413,11 @@ describe("cancellation (Q3)", () => {
 
   it("consumer break on server stream → fetch aborted", async () => {
     const h = await harness({ probe: IPHONE });
-    const stream = await h.entelic.chat.completions.create({ messages: MESSAGES, stream: true });
+    const stream = await h.ludion.chat.completions.create({ messages: MESSAGES, stream: true });
     for await (const c of stream) {
       if (c.choices[0]?.delta?.content) break;
     }
     expect(h.serverSpy.lastSignal?.aborted).toBe(true);
-    expect(stream._entelic.cancelled).toBe(true);
+    expect(stream._ludion.cancelled).toBe(true);
   });
 });

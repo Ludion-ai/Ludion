@@ -1,4 +1,4 @@
-import type { ChatMessage, RouterProbe } from "@entelic/shared";
+import type { ChatMessage, RouterProbe } from "@ludion/shared";
 import type { PolicyTable } from "./policy";
 import type { KV } from "./strikes";
 
@@ -35,7 +35,7 @@ export interface FallbackConfig {
 export interface DecisionLog {
   policy_version: string;
   rule_id: string;
-  /** "unroutable" = privacy:true with no local path (EntelicPrivacyUnroutable thrown). */
+  /** "unroutable" = privacy:true with no local path (LudionPrivacyUnroutable thrown). */
   target: "local" | "server" | "unroutable";
   /** Model the request executes on; rewritten to the fallback model on degrade. */
   model: string;
@@ -64,7 +64,7 @@ export interface DecisionLog {
   error: string | null;
 }
 
-export interface EntelicOptions {
+export interface LudionOptions {
   fallback: FallbackConfig;
   /** Default: "Llama-3.2-1B-Instruct-q4f16_1-MLC". */
   localModel?: string;
@@ -87,11 +87,11 @@ export interface EntelicOptions {
   };
 }
 
-/** OpenAI-shaped request with optional per-request Entelic hints. */
-export interface EntelicChatRequest {
+/** OpenAI-shaped request with optional per-request Ludion hints. */
+export interface LudionChatRequest {
   messages: ChatMessage[];
   max_tokens?: number;
   temperature?: number;
   stream?: boolean;
-  entelic?: { privacy?: boolean };
+  ludion?: { privacy?: boolean };
 }

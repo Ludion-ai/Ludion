@@ -1,15 +1,15 @@
-import { Entelic } from "entelic-router";
-import type { DecisionLog } from "entelic-router";
+import { Ludion } from "ludion-router";
+import type { DecisionLog } from "ludion-router";
 import "./style.css";
 
 /**
  * Gate 1 demo chat page (spec Section 8): message box, streaming output, a
  * decision strip per response, and a settings drawer for the fallback
  * endpoint. The calling code is plain OpenAI shape — the only
- * Entelic-specific bit is reading `_entelic` (acceptance criterion 8).
+ * Ludion-specific bit is reading `_ludion` (acceptance criterion 8).
  */
 
-const SETTINGS_KEY = "entelic.demo.fallback.v1";
+const SETTINGS_KEY = "ludion.demo.fallback.v1";
 
 interface DemoSettings {
   url: string;
@@ -99,7 +99,7 @@ async function boot(): Promise<void> {
     settingsEl.hidden = false;
     addBubble("system", "Configure the fallback endpoint in settings first.");
   }
-  const entelic = await Entelic.create({
+  const ludion = await Ludion.create({
     fallback: {
       url: settings.url,
       ...(settings.apiKey ? { apiKey: settings.apiKey } : {}),
@@ -109,11 +109,11 @@ async function boot(): Promise<void> {
 
   composerEl.addEventListener("submit", (ev) => {
     ev.preventDefault();
-    void send(entelic);
+    void send(ludion);
   });
 }
 
-async function send(entelic: Entelic): Promise<void> {
+async function send(ludion: Ludion): Promise<void> {
   const content = inputEl.value.trim();
   if (!content || sendEl.disabled) return;
   inputEl.value = "";
@@ -124,7 +124,7 @@ async function send(entelic: Entelic): Promise<void> {
   const bubble = addBubble("assistant", "");
   try {
     // Plain OpenAI-shaped call (acceptance 8).
-    const stream = await entelic.chat.completions.create({
+    const stream = await ludion.chat.completions.create({
       messages: history,
       max_tokens: 256,
       stream: true,
@@ -139,7 +139,7 @@ async function send(entelic: Entelic): Promise<void> {
       }
     }
     history.push({ role: "assistant", content: text });
-    addDecisionStrip(stream._entelic);
+    addDecisionStrip(stream._ludion);
   } catch (e) {
     bubble.classList.add("error");
     bubble.textContent = e instanceof Error ? `${e.name}: ${e.message}` : String(e);

@@ -1,4 +1,4 @@
-import type { RouterProbe } from "@entelic/shared";
+import type { RouterProbe } from "@ludion/shared";
 
 /**
  * Policy v0 interpreter — policy is DATA, not code (spec Section 5).

@@ -31,7 +31,7 @@ function run(overrides: Partial<RunRow>): RunRow {
 
 function doc(runs: RunRow[]): BenchDocument {
   return {
-    schema: "entelic.bench.v0",
+    schema: "ludion.bench.v0",
     collected_at: "2026-06-10T19:00:00.000Z",
     device: {
       ua: "test",

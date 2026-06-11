@@ -22,8 +22,8 @@ export interface KV {
   removeItem(key: string): void;
 }
 
-const STATE_KEY = "entelic.bench.state.v0";
-const TOMBSTONE_KEY = "entelic.bench.tombstone.v0";
+const STATE_KEY = "ludion.bench.state.v0";
+const TOMBSTONE_KEY = "ludion.bench.tombstone.v0";
 
 export type SessionStatus = "pending" | "done" | "aborted";
 

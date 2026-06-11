@@ -1,6 +1,7 @@
 # bench/results — Gate 0 measurement archive
 
-Exported `entelic.bench.v0` JSON documents, placed here **by the operator**
+Exported `ludion.bench.v0` JSON documents (legacy `entelic.bench.v0` exports
+are accepted as an alias of the identical format), placed here **by the operator**
 (the harness never writes to this directory). Failed/aborted runs are data:
 archive them too.
 

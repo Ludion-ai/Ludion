@@ -41,7 +41,7 @@ importers:
 
   demo:
     dependencies:
-      entelic-router:
+      ludion-router:
         specifier: workspace:*
         version: link:../router
     devDependencies:
@@ -60,7 +60,7 @@ importers:
 
   router:
     dependencies:
-      '@entelic/shared':
+      '@ludion/shared':
         specifier: workspace:*
         version: link:../shared
       '@mlc-ai/web-llm':
