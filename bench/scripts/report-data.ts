@@ -328,7 +328,9 @@ const blocks = new Map<string, string>();
   blocks.set(
     "policy-table",
     [
-      `Policy \`${policy.policy_version}\` (default max_tokens ${policy.default_max_tokens}). Rules evaluate top-down; first hardware+request match wins. Full rationales live in [\`router/src/policy.v0.json\`](router/src/policy.v0.json).`,
+      // Absolute URL: this block is injected into both README.md (repo root)
+      // and docs/report/ — a relative link cannot be correct in both places.
+      `Policy \`${policy.policy_version}\` (default max_tokens ${policy.default_max_tokens}). Rules evaluate top-down; first hardware+request match wins. Full rationales live in [\`router/src/policy.v0.json\`](https://github.com/Ludion-ai/Ludion/blob/main/router/src/policy.v0.json).`,
       "",
       "| rule | target | hardware condition | request condition | privacy-eligible | rationale (first sentence) |",
       "|---|---|---|---|---|---|",

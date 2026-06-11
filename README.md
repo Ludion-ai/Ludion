@@ -10,7 +10,11 @@ derived policy.
 [![npm](https://img.shields.io/npm/v/ludion)](https://www.npmjs.com/package/ludion)
 [![license: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-<!-- operator: decision-strip screenshot row — 3 images: desktop local/R4, iPhone server/R3, long-CJK server/R6. -->
+The same app, three environments — each response carries its routing decision:
+
+| desktop → `local` (R4) | desktop, long CJK prompt → `server` (R6) | iPhone → `server` (R3) |
+|---|---|---|
+| ![Decision strip: desktop routed local by rule R4](assets/strip-desktop-local-r4.png) | ![Decision strip: long CJK prompt routed to server by rule R6](assets/strip-desktop-server-r6.png) | ![Decision strip: iPhone routed to server by rule R3](assets/strip-iphone-server-r3.jpg) |
 
 ## Quickstart
 
@@ -48,7 +52,7 @@ rule decided it.
 ## The routing policy (and its evidence)
 
 <!-- gen:policy-table -->
-Policy `v0-20260610` (default max_tokens 256). Rules evaluate top-down; first hardware+request match wins. Full rationales live in [`router/src/policy.v0.json`](router/src/policy.v0.json).
+Policy `v0-20260610` (default max_tokens 256). Rules evaluate top-down; first hardware+request match wins. Full rationales live in [`router/src/policy.v0.json`](https://github.com/Ludion-ai/Ludion/blob/main/router/src/policy.v0.json).
 
 | rule | target | hardware condition | request condition | privacy-eligible | rationale (first sentence) |
 |---|---|---|---|---|---|
