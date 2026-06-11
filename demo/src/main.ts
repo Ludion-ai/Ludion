@@ -1,5 +1,5 @@
-import { Ludion } from "ludion";
-import type { DecisionLog } from "ludion";
+import { Ludion } from "ludion-router";
+import type { DecisionLog } from "ludion-router";
 import "./style.css";
 
 /**

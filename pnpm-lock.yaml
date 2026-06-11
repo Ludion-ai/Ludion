@@ -41,7 +41,7 @@ importers:
 
   demo:
     dependencies:
-      ludion:
+      ludion-router:
         specifier: workspace:*
         version: link:../router
     devDependencies:

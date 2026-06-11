@@ -40,7 +40,7 @@ jobs:
         run: git diff --exit-code
 
       - name: Build router package
-        run: pnpm --filter ludion build
+        run: pnpm --filter ludion-router build
 
       - name: Verify dist lazy-load guarantee (no engine code, dynamic import intact)
-        run: pnpm --filter ludion verify-dist
+        run: pnpm --filter ludion-router verify-dist

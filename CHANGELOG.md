@@ -2,7 +2,9 @@
 
 ## 0.1.0 — 2026-06-11
 
-First public release of `ludion`, a per-request router between on-device
+First public release of `ludion-router` (npm name; the project is Ludion —
+`ludion` is blocked by npm's typosquat protection against `luxon`), a
+per-request router between on-device
 WebGPU inference (WebLLM, dynamically loaded) and a bring-your-own
 OpenAI-compatible server endpoint.
 

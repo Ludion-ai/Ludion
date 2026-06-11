@@ -7,7 +7,7 @@ server when it can't — decided by a versioned, deterministic, empirically
 derived policy.
 
 [![CI](https://github.com/Ludion-ai/Ludion/actions/workflows/ci.yml/badge.svg)](https://github.com/Ludion-ai/Ludion/actions/workflows/ci.yml)
-[![npm](https://img.shields.io/npm/v/ludion)](https://www.npmjs.com/package/ludion)
+[![npm](https://img.shields.io/npm/v/ludion-router)](https://www.npmjs.com/package/ludion-router)
 [![license: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 The same app, three environments — each response carries its routing decision:
@@ -19,11 +19,11 @@ The same app, three environments — each response carries its routing decision:
 ## Quickstart
 
 ```bash
-npm install ludion
+npm install ludion-router
 ```
 
 ```ts
-import { Ludion } from "ludion";
+import { Ludion } from "ludion-router";
 
 const ludion = await Ludion.create({
   fallback: {

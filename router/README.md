@@ -1,19 +1,21 @@
-# ludion
+# ludion-router
 
 **A load balancer between your users' GPUs and your cloud.** Per-request
 routing of AI inference: probe → deterministic policy → local (WebLLM/WebGPU)
 or your own OpenAI-compatible server → structured decision log.
 
-This is the npm package. The repository — including the benchmark harness and
-the measurement report the policy is derived from — lives at
+This is the npm package (`ludion-router` — the project is **Ludion**; the
+registry name differs only because `ludion` is blocked by npm's typosquat
+protection against `luxon`). The repository — including the benchmark harness
+and the measurement report the policy is derived from — lives at
 [Ludion-ai/Ludion](https://github.com/Ludion-ai/Ludion).
 
 ```bash
-npm install ludion
+npm install ludion-router
 ```
 
 ```ts
-import { Ludion } from "ludion";
+import { Ludion } from "ludion-router";
 
 const ludion = await Ludion.create({
   fallback: { url, apiKey, model },     // OpenAI-compatible /chat/completions
