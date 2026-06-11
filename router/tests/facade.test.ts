@@ -1,16 +1,11 @@
 import { describe, expect, it } from "vitest";
 import type { ChatCompletion, ChatCompletionChunk, RouterProbe } from "@ludion/shared";
-import {
-  DEFAULT_LOCAL_MODEL,
-  DEFAULT_STRIKE_TTL_MS,
-  Ludion,
-  LudionMidStreamError,
-  LudionPrivacyUnroutable,
-  StrikeStore,
-} from "../src/index";
+import { Ludion, LudionMidStreamError, LudionPrivacyUnroutable } from "../src/index";
 import type { DecisionLog, LudionOptions } from "../src/index";
+import { DEFAULT_LOCAL_MODEL } from "../src/defaults";
 import type { LocalExecutor } from "../src/local";
 import type { ServerExecutor } from "../src/server";
+import { DEFAULT_STRIKE_TTL_MS, StrikeStore } from "../src/strikes";
 import type { KV } from "../src/strikes";
 
 // --- fixtures ---------------------------------------------------------------

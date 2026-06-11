@@ -10,38 +10,21 @@ import { createFetchServerExecutor } from "./server";
 import { createSafeBrowserKV, DEFAULT_STRIKE_TTL_MS, STRIKE_CAUGHT, StrikeStore } from "./strikes";
 import { estimatePromptTokens } from "./tokens";
 import type { DecisionLog, LudionChatRequest, LudionOptions, GenRequest } from "./types";
-import policyV0 from "./policy.v0.json";
+import { DEFAULT_LOCAL_CONTEXT_WINDOW, DEFAULT_LOCAL_MODEL, POLICY_V0 } from "./defaults";
 
+// Public API surface (Gate 2 decisions Q3 — frozen at publish):
+// the Ludion facade, the two typed errors, and the types those signatures
+// require. Internal machinery (strike store, SSE parser, executors, policy
+// evaluator, defaults) is deliberately unexported; demand for it is an issue.
 export type {
   DecisionLog,
   LudionChatRequest,
   LudionOptions,
   FallbackConfig,
-  GenRequest,
+  ModelId,
 } from "./types";
-export type { PolicyTable, PolicyRule, PolicyDecision, RequestFacts, RouteTarget } from "./policy";
-export { evaluatePolicy } from "./policy";
-export { estimatePromptTokens } from "./tokens";
-export {
-  StrikeStore,
-  createSafeBrowserKV,
-  DEFAULT_STRIKE_TTL_MS,
-  STRIKE_CAUGHT,
-  STRIKE_KILL,
-  STRIKE_THRESHOLD,
-} from "./strikes";
-export type { KV, RouterTombstone } from "./strikes";
-export { LudionMidStreamError, LudionPrivacyUnroutable, isContextOverflowError } from "./errors";
-export { sseDataEvents, createFetchServerExecutor } from "./server";
-export type { ServerExecutor } from "./server";
-export type { LocalExecutor } from "./local";
-
-export const DEFAULT_LOCAL_MODEL = "Llama-3.2-1B-Instruct-q4f16_1-MLC";
-/** B-4: router-side KV window default (decision-logged per request). */
-export const DEFAULT_LOCAL_CONTEXT_WINDOW = 4096;
-
-/** The bundled v0 policy table. */
-export const POLICY_V0 = policyV0 as PolicyTable;
+export type { PolicyTable, PolicyRule, RouteTarget } from "./policy";
+export { LudionMidStreamError, LudionPrivacyUnroutable } from "./errors";
 
 export type LudionStreamResponse = AsyncIterable<ChatCompletionChunk> & {
   readonly _ludion: DecisionLog;

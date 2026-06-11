@@ -15,7 +15,10 @@
     "skipLibCheck": true,
     "noEmit": true,
     "resolveJsonModule": true,
-    "types": ["@webgpu/types"]
+    "types": ["@webgpu/types"],
+    "paths": {
+      "@ludion/shared": ["../shared/src/index.ts"]
+    }
   },
   "include": ["src", "tests", "vitest.config.ts"]
 }

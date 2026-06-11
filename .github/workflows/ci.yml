@@ -1,0 +1,46 @@
+# Gate 2 decisions C-3: CI regenerates every derived artifact (supplier table,
+# README/report generated blocks) and fails on `git diff --exit-code` — the
+# structural guarantee that no number in the docs is hand-typed. It also
+# re-verifies the Gate 1 lazy-load guarantee against the built dist (Q2).
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        # version comes from package.json "packageManager"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Typecheck
+        run: pnpm -r typecheck
+
+      - name: Test
+        run: pnpm -r test
+
+      - name: Regenerate derived docs (supplier table + report/README blocks)
+        run: |
+          pnpm supplier-table
+          pnpm report-data
+
+      - name: No hand-typed numbers (regeneration must be a no-op)
+        run: git diff --exit-code
+
+      - name: Build router package
+        run: pnpm --filter ludion build
+
+      - name: Verify dist lazy-load guarantee (no engine code, dynamic import intact)
+        run: pnpm --filter ludion verify-dist

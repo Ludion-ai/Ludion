@@ -3,6 +3,7 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "license": "MIT",
   "description": "Ludion Gate 1 demo chat page (doubles as Gate 2 public demo)",
   "scripts": {
     "dev": "vite",
@@ -11,7 +12,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "ludion-router": "workspace:*"
+    "ludion": "workspace:*"
   },
   "devDependencies": {
     "@vitejs/plugin-basic-ssl": "2.3.0",

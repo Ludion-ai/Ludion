@@ -1,25 +1,56 @@
 {
-  "name": "ludion-router",
-  "private": true,
-  "version": "0.0.0",
+  "name": "ludion",
+  "version": "0.1.0",
   "type": "module",
-  "description": "Ludion Gate 1: thin deterministic router — local WebLLM or customer server fallback",
+  "license": "MIT",
+  "description": "A load balancer between your users' GPUs and your cloud — per-request routing of AI inference between on-device WebGPU and your own server, decided by a versioned, deterministic, empirically derived policy.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Ludion-ai/Ludion.git",
+    "directory": "router"
+  },
+  "homepage": "https://github.com/Ludion-ai/Ludion#readme",
+  "bugs": "https://github.com/Ludion-ai/Ludion/issues",
+  "keywords": [
+    "webgpu",
+    "webllm",
+    "inference",
+    "router",
+    "edge-ai",
+    "on-device"
+  ],
+  "sideEffects": false,
+  "files": [
+    "dist"
+  ],
   "exports": {
     ".": {
       "types": "./src/index.ts",
       "default": "./src/index.ts"
     }
   },
+  "publishConfig": {
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      }
+    }
+  },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "build": "tsup",
+    "verify-dist": "node scripts/verify-dist.mjs",
+    "prepublishOnly": "pnpm build && pnpm verify-dist"
   },
   "dependencies": {
-    "@ludion/shared": "workspace:*",
     "@mlc-ai/web-llm": "0.2.84"
   },
   "devDependencies": {
+    "@ludion/shared": "workspace:*",
     "@webgpu/types": "^0.1.70",
+    "tsup": "8.5.0",
     "typescript": "5.9.3",
     "vitest": "4.1.8"
   }

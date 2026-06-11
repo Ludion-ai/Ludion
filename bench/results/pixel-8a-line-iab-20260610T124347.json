@@ -1,0 +1,63 @@
+{
+  "schema": "entelic.bench.v0",
+  "collected_at": "2026-06-10T12:43:47.102Z",
+  "device": {
+    "ua": "Mozilla/5.0 (Linux; Android 16; Pixel 8a Build/CP1A.260405.005; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/148.0.7778.215 Mobile Safari/537.36 Line/26.8.0/IAB",
+    "webgpu": true,
+    "adapter": {
+      "vendor": "arm",
+      "architecture": "valhall",
+      "f16": true,
+      "maxBufferSize": 4294967292,
+      "limitsRaw": {
+        "maxTextureDimension1D": 16384,
+        "maxTextureDimension2D": 16384,
+        "maxTextureDimension3D": 2048,
+        "maxTextureArrayLayers": 2048,
+        "maxBindGroups": 4,
+        "maxBindingsPerBindGroup": 1000,
+        "maxDynamicUniformBuffersPerPipelineLayout": 10,
+        "maxDynamicStorageBuffersPerPipelineLayout": 8,
+        "maxSampledTexturesPerShaderStage": 48,
+        "maxSamplersPerShaderStage": 16,
+        "maxStorageBuffersPerShaderStage": 16,
+        "maxStorageTexturesPerShaderStage": 8,
+        "maxUniformBuffersPerShaderStage": 12,
+        "maxUniformBufferBindingSize": 65536,
+        "maxStorageBufferBindingSize": 2147483644,
+        "minUniformBufferOffsetAlignment": 256,
+        "minStorageBufferOffsetAlignment": 256,
+        "maxVertexBuffers": 8,
+        "maxBufferSize": 4294967292,
+        "maxVertexAttributes": 30,
+        "maxVertexBufferArrayStride": 2048,
+        "maxInterStageShaderVariables": 28,
+        "maxColorAttachments": 8,
+        "maxColorAttachmentBytesPerSample": 128,
+        "maxComputeWorkgroupStorageSize": 32768,
+        "maxComputeInvocationsPerWorkgroup": 1024,
+        "maxComputeWorkgroupSizeX": 1024,
+        "maxComputeWorkgroupSizeY": 1024,
+        "maxComputeWorkgroupSizeZ": 64,
+        "maxComputeWorkgroupsPerDimension": 65535
+      }
+    },
+    "hw_concurrency": 9,
+    "device_memory_gb": 8,
+    "screen": "412x915@2.625",
+    "operator_label": ""
+  },
+  "sessions": [
+    {
+      "engine": "webllm",
+      "model_id": "Llama-3.2-1B-Instruct-q4f16_1-MLC",
+      "cache_state": "cold",
+      "started_at": "2026-06-10T12:38:17.158Z",
+      "ended_at": null,
+      "battery_start": 0.49,
+      "battery_end": null
+    }
+  ],
+  "runs": [],
+  "operator_notes": "LINE in-app browser (IAB) on Pixel 8a. Session stalled mid-download and never completed. Sole physical evidence that IABs report webgpu:true with full adapter limits (B-6 correction basis): environment viability cannot be inferred from WebGPU presence. Restored from chat transcript 2026-06-10."
+}

@@ -3,6 +3,7 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "license": "MIT",
   "description": "Ludion Gate 0: browser inference engine benchmark harness",
   "scripts": {
     "dev": "vite",
@@ -10,7 +11,8 @@
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "supplier-table": "tsx scripts/supplier-table.ts"
+    "supplier-table": "tsx scripts/supplier-table.ts",
+    "report-data": "tsx scripts/report-data.ts"
   },
   "dependencies": {
     "@huggingface/transformers": "4.2.0",

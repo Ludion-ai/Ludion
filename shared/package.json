@@ -3,6 +3,7 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "license": "MIT",
   "description": "Ludion shared browser types + capability probe (router-facing copy; bench keeps its own)",
   "exports": {
     ".": {

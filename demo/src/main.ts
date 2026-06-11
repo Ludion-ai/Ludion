@@ -1,5 +1,5 @@
-import { Ludion } from "ludion-router";
-import type { DecisionLog } from "ludion-router";
+import { Ludion } from "ludion";
+import type { DecisionLog } from "ludion";
 import "./style.css";
 
 /**
@@ -10,6 +10,7 @@ import "./style.css";
  */
 
 const SETTINGS_KEY = "ludion.demo.fallback.v1";
+const NOTICE_KEY = "ludion.demo.notice.v1";
 
 interface DemoSettings {
   url: string;
@@ -95,6 +96,15 @@ function addDecisionStrip(log: DecisionLog): void {
 const history: { role: "user" | "assistant"; content: string }[] = [];
 
 async function boot(): Promise<void> {
+  // First-visit notice (Gate 2 §5). No shared key ships with this demo, ever.
+  if (!localStorage.getItem(NOTICE_KEY)) {
+    localStorage.setItem(NOTICE_KEY, new Date().toISOString());
+    addBubble(
+      "system",
+      "On WebGPU desktops this demo answers locally — no key needed. " +
+        "Server fallback requires your own OpenAI-compatible endpoint (settings).",
+    );
+  }
   if (!settings.url || !settings.model) {
     settingsEl.hidden = false;
     addBubble("system", "Configure the fallback endpoint in settings first.");

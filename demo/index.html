@@ -3,6 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <title>ludion demo</title>
   </head>
   <body>
@@ -11,6 +12,13 @@
         <h1>ludion</h1>
         <button id="settings-toggle" type="button">settings</button>
       </header>
+
+      <p id="banner">
+        Every response carries a <strong>decision strip</strong>: where the
+        request ran (<code>target=local</code> on your GPU via WebGPU, or
+        <code>target=server</code> on your configured fallback), which policy
+        rule decided it, and the measured ttft/tps.
+      </p>
 
       <section id="settings" hidden>
         <label>

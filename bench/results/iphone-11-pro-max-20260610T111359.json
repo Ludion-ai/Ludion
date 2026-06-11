@@ -1,0 +1,159 @@
+{
+  "schema": "entelic.bench.v0",
+  "collected_at": "2026-06-10T11:13:59.419Z",
+  "device": {
+    "ua": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.5 Mobile/15E148 Safari/604.1",
+    "webgpu": true,
+    "adapter": {
+      "vendor": "apple",
+      "architecture": "apple",
+      "f16": true,
+      "maxBufferSize": 715827880,
+      "limitsRaw": {
+        "maxTextureDimension1D": 16384,
+        "maxTextureDimension2D": 16384,
+        "maxTextureDimension3D": 2048,
+        "maxTextureArrayLayers": 2048,
+        "maxBindGroups": 11,
+        "maxBindingsPerBindGroup": 65535,
+        "maxDynamicUniformBuffersPerPipelineLayout": 65535,
+        "maxDynamicStorageBuffersPerPipelineLayout": 65535,
+        "maxSampledTexturesPerShaderStage": 44,
+        "maxSamplersPerShaderStage": 22,
+        "maxStorageBuffersPerShaderStage": 44,
+        "maxStorageTexturesPerShaderStage": 44,
+        "maxUniformBuffersPerShaderStage": 44,
+        "maxUniformBufferBindingSize": 715827880,
+        "maxStorageBufferBindingSize": 715827880,
+        "minUniformBufferOffsetAlignment": 32,
+        "minStorageBufferOffsetAlignment": 32,
+        "maxVertexBuffers": 12,
+        "maxBufferSize": 715827880,
+        "maxVertexAttributes": 30,
+        "maxVertexBufferArrayStride": 65532,
+        "maxInterStageShaderVariables": 124,
+        "maxColorAttachments": 8,
+        "maxColorAttachmentBytesPerSample": 64,
+        "maxComputeWorkgroupStorageSize": 32768,
+        "maxComputeInvocationsPerWorkgroup": 1024,
+        "maxComputeWorkgroupSizeX": 1024,
+        "maxComputeWorkgroupSizeY": 1024,
+        "maxComputeWorkgroupSizeZ": 1024,
+        "maxComputeWorkgroupsPerDimension": 65535
+      }
+    },
+    "hw_concurrency": 4,
+    "device_memory_gb": null,
+    "screen": "414x896@3",
+    "operator_label": ""
+  },
+  "sessions": [
+    {
+      "engine": "webllm",
+      "model_id": "Qwen2.5-1.5B-Instruct-q4f16_1-MLC",
+      "cache_state": "cold",
+      "started_at": "2026-06-10T10:01:32.976Z",
+      "ended_at": null,
+      "battery_start": null,
+      "battery_end": null
+    },
+    {
+      "engine": "webllm",
+      "model_id": "Qwen2.5-1.5B-Instruct-q4f16_1-MLC",
+      "cache_state": "cold",
+      "started_at": "2026-06-10T10:26:50.579Z",
+      "ended_at": null,
+      "battery_start": null,
+      "battery_end": null
+    },
+    {
+      "engine": "webllm",
+      "model_id": "Qwen2.5-1.5B-Instruct-q4f16_1-MLC",
+      "cache_state": "cold",
+      "started_at": "2026-06-10T10:27:50.308Z",
+      "ended_at": null,
+      "battery_start": null,
+      "battery_end": null
+    },
+    {
+      "engine": "webllm",
+      "model_id": "Qwen2.5-1.5B-Instruct-q4f16_1-MLC",
+      "cache_state": "cold",
+      "started_at": "2026-06-10T10:28:00.634Z",
+      "ended_at": null,
+      "battery_start": null,
+      "battery_end": null
+    },
+    {
+      "engine": "webllm",
+      "model_id": "Qwen2.5-1.5B-Instruct-q4f16_1-MLC",
+      "cache_state": "cold",
+      "started_at": "2026-06-10T11:08:30.026Z",
+      "ended_at": "2026-06-10T11:12:45.525Z",
+      "battery_start": null,
+      "battery_end": null
+    },
+    {
+      "engine": "transformersjs",
+      "model_id": "onnx-community/Qwen2.5-1.5B-Instruct",
+      "cache_state": "cold",
+      "started_at": "2026-06-10T11:12:48.449Z",
+      "ended_at": null,
+      "battery_start": null,
+      "battery_end": null
+    }
+  ],
+  "runs": [
+    {
+      "engine": "webllm",
+      "engine_version": "0.2.84",
+      "backend": null,
+      "model_id": "Qwen2.5-1.5B-Instruct-q4f16_1-MLC",
+      "quant": "q4f16_1",
+      "prompt": "short",
+      "cache_state": "cold",
+      "download_ms": 203739,
+      "download_mb": 728,
+      "init_ms": null,
+      "ttft_ms": null,
+      "prefill_tps": null,
+      "decode_tps": null,
+      "tokens_in": null,
+      "tokens_out": null,
+      "token_count_source": null,
+      "timing_source": null,
+      "peak_mem_mb": null,
+      "error": {
+        "stage": "init",
+        "error_name": "TypeError",
+        "error_message": "Load failed"
+      }
+    },
+    {
+      "engine": "webllm",
+      "engine_version": "0.2.84",
+      "backend": null,
+      "model_id": "Qwen2.5-1.5B-Instruct-q4f16_1-MLC",
+      "quant": "q4f16_1",
+      "prompt": "long-context",
+      "cache_state": "cold",
+      "download_ms": 203739,
+      "download_mb": 728,
+      "init_ms": null,
+      "ttft_ms": null,
+      "prefill_tps": null,
+      "decode_tps": null,
+      "tokens_in": null,
+      "tokens_out": null,
+      "token_count_source": null,
+      "timing_source": null,
+      "peak_mem_mb": null,
+      "error": {
+        "stage": "init",
+        "error_name": "TypeError",
+        "error_message": "Load failed"
+      }
+    }
+  ],
+  "operator_notes": ""
+}

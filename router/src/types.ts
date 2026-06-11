@@ -2,6 +2,9 @@ import type { ChatMessage, RouterProbe } from "@ludion/shared";
 import type { PolicyTable } from "./policy";
 import type { KV } from "./strikes";
 
+/** WebLLM prebuilt model identifier (e.g. "Llama-3.2-1B-Instruct-q4f16_1-MLC"). */
+export type ModelId = string;
+
 /** Normalized generation request handed to either executor. */
 export interface GenRequest {
   messages: ChatMessage[];
@@ -38,14 +41,14 @@ export interface DecisionLog {
   /** "unroutable" = privacy:true with no local path (LudionPrivacyUnroutable thrown). */
   target: "local" | "server" | "unroutable";
   /** Model the request executes on; rewritten to the fallback model on degrade. */
-  model: string;
+  model: ModelId;
   privacy: boolean;
   stream: boolean;
   est_prompt_tokens: number;
   max_tokens: number;
   /** Local KV context window in effect (B-4; default 4096). */
   local_context_window: number;
-  strike_state: Record<string, number>;
+  strike_state: Record<ModelId, number>;
   probe: RouterProbe;
   decided_at: string;
   // --- appended at terminal state (mutated; A-6) ---
@@ -67,7 +70,7 @@ export interface DecisionLog {
 export interface LudionOptions {
   fallback: FallbackConfig;
   /** Default: "Llama-3.2-1B-Instruct-q4f16_1-MLC". */
-  localModel?: string;
+  localModel?: ModelId;
   /** Default: bundled policy.v0.json. */
   policy?: PolicyTable;
   onDecision?: (log: DecisionLog) => void;
