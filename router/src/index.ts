@@ -57,7 +57,7 @@ export class Ludion {
     this.localModel = options.localModel ?? DEFAULT_LOCAL_MODEL;
     this.localContextWindow = options.localContextWindow ?? DEFAULT_LOCAL_CONTEXT_WINDOW;
     this.strikes = strikes;
-    this.local = options._test?.localExecutor ?? createWebLLMExecutor();
+    this.local = options._test?.localExecutor ?? createWebLLMExecutor(options.onLocalLoadProgress);
     this.server = options._test?.serverExecutor ?? createFetchServerExecutor(options.fallback);
     this.onDecision = options.onDecision;
     this.privacyDefault = options.hints?.privacy ?? false;

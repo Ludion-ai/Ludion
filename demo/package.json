@@ -7,7 +7,7 @@
   "description": "Ludion Gate 1 demo chat page (doubles as Gate 2 public demo)",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "node scripts/gen-qr.mjs && vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit"
   },
@@ -15,8 +15,11 @@
     "ludion-router": "workspace:*"
   },
   "devDependencies": {
+    "@fontsource/ibm-plex-mono": "^5.2.7",
+    "@fontsource/space-grotesk": "^5.2.10",
     "@vitejs/plugin-basic-ssl": "2.3.0",
     "@webgpu/types": "^0.1.70",
+    "qrcode": "^1.5.4",
     "typescript": "5.9.3",
     "vite": "7.3.5"
   }

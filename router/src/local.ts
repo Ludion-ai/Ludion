@@ -26,7 +26,9 @@ export interface LocalExecutor {
   interrupt(): Promise<void>;
 }
 
-export function createWebLLMExecutor(): LocalExecutor {
+export function createWebLLMExecutor(
+  onLoadProgress?: (p: { progress: number; text: string }) => void,
+): LocalExecutor {
   let engine: import("@mlc-ai/web-llm").MLCEngine | null = null;
   let loadedModelId: string | null = null;
 
@@ -37,7 +39,22 @@ export function createWebLLMExecutor(): LocalExecutor {
         throw new Error("WebGPU not available (navigator.gpu missing); WebLLM has no fallback");
       }
       const webllm = await import("@mlc-ai/web-llm");
-      engine = await webllm.CreateMLCEngine(modelId, {}, { context_window_size: contextWindow });
+      engine = await webllm.CreateMLCEngine(
+        modelId,
+        onLoadProgress
+          ? {
+              initProgressCallback: (report) => {
+                // Consumer callback errors must not break the load.
+                try {
+                  onLoadProgress({ progress: report.progress, text: report.text });
+                } catch {
+                  // ignore
+                }
+              },
+            }
+          : {},
+        { context_window_size: contextWindow },
+      );
       loadedModelId = modelId;
     },
 

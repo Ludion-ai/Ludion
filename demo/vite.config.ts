@@ -12,6 +12,6 @@ export default defineConfig({
     target: "es2022",
     // The dynamically imported WebLLM chunk is heavy by design (Q2); it is
     // only fetched after a local routing decision.
-    chunkSizeWarningLimit: 6000,
+    chunkSizeWarningLimit: 6500,
   },
 });

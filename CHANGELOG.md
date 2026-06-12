@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- Added `LudionOptions.onLocalLoadProgress` — optional passthrough of the
+  local engine's download/init progress (Gate 2.5 F-2). Additive; absent =
+  identical behavior to 0.1.0.
+
 ## 0.1.0 — 2026-06-11
 
 First public release of `ludion-router` (npm name; the project is Ludion —

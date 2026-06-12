@@ -78,7 +78,9 @@ only), R6 default→server. Full evidence table: see the
 WebLLM 0.2.84 (pinned), dynamically imported only after a local decision —
 server-routed sessions never download engine code or weights (verified
 against the built dist on every publish). KV context window defaults to
-4096 (`localContextWindow`), recorded per decision. Cancellation: consumer
+4096 (`localContextWindow`), recorded per decision. The first local request
+downloads the model; `onLocalLoadProgress` exposes the engine's progress so
+the UI never stalls silently. Cancellation: consumer
 `break` → `interruptGenerate()` locally, `AbortController.abort()` for
 server SSE.
 

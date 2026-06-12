@@ -4,49 +4,116 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <title>ludion demo</title>
+    <title>ludion — watch your browser decide where AI runs</title>
+    <meta
+      name="description"
+      content="Per-request routing of AI inference: on-device WebGPU when the device can, server when it can't — decided by a measured, versioned policy."
+    />
   </head>
   <body>
     <div id="app">
       <header>
-        <h1>ludion</h1>
-        <button id="settings-toggle" type="button">settings</button>
+        <div class="brand">
+          <!-- Ludion mark (Cartesian diver). Never rotates; waterline horizontal. -->
+          <svg class="mark" viewBox="0 0 64 64" aria-hidden="true">
+            <line x1="6" y1="32" x2="58" y2="32" stroke="currentColor" stroke-opacity="0.45" stroke-width="2" />
+            <rect x="25" y="16" width="14" height="32" rx="7" fill="none" stroke="currentColor" stroke-width="3" />
+            <circle cx="32" cy="24" r="3.5" fill="#f2620f" />
+          </svg>
+          <span class="wordmark">lud<span class="tittle">i</span>on</span>
+          <span class="tagline">Watch your browser decide where AI runs.</span>
+        </div>
+        <nav>
+          <a href="https://github.com/Ludion-ai/Ludion" target="_blank" rel="noopener">GitHub</a>
+          <a href="https://www.npmjs.com/package/ludion-router" target="_blank" rel="noopener">npm</a>
+          <a
+            href="https://github.com/Ludion-ai/Ludion/blob/main/docs/report/2026-06-browser-inference-field-notes.md"
+            target="_blank"
+            rel="noopener"
+            >report</a
+          >
+          <button id="settings-toggle" type="button">settings</button>
+        </nav>
       </header>
 
-      <p id="banner">
-        Every response carries a <strong>decision strip</strong>: where the
-        request ran (<code>target=local</code> on your GPU via WebGPU, or
-        <code>target=server</code> on your configured fallback), which policy
-        rule decided it, and the measured ttft/tps.
-      </p>
-
-      <section id="settings" hidden>
-        <label>
-          fallback /chat/completions URL
-          <input id="cfg-url" type="url" placeholder="https://api.example.com/v1/chat/completions" />
-        </label>
-        <label>
-          API key (optional)
-          <input id="cfg-key" type="password" autocomplete="off" />
-        </label>
-        <label>
-          fallback model
-          <input id="cfg-model" type="text" placeholder="gpt-4o-mini" />
-        </label>
-        <p class="note">
-          Stored in localStorage. The endpoint must allow browser CORS from this
-          origin — direct browser call, no proxy.
-        </p>
-        <button id="cfg-save" type="button">save &amp; reload</button>
+      <section id="probe-card" aria-live="polite">
+        <span class="probe-kicker">YOUR DEVICE</span>
+        <p id="probe-summary">probing…</p>
+        <p id="probe-caps" class="mono"></p>
+        <p id="probe-verdict"></p>
       </section>
 
-      <main id="chat"></main>
+      <div id="stage">
+        <aside id="instrument" class="inst-idle" aria-hidden="true">
+          <svg viewBox="0 0 96 170">
+            <line class="waterline" x1="4" y1="85" x2="92" y2="85" />
+            <g id="capsule">
+              <g id="capsule-inner">
+                <rect class="capsule-body" x="36" y="61" width="24" height="48" rx="12" />
+                <circle class="capsule-bubble" cx="48" cy="73" r="5" />
+              </g>
+            </g>
+          </svg>
+          <span id="instrument-label" class="mono">idle</span>
+        </aside>
 
-      <form id="composer">
-        <textarea id="input" rows="2" placeholder="message…"></textarea>
-        <button id="send" type="submit">send</button>
-      </form>
+        <main id="chat-col">
+          <div id="chat"></div>
+          <div id="chips"></div>
+          <form id="composer">
+            <textarea id="input" rows="2" placeholder="message…"></textarea>
+            <button id="send" type="submit">send</button>
+          </form>
+        </main>
+      </div>
+
+      <footer>
+        <div>
+          <p>Open this on your phone — same app, different verdict.</p>
+          <p class="foot-sub">
+            The policy and its evidence:
+            <a href="https://github.com/Ludion-ai/Ludion#the-routing-policy-and-its-evidence" target="_blank" rel="noopener"
+              >routing table</a
+            >
+            ·
+            <a
+              href="https://github.com/Ludion-ai/Ludion/blob/main/docs/report/2026-06-browser-inference-field-notes.md"
+              target="_blank"
+              rel="noopener"
+              >field notes</a
+            >
+          </p>
+        </div>
+        <img id="qr" src="/qr.svg" alt="QR code for this demo" width="92" height="92" />
+      </footer>
     </div>
+
+    <dialog id="settings">
+      <h2>Server fallback</h2>
+      <p class="note">
+        Requests the policy routes to <code>server</code> run on your own
+        OpenAI-compatible endpoint — nothing ships with this demo, no shared
+        key, ever. Stored in localStorage. The endpoint must allow browser
+        CORS from this origin (direct browser call, no proxy).
+      </p>
+      <label>
+        /chat/completions URL
+        <input id="cfg-url" type="url" placeholder="https://api.example.com/v1/chat/completions" />
+      </label>
+      <label>
+        API key (optional)
+        <input id="cfg-key" type="password" autocomplete="off" />
+      </label>
+      <label>
+        model
+        <input id="cfg-model" type="text" placeholder="gpt-4o-mini" />
+      </label>
+      <div class="dialog-actions">
+        <button id="cfg-save" type="button">save &amp; reload</button>
+        <button id="cfg-close" type="button">close</button>
+      </div>
+    </dialog>
+
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

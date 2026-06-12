@@ -4,3 +4,4 @@ dist/
 .DS_Store
 *.deb
 *Zone.Identifier
+demo/public/qr.svg

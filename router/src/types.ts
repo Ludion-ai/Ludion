@@ -78,6 +78,13 @@ export interface LudionOptions {
   hints?: { privacy?: boolean };
   /** Local WebLLM KV context window. Default 4096 (B-4). */
   localContextWindow?: number;
+  /**
+   * Progress of the local model download/initialization (WebLLM
+   * initProgressCallback passthrough). Fires only on local-routed requests
+   * that trigger a load — never on server routes. Additive, optional
+   * (Gate 2.5 F-2): absent = identical behavior to 0.1.0.
+   */
+  onLocalLoadProgress?: (p: { progress: number; text: string }) => void;
   /** Strike TTL in ms. Default 7 days. */
   strikeTtlMs?: number;
   /** Internal test hooks — not public API. */
