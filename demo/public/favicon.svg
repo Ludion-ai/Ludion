@@ -1,7 +1,15 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <!-- Gate 2.6: derivation of assets/ludion-hex-mark.svg (interim per F-2). -->
+  <!-- Gate 2.6 F-10: derivation of assets/ludion-hex-mark.svg (official 6-hex ring).
+       Same geometry/tokens as the canonical mark, scaled 0.85 about center onto a
+       white rounded tile for legibility at favicon sizes. Regenerate by hand if the
+       canonical mark changes. -->
   <rect width="64" height="64" rx="14" fill="#FFFFFF"/>
-  <polygon points="32,8 52.8,20 52.8,44 32,56 11.2,44 11.2,20"
-           fill="none" stroke="#18207E" stroke-width="4" stroke-linejoin="round"/>
-  <polygon points="32,20 42.4,26 42.4,38 32,44 21.6,38 21.6,26" fill="#1F6BFF"/>
+  <g transform="translate(32 32) scale(0.85) translate(-32 -32)">
+    <polygon points="24.4,13 28.2,6.42 35.8,6.42 39.6,13 35.8,19.58 28.2,19.58" fill="#1F6BFF"/>
+    <polygon points="40.85,22.5 44.65,15.92 52.25,15.92 56.05,22.5 52.25,29.08 44.65,29.08" fill="#18207E"/>
+    <polygon points="40.85,41.5 44.65,34.92 52.25,34.92 56.05,41.5 52.25,48.08 44.65,48.08" fill="#1F6BFF"/>
+    <polygon points="24.4,51 28.2,44.42 35.8,44.42 39.6,51 35.8,57.58 28.2,57.58" fill="#18207E"/>
+    <polygon points="7.95,41.5 11.75,34.92 19.35,34.92 23.15,41.5 19.35,48.08 11.75,48.08" fill="#1F6BFF"/>
+    <polygon points="7.95,22.5 11.75,15.92 19.35,15.92 23.15,22.5 19.35,29.08 11.75,29.08" fill="#18207E"/>
+  </g>
 </svg>
