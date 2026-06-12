@@ -14,11 +14,23 @@ and the measurement report the policy is derived from — lives at
 npm install ludion-router
 ```
 
+Zero config — local-only mode (server-routed requests throw the typed
+`LudionNoFallbackConfigured`):
+
+```ts
+const ludion = await Ludion.create();
+const stream = await ludion.chat.completions.create({ messages, stream: true });
+for await (const chunk of stream) { /* ran on the user's GPU */ }
+```
+
+With a fallback (point it at your own ~15-line relay proxy so the API key
+stays server-side — recipes in the repo's `docs/recipes/`):
+
 ```ts
 import { Ludion } from "ludion-router";
 
 const ludion = await Ludion.create({
-  fallback: { url, apiKey, model },     // OpenAI-compatible /chat/completions
+  fallback: { url: "/api/chat", model }, // your relay → your provider (key in server env)
   localModel: "Llama-3.2-1B-Instruct-q4f16_1-MLC", // default
   onDecision: (log) => console.log(log),
   hints: { privacy: false },
@@ -33,18 +45,23 @@ stream._ludion; // DecisionLog (non-enumerable), mutated with ttft/tps on comple
 
 ## Public API
 
-`Ludion` (entry point), `LudionPrivacyUnroutable` / `LudionMidStreamError`
-(errors), and the types `DecisionLog`, `PolicyTable`, `ModelId` plus the
+`Ludion` (entry point), `LudionPrivacyUnroutable` / `LudionMidStreamError` /
+`LudionNoFallbackConfigured` (errors), and the types `DecisionLog`,
+`PolicyTable`, `ModelId` plus the
 option/response types their signatures require. Everything else (policy
 evaluator, strike store, executors) is internal and not exported.
 
 ## Fallback endpoint: browser CORS is REQUIRED
 
-There is no proxy. The browser calls the customer-supplied
-`/chat/completions` URL directly with `fetch`. The endpoint **must** allow
-cross-origin requests from the app origin: `Access-Control-Allow-Origin`,
-plus the `authorization` and `content-type` request headers (preflight).
-A key that works from curl but not from the page is almost always CORS.
+The browser calls the configured `/chat/completions` URL directly with
+`fetch`. Host a small relay on your own backend (Next.js route handler /
+Cloudflare Worker / Express — copy one from the repo's `docs/recipes/`): the
+provider key stays in your server's environment, and a same-origin relay
+sidesteps CORS entirely. If you point `fallback.url` at a cross-origin
+endpoint instead, it **must** allow requests from the app origin:
+`Access-Control-Allow-Origin`, plus the `authorization` and `content-type`
+request headers (preflight). A key that works from curl but not from the
+page is almost always CORS.
 
 ## Policy v0 (data, not code)
 

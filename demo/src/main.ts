@@ -1,7 +1,7 @@
 import "@fontsource/space-grotesk/600.css";
 import "@fontsource/ibm-plex-mono/400.css";
 import "./style.css";
-import { Ludion } from "ludion-router";
+import { Ludion, LudionNoFallbackConfigured } from "ludion-router";
 import type { DecisionLog } from "ludion-router";
 import { evaluateVerdict } from "./verdict";
 import type { Verdict } from "./verdict";
@@ -205,10 +205,10 @@ function addStripCard(log: DecisionLog): void {
   );
 }
 
-function addServerNeedsEndpointCard(log: DecisionLog): void {
+function addServerNeedsEndpointCard(rule_id: string): void {
   const card = addCard(
     `This request routes to a <strong class="t-server">server</strong>
-     (${ruleChip(log.rule_id, POLICY_TABLE_URL)}). Add any OpenAI-compatible
+     (${ruleChip(rule_id, POLICY_TABLE_URL)}). Add any OpenAI-compatible
      endpoint in settings to complete it — or try a shorter prompt locally.
      <button type="button" class="open-settings">open settings</button>`,
     "needs-endpoint",
@@ -285,14 +285,18 @@ const history: { role: "user" | "assistant"; content: string }[] = [];
 
 async function boot(): Promise<void> {
   const ludion = await Ludion.create({
-    // Zero-config by design: requests the policy routes to `server` are
-    // intercepted pre-flight (F-3) while unconfigured, so an empty fallback
-    // URL is never actually called.
-    fallback: {
-      url: settings.url,
-      ...(settings.apiKey ? { apiKey: settings.apiKey } : {}),
-      model: settings.model || "unconfigured",
-    },
+    // Zero-config by design (F-3, via the 0.1.1 API): no endpoint configured
+    // → no fallback at all. Server-routed requests then throw the typed
+    // LudionNoFallbackConfigured, which send() turns into the contextual card.
+    ...(configured
+      ? {
+          fallback: {
+            url: settings.url,
+            ...(settings.apiKey ? { apiKey: settings.apiKey } : {}),
+            model: settings.model,
+          },
+        }
+      : {}),
     onLocalLoadProgress: onLoadProgress,
   });
 
@@ -326,16 +330,6 @@ async function send(ludion: Ludion, content: string, display?: string): Promise<
     });
     const log = stream._ludion;
 
-    // F-3: the decision log is attached before the stream runs. If the
-    // policy chose `server` and no endpoint is configured, never consume the
-    // stream (no fetch happens) — render the contextual card instead.
-    if (log.target === "server" && !configured) {
-      setInstrument("server");
-      addServerNeedsEndpointCard(log);
-      history.pop(); // request never executed
-      return;
-    }
-
     setInstrument(log.target === "local" ? "local" : "server");
     const bubble = addBubble("assistant", "");
     let text = "";
@@ -360,6 +354,14 @@ async function send(ludion: Ludion, content: string, display?: string): Promise<
     addStripCard(log);
   } catch (e) {
     clearLoadCard();
+    // F-3: no endpoint configured and the policy wants the server. The 0.1.1
+    // router throws this at decision time — no fetch ever happened.
+    if (e instanceof LudionNoFallbackConfigured) {
+      setInstrument("server");
+      addServerNeedsEndpointCard(e.rule_id);
+      history.pop(); // request never executed
+      return;
+    }
     const bubble = addBubble("assistant error", "");
     bubble.textContent = e instanceof Error ? `${e.name}: ${e.message}` : String(e);
   } finally {

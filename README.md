@@ -22,13 +22,28 @@ The same app, three environments — each response carries its routing decision:
 npm install ludion-router
 ```
 
+Zero config, zero keys — local-only mode:
+
+```ts
+const ludion = await Ludion.create();
+const stream = await ludion.chat.completions.create({ messages, stream: true });
+for await (const chunk of stream) { /* ran on the user's GPU */ }
+```
+
+With no `fallback`, anything the policy routes to a server throws a typed
+`LudionNoFallbackConfigured` instead of silently failing — on a WebGPU desktop,
+the request above runs entirely on-device.
+
+To complete server-routed requests too, add a fallback. The endpoint is a
+small relay **you** host, so the API key stays in your server's environment —
+never in client code:
+
 ```ts
 import { Ludion } from "ludion-router";
 
 const ludion = await Ludion.create({
   fallback: {
-    url: "https://your-endpoint.example/v1", // any OpenAI-compatible endpoint (CORS required)
-    apiKey: "...", // BYO key — never ship a shared key in client code
+    url: "/api/chat", // your relay proxy → your LLM provider (key server-side)
     model: "your-server-model",
   },
 });
@@ -44,6 +59,13 @@ for await (const chunk of stream) text += chunk.choices[0]?.delta?.content ?? ""
 
 console.log(stream._ludion); // the decision log: target, rule_id, policy_version, ttft_ms, tps, ...
 ```
+
+The relay is ~15 lines: copy one from [`docs/recipes/`](docs/recipes/)
+(Next.js route handler, Cloudflare Worker, or Express), or clone the
+[`examples/next-starter/`](examples/next-starter/) template where it's already
+wired up. Any OpenAI-compatible `/chat/completions` URL works as `fallback.url`
+as long as the browser can reach it (CORS — same-origin relays sidestep this
+entirely).
 
 The call shape is plain OpenAI. The only ludion-specific piece is `_ludion`,
 the per-request decision log telling you where the request ran and which policy
@@ -100,9 +122,11 @@ JSONs — your row becomes part of the policy's evidence base.
 
 - **Local engine = WebLLM only.** No engine choice yet, although the bench data
   shows engine choice matters.
-- **Fallback = bring-your-own OpenAI-compatible endpoint**, which must allow
-  CORS from your origin. No proxy, no shared key — keys in client code are your
-  responsibility.
+- **Fallback = bring-your-own OpenAI-compatible endpoint** (optional since
+  0.1.1 — without one, server-routed requests throw a typed error). The
+  browser calls it directly, so it must allow CORS from your origin; the
+  intended shape is a small relay you host ([`docs/recipes/`](docs/recipes/))
+  with the provider key in server-side env, never in client code.
 - **Policy v0 is a 2-point interpolation in places** (e.g. the Android prompt
   threshold sits between two measured points; the region between is unmeasured).
 - **Not production-hardened.** v0.1.0 is a measured starting point, not a

@@ -1,4 +1,5 @@
 import type { ChatCompletion, ChatCompletionChunk } from "@ludion/shared";
+import { LudionNoFallbackConfigured } from "./errors";
 import type { FallbackConfig, GenRequest } from "./types";
 
 /**
@@ -66,6 +67,27 @@ async function httpError(res: Response): Promise<Error> {
     // body unavailable
   }
   return new Error(`ludion-router: fallback endpoint HTTP ${res.status}${detail ? `: ${detail}` : ""}`);
+}
+
+/**
+ * Phase 0 local-only mode: the executor slot when no fallback is configured.
+ * The facade guards every server route/degrade with a decision-time
+ * `LudionNoFallbackConfigured` (carrying the real rule_id), so this is
+ * defense-in-depth — reaching it means a guard was missed.
+ */
+export function createNoFallbackExecutor(): ServerExecutor {
+  const fail = (): never => {
+    throw new LudionNoFallbackConfigured("(internal: unguarded server path)");
+  };
+  return {
+    // eslint-disable-next-line require-yield
+    async *stream(): AsyncGenerator<ChatCompletionChunk, void, void> {
+      fail();
+    },
+    async complete(): Promise<ChatCompletion> {
+      return fail();
+    },
+  };
 }
 
 export function createFetchServerExecutor(cfg: FallbackConfig): ServerExecutor {

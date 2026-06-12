@@ -29,6 +29,24 @@ export class LudionMidStreamError extends Error {
 }
 
 /**
+ * The policy routed this request to the server (or degraded to it), but
+ * `Ludion.create()` was called without a `fallback` endpoint (Phase 0:
+ * zero-config local-only mode). Carries the rule that decided the route so
+ * the caller can see *why* the server was needed. Fix: pass
+ * `fallback: { url, model }` pointing at your own OpenAI-compatible relay
+ * proxy (see docs/recipes/) — never ship an API key in client code.
+ */
+export class LudionNoFallbackConfigured extends Error {
+  override name = "LudionNoFallbackConfigured";
+  constructor(public readonly rule_id: string) {
+    super(
+      `request routed to server (${rule_id}) but no fallback endpoint is configured; ` +
+        `pass fallback: { url, model } to Ludion.create() (key belongs in a server-side proxy, not the client)`,
+    );
+  }
+}
+
+/**
  * B-3: context-window-overflow errors are an input property, not a device
  * defect — they degrade to server but do NOT add a strike. Matched by error
  * name whitelist (WebLLM 0.2.84 error classes don't always set `.name`, so

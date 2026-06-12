@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { ChatCompletion, ChatCompletionChunk, RouterProbe } from "@ludion/shared";
-import { Ludion, LudionMidStreamError, LudionPrivacyUnroutable } from "../src/index";
+import { Ludion, LudionMidStreamError, LudionNoFallbackConfigured, LudionPrivacyUnroutable } from "../src/index";
 import type { DecisionLog, LudionOptions } from "../src/index";
 import { DEFAULT_LOCAL_MODEL } from "../src/defaults";
 import type { LocalExecutor } from "../src/local";
@@ -387,6 +387,90 @@ describe("privacy (B-1 / B-2, acceptance 5)", () => {
     expect(h.serverSpy.streamCalls).toBe(0);
     expect(stream._ludion.degraded).toBeNull();
     expect(h.decisions.length).toBe(1);
+  });
+});
+
+describe("Phase 0: local-only mode (fallback omitted)", () => {
+  // No `fallback` AND no injected serverExecutor (an injected executor counts
+  // as a configured server).
+  async function localOnly(opts: { probe?: RouterProbe; localMode?: LocalMode } = {}): Promise<{
+    ludion: Ludion;
+    kv: KV;
+    localSpy: LocalSpy;
+    decisions: DecisionLog[];
+  }> {
+    let t = Date.now();
+    const kv = memKV();
+    const localSpy: LocalSpy = { loadCalls: 0, streamCalls: 0, completeCalls: 0, interruptCalls: 0 };
+    const decisions: DecisionLog[] = [];
+    const ludion = await Ludion.create({
+      onDecision: (log) => decisions.push(log),
+      _test: {
+        probe: opts.probe ?? DESKTOP,
+        kv,
+        now: () => (t += 10),
+        localExecutor: mockLocal(localSpy, opts.localMode),
+      },
+    });
+    return { ludion, kv, localSpy, decisions };
+  }
+
+  it("Ludion.create() is callable with zero arguments", async () => {
+    const ludion = await Ludion.create();
+    expect(ludion.probe).toBeDefined(); // node fallback probe, never throws
+    expect(typeof ludion.chat.completions.create).toBe("function");
+  });
+
+  it("local route works end-to-end with no fallback configured", async () => {
+    const h = await localOnly({});
+    const stream = await h.ludion.chat.completions.create({ messages: MESSAGES, stream: true });
+    expect(await drain(stream)).toBe("loc-aloc-b");
+    expect(stream._ludion.rule_id).toBe("R4");
+    expect(stream._ludion.model).toBe(DEFAULT_LOCAL_MODEL);
+    expect(stream._ludion.completed).toBe(true);
+  });
+
+  it("server route throws LudionNoFallbackConfigured at decision time, log emitted", async () => {
+    const h = await localOnly({ probe: IPHONE });
+    let caught: unknown;
+    try {
+      await h.ludion.chat.completions.create({ messages: MESSAGES, stream: true });
+    } catch (e) {
+      caught = e;
+    }
+    expect(caught).toBeInstanceOf(LudionNoFallbackConfigured);
+    expect((caught as LudionNoFallbackConfigured).rule_id).toBe("R2");
+    expect(h.localSpy.loadCalls).toBe(0); // engine never touched
+    expect(h.decisions.length).toBe(1);
+    expect(h.decisions[0]?.error).toContain("LudionNoFallbackConfigured");
+    expect(h.decisions[0]?.target).toBe("server"); // honest: policy chose server
+  });
+
+  it("non-stream degrade with no fallback → typed error, strike still recorded", async () => {
+    const h = await localOnly({ localMode: { kind: "fail-load", error: new Error("boom") } });
+    await expect(h.ludion.chat.completions.create({ messages: MESSAGES })).rejects.toThrow(
+      LudionNoFallbackConfigured,
+    );
+    expect(h.decisions.length).toBe(1);
+    expect(h.decisions[0]?.degraded).toBeNull(); // no retry happened
+    expect(new StrikeStore(h.kv).getScore(DEFAULT_LOCAL_MODEL)).toBe(0.5);
+  });
+
+  it("stream pre-first-token degrade with no fallback → typed error on the stream", async () => {
+    const h = await localOnly({ localMode: { kind: "fail-pre-token", error: new Error("boom") } });
+    const stream = await h.ludion.chat.completions.create({ messages: MESSAGES, stream: true });
+    await expect(drain(stream)).rejects.toThrow(LudionNoFallbackConfigured);
+    expect(stream._ludion.degraded).toBeNull();
+    expect(stream._ludion.error).toContain("LudionNoFallbackConfigured");
+    expect(h.decisions.length).toBe(1);
+    expect(new StrikeStore(h.kv).getScore(DEFAULT_LOCAL_MODEL)).toBe(0.5);
+  });
+
+  it("error message tells the user the fix (proxy, not client-side key)", () => {
+    const err = new LudionNoFallbackConfigured("R6");
+    expect(err.message).toContain("R6");
+    expect(err.message).toContain("fallback: { url, model }");
+    expect(err.message).toContain("proxy");
   });
 });
 

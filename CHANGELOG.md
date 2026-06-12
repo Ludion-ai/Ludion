@@ -1,10 +1,25 @@
 # Changelog
 
-## Unreleased
+## 0.1.1 — 2026-06-12
 
+Time-to-first-wow release: zero-config local-only mode, plus the correct
+(proxy-based) shape for the server fallback.
+
+- `fallback` is now optional. `Ludion.create()` works with zero arguments:
+  local-routed requests run on-device exactly as before; requests the policy
+  routes (or degrades) to the server throw the new typed
+  `LudionNoFallbackConfigured` (carries the deciding `rule_id`) instead of
+  fetching nowhere. With a `fallback` configured, behavior is byte-identical
+  to 0.1.0. Exactly one error class was added; the rest of the public API is
+  unchanged.
 - Added `LudionOptions.onLocalLoadProgress` — optional passthrough of the
   local engine's download/init progress (Gate 2.5 F-2). Additive; absent =
   identical behavior to 0.1.0.
+- Docs: README quickstart now leads with the zero-config form; the fallback
+  example uses a relay proxy (key in server-side env, never in client code),
+  with copyable ~15-line relays in `docs/recipes/` (Next.js route handler /
+  Cloudflare Worker / Express) and a clone-and-run template in
+  `examples/next-starter/`.
 
 ## 0.1.0 — 2026-06-11
 

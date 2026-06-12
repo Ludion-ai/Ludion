@@ -1,21 +1,28 @@
 import type { ChatCompletion, ChatCompletionChunk, ChatUsage, RouterProbe } from "@ludion/shared";
 import { probeRouterDevice } from "@ludion/shared";
-import { LudionMidStreamError, LudionPrivacyUnroutable, errorMessage, isContextOverflowError } from "./errors";
+import {
+  LudionMidStreamError,
+  LudionNoFallbackConfigured,
+  LudionPrivacyUnroutable,
+  errorMessage,
+  isContextOverflowError,
+} from "./errors";
 import type { LocalExecutor } from "./local";
 import { createWebLLMExecutor } from "./local";
 import type { PolicyTable, RequestFacts } from "./policy";
 import { evaluatePolicy } from "./policy";
 import type { ServerExecutor } from "./server";
-import { createFetchServerExecutor } from "./server";
+import { createFetchServerExecutor, createNoFallbackExecutor } from "./server";
 import { createSafeBrowserKV, DEFAULT_STRIKE_TTL_MS, STRIKE_CAUGHT, StrikeStore } from "./strikes";
 import { estimatePromptTokens } from "./tokens";
 import type { DecisionLog, LudionChatRequest, LudionOptions, GenRequest } from "./types";
 import { DEFAULT_LOCAL_CONTEXT_WINDOW, DEFAULT_LOCAL_MODEL, POLICY_V0 } from "./defaults";
 
 // Public API surface (Gate 2 decisions Q3 — frozen at publish):
-// the Ludion facade, the two typed errors, and the types those signatures
+// the Ludion facade, the typed errors, and the types those signatures
 // require. Internal machinery (strike store, SSE parser, executors, policy
 // evaluator, defaults) is deliberately unexported; demand for it is an issue.
+// 0.1.1 (Phase 0) added exactly one error: LudionNoFallbackConfigured.
 export type {
   DecisionLog,
   LudionChatRequest,
@@ -24,7 +31,7 @@ export type {
   ModelId,
 } from "./types";
 export type { PolicyTable, PolicyRule, RouteTarget } from "./policy";
-export { LudionMidStreamError, LudionPrivacyUnroutable } from "./errors";
+export { LudionMidStreamError, LudionNoFallbackConfigured, LudionPrivacyUnroutable } from "./errors";
 
 export type LudionStreamResponse = AsyncIterable<ChatCompletionChunk> & {
   readonly _ludion: DecisionLog;
@@ -49,6 +56,7 @@ export class Ludion {
   private readonly onDecision: ((log: DecisionLog) => void) | undefined;
   private readonly privacyDefault: boolean;
   private readonly fallbackModel: string;
+  private readonly hasFallback: boolean;
   private readonly now: () => number;
 
   private constructor(options: LudionOptions, probe: RouterProbe, strikes: StrikeStore, now: () => number) {
@@ -58,15 +66,20 @@ export class Ludion {
     this.localContextWindow = options.localContextWindow ?? DEFAULT_LOCAL_CONTEXT_WINDOW;
     this.strikes = strikes;
     this.local = options._test?.localExecutor ?? createWebLLMExecutor(options.onLocalLoadProgress);
-    this.server = options._test?.serverExecutor ?? createFetchServerExecutor(options.fallback);
+    // Phase 0: fallback is optional. An injected test executor counts as a
+    // configured server (tests routinely omit `fallback`).
+    this.hasFallback = options.fallback !== undefined || options._test?.serverExecutor !== undefined;
+    this.server =
+      options._test?.serverExecutor ??
+      (options.fallback ? createFetchServerExecutor(options.fallback) : createNoFallbackExecutor());
     this.onDecision = options.onDecision;
     this.privacyDefault = options.hints?.privacy ?? false;
-    this.fallbackModel = options.fallback.model;
+    this.fallbackModel = options.fallback?.model ?? "unconfigured";
     this.now = now;
     this.chat = { completions: { create: this.createCompletion.bind(this) } };
   }
 
-  static async create(options: LudionOptions): Promise<Ludion> {
+  static async create(options: LudionOptions = {}): Promise<Ludion> {
     const kv = options._test?.kv ?? createSafeBrowserKV();
     const now = options._test?.now ?? Date.now;
     const strikes = new StrikeStore(kv, options.strikeTtlMs ?? DEFAULT_STRIKE_TTL_MS, now);
@@ -146,6 +159,15 @@ export class Ludion {
       throw err;
     }
 
+    // Phase 0 local-only mode: a server route with no fallback endpoint is a
+    // typed, decision-time error — never a fetch to nowhere.
+    if (decision.target === "server" && !this.hasFallback) {
+      const err = new LudionNoFallbackConfigured(decision.rule_id);
+      log.error = errorMessage(err);
+      emitOnce();
+      throw err;
+    }
+
     const genReq: GenRequest = {
       messages: req.messages,
       max_tokens: log.max_tokens,
@@ -207,6 +229,13 @@ export class Ludion {
           log.error = errorMessage(e);
           emitOnce();
           throw e;
+        }
+        if (!this.hasFallback) {
+          // Phase 0: no server to degrade to — typed error instead of A-2 retry.
+          const err = new LudionNoFallbackConfigured(log.rule_id);
+          log.error = errorMessage(err);
+          emitOnce();
+          throw err;
         }
         log.degraded = "local→server";
         log.model = this.fallbackModel;
@@ -324,6 +353,9 @@ export class Ludion {
               }
             }
             if (localSource === null) {
+              // Phase 0: no server to degrade to — typed error (outer catch
+              // records it in the log and emits).
+              if (!self.hasFallback) throw new LudionNoFallbackConfigured(log.rule_id);
               // A-2: transparent retry — nothing was yielded yet.
               log.degraded = "local→server";
               log.model = self.fallbackModel;

@@ -68,7 +68,13 @@ export interface DecisionLog {
 }
 
 export interface LudionOptions {
-  fallback: FallbackConfig;
+  /**
+   * Optional since 0.1.1 (Phase 0). Absent = local-only mode: any request
+   * the policy routes (or degrades) to the server throws
+   * `LudionNoFallbackConfigured` instead. Existing configured behavior is
+   * unchanged.
+   */
+  fallback?: FallbackConfig;
   /** Default: "Llama-3.2-1B-Instruct-q4f16_1-MLC". */
   localModel?: ModelId;
   /** Default: bundled policy.v0.json. */
