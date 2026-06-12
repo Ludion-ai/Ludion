@@ -29,8 +29,9 @@ Devices: a desktop with a discrete GPU (Chrome), a Pixel 8a (2024 mid-range Andr
 | `iphone-11-pro-max-20260610T121735.json` | 3 | 0 | 3 | wllama, webllm | 2 |
 | `pixel-8a-20260610T125416.json` | 6 | 6 | 0 | webllm | 1 |
 | `pixel-8a-line-iab-20260610T124347.json` | 0 | 0 | 0 | – | 0 |
+| `web-windows-chrome-20260612T134355.json` | 6 | 6 | 0 | webllm | 1 |
 
-**48 runs** total across 6 archived exports (42 successful, 6 failed — failures are routing data, not noise). Full per-group medians: [`bench/results/supplier-table.md`](../../bench/results/supplier-table.md).
+**54 runs** total across 7 archived exports (48 successful, 6 failed — failures are routing data, not noise). Full per-group medians: [`bench/results/supplier-table.md`](../../bench/results/supplier-table.md).
 <!-- /gen:inventory -->
 
 ## 2. Desktop: same model, same GPU, different engine — wildly different speed

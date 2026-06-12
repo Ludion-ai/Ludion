@@ -1,12 +1,13 @@
 # Supplier quality table — Gate 0
 
-Generated from 6 result file(s):
+Generated from 7 result file(s):
 - `desktop-chrome-20260610T102824.json` (36 runs, collected 2026-06-10T10:28:24.275Z)
 - `iphone-11-pro-max-20260610T111359.json` (2 runs, collected 2026-06-10T11:13:59.419Z)
 - `iphone-11-pro-max-20260610T112313.json` (1 runs, collected 2026-06-10T11:23:13.816Z)
 - `iphone-11-pro-max-20260610T121735.json` (3 runs, collected 2026-06-10T12:17:35.817Z)
 - `pixel-8a-20260610T125416.json` (6 runs, collected 2026-06-10T12:54:16.344Z)
 - `pixel-8a-line-iab-20260610T124347.json` (0 runs, collected 2026-06-10T12:43:47.102Z)
+- `web-windows-chrome-20260612T134355.json` (6 runs, collected 2026-06-12T13:43:55.255Z)
 
 × = no successful run in the group (error rows only). – = not reported.
 
@@ -31,6 +32,8 @@ Generated from 6 result file(s):
 | iphone-11-pro-max | wllama | bartowski/Qwen2.5-0.5B-Instruct-GGUF | short | cold | × – | × | × | × | 1/1 (100%) | –/– |
 | pixel-8a | webllm | Llama-3.2-1B-Instruct-q4f16_1-MLC | long-context | cold | webgpu | 8.8 | 15.8 | 76996 | 0/3 (0%) | 2048/1024 |
 | pixel-8a | webllm | Llama-3.2-1B-Instruct-q4f16_1-MLC | short | cold | webgpu | 10.3 | 13.8 | 3782 | 0/3 (0%) | 2048/1024 |
+| web-windows-chrome | webllm | Llama-3.2-1B-Instruct-q4f16_1-MLC | long-context | cold | webgpu | 17.5 | 2495.9 | 486 | 0/3 (0%) | 2048/1024 |
+| web-windows-chrome | webllm | Llama-3.2-1B-Instruct-q4f16_1-MLC | short | cold | webgpu | 196.1 | 1155.6 | 45 | 0/3 (0%) | 2048/1024 |
 
 ## Validation warnings
 
