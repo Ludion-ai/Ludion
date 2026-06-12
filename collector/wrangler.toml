@@ -1,0 +1,25 @@
+# ludion-collector — Gate 2.7 submission intake.
+# Deploy is the OPERATOR'S GATE. Bootstrap (decisions Q2):
+#   npx wrangler r2 bucket create ludion-bench-submissions
+#   npx wrangler kv namespace create COLLECTOR_KV   # paste "id" below
+#   npx wrangler secret put IP_HASH_SALT
+#   npx wrangler secret put ADMIN_TOKEN
+#   npx wrangler deploy
+
+name = "ludion-collector"
+main = "src/index.ts"
+compatibility_date = "2026-05-03"
+
+[vars]
+# Browser origins allowed to submit / read stats (decisions F-2).
+# Operator-editable; local dev overrides live in .dev.vars (gitignored).
+ALLOWED_ORIGINS = "https://ludion-bench.pages.dev,https://ludion-demo.pages.dev"
+
+[[kv_namespaces]]
+binding = "COLLECTOR_KV"
+# PASTE-POINT: replace with the id printed by `wrangler kv namespace create COLLECTOR_KV`.
+id = "REPLACE_WITH_KV_NAMESPACE_ID"
+
+[[r2_buckets]]
+binding = "SUBMISSIONS"
+bucket_name = "ludion-bench-submissions"

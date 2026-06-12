@@ -41,6 +41,11 @@ export interface PersistedState {
   queue: SessionPlanItem[];
   sessions: SessionRow[];
   runs: RunRow[];
+  /**
+   * Gate 2.7 (decisions F-9): set after a successful collector submission.
+   * Additive optional field — version stays 1, old states parse unchanged.
+   */
+  submitted?: { at: string; total: number };
 }
 
 export interface Tombstone {

@@ -10,6 +10,8 @@ import { createWebLLMAdapter } from "./adapters/webllm";
 import { createTransformersJsAdapter } from "./adapters/transformersjs";
 import { createWllamaAdapter } from "./adapters/wllama";
 import type { CacheState, DeviceInfo, EngineId, RunRow } from "./schema";
+import { autoPlan, guessLabel } from "./plan";
+import { collectorUrl, submitResult } from "./submit";
 
 const ADAPTERS: Record<EngineId, () => BenchAdapter> = {
   webllm: createWebLLMAdapter,
@@ -45,6 +47,14 @@ const ui = {
   runCold: () => el<HTMLButtonElement>("run-cold"),
   runWarm: () => el<HTMLButtonElement>("run-warm"),
   resetPlan: () => el<HTMLButtonElement>("reset-plan"),
+  // Gate 2.7 one-click flow
+  verdict: () => el<HTMLParagraphElement>("probe-verdict"),
+  planNote: () => el<HTMLParagraphElement>("plan-note"),
+  measure: () => el<HTMLButtonElement>("measure"),
+  completion: () => el<HTMLElement>("completion"),
+  counter: () => el<HTMLParagraphElement>("device-counter"),
+  submitBtn: () => el<HTMLButtonElement>("submit-result"),
+  submitNote: () => el<HTMLParagraphElement>("submit-note"),
 };
 
 function log(msg: string): void {
@@ -198,7 +208,88 @@ function setRunning(value: boolean): void {
   ui.runCold().disabled = value;
   ui.runWarm().disabled = value;
   ui.resetPlan().disabled = value;
+  ui.measure().disabled = value;
   updateBanner();
+  renderFlow();
+}
+
+// --- Gate 2.7 one-click flow ----------------------------------------------
+
+function renderVerdict(d: DeviceInfo): void {
+  const plan = autoPlan(d);
+  const spec = getModel(plan.modelKey);
+  const mem = d.device_memory_gb !== null ? ` · ${d.device_memory_gb} GB reported` : "";
+  ui.verdict().textContent = `${d.webgpu ? "WebGPU available" : "no WebGPU"} · ${d.hw_concurrency} cores${mem}.`;
+  ui.planNote().textContent =
+    `One tap runs: ${plan.engine} × ${spec.label}, cold start, 2 prompts × 3 timed runs — ` +
+    `${plan.reason}. Download ≈${spec.engines[plan.engine].approxMb} MB; nothing is sent until you submit.`;
+}
+
+/**
+ * Default-flow state machine (decisions F-7/F-8): the Measure button owns the
+ * screen until a plan exists; the completion card owns it once nothing is
+ * pending and at least one run row exists — including after tombstone
+ * recovery, so a device that died mid-bench still reaches Submit.
+ */
+function renderFlow(): void {
+  const pending = state ? store.nextPending(state) : null;
+  const hasPlan = state !== null && state.queue.length > 0;
+  ui.measure().classList.toggle("hidden", running || hasPlan);
+
+  const complete = !running && state !== null && pending === null && state.runs.length > 0;
+  ui.completion().classList.toggle("hidden", !complete);
+  if (!complete) return;
+
+  if (collectorUrl() === null) {
+    ui.submitBtn().classList.add("hidden");
+    ui.submitNote().textContent =
+      "Submission opens when the collector is deployed — use Download JSON instead.";
+  }
+  if (state?.submitted) {
+    ui.counter().textContent = `Device #${state.submitted.total} measured — thank you.`;
+    ui.counter().classList.remove("hidden");
+    ui.submitBtn().classList.remove("primary");
+  } else {
+    ui.counter().classList.add("hidden");
+  }
+}
+
+async function measureAndRun(): Promise<void> {
+  if (running || !device) return;
+  const plan = autoPlan(device);
+  if (!state) state = store.newState(ui.label().value);
+  state.operatorLabel = ui.label().value;
+  log(
+    `auto plan (${plan.deviceClass}): ${plan.engine} × ${getModel(plan.modelKey).label}, ` +
+      `cache_state=${plan.cacheState} — ${plan.reason}`,
+  );
+  log("wiping origin storage for cold run…");
+  await wipeOriginStorage(log);
+  store.enqueue(state, [plan.engine], [plan.modelKey], plan.cacheState);
+  renderFlow();
+  await startNext();
+}
+
+async function submitCurrent(): Promise<void> {
+  if (!device || !state) return;
+  ui.submitBtn().disabled = true;
+  ui.submitNote().textContent = "submitting…";
+  const res = await submitResult(buildDocument(state, device));
+  if (res.ok) {
+    state.submitted = { at: new Date().toISOString(), total: res.total_submissions };
+    store.saveState(state);
+    ui.submitNote().textContent = res.deduped ? "this result was already submitted." : "";
+    log(
+      res.deduped
+        ? `submit: already in the dataset (device #${res.total_submissions})`
+        : `submit ok: device #${res.total_submissions}`,
+    );
+  } else {
+    ui.submitNote().textContent = `submit failed (${res.code}): ${res.message} — your data is safe; try again or use Download JSON.`;
+    log(`submit failed (${res.code}): ${res.message}`);
+  }
+  ui.submitBtn().disabled = false;
+  renderFlow();
 }
 
 // --- run flow --------------------------------------------------------------
@@ -347,9 +438,17 @@ async function boot(): Promise<void> {
   el<HTMLButtonElement>("wipe-storage").addEventListener("click", () => {
     void wipeOriginStorage(log);
   });
+  ui.measure().addEventListener("click", () => void measureAndRun());
+  ui.submitBtn().addEventListener("click", () => void submitCurrent());
 
   device = await probeDevice(ui.label().value);
   renderCapability(device);
+  renderVerdict(device);
+  // Prefill the UA-derived guess (spec §1-2); an edit — or a restored
+  // operator label — always wins.
+  if (ui.label().value === "") {
+    ui.label().value = guessLabel(device.ua);
+  }
 
   const autorun = sessionStorage.getItem(AUTORUN_KEY) === "1";
   sessionStorage.removeItem(AUTORUN_KEY);
@@ -357,6 +456,7 @@ async function boot(): Promise<void> {
     void startNext();
   } else {
     updateBanner();
+    renderFlow();
   }
 }
 

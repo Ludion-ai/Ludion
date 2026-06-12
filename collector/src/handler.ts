@@ -1,0 +1,279 @@
+import { validateBenchDocument } from "../../bench/src/schema";
+
+/**
+ * ludion-collector — Gate 2.7 submission intake (Cloudflare Worker).
+ *
+ * Pure request handler: all platform bindings are injected through the narrow
+ * interfaces below so tests run on hand-rolled in-memory mocks (decisions Q2)
+ * and `wrangler dev` covers the real-binding manual check.
+ *
+ * Privacy invariants (decisions F-4 — acceptance criteria, not afterthoughts):
+ *  - the raw client IP is read once, hashed with a deploy-time salt, and used
+ *    only as the rate-limit KV key; it is never stored, logged, or echoed;
+ *  - the stored R2 object is the submitted JSON plus `received_at` ONLY.
+ */
+
+export interface KVLike {
+  get(key: string): Promise<string | null>;
+  put(key: string, value: string, options?: { expirationTtl?: number }): Promise<void>;
+}
+
+export interface R2ObjectLike {
+  key: string;
+}
+
+export interface R2Like {
+  put(key: string, value: string): Promise<unknown>;
+  get(key: string): Promise<{ text(): Promise<string> } | null>;
+  list(options?: {
+    cursor?: string;
+  }): Promise<{ objects: R2ObjectLike[]; truncated: boolean; cursor?: string }>;
+}
+
+export interface CollectorEnv {
+  COLLECTOR_KV: KVLike;
+  SUBMISSIONS: R2Like;
+  /** Comma-separated browser origins allowed to call /v1/submit and /v1/stats. */
+  ALLOWED_ORIGINS: string;
+  /** Secret. Salts the rate-limit IP hash; rotating it resets counters. */
+  IP_HASH_SALT: string;
+  /** Secret. Bearer token for the read-only /v1/admin/* surface (decisions F-1). */
+  ADMIN_TOKEN: string;
+}
+
+export const MAX_BODY_BYTES = 256 * 1024; // spec §2-1
+export const DAILY_LIMIT = 10; // spec §2-2
+const RATE_TTL_SECONDS = 172800; // 2 days — covers UTC-date stragglers (decisions Q1)
+const STATS_KEY = "stats:total";
+
+type ErrorCode =
+  | "method_not_allowed"
+  | "origin_forbidden"
+  | "too_large"
+  | "invalid_json"
+  | "schema_invalid"
+  | "no_sessions"
+  | "rate_limited"
+  | "unauthorized"
+  | "not_found";
+
+function errorResponse(
+  status: number,
+  code: ErrorCode,
+  message: string,
+  headers: Record<string, string> = {},
+): Response {
+  return new Response(JSON.stringify({ error: { code, message } }), {
+    status,
+    headers: { "content-type": "application/json", ...headers },
+  });
+}
+
+function allowedOrigins(env: CollectorEnv): string[] {
+  return env.ALLOWED_ORIGINS.split(",")
+    .map((o) => o.trim())
+    .filter((o) => o.length > 0);
+}
+
+/**
+ * CORS headers for the response. Browser requests from a foreign origin get no
+ * CORS headers (the browser blocks the read); non-browser clients (no Origin
+ * header) pass — CORS is a browser containment line, not authentication.
+ */
+function corsHeaders(request: Request, env: CollectorEnv): Record<string, string> {
+  const origin = request.headers.get("Origin");
+  if (origin !== null && allowedOrigins(env).includes(origin)) {
+    return { "Access-Control-Allow-Origin": origin, Vary: "Origin" };
+  }
+  return {};
+}
+
+async function sha256Hex(input: string | Uint8Array): Promise<string> {
+  const data = typeof input === "string" ? new TextEncoder().encode(input) : input;
+  const digest = await crypto.subtle.digest("SHA-256", data as BufferSource);
+  return Array.from(new Uint8Array(digest))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+function utcDate(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
+async function readCounter(kv: KVLike, key: string): Promise<number> {
+  const raw = await kv.get(key);
+  const n = raw === null ? 0 : Number.parseInt(raw, 10);
+  return Number.isFinite(n) ? n : 0;
+}
+
+/** Best-effort counter bump: never turns an accepted submission into an error (decisions Q1). */
+async function bumpCounter(kv: KVLike, key: string, ttl?: number): Promise<number> {
+  const next = (await readCounter(kv, key)) + 1;
+  try {
+    await kv.put(key, String(next), ttl !== undefined ? { expirationTtl: ttl } : undefined);
+  } catch {
+    // KV write limit / transient failure: fail-open on the counter.
+  }
+  return next;
+}
+
+async function handleSubmit(request: Request, env: CollectorEnv): Promise<Response> {
+  const cors = corsHeaders(request, env);
+  const origin = request.headers.get("Origin");
+  if (origin !== null && !allowedOrigins(env).includes(origin)) {
+    return errorResponse(403, "origin_forbidden", "origin not allowed");
+  }
+
+  // Cheap pre-check; the decoded byte length is verified again after reading
+  // so chunked bodies cannot sneak past (decisions F-6).
+  const declared = Number(request.headers.get("Content-Length") ?? "0");
+  if (declared > MAX_BODY_BYTES) {
+    return errorResponse(413, "too_large", `body exceeds ${MAX_BODY_BYTES} bytes`, cors);
+  }
+
+  // Rate limit BEFORE any body work. The raw IP's only use; see module header.
+  const ip = request.headers.get("CF-Connecting-IP") ?? "unknown";
+  const rateKey = `rl:${utcDate()}:${await sha256Hex(env.IP_HASH_SALT + ip)}`;
+  if ((await readCounter(env.COLLECTOR_KV, rateKey)) >= DAILY_LIMIT) {
+    return errorResponse(429, "rate_limited", `limit ${DAILY_LIMIT} submissions/day`, {
+      ...cors,
+      "Retry-After": "86400",
+    });
+  }
+
+  const body = await request.text();
+  const bodyBytes = new TextEncoder().encode(body);
+  if (bodyBytes.byteLength > MAX_BODY_BYTES) {
+    return errorResponse(413, "too_large", `body exceeds ${MAX_BODY_BYTES} bytes`, cors);
+  }
+
+  let doc: unknown;
+  try {
+    doc = JSON.parse(body);
+  } catch {
+    return errorResponse(400, "invalid_json", "body is not valid JSON", cors);
+  }
+
+  const result = validateBenchDocument(doc);
+  if (!result.ok) {
+    return errorResponse(
+      400,
+      "schema_invalid",
+      `schema validation failed: ${result.errors.slice(0, 5).join("; ")}`,
+      cors,
+    );
+  }
+  const sessions = (doc as { sessions: unknown[] }).sessions;
+  if (sessions.length < 1) {
+    return errorResponse(400, "no_sessions", "document must contain at least 1 session", cors);
+  }
+
+  const json = { "content-type": "application/json", ...cors };
+
+  // Dedupe on the exact submitted bytes (decisions F-5).
+  const dedupeKey = `dedupe:${await sha256Hex(bodyBytes)}`;
+  if ((await env.COLLECTOR_KV.get(dedupeKey)) !== null) {
+    await bumpCounter(env.COLLECTOR_KV, rateKey, RATE_TTL_SECONDS);
+    const total = await readCounter(env.COLLECTOR_KV, STATS_KEY);
+    return new Response(JSON.stringify({ ok: true, deduped: true, total_submissions: total }), {
+      status: 200,
+      headers: json,
+    });
+  }
+
+  // Store: submitted JSON + received_at, nothing else (spec §2-3).
+  const key = `${utcDate()}/${crypto.randomUUID()}.json`;
+  const stored = { ...(doc as Record<string, unknown>), received_at: new Date().toISOString() };
+  await env.SUBMISSIONS.put(key, JSON.stringify(stored, null, 2));
+  try {
+    await env.COLLECTOR_KV.put(dedupeKey, key);
+  } catch {
+    // Dedupe index is an optimization; a lost write only allows a future re-store.
+  }
+  await bumpCounter(env.COLLECTOR_KV, rateKey, RATE_TTL_SECONDS);
+  const total = await bumpCounter(env.COLLECTOR_KV, STATS_KEY);
+
+  return new Response(JSON.stringify({ ok: true, deduped: false, total_submissions: total }), {
+    status: 200,
+    headers: json,
+  });
+}
+
+async function handleStats(request: Request, env: CollectorEnv): Promise<Response> {
+  const total = await readCounter(env.COLLECTOR_KV, STATS_KEY);
+  return new Response(JSON.stringify({ total_submissions: total }), {
+    status: 200,
+    headers: {
+      "content-type": "application/json",
+      "Cache-Control": "public, max-age=60",
+      ...corsHeaders(request, env),
+    },
+  });
+}
+
+/** Read-only admin surface for pull-submissions (decisions F-1). No CORS: server-to-server. */
+async function handleAdmin(request: Request, env: CollectorEnv, url: URL): Promise<Response> {
+  const auth = request.headers.get("Authorization");
+  if (env.ADMIN_TOKEN.length === 0 || auth !== `Bearer ${env.ADMIN_TOKEN}`) {
+    return errorResponse(401, "unauthorized", "missing or invalid bearer token");
+  }
+  if (url.pathname === "/v1/admin/list") {
+    const cursor = url.searchParams.get("cursor") ?? undefined;
+    const page = await env.SUBMISSIONS.list(cursor !== undefined ? { cursor } : undefined);
+    return new Response(
+      JSON.stringify({
+        keys: page.objects.map((o) => o.key),
+        truncated: page.truncated,
+        cursor: page.cursor ?? null,
+      }),
+      { status: 200, headers: { "content-type": "application/json" } },
+    );
+  }
+  if (url.pathname === "/v1/admin/object") {
+    const key = url.searchParams.get("key");
+    if (key === null) return errorResponse(404, "not_found", "missing key parameter");
+    const object = await env.SUBMISSIONS.get(key);
+    if (object === null) return errorResponse(404, "not_found", `no object at ${key}`);
+    return new Response(await object.text(), {
+      status: 200,
+      headers: { "content-type": "application/json" },
+    });
+  }
+  return errorResponse(404, "not_found", "unknown admin route");
+}
+
+export async function handleRequest(request: Request, env: CollectorEnv): Promise<Response> {
+  const url = new URL(request.url);
+
+  if (request.method === "OPTIONS") {
+    return new Response(null, {
+      status: 204,
+      headers: {
+        ...corsHeaders(request, env),
+        "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type",
+        "Access-Control-Max-Age": "86400",
+      },
+    });
+  }
+
+  if (url.pathname === "/v1/submit") {
+    if (request.method !== "POST") {
+      return errorResponse(405, "method_not_allowed", "use POST", { Allow: "POST" });
+    }
+    return handleSubmit(request, env);
+  }
+  if (url.pathname === "/v1/stats") {
+    if (request.method !== "GET") {
+      return errorResponse(405, "method_not_allowed", "use GET", { Allow: "GET" });
+    }
+    return handleStats(request, env);
+  }
+  if (url.pathname.startsWith("/v1/admin/")) {
+    if (request.method !== "GET") {
+      return errorResponse(405, "method_not_allowed", "use GET", { Allow: "GET" });
+    }
+    return handleAdmin(request, env, url);
+  }
+  return errorResponse(404, "not_found", `no route ${url.pathname}`);
+}

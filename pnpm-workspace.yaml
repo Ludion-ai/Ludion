@@ -3,3 +3,4 @@ packages:
   - shared
   - router
   - demo
+  - collector

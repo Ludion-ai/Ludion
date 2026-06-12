@@ -1,0 +1,22 @@
+{
+  "name": "ludion-collector",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "license": "MIT",
+  "description": "Ludion Gate 2.7: bench submission collector (Cloudflare Worker)",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "pull-submissions": "tsx scripts/pull-submissions.ts"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "4.20260612.1",
+    "tsx": "4.22.4",
+    "typescript": "5.9.3",
+    "vitest": "4.1.8",
+    "wrangler": "4.86.0"
+  }
+}

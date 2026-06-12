@@ -3,50 +3,45 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <title>ludion-bench (Gate 0)</title>
+    <title>ludion-bench</title>
   </head>
   <body>
     <main id="app">
-      <h1>ludion-bench <span class="sub">Gate 0 — engine benchmark harness</span></h1>
+      <h1>ludion-bench <span class="sub">measure browser inference on your device</span></h1>
 
       <section id="resume-banner" class="banner hidden"></section>
 
+      <!-- Default flow (Gate 2.7): open → Measure → Submit. -->
       <section class="card">
-        <h2>Device capability</h2>
-        <dl id="capability">probing…</dl>
+        <h2>This device</h2>
+        <p id="probe-verdict" class="verdict">probing…</p>
+        <details>
+          <summary>Full capability table</summary>
+          <dl id="capability">probing…</dl>
+        </details>
         <label class="field">
-          Device label
-          <input id="device-label" type="text" placeholder='e.g. "M2 MacBook Air", "iPhone 15"' autocomplete="off" />
+          Device label <span class="note">(optional — joins the public dataset)</span>
+          <input id="device-label" type="text" placeholder='e.g. "iPhone 15", "Pixel 8a"' autocomplete="off" />
         </label>
+        <div class="row">
+          <button id="measure" class="primary">Measure this device</button>
+        </div>
+        <p class="note" id="plan-note"></p>
       </section>
 
-      <section class="card">
-        <h2>Plan</h2>
-        <fieldset id="engine-list">
-          <legend>Engines</legend>
-          <label><input type="checkbox" value="webllm" checked /> WebLLM</label>
-          <label><input type="checkbox" value="transformersjs" checked /> Transformers.js</label>
-          <label><input type="checkbox" value="wllama" checked /> wllama</label>
-        </fieldset>
-        <fieldset id="model-list">
-          <legend>Models &amp; order</legend>
-          <label><input type="radio" name="model-order" value="qwen-first" checked /> Qwen2.5-1.5B → Llama-3.2-1B (desktop)</label>
-          <label><input type="radio" name="model-order" value="llama-first" /> Llama-3.2-1B → Qwen2.5-1.5B (iPhone)</label>
-          <label><input type="radio" name="model-order" value="qwen-only" /> Qwen2.5-1.5B only</label>
-          <label><input type="radio" name="model-order" value="llama-only" /> Llama-3.2-1B only</label>
-          <label><input type="radio" name="model-order" value="qwen-0.5b-only" /> Qwen2.5-0.5B only (floor)</label>
-        </fieldset>
-        <label class="inline"><input type="checkbox" id="auto-chain" checked /> Auto-continue next session after reload</label>
-        <div class="row">
-          <button id="run-cold" class="primary">Run cold</button>
-          <button id="run-warm" class="primary">Run warm</button>
-          <button id="reset-plan" class="danger">Reset plan + results</button>
-        </div>
-        <p class="note">
-          “Run cold” wipes Cache Storage / IndexedDB / OPFS first. The HTTP disk
-          cache cannot be cleared from JS — for a guaranteed cold run, also clear
-          site data in browser settings.
+      <section class="card hidden" id="completion">
+        <h2>Measurement complete</h2>
+        <p id="device-counter" class="counter hidden"></p>
+        <p class="consent">
+          Submitting shares your device's capability profile (GPU, limits,
+          browser UA) and the timing results. No personal data; prompts are
+          fixed test strings. Submissions join Ludion's public dataset (CC0).
         </p>
+        <div class="row">
+          <button id="submit-result" class="primary">Submit result</button>
+          <button id="download-json">Download JSON</button>
+        </div>
+        <p class="note" id="submit-note"></p>
       </section>
 
       <section class="card">
@@ -62,18 +57,50 @@
         <div class="scroll-x"><table id="summary"></table></div>
       </section>
 
-      <section class="card">
-        <h2>Export</h2>
-        <label class="field">
-          Operator notes (thermal feel, throttling suspicion, …)
-          <textarea id="notes" rows="3"></textarea>
-        </label>
-        <div class="row">
-          <button id="copy-json" class="primary">Copy JSON</button>
-          <button id="download-json" class="primary">Download JSON</button>
-          <button id="wipe-storage" class="danger">Wipe origin storage</button>
-        </div>
-      </section>
+      <!-- Advanced fold (spec §1-1): the manual plan, intact — operator workflows unchanged. -->
+      <details id="advanced">
+        <summary>Advanced — manual plan (operator workflows)</summary>
+        <section class="card">
+          <h2>Plan</h2>
+          <fieldset id="engine-list">
+            <legend>Engines</legend>
+            <label><input type="checkbox" value="webllm" checked /> WebLLM</label>
+            <label><input type="checkbox" value="transformersjs" checked /> Transformers.js</label>
+            <label><input type="checkbox" value="wllama" checked /> wllama</label>
+          </fieldset>
+          <fieldset id="model-list">
+            <legend>Models &amp; order</legend>
+            <label><input type="radio" name="model-order" value="qwen-first" checked /> Qwen2.5-1.5B → Llama-3.2-1B (desktop)</label>
+            <label><input type="radio" name="model-order" value="llama-first" /> Llama-3.2-1B → Qwen2.5-1.5B (iPhone)</label>
+            <label><input type="radio" name="model-order" value="qwen-only" /> Qwen2.5-1.5B only</label>
+            <label><input type="radio" name="model-order" value="llama-only" /> Llama-3.2-1B only</label>
+            <label><input type="radio" name="model-order" value="qwen-0.5b-only" /> Qwen2.5-0.5B only (floor)</label>
+          </fieldset>
+          <label class="inline"><input type="checkbox" id="auto-chain" checked /> Auto-continue next session after reload</label>
+          <div class="row">
+            <button id="run-cold" class="primary">Run cold</button>
+            <button id="run-warm" class="primary">Run warm</button>
+            <button id="reset-plan" class="danger">Reset plan + results</button>
+          </div>
+          <p class="note">
+            “Run cold” wipes Cache Storage / IndexedDB / OPFS first. The HTTP disk
+            cache cannot be cleared from JS — for a guaranteed cold run, also clear
+            site data in browser settings.
+          </p>
+        </section>
+
+        <section class="card">
+          <h2>Export</h2>
+          <label class="field">
+            Operator notes (thermal feel, throttling suspicion, …)
+            <textarea id="notes" rows="3"></textarea>
+          </label>
+          <div class="row">
+            <button id="copy-json" class="primary">Copy JSON</button>
+            <button id="wipe-storage" class="danger">Wipe origin storage</button>
+          </div>
+        </section>
+      </details>
     </main>
     <script type="module" src="/src/main.ts"></script>
   </body>

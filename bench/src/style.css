@@ -123,3 +123,11 @@ th:first-child, td:first-child, td.l { text-align: left; }
 tr.error-row { background: color-mix(in srgb, var(--danger) 18%, transparent); }
 
 .note { font-size: 0.75rem; opacity: 0.75; }
+
+/* Gate 2.7 one-click flow (new elements only — Gate 0 styling is frozen) */
+.verdict { font-size: 0.95rem; font-weight: 600; margin: 0.25rem 0 0.5rem; }
+.consent { font-size: 0.8rem; opacity: 0.85; margin: 0.5rem 0; }
+.counter { font-size: 1rem; font-weight: 700; color: var(--accent); margin: 0.25rem 0; }
+details > summary { cursor: pointer; min-height: 44px; display: flex; align-items: center; font-size: 0.85rem; }
+details#advanced { margin-bottom: 0.75rem; }
+details#advanced > summary { opacity: 0.8; }

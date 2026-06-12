@@ -9,6 +9,7 @@
     "typecheck": "pnpm -r typecheck",
     "test": "pnpm -r test",
     "supplier-table": "pnpm --filter ludion-bench supplier-table",
+    "pull-submissions": "pnpm --filter ludion-collector pull-submissions",
     "report-data": "pnpm --filter ludion-bench report-data",
     "dev:bench": "pnpm --filter ludion-bench dev",
     "dev:demo": "pnpm --filter ludion-demo dev"
