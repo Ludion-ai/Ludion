@@ -1,239 +1,248 @@
-/* Gate 2.5 — identity tokens (spec §3):
-   INK #14253F · SIGNAL #F2620F · PAPER #F3F6FA · DEEP #0D1A2E.
-   Dark theme on DEEP, light text PAPER. Space Grotesk = display/wordmark,
-   IBM Plex Mono = strip/probe values, system sans = body.
-   SIGNAL is reserved for the bubble / live-decision accents only.
-   The mark never rotates; the waterline is always horizontal. */
+/* Ludion demo — Gate 2.6 monochrome reskin.
+   Direction: ultra-simple × refined. White-first, near-monochrome, cards.
+   The hex royal blue is the ONLY accent; refinement comes from spacing,
+   hairlines and type hierarchy — no gradients, no glass, no colored fills.
+   The instrument (Cartesian diver) keeps its exact behavior: the mark never
+   rotates; the waterline is always horizontal. */
 
 :root {
-  --ink: #14253f;
-  --signal: #f2620f;
-  --paper: #f3f6fa;
-  --deep: #0d1a2e;
-  --line: rgba(243, 246, 250, 0.14);
-  --dim: rgba(243, 246, 250, 0.65);
-  color-scheme: dark;
-  font-family: system-ui, sans-serif;
+  --bg: #fafafa;
+  --surface: #ffffff;
+  --border: #e8e8ec;
+  --text: #0a0a0a;
+  --text-2: #71717a;
+  --accent: #1f6bff;
+  --accent-dim: #18207e;
+  --radius-card: 14px;
+  --radius-input: 10px;
+  --shadow:
+    0 1px 2px rgb(0 0 0 / 0.04),
+    0 4px 16px rgb(0 0 0 / 0.04);
+  --sans:
+    -apple-system, BlinkMacSystemFont, "SF Pro Text", Inter, "Segoe UI",
+    Roboto, "Helvetica Neue", Arial, sans-serif;
+  --monoface: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
 * {
   box-sizing: border-box;
 }
 
+html,
 body {
   margin: 0;
-  background: var(--deep);
-  color: var(--paper);
+  padding: 0;
 }
 
-.mono {
-  font-family: "IBM Plex Mono", ui-monospace, monospace;
-}
-
-.dim {
-  color: var(--dim);
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 15px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
 }
 
 #app {
-  max-width: 860px;
+  max-width: 720px;
   margin: 0 auto;
-  padding: 0.75rem 1rem;
+  padding: 24px 20px 40px;
   display: flex;
   flex-direction: column;
-  min-height: 100dvh;
-  gap: 0.75rem;
+  gap: 16px;
 }
 
-/* --- header / brand ------------------------------------------------------- */
+a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+.mono {
+  font-family: var(--monoface);
+}
+
+/* Decision expression — the ONLY accent use besides links/primary button. */
+.t-local,
+.t-server {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+/* --- header (card-less strip) ------------------------------------------------ */
 
 header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: 12px;
+  padding: 4px 2px;
 }
 
 .brand {
   display: flex;
-  align-items: center;
-  gap: 0.6rem;
+  align-items: baseline;
+  gap: 10px;
   min-width: 0;
 }
 
-.mark {
-  width: 30px;
-  height: 30px;
-  color: var(--paper);
+.brand .mark {
+  width: 28px;
+  height: 28px;
+  align-self: center;
   flex: none;
 }
 
 .wordmark {
-  font-family: "Space Grotesk", system-ui, sans-serif;
+  font-size: 1.3rem;
   font-weight: 600;
-  font-size: 1.45rem;
-  letter-spacing: 0.01em;
-}
-
-/* Orange tittle: an overlay dot ringed in DEEP masks the glyph's own dot. */
-.tittle {
-  position: relative;
-  display: inline-block;
-}
-.tittle::after {
-  content: "";
-  position: absolute;
-  left: 50%;
-  top: 0.075em;
-  transform: translateX(-50%);
-  width: 0.16em;
-  height: 0.16em;
-  border-radius: 50%;
-  background: var(--signal);
-  box-shadow: 0 0 0 0.045em var(--deep);
+  letter-spacing: -0.01em;
 }
 
 .tagline {
-  color: var(--dim);
+  color: var(--text-2);
   font-size: 0.85rem;
-  margin-left: 0.4rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 nav {
   display: flex;
   align-items: center;
-  gap: 0.9rem;
-  font-size: 0.85rem;
+  gap: 14px;
+  flex: none;
 }
 
 nav a {
-  color: var(--dim);
-  text-decoration: none;
+  color: var(--text-2);
+  font-size: 0.85rem;
 }
+
 nav a:hover {
-  color: var(--paper);
-  text-decoration: underline;
+  color: var(--text);
+  text-decoration: none;
 }
 
 #settings-toggle {
   font: inherit;
   font-size: 0.85rem;
-  color: var(--dim);
-  background: none;
-  border: 1px solid var(--line);
+  color: var(--text-2);
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: 999px;
-  padding: 0.15rem 0.7rem;
+  padding: 4px 12px;
   cursor: pointer;
 }
+
 #settings-toggle:hover {
-  color: var(--paper);
-  border-color: var(--dim);
+  color: var(--text);
 }
 
-/* --- probe card ------------------------------------------------------------ */
+/* --- cards -------------------------------------------------------------------- */
+
+#probe-card,
+#chat-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow);
+  padding: 20px 24px;
+}
+
+/* --- probe card (instrument docked at the right edge) -------------------------- */
 
 #probe-card {
-  background: var(--ink);
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  padding: 0.7rem 0.9rem;
+  display: flex;
+  align-items: stretch;
+  gap: 20px;
+}
+
+.probe-main {
+  flex: 1;
+  min-width: 0;
 }
 
 .probe-kicker {
-  font-family: "IBM Plex Mono", ui-monospace, monospace;
-  font-size: 0.65rem;
-  letter-spacing: 0.18em;
-  color: var(--dim);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  color: var(--text-2);
+  font-weight: 600;
 }
 
 #probe-summary {
-  margin: 0.25rem 0 0.1rem;
-  font-family: "Space Grotesk", system-ui, sans-serif;
-  font-weight: 600;
+  margin: 6px 0 2px;
   font-size: 1.05rem;
+  font-weight: 600;
 }
 
 #probe-caps {
-  margin: 0 0 0.3rem;
-  font-size: 0.78rem;
-  color: var(--dim);
-  white-space: pre-wrap;
+  margin: 0 0 8px;
+  font-size: 12px;
+  color: var(--text-2);
 }
 
 #probe-verdict {
   margin: 0;
-  font-size: 0.92rem;
-}
-#probe-verdict a {
-  color: var(--paper);
-}
-
-/* Target words are live-decision accents → SIGNAL (identity rule). */
-.t-local,
-.t-server {
-  color: var(--signal);
-  font-family: "Space Grotesk", system-ui, sans-serif;
-  font-weight: 600;
 }
 
 .rule-chip {
-  font-family: "IBM Plex Mono", ui-monospace, monospace;
-  font-size: 0.72rem;
-  color: var(--paper);
-  text-decoration: none;
-  border: 1px solid var(--line);
+  font-family: var(--monoface);
+  font-size: 11px;
+  color: var(--text-2);
+  border: 1px solid var(--border);
   border-radius: 999px;
-  padding: 0.05rem 0.5rem;
+  padding: 1px 8px;
   white-space: nowrap;
 }
+
 .rule-chip:hover {
-  border-color: var(--dim);
+  color: var(--text);
+  text-decoration: none;
 }
 
-/* --- stage: instrument + chat ---------------------------------------------- */
-
-#stage {
-  flex: 1;
-  display: grid;
-  grid-template-columns: 116px minmax(0, 1fr);
-  gap: 1rem;
-  min-height: 0;
-}
+/* --- the instrument (line-art monochrome; bubble = accent) --------------------- */
 
 #instrument {
+  flex: none;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.3rem;
-  padding-top: 0.5rem;
+  justify-content: center;
+  gap: 2px;
+  border-left: 1px solid var(--border);
+  padding-left: 20px;
 }
 
 #instrument svg {
-  width: 96px;
+  width: 56px;
+  height: 100px;
   overflow: visible;
 }
 
 #instrument-label {
-  font-size: 0.7rem;
+  font-size: 10px;
   letter-spacing: 0.14em;
-  color: var(--dim);
+  color: var(--text-2);
 }
 
 .waterline {
-  stroke: var(--paper);
-  stroke-opacity: 0.45;
+  stroke: var(--border);
   stroke-width: 2;
 }
 
 .capsule-body {
-  fill: var(--deep);
-  stroke: var(--paper);
+  fill: var(--surface);
+  stroke: var(--text);
   stroke-width: 3;
   transition: fill 0.5s ease;
 }
 
 .capsule-bubble {
-  fill: var(--signal);
+  fill: var(--accent);
   transform-box: fill-box;
   transform-origin: center;
 }
@@ -261,12 +270,12 @@ nav a:hover {
   fill: none;
 }
 
-/* server: fully below the line, filled */
+/* server: fully below the line, solid ink */
 .inst-server #capsule {
   transform: translateY(52px);
 }
 .inst-server .capsule-body {
-  fill: var(--paper);
+  fill: var(--text);
 }
 
 .flash .capsule-bubble {
@@ -320,320 +329,369 @@ nav a:hover {
   }
 }
 
-/* --- chat ------------------------------------------------------------------- */
+/* --- chat card (plain blocks separated by hairlines; no bubbles) --------------- */
 
-#chat-col {
+#chat-card {
+  min-height: 260px;
   display: flex;
-  flex-direction: column;
-  min-width: 0;
-  gap: 0.6rem;
 }
 
 #chat {
-  flex: 1;
-  overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 0.55rem;
-  min-height: 180px;
+  width: 100%;
 }
 
 /* First-visit hint; disappears with the first message. */
 #chat:empty::after {
-  content: "Pick a prompt below (or type one) — the instrument on the left shows where each answer runs.";
+  content: "Pick a prompt below (or type one) — the gauge in the device card shows where each answer runs.";
   margin: auto;
-  max-width: 30ch;
+  max-width: 34ch;
   text-align: center;
-  color: var(--dim);
+  color: var(--text-2);
   font-size: 0.85rem;
   line-height: 1.5;
 }
 
-@media (max-width: 700px) {
-  #chat:empty::after {
-    content: "Pick a prompt below (or type one) — the instrument above shows where each answer runs.";
-  }
+.msg {
+  padding: 14px 0;
 }
 
-.bubble {
-  border-radius: 10px;
-  padding: 0.5rem 0.75rem;
-  max-width: 88%;
+.msg + .msg,
+.msg + .card,
+.card + .msg,
+.card + .card {
+  border-top: 1px solid var(--border);
+}
+
+.msg-role {
+  display: block;
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  color: var(--text-2);
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.msg-body {
   white-space: pre-wrap;
-  overflow-wrap: anywhere;
-  font-size: 0.95rem;
+  overflow-wrap: break-word;
 }
 
-.bubble.user {
-  align-self: flex-end;
-  background: var(--ink);
-  border: 1px solid var(--line);
+.msg.error .msg-body {
+  font-family: var(--monoface);
+  font-size: 12px;
+  color: var(--text-2);
 }
 
-.bubble.assistant {
-  align-self: flex-start;
-  border: 1px solid var(--line);
-}
-
-.bubble.error {
-  border-color: #d9534f;
-  color: #e98985;
-}
+/* --- in-chat rows/cards (decision row, needs-endpoint, load progress) ---------- */
 
 .card {
-  align-self: flex-start;
-  background: var(--ink);
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  padding: 0.5rem 0.75rem;
-  font-size: 0.82rem;
-  max-width: 92%;
+  padding: 12px 0;
 }
 
-.strip-card {
+/* Decision row: mono 12px, target word in accent; all data preserved. */
+.decision-row {
+  font-family: var(--monoface);
+  font-size: 12px;
+  color: var(--text-2);
   display: flex;
-  align-items: center;
   flex-wrap: wrap;
-  gap: 0.6rem;
+  align-items: center;
+  gap: 6px 12px;
 }
 
-.strip-card .mono {
-  font-size: 0.74rem;
-}
-
-.strip-target {
-  font-family: "Space Grotesk", system-ui, sans-serif;
+.decision-row .strip-target {
   font-weight: 600;
-  letter-spacing: 0.06em;
+}
+
+.dim {
+  color: var(--text-2);
 }
 
 .needs-endpoint {
-  border-left: 3px solid var(--signal);
-  line-height: 1.45;
+  font-size: 0.9rem;
 }
 
-.open-settings {
+.needs-endpoint .open-settings {
+  display: inline-block;
   font: inherit;
-  font-size: 0.78rem;
-  color: var(--paper);
-  background: none;
-  border: 1px solid var(--dim);
+  font-size: 0.85rem;
+  color: #fff;
+  background: var(--accent);
+  border: none;
   border-radius: 999px;
-  padding: 0.1rem 0.6rem;
+  padding: 4px 14px;
+  margin-left: 6px;
   cursor: pointer;
-  margin-left: 0.3rem;
+}
+
+.needs-endpoint .open-settings:hover {
+  background: var(--accent-dim);
 }
 
 .load-card {
-  width: 92%;
-  line-height: 1.5;
+  font-size: 0.85rem;
+  color: var(--text-2);
 }
+
 .load-card progress {
   display: block;
   width: 100%;
-  margin: 0.35rem 0 0.2rem;
-  accent-color: var(--paper);
+  height: 4px;
+  margin: 8px 0 4px;
+  appearance: none;
+  border: none;
+  background: var(--border);
+  border-radius: 999px;
+  overflow: hidden;
 }
+
+.load-card progress::-webkit-progress-bar {
+  background: var(--border);
+}
+
+.load-card progress::-webkit-progress-value {
+  background: var(--accent);
+}
+
+.load-card progress::-moz-progress-bar {
+  background: var(--accent);
+}
+
 .load-card .load-text {
-  font-size: 0.68rem;
+  font-size: 11px;
   display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* --- chips (hairline pills) ----------------------------------------------------- */
+
+#chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chip {
+  font: inherit;
+  font-size: 0.85rem;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 6px 14px;
+  cursor: pointer;
+  max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-/* --- chips + composer -------------------------------------------------------- */
-
-#chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.45rem;
-}
-
-.chip {
-  font: inherit;
-  font-size: 0.8rem;
-  color: var(--paper);
-  background: var(--ink);
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  padding: 0.3rem 0.8rem;
-  cursor: pointer;
-  text-align: left;
-}
 .chip:hover {
-  border-color: var(--dim);
+  border-color: var(--text-2);
 }
+
+/* --- composer -------------------------------------------------------------------- */
 
 #composer {
   display: flex;
-  gap: 0.5rem;
+  gap: 8px;
+  align-items: stretch;
 }
 
-#composer textarea {
+#input {
   flex: 1;
   font: inherit;
-  font-size: 0.95rem;
-  color: var(--paper);
-  background: var(--ink);
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  padding: 0.45rem 0.6rem;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-input);
+  padding: 10px 12px;
   resize: vertical;
+  min-height: 44px;
 }
 
-#composer button {
-  font-family: "Space Grotesk", system-ui, sans-serif;
+#input::placeholder {
+  color: var(--text-2);
+}
+
+#input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -1px;
+}
+
+#send {
+  font: inherit;
   font-weight: 600;
-  font-size: 0.95rem;
-  color: var(--deep);
-  background: var(--paper);
+  color: #fff;
+  background: var(--accent);
   border: none;
-  border-radius: 10px;
-  padding: 0 1.1rem;
+  border-radius: var(--radius-input);
+  padding: 0 22px;
   cursor: pointer;
 }
-#composer button:disabled {
-  opacity: 0.5;
+
+#send:hover {
+  background: var(--accent-dim);
+}
+
+#send:disabled {
+  opacity: 0.45;
   cursor: default;
 }
 
-/* --- footer ------------------------------------------------------------------ */
+/* --- footer ---------------------------------------------------------------------- */
 
 footer {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 1rem;
-  border-top: 1px solid var(--line);
-  padding-top: 0.7rem;
+  gap: 16px;
+  border-top: 1px solid var(--border);
+  padding-top: 16px;
+  color: var(--text-2);
   font-size: 0.85rem;
 }
 
 footer p {
-  margin: 0.15rem 0;
-}
-
-.foot-sub {
-  color: var(--dim);
-  font-size: 0.78rem;
-}
-.foot-sub a {
-  color: var(--dim);
+  margin: 0 0 4px;
 }
 
 #qr {
   flex: none;
-  border-radius: 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-input);
 }
 
-/* --- settings drawer ----------------------------------------------------------- */
+/* --- settings drawer --------------------------------------------------------------- */
 
 #settings {
   position: fixed;
   inset: 0 0 0 auto;
-  height: 100dvh;
-  max-height: 100dvh;
   width: min(380px, 92vw);
+  height: 100%;
+  max-height: none;
   margin: 0;
-  background: var(--ink);
-  color: var(--paper);
   border: none;
-  border-left: 1px solid var(--line);
-  padding: 1.1rem 1.2rem;
-  display: none;
-  flex-direction: column;
-  gap: 0.7rem;
+  border-left: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  padding: 24px;
+  box-shadow: var(--shadow);
 }
-#settings[open] {
-  display: flex;
-}
+
 #settings::backdrop {
-  background: rgba(13, 26, 46, 0.7);
+  background: rgb(0 0 0 / 0.25);
 }
 
 #settings h2 {
-  margin: 0;
-  font-family: "Space Grotesk", system-ui, sans-serif;
-  font-weight: 600;
-  font-size: 1.1rem;
+  margin: 0 0 8px;
+  font-size: 1.05rem;
 }
 
 #settings .note {
-  font-size: 0.78rem;
-  color: var(--dim);
-  margin: 0;
-  line-height: 1.45;
+  color: var(--text-2);
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+
+#settings code {
+  font-family: var(--monoface);
+  font-size: 0.95em;
 }
 
 #settings label {
-  display: flex;
-  flex-direction: column;
+  display: block;
   font-size: 0.8rem;
-  gap: 0.2rem;
+  color: var(--text-2);
+  margin: 14px 0;
 }
 
 #settings input {
+  display: block;
+  width: 100%;
+  margin-top: 4px;
   font: inherit;
-  font-size: 0.85rem;
-  color: var(--paper);
-  background: var(--deep);
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  padding: 0.35rem 0.5rem;
+  font-size: 0.9rem;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-input);
+  padding: 8px 10px;
+}
+
+#settings input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -1px;
 }
 
 .dialog-actions {
   display: flex;
-  gap: 0.5rem;
-  margin-top: 0.3rem;
+  gap: 8px;
+  margin-top: 18px;
 }
+
 .dialog-actions button {
   font: inherit;
   font-size: 0.85rem;
-  border-radius: 8px;
-  padding: 0.3rem 0.9rem;
+  border-radius: 999px;
+  padding: 6px 16px;
   cursor: pointer;
 }
+
 #cfg-save {
-  color: var(--deep);
-  background: var(--paper);
+  color: #fff;
+  background: var(--accent);
   border: none;
-  font-weight: 600;
-}
-#cfg-close {
-  color: var(--paper);
-  background: none;
-  border: 1px solid var(--line);
 }
 
-/* --- mobile (≤ 700px; probe card + chat usable at 390px) ----------------------- */
+#cfg-save:hover {
+  background: var(--accent-dim);
+}
+
+#cfg-close {
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+
+/* --- mobile -------------------------------------------------------------------------- */
 
 @media (max-width: 700px) {
   #app {
-    padding: 0.6rem 0.7rem;
+    padding: 16px 14px 28px;
+    gap: 12px;
   }
+
+  header {
+    flex-wrap: wrap;
+  }
+
   .tagline {
     display: none;
   }
-  #stage {
-    grid-template-columns: 1fr;
-    gap: 0.6rem;
+
+  #probe-card,
+  #chat-card {
+    padding: 16px 18px;
   }
+
+  /* F-8: compact instrument, still inside the probe card */
   #instrument {
-    flex-direction: row;
-    justify-content: center;
-    gap: 0.6rem;
-    padding-top: 0;
+    padding-left: 14px;
   }
+
+  /* viewBox-unit transforms (±52) are size-independent, so only the
+     rendered box shrinks here */
   #instrument svg {
-    width: 56px;
+    width: 44px;
+    height: 80px;
   }
+
   footer {
     align-items: flex-start;
-  }
-  #qr {
-    width: 72px;
-    height: 72px;
   }
 }

@@ -15,7 +15,7 @@ const svg = await QRCode.toString(DEMO_URL, {
   type: "svg",
   errorCorrectionLevel: "M",
   margin: 1,
-  color: { dark: "#F3F6FA", light: "#0D1A2E" }, // PAPER on DEEP (identity)
+  color: { dark: "#0A0A0A", light: "#FFFFFF" }, // Gate 2.6: ink on white (mono identity)
 });
 writeFileSync(join(outDir, "qr.svg"), svg);
 console.log(`gen-qr: ${DEMO_URL} -> public/qr.svg`);

@@ -16,7 +16,6 @@
   },
   "devDependencies": {
     "@fontsource/ibm-plex-mono": "^5.2.7",
-    "@fontsource/space-grotesk": "^5.2.10",
     "@vitejs/plugin-basic-ssl": "2.3.0",
     "@webgpu/types": "^0.1.70",
     "qrcode": "^1.5.4",

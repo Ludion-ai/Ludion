@@ -1,8 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <!-- Ludion mark: Cartesian diver. Waterline always horizontal; mark never rotates.
-       Tokens: DEEP #0D1A2E, PAPER #F3F6FA, SIGNAL #F2620F (bubble only). -->
-  <rect width="64" height="64" rx="14" fill="#0D1A2E"/>
-  <line x1="8" y1="32" x2="56" y2="32" stroke="#F3F6FA" stroke-opacity="0.45" stroke-width="2"/>
-  <rect x="25" y="16" width="14" height="32" rx="7" fill="#0D1A2E" stroke="#F3F6FA" stroke-width="3"/>
-  <circle cx="32" cy="24" r="3.5" fill="#F2620F"/>
+  <!-- Gate 2.6: derivation of assets/ludion-hex-mark.svg (interim per F-2). -->
+  <rect width="64" height="64" rx="14" fill="#FFFFFF"/>
+  <polygon points="32,8 52.8,20 52.8,44 32,56 11.2,44 11.2,20"
+           fill="none" stroke="#18207E" stroke-width="4" stroke-linejoin="round"/>
+  <polygon points="32,20 42.4,26 42.4,38 32,44 21.6,38 21.6,26" fill="#1F6BFF"/>
 </svg>

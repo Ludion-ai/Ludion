@@ -1,6 +1,8 @@
-import "@fontsource/space-grotesk/600.css";
 import "@fontsource/ibm-plex-mono/400.css";
 import "./style.css";
+// Single source for the mark (Gate 2.6 F-2): the operator's official vector
+// overwrites assets/ludion-hex-mark.svg and propagates here with no code change.
+import hexMarkUrl from "../../assets/ludion-hex-mark.svg";
 import { Ludion, LudionNoFallbackConfigured } from "ludion-router";
 import type { DecisionLog } from "ludion-router";
 import { evaluateVerdict } from "./verdict";
@@ -51,6 +53,8 @@ const sendEl = $<HTMLButtonElement>("#send");
 const settingsEl = $<HTMLDialogElement>("#settings");
 const instrumentEl = $("#instrument");
 const instrumentLabelEl = $("#instrument-label");
+
+$<HTMLImageElement>("#brand-mark").src = hexMarkUrl;
 
 const settings = loadSettings();
 const configured = settings.url.trim() !== "" && settings.model.trim() !== "";
@@ -169,13 +173,21 @@ function setInstrument(state: "idle" | "local" | "server"): void {
 
 // --- chat ----------------------------------------------------------------------
 
+/** Gate 2.6: no bubbles — hairline-separated blocks with a role label (F-7).
+ * Returns the body element; callers stream into its textContent. */
 function addBubble(cls: string, text: string): HTMLElement {
-  const div = document.createElement("div");
-  div.className = `bubble ${cls}`;
-  div.textContent = text;
-  chatEl.appendChild(div);
-  div.scrollIntoView({ block: "end" });
-  return div;
+  const wrap = document.createElement("div");
+  wrap.className = `msg ${cls}`;
+  const role = document.createElement("span");
+  role.className = "msg-role";
+  role.textContent = cls.startsWith("user") ? "YOU" : "LUDION";
+  const body = document.createElement("div");
+  body.className = "msg-body";
+  body.textContent = text;
+  wrap.append(role, body);
+  chatEl.appendChild(wrap);
+  wrap.scrollIntoView({ block: "end" });
+  return body;
 }
 
 function addCard(html: string, cls = ""): HTMLElement {
@@ -201,7 +213,7 @@ function addStripCard(log: DecisionLog): void {
      <span class="mono">ttft ${fmt(log.ttft_ms)} ms · ${fmt(log.tps, 1)} tps</span>
      ${degraded}
      <span class="mono dim">${log.policy_version} · ${log.model}</span>`,
-    "strip-card",
+    "decision-row",
   );
 }
 

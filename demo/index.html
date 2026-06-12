@@ -14,13 +14,9 @@
     <div id="app">
       <header>
         <div class="brand">
-          <!-- Ludion mark (Cartesian diver). Never rotates; waterline horizontal. -->
-          <svg class="mark" viewBox="0 0 64 64" aria-hidden="true">
-            <line x1="6" y1="32" x2="58" y2="32" stroke="currentColor" stroke-opacity="0.45" stroke-width="2" />
-            <rect x="25" y="16" width="14" height="32" rx="7" fill="none" stroke="currentColor" stroke-width="3" />
-            <circle cx="32" cy="24" r="3.5" fill="#f2620f" />
-          </svg>
-          <span class="wordmark">lud<span class="tittle">i</span>on</span>
+          <!-- src set from assets/ludion-hex-mark.svg in main.ts (single source). -->
+          <img id="brand-mark" class="mark" alt="" width="28" height="28" />
+          <span class="wordmark">ludion</span>
           <span class="tagline">Watch your browser decide where AI runs.</span>
         </div>
         <nav>
@@ -37,13 +33,12 @@
       </header>
 
       <section id="probe-card" aria-live="polite">
-        <span class="probe-kicker">YOUR DEVICE</span>
-        <p id="probe-summary">probing…</p>
-        <p id="probe-caps" class="mono"></p>
-        <p id="probe-verdict"></p>
-      </section>
-
-      <div id="stage">
+        <div class="probe-main">
+          <span class="probe-kicker">YOUR DEVICE</span>
+          <p id="probe-summary">probing…</p>
+          <p id="probe-caps" class="mono"></p>
+          <p id="probe-verdict"></p>
+        </div>
         <aside id="instrument" class="inst-idle" aria-hidden="true">
           <svg viewBox="0 0 96 170">
             <line class="waterline" x1="4" y1="85" x2="92" y2="85" />
@@ -56,16 +51,18 @@
           </svg>
           <span id="instrument-label" class="mono">idle</span>
         </aside>
+      </section>
 
-        <main id="chat-col">
-          <div id="chat"></div>
-          <div id="chips"></div>
-          <form id="composer">
-            <textarea id="input" rows="2" placeholder="message…"></textarea>
-            <button id="send" type="submit">send</button>
-          </form>
-        </main>
-      </div>
+      <main id="chat-card">
+        <div id="chat"></div>
+      </main>
+
+      <div id="chips"></div>
+
+      <form id="composer">
+        <textarea id="input" rows="2" placeholder="message…"></textarea>
+        <button id="send" type="submit">send</button>
+      </form>
 
       <footer>
         <div>
@@ -82,6 +79,8 @@
               rel="noopener"
               >field notes</a
             >
+            ·
+            <a href="https://github.com/Ludion-ai/Ludion/blob/main/LICENSE" target="_blank" rel="noopener">MIT</a>
           </p>
         </div>
         <img id="qr" src="/qr.svg" alt="QR code for this demo" width="92" height="92" />
