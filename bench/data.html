@@ -7,28 +7,48 @@
   </head>
   <body>
     <main id="data">
-      <h1>ludion <span class="sub">browser-inference reality, measured</span></h1>
-      <p class="intro">
-        The live, CC0 dataset of in-browser LLM inference measured on real devices.
-        Every row is one person who ran the bench and shared the result.
-        <a id="measure-cta" href="./">Measure your own device</a> ·
-        <a href="https://github.com/Ludion-ai/Ludion" target="_blank" rel="noopener">source on GitHub</a>.
-      </p>
-      <p class="updated" id="updated"></p>
+      <header class="head">
+        <h1>ludion <span class="sub">browser-inference reality, measured</span></h1>
+        <p class="intro">
+          The live, CC0 dataset of in-browser LLM inference measured on real devices.
+          Every bar below is built from people who ran the bench and shared the result.
+          <a href="https://github.com/Ludion-ai/Ludion" target="_blank" rel="noopener">source on GitHub</a>.
+        </p>
+        <a class="cta-button" id="measure-cta" href="./">Measure your own device →</a>
+        <div class="statrow">
+          <span class="stat"><b id="stat-total">—</b> submissions</span>
+          <span class="stat"><b id="stat-classes">—</b> device classes seen</span>
+          <span class="stat" id="stat-updated">—</span>
+          <button class="refresh" id="refresh" type="button" title="Refresh">↻</button>
+        </div>
+      </header>
 
-      <section id="class-section">
-        <h2>By device class</h2>
-        <div class="scroll-x"><table id="class-table"></table></div>
+      <section class="card" id="panel-a">
+        <h2>Device-class reality</h2>
+        <p class="card-sub">Did each class actually complete a local run? Green = completed locally, red = server-routed or failed.</p>
+        <div id="a-bars" class="abars"></div>
+        <p class="takeaway" id="a-takeaway"></p>
       </section>
 
-      <section id="rule-section">
-        <h2>Routing rules fired</h2>
-        <table id="rule-table"></table>
+      <section class="card" id="panel-b">
+        <h2>Routing decisions</h2>
+        <p class="card-sub">Which rule decided where each device ran. Share of all decisions.</p>
+        <div id="b-bars" class="rbars"></div>
       </section>
 
-      <section id="failure-section">
+      <section class="card" id="panel-c">
+        <h2>Speed distribution</h2>
+        <p class="card-sub">Median local decode throughput per class. Hidden below 3 devices to protect contributors.</p>
+        <div id="c-bars" class="rbars"></div>
+      </section>
+
+      <section class="card" id="panel-d">
         <h2>Failure modes</h2>
-        <table id="failure-table"></table>
+        <p class="card-sub">How submissions ended, as a share of all submissions.</p>
+        <div class="donut-wrap">
+          <svg id="d-donut" class="donut" viewBox="0 0 42 42" role="img" aria-labelledby="d-donut-title"></svg>
+          <ul id="d-legend" class="legend"></ul>
+        </div>
       </section>
 
       <p class="status" id="status">loading…</p>
