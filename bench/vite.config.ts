@@ -32,5 +32,13 @@ export default defineConfig({
     target: "es2022",
     // Engines are heavy; keep the warning honest but not noisy.
     chunkSizeWarningLimit: 6000,
+    rollupOptions: {
+      // Multi-page (Gate 4 ②): the measure app + the public /data dashboard.
+      // Cloudflare Pages serves dist/data.html at the /data route.
+      input: {
+        main: fileURLToPath(new URL("./index.html", import.meta.url)),
+        data: fileURLToPath(new URL("./data.html", import.meta.url)),
+      },
+    },
   },
 });

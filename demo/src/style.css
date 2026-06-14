@@ -189,6 +189,16 @@ nav a:hover {
   margin: 0;
 }
 
+/* Gate 4 ① — crowd comparison; muted, omitted entirely when empty. */
+.probe-compare {
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: var(--text-2);
+}
+.probe-compare:empty {
+  display: none;
+}
+
 .rule-chip {
   font-family: var(--monoface);
   font-size: 11px;

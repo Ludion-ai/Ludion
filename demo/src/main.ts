@@ -7,6 +7,7 @@ import { Ludion, LudionNoFallbackConfigured } from "ludion-router";
 import type { DecisionLog } from "ludion-router";
 import { evaluateVerdict } from "./verdict";
 import type { Verdict } from "./verdict";
+import { comparisonLine, deviceClassOf, fetchAggregate } from "./compare";
 import { LONG_CJK_PROMPT } from "./longprompt";
 
 /**
@@ -155,6 +156,23 @@ function renderProbeCard(ludion: Ludion, verdict: Verdict): void {
         : "";
     v.innerHTML = `${why}routes to <strong class="t-server">SERVER</strong> (${ruleChip(verdict.rule_id, POLICY_TABLE_URL)})${whyLink}`;
   }
+}
+
+/**
+ * Gate 4 ① — fetch the crowd aggregate and append a one-line comparison under the
+ * verdict. Best-effort: if the endpoint is down/unconfigured the line is simply
+ * omitted (the verdict already rendered), never an error (decisions F-6).
+ */
+async function renderComparison(ludion: Ludion, verdict: Verdict): Promise<void> {
+  const p = ludion.probe;
+  const aggregate = await fetchAggregate();
+  const line = comparisonLine({
+    deviceClass: deviceClassOf(p.env, p.os_class),
+    ruleId: verdict.rule_id,
+    target: verdict.target,
+    aggregate,
+  });
+  if (line !== null) $("#probe-compare").textContent = line;
 }
 
 // --- the instrument (signature element) ---------------------------------------
@@ -314,6 +332,7 @@ async function boot(): Promise<void> {
 
   const verdict = evaluateVerdict(ludion.probe);
   renderProbeCard(ludion, verdict);
+  void renderComparison(ludion, verdict);
 
   const submit = (content: string, display?: string): void => {
     void send(ludion, content, display);

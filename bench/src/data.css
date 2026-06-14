@@ -1,0 +1,136 @@
+/* Gate 4 ② — public /data dashboard. Monochrome Gate 2.6 tokens; table + bars
+   only, no chart lib. Clean at 390px. */
+:root {
+  --bg: #fafafa;
+  --surface: #ffffff;
+  --border: #e8e8ec;
+  --text: #0a0a0a;
+  --text-2: #71717a;
+  --accent: #1f6bff;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family:
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Roboto,
+    sans-serif;
+  line-height: 1.5;
+}
+
+#data {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 24px 16px 64px;
+}
+
+h1 {
+  font-size: 1.4rem;
+  margin: 0 0 4px;
+}
+
+h1 .sub {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 400;
+  color: var(--text-2);
+}
+
+h2 {
+  font-size: 0.95rem;
+  margin: 28px 0 8px;
+}
+
+.intro {
+  font-size: 0.85rem;
+  color: var(--text-2);
+  margin: 12px 0 4px;
+}
+
+.intro a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.intro a:hover {
+  text-decoration: underline;
+}
+
+.updated {
+  font-size: 0.78rem;
+  color: var(--text-2);
+  margin: 0 0 8px;
+}
+
+.status {
+  font-size: 0.85rem;
+  color: var(--text-2);
+  margin-top: 16px;
+}
+
+.hidden {
+  display: none;
+}
+
+.scroll-x {
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  font-size: 0.8rem;
+}
+
+th,
+td {
+  text-align: right;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+thead th,
+tr:first-child th {
+  color: var(--text-2);
+  font-weight: 600;
+}
+
+th[scope="row"],
+tr > th:first-child,
+tr > td:first-child {
+  text-align: left;
+}
+
+tr:last-child th,
+tr:last-child td {
+  border-bottom: none;
+}
+
+/* Proportional bar sits behind the numeric label in a cell. */
+td {
+  position: relative;
+}
+
+.bar {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  border-right: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
+}
+
+.cell-label {
+  position: relative;
+}

@@ -23,3 +23,10 @@ id = "97a377943cc14bbdbbd8568979d21983"
 [[r2_buckets]]
 binding = "SUBMISSIONS"
 bucket_name = "ludion-bench-submissions"
+
+# OPTIONAL freshness floor (Gate 4 decisions OQ1). The /v1/aggregate rollup is
+# already rebuilt off the response path on every new submit (ctx.waitUntil), so
+# the public data surface works fully WITHOUT this. Uncomment + `wrangler deploy`
+# only to also refresh during no-submit periods (recovers a missed waitUntil):
+# [triggers]
+# crons = ["0 * * * *"]   # hourly

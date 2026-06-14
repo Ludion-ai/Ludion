@@ -128,6 +128,8 @@ tr.error-row { background: color-mix(in srgb, var(--danger) 18%, transparent); }
 .verdict { font-size: 0.95rem; font-weight: 600; margin: 0.25rem 0 0.5rem; }
 .consent { font-size: 0.8rem; opacity: 0.85; margin: 0.5rem 0; }
 .counter { font-size: 1rem; font-weight: 700; color: var(--accent); margin: 0.25rem 0; }
+/* Gate 4 ① crowd comparison — muted, hidden until the aggregate resolves. */
+.compare { font-size: 0.85rem; opacity: 0.85; margin: 0.25rem 0 0.5rem; }
 details > summary { cursor: pointer; min-height: 44px; display: flex; align-items: center; font-size: 0.85rem; }
 details#advanced { margin-bottom: 0.75rem; }
 details#advanced > summary { opacity: 0.8; }

@@ -12,6 +12,7 @@ import { createWllamaAdapter } from "./adapters/wllama";
 import type { CacheState, DeviceInfo, EngineId, RunRow } from "./schema";
 import { autoPlan, guessLabel } from "./plan";
 import { collectorUrl, submitResult } from "./submit";
+import { buildComparison } from "./compare";
 
 const ADAPTERS: Record<EngineId, () => BenchAdapter> = {
   webllm: createWebLLMAdapter,
@@ -25,6 +26,7 @@ const store = createBrowserStore();
 let state: PersistedState | null = store.loadState();
 let device: DeviceInfo | null = null;
 let running = false;
+let compareShown = false; // Gate 4 ①: fetch the crowd aggregate at most once per page.
 
 // --- DOM ---------------------------------------------------------------
 
@@ -52,6 +54,7 @@ const ui = {
   planNote: () => el<HTMLParagraphElement>("plan-note"),
   measure: () => el<HTMLButtonElement>("measure"),
   completion: () => el<HTMLElement>("completion"),
+  compareLine: () => el<HTMLParagraphElement>("compare-line"),
   counter: () => el<HTMLParagraphElement>("device-counter"),
   submitBtn: () => el<HTMLButtonElement>("submit-result"),
   submitNote: () => el<HTMLParagraphElement>("submit-note"),
@@ -239,6 +242,19 @@ function renderFlow(): void {
   const complete = !running && state !== null && pending === null && state.runs.length > 0;
   ui.completion().classList.toggle("hidden", !complete);
   if (!complete) return;
+
+  // Gate 4 ①: one-line crowd comparison. Best-effort and fired once — if the
+  // aggregate endpoint is down the line stays hidden, never an error (F-6).
+  if (!compareShown && device && state) {
+    compareShown = true;
+    const runs = state.runs;
+    void buildComparison(device, runs).then((line) => {
+      if (line !== null) {
+        ui.compareLine().textContent = line;
+        ui.compareLine().classList.remove("hidden");
+      }
+    });
+  }
 
   if (collectorUrl() === null) {
     ui.submitBtn().classList.add("hidden");

@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>ludion — public data</title>
+  </head>
+  <body>
+    <main id="data">
+      <h1>ludion <span class="sub">browser-inference reality, measured</span></h1>
+      <p class="intro">
+        The live, CC0 dataset of in-browser LLM inference measured on real devices.
+        Every row is one person who ran the bench and shared the result.
+        <a id="measure-cta" href="./">Measure your own device</a> ·
+        <a href="https://github.com/Ludion-ai/Ludion" target="_blank" rel="noopener">source on GitHub</a>.
+      </p>
+      <p class="updated" id="updated"></p>
+
+      <section id="class-section">
+        <h2>By device class</h2>
+        <div class="scroll-x"><table id="class-table"></table></div>
+      </section>
+
+      <section id="rule-section">
+        <h2>Routing rules fired</h2>
+        <table id="rule-table"></table>
+      </section>
+
+      <section id="failure-section">
+        <h2>Failure modes</h2>
+        <table id="failure-table"></table>
+      </section>
+
+      <p class="status" id="status">loading…</p>
+    </main>
+    <script type="module" src="/src/data.ts"></script>
+  </body>
+</html>

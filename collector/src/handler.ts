@@ -1,4 +1,5 @@
 import { validateBenchDocument } from "../../bench/src/schema";
+import { readAggregate, rebuildAggregate } from "./aggregate";
 
 /**
  * ludion-collector — Gate 2.7 submission intake (Cloudflare Worker).
@@ -28,6 +29,11 @@ export interface R2Like {
   list(options?: {
     cursor?: string;
   }): Promise<{ objects: R2ObjectLike[]; truncated: boolean; cursor?: string }>;
+}
+
+/** Minimal slice of the Worker ExecutionContext — only what we use (decisions OQ1). */
+export interface ExecutionContextLike {
+  waitUntil(promise: Promise<unknown>): void;
 }
 
 export interface CollectorEnv {
@@ -117,7 +123,11 @@ async function bumpCounter(kv: KVLike, key: string, ttl?: number): Promise<numbe
   return next;
 }
 
-async function handleSubmit(request: Request, env: CollectorEnv): Promise<Response> {
+async function handleSubmit(
+  request: Request,
+  env: CollectorEnv,
+  ctx?: ExecutionContextLike,
+): Promise<Response> {
   const cors = corsHeaders(request, env);
   const origin = request.headers.get("Origin");
   if (origin !== null && !allowedOrigins(env).includes(origin)) {
@@ -193,9 +203,27 @@ async function handleSubmit(request: Request, env: CollectorEnv): Promise<Respon
   await bumpCounter(env.COLLECTOR_KV, rateKey, RATE_TTL_SECONDS);
   const total = await bumpCounter(env.COLLECTOR_KV, STATS_KEY);
 
+  // Amortized aggregate refresh, off the response path so submit latency is
+  // unchanged (decisions OQ1). New data only → deduped submits skip the rebuild.
+  ctx?.waitUntil(rebuildAggregate(env).catch(() => undefined));
+
   return new Response(JSON.stringify({ ok: true, deduped: false, total_submissions: total }), {
     status: 200,
     headers: json,
+  });
+}
+
+async function handleAggregate(request: Request, env: CollectorEnv): Promise<Response> {
+  const aggregate = await readAggregate(env);
+  return new Response(JSON.stringify(aggregate), {
+    status: 200,
+    headers: {
+      "content-type": "application/json",
+      // Precomputed in KV; O(1) per request regardless of submission count, and
+      // edge/browser cache holds it for 300s (decisions OQ2; stale is accepted, F-8).
+      "Cache-Control": "public, max-age=300",
+      ...corsHeaders(request, env),
+    },
   });
 }
 
@@ -242,7 +270,11 @@ async function handleAdmin(request: Request, env: CollectorEnv, url: URL): Promi
   return errorResponse(404, "not_found", "unknown admin route");
 }
 
-export async function handleRequest(request: Request, env: CollectorEnv): Promise<Response> {
+export async function handleRequest(
+  request: Request,
+  env: CollectorEnv,
+  ctx?: ExecutionContextLike,
+): Promise<Response> {
   const url = new URL(request.url);
 
   if (request.method === "OPTIONS") {
@@ -261,13 +293,19 @@ export async function handleRequest(request: Request, env: CollectorEnv): Promis
     if (request.method !== "POST") {
       return errorResponse(405, "method_not_allowed", "use POST", { Allow: "POST" });
     }
-    return handleSubmit(request, env);
+    return handleSubmit(request, env, ctx);
   }
   if (url.pathname === "/v1/stats") {
     if (request.method !== "GET") {
       return errorResponse(405, "method_not_allowed", "use GET", { Allow: "GET" });
     }
     return handleStats(request, env);
+  }
+  if (url.pathname === "/v1/aggregate") {
+    if (request.method !== "GET") {
+      return errorResponse(405, "method_not_allowed", "use GET", { Allow: "GET" });
+    }
+    return handleAggregate(request, env);
   }
   if (url.pathname.startsWith("/v1/admin/")) {
     if (request.method !== "GET") {
