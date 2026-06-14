@@ -133,3 +133,27 @@ tr.error-row { background: color-mix(in srgb, var(--danger) 18%, transparent); }
 details > summary { cursor: pointer; min-height: 44px; display: flex; align-items: center; font-size: 0.85rem; }
 details#advanced { margin-bottom: 0.75rem; }
 details#advanced > summary { opacity: 0.8; }
+
+/* Gate 5 — honest run progress + submit-once affordance (new elements only) */
+.run-status {
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin: 0 0 0.5rem;
+}
+.run-done { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-bottom: 0.4rem; }
+.run-done:empty { margin-bottom: 0; }
+.run-done .chip {
+  font-size: 0.72rem;
+  font-variant-numeric: tabular-nums;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  white-space: nowrap;
+}
+.run-done .chip.fail { border-color: var(--danger); color: var(--danger); }
+
+/* completion headline reads as the "done → submit" moment */
+#completion > h2 { font-size: 1.05rem; }
+.data-cta { margin: 0.5rem 0 0; }
+.data-cta a { color: var(--accent); font-weight: 600; text-decoration: none; }
+.data-cta a:hover { text-decoration: underline; }

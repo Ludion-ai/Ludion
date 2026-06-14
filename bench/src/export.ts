@@ -6,7 +6,11 @@ import type { PersistedState } from "./state";
 export function buildDocument(state: PersistedState, device: DeviceInfo): BenchDocument {
   return {
     schema: SCHEMA_ID,
-    collected_at: new Date().toISOString(),
+    // Frozen per measurement (Gate 5, decisions B-2): a stable collected_at
+    // keeps the submitted bytes — and therefore the content hash — identical
+    // across re-press and reload. Falls back to now() for ad-hoc exports
+    // (e.g. Copy/Download JSON before a batch completes).
+    collected_at: state.collectedAt ?? new Date().toISOString(),
     device: { ...device, operator_label: state.operatorLabel },
     sessions: state.sessions,
     runs: state.runs,

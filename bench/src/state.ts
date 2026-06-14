@@ -46,6 +46,14 @@ export interface PersistedState {
    * Additive optional field — version stays 1, old states parse unchanged.
    */
   submitted?: { at: string; total: number };
+  /**
+   * Gate 5 (decisions B-2): the measurement's `collected_at`, frozen once the
+   * run batch reaches completion and cleared when a new batch is enqueued.
+   * Freezing it makes the submitted document byte-stable across re-press and
+   * reload, so its content hash matches the Worker's dedupe input (OQ1).
+   * Additive optional field — version stays 1.
+   */
+  collectedAt?: string;
 }
 
 export interface Tombstone {

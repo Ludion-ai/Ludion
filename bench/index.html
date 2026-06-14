@@ -30,7 +30,7 @@
       </section>
 
       <section class="card hidden" id="completion">
-        <h2>Measurement complete</h2>
+        <h2 id="completion-headline">✓ Done — submit your result?</h2>
         <p id="compare-line" class="compare hidden"></p>
         <p id="device-counter" class="counter hidden"></p>
         <p class="consent">
@@ -43,10 +43,15 @@
           <button id="download-json">Download JSON</button>
         </div>
         <p class="note" id="submit-note"></p>
+        <p class="data-cta hidden" id="data-cta-wrap">
+          <a href="./data.html" id="data-cta">See how your device compares →</a>
+        </p>
       </section>
 
       <section class="card">
         <h2>Live</h2>
+        <p id="run-status" class="run-status hidden"></p>
+        <div id="run-done" class="run-done"></div>
         <div id="progress" class="progress"></div>
         <pre id="log"></pre>
       </section>
@@ -54,8 +59,6 @@
       <section class="card">
         <h2>Results</h2>
         <div class="scroll-x"><table id="results"></table></div>
-        <h3>Median per engine × model × prompt × cache</h3>
-        <div class="scroll-x"><table id="summary"></table></div>
       </section>
 
       <!-- Advanced fold (spec §1-1): the manual plan, intact — operator workflows unchanged. -->
@@ -88,6 +91,11 @@
             cache cannot be cleared from JS — for a guaranteed cold run, also clear
             site data in browser settings.
           </p>
+        </section>
+
+        <section class="card">
+          <h2>Median per engine × model × prompt × cache</h2>
+          <div class="scroll-x"><table id="summary"></table></div>
         </section>
 
         <section class="card">

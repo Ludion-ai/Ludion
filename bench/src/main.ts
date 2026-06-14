@@ -13,6 +13,7 @@ import type { CacheState, DeviceInfo, EngineId, RunRow } from "./schema";
 import { autoPlan, guessLabel } from "./plan";
 import { collectorUrl, submitResult } from "./submit";
 import { buildComparison } from "./compare";
+import { contentHash, createBrowserSubmittedStore } from "./submitted";
 
 const ADAPTERS: Record<EngineId, () => BenchAdapter> = {
   webllm: createWebLLMAdapter,
@@ -21,12 +22,16 @@ const ADAPTERS: Record<EngineId, () => BenchAdapter> = {
 };
 
 const AUTORUN_KEY = "ludion.bench.autorun";
+const ADVANCED_KEY = "ludion.bench.advanced.v1"; // Gate 5 (OQ3): persist fold state.
 
 const store = createBrowserStore();
+const submittedStore = createBrowserSubmittedStore(); // Gate 5 §1: submit-once.
 let state: PersistedState | null = store.loadState();
 let device: DeviceInfo | null = null;
 let running = false;
 let compareShown = false; // Gate 4 ①: fetch the crowd aggregate at most once per page.
+let completionScrolled = false; // Gate 5 (B-6): scroll completion into view once per page.
+let submitStateToken = 0; // guards the async refreshSubmitState against stale writes.
 
 // --- DOM ---------------------------------------------------------------
 
@@ -54,10 +59,15 @@ const ui = {
   planNote: () => el<HTMLParagraphElement>("plan-note"),
   measure: () => el<HTMLButtonElement>("measure"),
   completion: () => el<HTMLElement>("completion"),
+  completionHeadline: () => el<HTMLHeadingElement>("completion-headline"),
   compareLine: () => el<HTMLParagraphElement>("compare-line"),
   counter: () => el<HTMLParagraphElement>("device-counter"),
   submitBtn: () => el<HTMLButtonElement>("submit-result"),
   submitNote: () => el<HTMLParagraphElement>("submit-note"),
+  dataCtaWrap: () => el<HTMLParagraphElement>("data-cta-wrap"),
+  runStatus: () => el<HTMLParagraphElement>("run-status"),
+  runDone: () => el<HTMLDivElement>("run-done"),
+  advanced: () => el<HTMLDetailsElement>("advanced"),
 };
 
 function log(msg: string): void {
@@ -84,6 +94,101 @@ function showProgress(text: string, loaded: number | null, total: number | null)
     bar.appendChild(fill);
     ui.progress().appendChild(bar);
   }
+}
+
+// --- Gate 5: honest run progress (kills the silent valley) -----------------
+
+const promptLabel = (id: RunRow["prompt"]): string =>
+  id === "short" ? "short prompt" : "long prompt";
+
+/** One-liner shown the moment a run starts — covers the download/init valley. */
+function setRunExpectation(): void {
+  ui.runStatus().textContent =
+    "Starting… this runs 2 prompts × 3 timed runs. On older phones the long prompt can take a minute.";
+  ui.runStatus().classList.remove("hidden");
+}
+
+/** Live "Running k of N — <prompt>" / "Warming up" from the harness hook. */
+function showRunStatus(info: {
+  prompt: RunRow["prompt"];
+  isWarmup: boolean;
+  timedIndex: number;
+  timedTotal: number;
+  promptIndex: number;
+  promptTotal: number;
+}): void {
+  if (info.isWarmup) {
+    ui.runStatus().textContent = `Warming up — ${promptLabel(info.prompt)}…`;
+  } else {
+    const k = info.promptIndex * info.timedTotal + info.timedIndex;
+    const n = info.promptTotal * info.timedTotal;
+    ui.runStatus().textContent = `Running ${k} of ${n} — ${promptLabel(info.prompt)}`;
+  }
+  ui.runStatus().classList.remove("hidden");
+}
+
+/** Compact landed-result chip per timed row (success or failure). */
+function addRunDoneChip(row: RunRow): void {
+  const chip = document.createElement("span");
+  chip.className = "chip";
+  const label = row.prompt === "short" ? "short" : "long";
+  if (row.error) {
+    chip.classList.add("fail");
+    chip.textContent = `${label} ✗`;
+  } else {
+    chip.textContent = `${label} ✓ ~${row.decode_tps ?? "?"} tok/s`;
+  }
+  ui.runDone().appendChild(chip);
+}
+
+/** New measurement batch: clear live progress and the prior submitted/CTA UI. */
+function resetRunProgressUI(): void {
+  ui.runDone().innerHTML = "";
+  ui.runStatus().classList.add("hidden");
+  ui.runStatus().textContent = "";
+  ui.dataCtaWrap().classList.add("hidden");
+  completionScrolled = false;
+}
+
+function revealDataCta(): void {
+  ui.dataCtaWrap().classList.remove("hidden");
+}
+
+/**
+ * Gate 5 §1 (B-4): settle the Submit affordance from the content-hash store.
+ * If this exact measurement was already submitted (this session OR a prior one,
+ * surviving reload), the button is disabled + confirmed and the /data link is
+ * shown; otherwise it is live. The async hash is guarded by a token so a stale
+ * resolution can never clobber a newer state.
+ */
+async function refreshSubmitState(): Promise<void> {
+  if (!device || !state) return;
+  const token = ++submitStateToken;
+  const doc = buildDocument(state, device);
+  const hash = await contentHash(doc);
+  if (token !== submitStateToken) return; // superseded by a newer refresh
+  const btn = ui.submitBtn();
+  if (submittedStore.has(hash)) {
+    btn.disabled = true;
+    btn.textContent = "✓ Submitted — thank you";
+    btn.classList.remove("primary");
+    ui.completionHeadline().textContent = "✓ Submitted — thank you";
+    revealDataCta();
+  } else {
+    btn.disabled = false;
+    btn.textContent = "Submit result";
+    btn.classList.add("primary");
+    ui.completionHeadline().textContent = "✓ Done — submit your result?";
+  }
+}
+
+/** Scroll the completion card into view once, after layout settles (B-6). */
+function scrollCompletionIntoView(): void {
+  if (completionScrolled) return;
+  completionScrolled = true;
+  requestAnimationFrame(() => {
+    ui.completion().scrollIntoView({ behavior: "smooth", block: "start" });
+  });
 }
 
 // --- rendering -----------------------------------------------------------
@@ -241,7 +346,17 @@ function renderFlow(): void {
 
   const complete = !running && state !== null && pending === null && state.runs.length > 0;
   ui.completion().classList.toggle("hidden", !complete);
+  // Completion owns the screen; the live run-status line is no longer relevant.
+  if (complete) ui.runStatus().classList.add("hidden");
   if (!complete) return;
+
+  // Freeze collected_at once, at completion, BEFORE any hashing (decisions B-2):
+  // a stable timestamp makes the submitted bytes — and the content hash — equal
+  // across re-press and reload, so client persistence and Worker dedupe agree.
+  if (state && !state.collectedAt) {
+    state.collectedAt = new Date().toISOString();
+    store.saveState(state);
+  }
 
   // Gate 4 ①: one-line crowd comparison. Best-effort and fired once — if the
   // aggregate endpoint is down the line stays hidden, never an error (F-6).
@@ -260,14 +375,20 @@ function renderFlow(): void {
     ui.submitBtn().classList.add("hidden");
     ui.submitNote().textContent =
       "Submission opens when the collector is deployed — use Download JSON instead.";
+  } else {
+    ui.submitBtn().classList.remove("hidden");
+    // Settle the button (live vs already-submitted) from the content hash.
+    void refreshSubmitState();
   }
+
   if (state?.submitted) {
     ui.counter().textContent = `Device #${state.submitted.total} measured — thank you.`;
     ui.counter().classList.remove("hidden");
-    ui.submitBtn().classList.remove("primary");
   } else {
     ui.counter().classList.add("hidden");
   }
+
+  scrollCompletionIntoView();
 }
 
 async function measureAndRun(): Promise<void> {
@@ -275,6 +396,9 @@ async function measureAndRun(): Promise<void> {
   const plan = autoPlan(device);
   if (!state) state = store.newState(ui.label().value);
   state.operatorLabel = ui.label().value;
+  // New measurement = new collected_at stamp + fresh progress UI (decisions B-2).
+  state.collectedAt = undefined;
+  resetRunProgressUI();
   log(
     `auto plan (${plan.deviceClass}): ${plan.engine} × ${getModel(plan.modelKey).label}, ` +
       `cache_state=${plan.cacheState} — ${plan.reason}`,
@@ -286,25 +410,46 @@ async function measureAndRun(): Promise<void> {
   await startNext();
 }
 
+/**
+ * Gate 5 §1 (A-1/B-4): press → disable immediately (kills the double-press,
+ * the real integrity goal) + "submitting…". Settle to "✓ Submitted — thank you"
+ * ONLY on a confirmed ok (deduped counts), recording the content hash so the
+ * settled state survives reload. On failure, re-enable with an honest error +
+ * Download-JSON fallback — a failed POST must never strand the data.
+ */
 async function submitCurrent(): Promise<void> {
   if (!device || !state) return;
+  // Ensure collected_at is frozen so the hash we persist == the bytes we POST
+  // == the Worker's dedupe input (defense in depth, all three agree).
+  if (!state.collectedAt) {
+    state.collectedAt = new Date().toISOString();
+    store.saveState(state);
+  }
+  const doc = buildDocument(state, device);
+  const hash = await contentHash(doc);
+
   ui.submitBtn().disabled = true;
   ui.submitNote().textContent = "submitting…";
-  const res = await submitResult(buildDocument(state, device));
+  const res = await submitResult(doc);
   if (res.ok) {
+    submittedStore.add(hash);
     state.submitted = { at: new Date().toISOString(), total: res.total_submissions };
     store.saveState(state);
-    ui.submitNote().textContent = res.deduped ? "this result was already submitted." : "";
+    ui.submitNote().textContent = res.deduped
+      ? "this result was already in the dataset — counted once."
+      : "✓ Submitted — thank you.";
     log(
       res.deduped
         ? `submit: already in the dataset (device #${res.total_submissions})`
         : `submit ok: device #${res.total_submissions}`,
     );
+    revealDataCta();
   } else {
     ui.submitNote().textContent = `submit failed (${res.code}): ${res.message} — your data is safe; try again or use Download JSON.`;
     log(`submit failed (${res.code}): ${res.message}`);
   }
-  ui.submitBtn().disabled = false;
+  // refreshSubmitState (via renderFlow) is the single source of truth for the
+  // button: it settles to "✓ Submitted" on success or re-enables on failure.
   renderFlow();
 }
 
@@ -319,6 +464,7 @@ async function startNext(): Promise<void> {
     return;
   }
   setRunning(true);
+  setRunExpectation(); // cover the silent download/init valley immediately.
   const adapter = ADAPTERS[item.engine]();
   const spec = getModel(item.modelKey);
   log(`starting: ${describeItem(item)} (engine v${adapter.version()})`);
@@ -326,7 +472,11 @@ async function startNext(): Promise<void> {
     await runSession(store, state, item, adapter, spec, {
       log,
       onProgress: (p) => showProgress(`[${item.engine}] ${p.kind}: ${p.text}`, p.loadedBytes, p.totalBytes),
-      onRow: () => renderResults(),
+      onRow: (row) => {
+        renderResults();
+        addRunDoneChip(row);
+      },
+      onRunStart: (info) => showRunStatus(info),
     });
   } catch (e) {
     // runSession records its own error rows; this catch is a last-resort guard
@@ -397,6 +547,9 @@ async function enqueueAndRun(cacheState: CacheState): Promise<void> {
   }
   if (!state) state = store.newState(ui.label().value);
   state.operatorLabel = ui.label().value;
+  // New measurement batch = fresh collected_at stamp + fresh progress UI.
+  state.collectedAt = undefined;
+  resetRunProgressUI();
   if (cacheState === "cold") {
     log("wiping origin storage for cold run…");
     await wipeOriginStorage(log);
@@ -456,6 +609,23 @@ async function boot(): Promise<void> {
   });
   ui.measure().addEventListener("click", () => void measureAndRun());
   ui.submitBtn().addEventListener("click", () => void submitCurrent());
+
+  // Gate 5 (OQ3): persist the Advanced fold so an operator opens it once and it
+  // stays open across the bench's auto-reloads. The reload session flow reads
+  // its inputs by element id, so the fold state never affects correctness.
+  const advanced = ui.advanced();
+  try {
+    if (localStorage.getItem(ADVANCED_KEY) === "1") advanced.open = true;
+  } catch {
+    /* fold state is a convenience; ignore storage failures */
+  }
+  advanced.addEventListener("toggle", () => {
+    try {
+      localStorage.setItem(ADVANCED_KEY, advanced.open ? "1" : "0");
+    } catch {
+      /* ignore */
+    }
+  });
 
   device = await probeDevice(ui.label().value);
   renderCapability(device);

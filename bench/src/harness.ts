@@ -10,11 +10,33 @@ import type { BenchStore, PersistedState, SessionPlanItem } from "./state";
  * clock (performance.now), one code path. Adapters only surface engine events.
  */
 
+/**
+ * Per-generation progress (Gate 5 §2, decisions OQ2/B-3). Emitted just before
+ * each generate() so the UI can render an honest "Running k of N — <prompt>"
+ * counter and kill the silent valley. The harness loop already holds every
+ * index; this only surfaces them.
+ */
+export interface RunStartInfo {
+  prompt: (typeof PROMPTS)[number]["id"];
+  isWarmup: boolean;
+  /** 1-based index of this timed run within its prompt (0 while warming up). */
+  timedIndex: number;
+  timedTotal: number;
+  /** 0-based index of the prompt within PROMPTS. */
+  promptIndex: number;
+  promptTotal: number;
+}
+
 export interface HarnessHooks {
   log: (msg: string) => void;
   onProgress: (p: DownloadProgress) => void;
   /** Called after every persisted run row so the UI can re-render. */
   onRow: (row: RunRow) => void;
+  /**
+   * Optional (decisions OQ2): existing callers/tests compile unchanged.
+   * Fired immediately before each generate(), warmups included.
+   */
+  onRunStart?: (info: RunStartInfo) => void;
 }
 
 function toBenchError(stage: BenchError["stage"], e: unknown): BenchError {
@@ -210,12 +232,22 @@ export async function runSession(
   );
 
   // ---- generations ---------------------------------------------------------
-  for (const prompt of PROMPTS) {
+  for (let promptIndex = 0; promptIndex < PROMPTS.length; promptIndex++) {
+    const prompt = PROMPTS[promptIndex]!;
     let promptFailed = false;
     for (let i = 0; i < WARMUP_RUNS + TIMED_RUNS && !promptFailed; i++) {
       const isWarmup = i < WARMUP_RUNS;
-      const label = isWarmup ? "warmup" : `timed ${i - WARMUP_RUNS + 1}/${TIMED_RUNS}`;
+      const timedIndex = isWarmup ? 0 : i - WARMUP_RUNS + 1;
+      const label = isWarmup ? "warmup" : `timed ${timedIndex}/${TIMED_RUNS}`;
       hooks.log(`${adapter.id} / ${prompt.id}: ${label}`);
+      hooks.onRunStart?.({
+        prompt: prompt.id,
+        isWarmup,
+        timedIndex,
+        timedTotal: TIMED_RUNS,
+        promptIndex,
+        promptTotal: PROMPTS.length,
+      });
 
       // Tombstone (operator requirement ii): written before generate, cleared
       // on completion. Survives an OOM tab kill and becomes an error row.
