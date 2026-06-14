@@ -25,6 +25,8 @@ All three:
 Then:
 
 ```ts
+import { Ludion } from "ludion-router";
+
 const ludion = await Ludion.create({
   fallback: { url: "/api/chat", model: "your-server-model" },
 });

@@ -37,15 +37,19 @@ app.post("/api/chat", async (req, res) => {
 app.listen(8787);
 ```
 
-Run:
+Install the one dependency, then run (the relay is ESM — the `.mjs` extension,
+or add `"type": "module"` to `package.json`):
 
 ```bash
+npm install express
 LLM_BASE_URL=https://api.openai.com/v1 LLM_API_KEY=sk-... node relay.mjs
 ```
 
 Client:
 
 ```ts
+import { Ludion } from "ludion-router";
+
 const ludion = await Ludion.create({
   fallback: { url: "http://localhost:8787/api/chat", model: "gpt-4o-mini" },
 });

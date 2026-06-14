@@ -34,6 +34,8 @@ LLM_API_KEY=sk-...
 Client:
 
 ```ts
+import { Ludion } from "ludion-router";
+
 const ludion = await Ludion.create({
   fallback: { url: "/api/chat", model: "gpt-4o-mini" },
 });

@@ -36,7 +36,10 @@ jobs:
           pnpm supplier-table
           pnpm report-data
 
-      - name: No hand-typed numbers (regeneration must be a no-op)
+      - name: Sync npm README from root README (single authored source)
+        run: pnpm sync-readme
+
+      - name: No hand-typed numbers / no README drift (regeneration must be a no-op)
         run: git diff --exit-code
 
       - name: Build router package

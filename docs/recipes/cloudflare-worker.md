@@ -30,7 +30,8 @@ export default {
 };
 ```
 
-Setup:
+Setup (needs Wrangler — `npm install -D wrangler` or use `npx wrangler`, and
+`wrangler login` once):
 
 ```bash
 wrangler secret put LLM_API_KEY
@@ -41,6 +42,8 @@ wrangler deploy
 Client:
 
 ```ts
+import { Ludion } from "ludion-router";
+
 const ludion = await Ludion.create({
   fallback: { url: "https://your-relay.workers.dev", model: "gpt-4o-mini" },
 });
