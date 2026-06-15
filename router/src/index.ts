@@ -137,6 +137,7 @@ export class Ludion {
       tps: null,
       tokens_in: null,
       tokens_out: null,
+      tokens_source: "estimated",
       error: null,
     };
     const emitOnce = (() => {
@@ -261,6 +262,7 @@ export class Ludion {
   ): void {
     log.tokens_in = usage?.prompt_tokens ?? null;
     log.tokens_out = usage?.completion_tokens ?? contentChunks;
+    log.tokens_source = usage != null ? "exact" : "estimated";
   }
 
   // --- streaming path (Q3 / A-2 two-branch degrade) -------------------------

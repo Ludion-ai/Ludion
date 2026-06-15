@@ -205,6 +205,7 @@ describe("Ludion facade: routing + execution", () => {
     expect(log.tps).not.toBeNull();
     expect(log.tokens_in).toBe(11);
     expect(log.tokens_out).toBe(7);
+    expect(log.tokens_source).toBe("exact");
     expect(log.degraded).toBeNull();
     expect(h.decisions).toEqual([log]); // exactly once, same (mutated) object
     expect(h.serverSpy.streamCalls).toBe(0);

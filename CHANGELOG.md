@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.1.3 — 2026-06-15
+
+Additive groundwork for the client-side savings engine (Gate 6-A). No routing,
+timing, or existing-field behavior changed; behavior is byte-identical to 0.1.2
+for every existing consumer.
+
+- `DecisionLog` gains `tokens_source: "exact" | "estimated"`. `"exact"` means the
+  engine/server reported a usage object (so `tokens_in`/`tokens_out` are real
+  token counts); `"estimated"` means no usage was reported, so `tokens_out` is a
+  content-chunk count and `tokens_in` is `null`. This makes token-count provenance
+  explicit instead of relying on the implicit "`tokens_in !== null`" heuristic —
+  required so downstream savings figures can flag estimated entries.
+- New `ludion-router/savings` subpath export: a standalone, opt-in client-side
+  savings ledger + computation (counts/metadata only, never prompt/response
+  content; localStorage, bounded). The router core writes no storage unless an
+  integrator explicitly wires `new SavingsLedger()` to `onDecision`.
+
+> Note: there is no `0.1.2` entry above — `0.1.2` (WebLLM context cap / KV sizing)
+> was released without a changelog entry. Left as-is rather than retro-documented.
+
 ## 0.1.1 — 2026-06-12
 
 Time-to-first-wow release: zero-config local-only mode, plus the correct

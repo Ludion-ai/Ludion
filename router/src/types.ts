@@ -64,6 +64,14 @@ export interface DecisionLog {
   tps: number | null;
   tokens_in: number | null;
   tokens_out: number | null;
+  /**
+   * Provenance of tokens_in/tokens_out. "exact" = engine/server reported a
+   * usage object; "estimated" = no usage reported, so tokens_out is a content-
+   * chunk count and tokens_in is null (consumers backfill from
+   * est_prompt_tokens). Additive marker so savings figures never rest on the
+   * implicit "tokens_in !== null" heuristic.
+   */
+  tokens_source: "exact" | "estimated";
   error: string | null;
 }
 

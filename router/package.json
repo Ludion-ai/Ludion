@@ -1,6 +1,6 @@
 {
   "name": "ludion-router",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "type": "module",
   "license": "MIT",
   "description": "A load balancer between your users' GPUs and your cloud — per-request routing of AI inference between on-device WebGPU and your own server, decided by a versioned, deterministic, empirically derived policy.",
@@ -27,6 +27,10 @@
     ".": {
       "types": "./src/index.ts",
       "default": "./src/index.ts"
+    },
+    "./savings": {
+      "types": "./src/savings.ts",
+      "default": "./src/savings.ts"
     }
   },
   "publishConfig": {
@@ -34,6 +38,10 @@
       ".": {
         "types": "./dist/index.d.ts",
         "default": "./dist/index.js"
+      },
+      "./savings": {
+        "types": "./dist/savings.d.ts",
+        "default": "./dist/savings.js"
       }
     }
   },

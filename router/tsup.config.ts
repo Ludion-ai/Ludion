@@ -9,7 +9,7 @@ import { defineConfig } from "tsup";
  * - `policy.v0.json` is inlined.
  */
 export default defineConfig({
-  entry: ["src/index.ts"],
+  entry: ["src/index.ts", "src/savings.ts"],
   format: ["esm"],
   platform: "browser",
   target: "es2022",
