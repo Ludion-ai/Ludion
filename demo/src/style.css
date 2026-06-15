@@ -13,6 +13,9 @@
   --text-2: #71717a;
   --accent: #1f6bff;
   --accent-dim: #18207e;
+  /* Gate 6-B: green is a MEANING token only (saved amount / on-device share).
+     Never used for decoration. */
+  --positive: #16a34a;
   --radius-card: 14px;
   --radius-input: 10px;
   --shadow:
@@ -703,5 +706,237 @@ footer p {
 
   footer {
     align-items: flex-start;
+  }
+}
+
+/* --- Gate 6-B: savings dashboard (2.6 monochrome; green = meaning only) ------ */
+
+.savings-app {
+  max-width: 560px;
+}
+
+#savings {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+#savings .card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow);
+  padding: 20px 24px;
+}
+
+.s-kicker {
+  display: block;
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  color: var(--text-2);
+  font-weight: 600;
+}
+
+.s-muted {
+  color: var(--text-2);
+}
+
+/* Hero — the one big number. Ink-black, tabular mono, bank-balance calm. */
+.s-hero {
+  padding: 32px 24px;
+}
+
+.s-hero-num {
+  margin: 10px 0 8px;
+  font-family: var(--monoface);
+  font-variant-numeric: tabular-nums;
+  font-size: clamp(2.75rem, 12vw, 4rem);
+  line-height: 1.05;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  color: var(--text);
+}
+
+.s-hero-sub {
+  margin: 0;
+  color: var(--text-2);
+  font-size: 0.92rem;
+  max-width: 38ch;
+}
+
+/* Basis line — quiet honesty: model, as-of date, estimated share, caveat. */
+.s-basis-line {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text-2);
+}
+
+.s-sep {
+  color: var(--border);
+}
+
+.s-change {
+  font: inherit;
+  font-size: 0.85rem;
+  color: var(--accent);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.s-change:hover {
+  color: var(--accent-dim);
+}
+
+/* Picker — preset select + manual override; calm hairline form. */
+.s-picker-help {
+  margin: 6px 0 12px;
+  font-size: 0.85rem;
+}
+
+.s-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 10px 0;
+  font-size: 0.85rem;
+}
+
+.s-label {
+  color: var(--text-2);
+  flex: none;
+}
+
+.s-input {
+  font: inherit;
+  font-size: 0.9rem;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-input);
+  padding: 8px 10px;
+  flex: 1;
+  min-width: 0;
+  max-width: 60%;
+}
+
+.s-input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -1px;
+}
+
+.s-apply {
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #fff;
+  background: var(--accent);
+  border: none;
+  border-radius: 999px;
+  padding: 6px 18px;
+  margin-top: 8px;
+  cursor: pointer;
+}
+
+.s-apply:hover {
+  background: var(--accent-dim);
+}
+
+/* Split — one thin bar; local = green meaning, server = hairline grey. */
+.s-bar {
+  display: flex;
+  height: 8px;
+  margin: 12px 0 10px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--border);
+}
+
+.s-bar-local {
+  background: var(--positive);
+}
+
+.s-bar-server {
+  background: var(--border);
+}
+
+.s-legend {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--text-2);
+}
+
+.s-dot-local,
+.s-dot-server {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  vertical-align: baseline;
+}
+
+.s-dot-local {
+  background: var(--positive);
+}
+
+.s-dot-server {
+  background: var(--border);
+  border: 1px solid var(--text-2);
+}
+
+/* Sparkline — hand-rolled SVG; muted ink bars on one hairline baseline. */
+.s-spark {
+  display: block;
+  width: 100%;
+  height: auto;
+  margin: 12px 0 6px;
+}
+
+.s-spark-bar {
+  fill: var(--text-2);
+}
+
+.s-spark-base {
+  stroke: var(--border);
+  stroke-width: 1;
+}
+
+.s-trend-range {
+  margin: 0;
+  font-size: 0.75rem;
+}
+
+/* Empty — an empty bank statement, not a splash. */
+.s-empty {
+  padding: 40px 24px;
+  text-align: center;
+}
+
+.s-empty-head {
+  margin: 0 0 6px;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.s-empty-link {
+  display: inline-block;
+  margin-top: 14px;
+  font-size: 0.9rem;
+}
+
+@media (max-width: 700px) {
+  .s-hero,
+  #savings .card {
+    padding: 18px 18px;
+  }
+  .s-hero {
+    padding: 28px 18px;
+  }
+  .s-input {
+    max-width: 50%;
   }
 }

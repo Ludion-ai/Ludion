@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <title>ludion — savings</title>
+    <meta
+      name="description"
+      content="What you saved by running AI inference on this device instead of the API. Computed locally; nothing leaves your device."
+    />
+  </head>
+  <body>
+    <div id="app" class="savings-app">
+      <header>
+        <div class="brand">
+          <img id="brand-mark" class="mark" alt="" width="28" height="28" />
+          <span class="wordmark">ludion</span>
+          <span class="tagline">Savings — computed on this device.</span>
+        </div>
+        <nav>
+          <a href="./">demo</a>
+          <a href="https://github.com/Ludion-ai/Ludion" target="_blank" rel="noopener">GitHub</a>
+        </nav>
+      </header>
+
+      <main id="savings" aria-live="polite">
+        <!-- rendered by src/savings.ts -->
+      </main>
+    </div>
+    <script type="module" src="/src/savings.ts"></script>
+  </body>
+</html>

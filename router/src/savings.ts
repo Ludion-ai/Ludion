@@ -22,6 +22,12 @@ import { createSafeBrowserKV } from "./strikes";
 import { PRESET_PRICING, PricingStore } from "./pricing";
 import type { PriceBasis, PricingTable } from "./pricing";
 
+// Re-export the pricing surface so consumers of the `ludion-router/savings`
+// entry get the ledger, the summary, AND the pricing controls (preset table +
+// store) from one import. Additive surface only — no behavior change.
+export { PRESET_PRICING, PricingStore } from "./pricing";
+export type { PriceRow, PricingTable, PriceBasis, PriceOverride } from "./pricing";
+
 const LEDGER_KEY = "ludion.savings.ledger.v1";
 
 /** Ring-buffer cap on raw entries; older entries fold into daily rollups. */

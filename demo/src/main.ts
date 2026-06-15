@@ -5,6 +5,7 @@ import "./style.css";
 import hexMarkUrl from "../../assets/ludion-hex-mark.svg";
 import { Ludion, LudionNoFallbackConfigured } from "ludion-router";
 import type { DecisionLog } from "ludion-router";
+import { SavingsLedger } from "ludion-router/savings";
 import { evaluateVerdict } from "./verdict";
 import type { Verdict } from "./verdict";
 import { comparisonLine, deviceClassOf, fetchAggregate } from "./compare";
@@ -313,8 +314,14 @@ function renderChips(ludion: Ludion, send: (content: string, display?: string) =
 
 const history: { role: "user" | "assistant"; content: string }[] = [];
 
+// Gate 6-B: opt in to the client-side savings ledger (6-A). Counts/metadata
+// only, localStorage, never content — the /savings page reads what accrues
+// here. Explicit, visible opt-in: the router writes nothing unless wired.
+const savings = new SavingsLedger();
+
 async function boot(): Promise<void> {
   const ludion = await Ludion.create({
+    onDecision: (log) => savings.record(log),
     // Zero-config by design (F-3, via the 0.1.1 API): no endpoint configured
     // → no fallback at all. Server-routed requests then throw the typed
     // LudionNoFallbackConfigured, which send() turns into the contextual card.
