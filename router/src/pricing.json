@@ -1,7 +1,7 @@
 {
   "version": 1,
   "currency": "USD",
-  "note": "Counterfactual server prices, USD per 1M tokens. Prices change; each row is dated (price_as_of) and carries a source. verified:false = not confirmed against the provider's official pricing page (figure is best-known/recalled) — the UI should invite the user to override. Never treat these as authoritative billing rates.",
+  "note": "Counterfactual server prices, USD per 1M tokens. Prices change; each row is dated (price_as_of) and carries a source. verified:true = confirmed against the provider's official pricing page at price_as_of (source is that page's URL); verified:false = not confirmed (figure is best-known/recalled) and the UI should invite the user to override. Never treat these as authoritative billing rates.",
   "models": [
     {
       "id": "gpt-4o",
@@ -9,8 +9,8 @@
       "input_per_1m": 2.5,
       "output_per_1m": 10.0,
       "price_as_of": "2026-06",
-      "source": "third-party aggregator (gptbreeze.io, nicolalazzari.ai); confirm at openai.com/api/pricing",
-      "verified": false
+      "source": "https://developers.openai.com/api/docs/models/gpt-4o",
+      "verified": true
     },
     {
       "id": "gpt-4o-mini",
@@ -18,8 +18,8 @@
       "input_per_1m": 0.15,
       "output_per_1m": 0.6,
       "price_as_of": "2026-06",
-      "source": "third-party aggregator (devtk.ai, pricepertoken.com); confirm at openai.com/api/pricing",
-      "verified": false
+      "source": "https://developers.openai.com/api/docs/models/gpt-4o-mini",
+      "verified": true
     },
     {
       "id": "claude-sonnet",
@@ -27,8 +27,8 @@
       "input_per_1m": 3.0,
       "output_per_1m": 15.0,
       "price_as_of": "2026-06",
-      "source": "third-party aggregator (metacto.com, cloudzero.com); confirm at anthropic.com/pricing",
-      "verified": false
+      "source": "https://claude.com/pricing",
+      "verified": true
     },
     {
       "id": "claude-haiku",
@@ -36,17 +36,17 @@
       "input_per_1m": 1.0,
       "output_per_1m": 5.0,
       "price_as_of": "2026-06",
-      "source": "third-party aggregator (metacto.com, cloudzero.com); confirm at anthropic.com/pricing",
-      "verified": false
+      "source": "https://claude.com/pricing",
+      "verified": true
     },
     {
       "id": "gemini-flash",
-      "label": "Gemini 1.5 Flash",
-      "input_per_1m": 0.075,
-      "output_per_1m": 0.3,
-      "price_as_of": "2025",
-      "source": "best-known estimate (≤128k context tier), unconfirmed; confirm at ai.google.dev/pricing",
-      "verified": false
+      "label": "Gemini 3.1 Flash-Lite",
+      "input_per_1m": 0.25,
+      "output_per_1m": 1.5,
+      "price_as_of": "2026-06",
+      "source": "https://ai.google.dev/gemini-api/docs/pricing",
+      "verified": true
     }
   ]
 }

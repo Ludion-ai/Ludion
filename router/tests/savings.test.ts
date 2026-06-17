@@ -257,7 +257,7 @@ describe("PricingStore — override beats preset (acceptance #4)", () => {
     const basis = store.resolveBasis();
     expect(basis.model).toBe("claude-haiku");
     expect(basis.overridden).toBe(false);
-    expect(basis.verified).toBe(false); // seed rows are unverified
+    expect(basis.verified).toBe(true); // claude-haiku confirmed against the official page
   });
 
   it("a manual override takes precedence over any preset", () => {
