@@ -224,8 +224,8 @@ describe("bounding & rollup (acceptance #5)", () => {
     const s = ledger.summary({ table: PRESET_PRICING });
     // Every one of N entries is local-completed; total counts all of them.
     expect(s.local_count).toBe(N);
-    // Default basis = first preset row (gpt-4o, 2.5/10) → 0.0045 each.
-    expect(s.total_saved).toBeCloseTo(N * 0.0045, 6);
+    // Default basis = first preset row (claude-sonnet, 3/15) → 0.006 each.
+    expect(s.total_saved).toBeCloseTo(N * 0.006, 6);
   });
 
   it("prunes rollups beyond the retention window", () => {
