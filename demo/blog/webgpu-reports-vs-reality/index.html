@@ -31,13 +31,12 @@
           I wanted to run a small language model in the browser, on the phone, with no
           server in the loop. The feature detection is easy. You ask for a WebGPU
           adapter, you read its limits, and if the buffer sizes are large enough you
-          assume you are good to go. Every device I tested reported WebGPU. On paper they
+          assume it will run. Every device I tested reported WebGPU. On paper they
           could all hold a 1B model.
         </p>
         <p>
           Then I ran them. What a device reports about its GPU and what it finishes are
-          two different things. Here are four cases from my own measurements where the
-          gap is wide enough to matter.
+          two different things. Four cases from my own measurements.
         </p>
 
         <p>
@@ -103,7 +102,7 @@
         <p>
           The fastest engine decodes about twice as fast as the slowest on identical
           hardware running the identical model. The WebGPU support flag reads the same for
-          all three. The throughput the user feels does not.
+          all three. The measured throughput does not.
         </p>
 
         <h2>4. A mid-range Android reports capable and the prefill collapses</h2>
@@ -122,11 +121,9 @@
         </p>
 
         <p>
-          So across four devices that all report WebGPU with adequate buffer limits, one
-          silently kills the tab, one never finishes a download, one varies by two times
-          on the engine alone, and one takes more than a minute to start answering once
-          the prompt grows. The capability the browser reports and the run that completes
-          are measured separately, and only the second one is real.
+          So across four devices that all report WebGPU with adequate buffer limits, the
+          capability the browser reports and the run that completes are measured
+          separately. Only the second one is real.
         </p>
       </article>
 
