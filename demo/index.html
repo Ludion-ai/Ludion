@@ -111,8 +111,10 @@
       </label>
       <label>
         model
-        <input id="cfg-model" type="text" placeholder="gpt-4o-mini" />
+        <input id="cfg-model" type="text" list="cfg-model-list" placeholder="gpt-4o-mini" autocomplete="off" />
+        <datalist id="cfg-model-list"></datalist>
       </label>
+      <p id="cfg-model-note" class="note cfg-model-note" aria-live="polite"></p>
       <div class="dialog-actions">
         <button id="cfg-save" type="button">save</button>
         <button id="cfg-close" type="button">close</button>

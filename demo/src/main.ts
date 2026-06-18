@@ -12,6 +12,7 @@ import {
 } from "ludion-router";
 import type { DecisionLog } from "ludion-router";
 import { SavingsLedger } from "ludion-router/savings";
+import { getModel, getModelPricing, listModels } from "ludion-router/registry";
 import { evaluateVerdict } from "./verdict";
 import type { Verdict } from "./verdict";
 import { comparisonLine, deviceClassOf, fetchAggregate } from "./compare";
@@ -58,13 +59,75 @@ $<HTMLImageElement>("#brand-mark").src = hexMarkUrl;
 
 // --- settings drawer ---------------------------------------------------------
 
+const cfgUrlEl = $<HTMLInputElement>("#cfg-url");
+const cfgKeyEl = $<HTMLInputElement>("#cfg-key");
+const cfgModelEl = $<HTMLInputElement>("#cfg-model");
+const cfgModelListEl = $<HTMLDataListElement>("#cfg-model-list");
+const cfgModelNoteEl = $("#cfg-model-note");
+
+// Spec C step 2: the fallback model is chosen from the registry (predictive),
+// not hand-typed. A native <datalist> suggests api models and STILL accepts any
+// custom value (escape hatch) — self-hosted endpoints and registry-unknown
+// models are first-class, not errors. Only kind:"api" is offered: a fallback is
+// by definition the server-side landing spot for requests the device could not
+// run locally, so a local model as the "fallback" would be contradictory.
+
+// Provider -> a sensible OpenAI-compatible base URL default. Only used to
+// PREFILL an empty field; a user-typed URL is never overwritten (escape hatch).
+const PROVIDER_BASE_URL: Record<string, string> = {
+  openai: "https://api.openai.com/v1",
+  anthropic: "https://api.anthropic.com/v1",
+  google: "https://generativelanguage.googleapis.com/v1beta/openai",
+};
+
+function priceHint(id: string): string {
+  const p = getModelPricing(id);
+  if (!p) return "";
+  return ` · $${p.input_per_1m}/$${p.output_per_1m} per 1M`;
+}
+
+function populateModelSuggestions(): void {
+  cfgModelListEl.replaceChildren();
+  for (const m of listModels({ kind: "api" })) {
+    const opt = document.createElement("option");
+    opt.value = m.id;
+    // Terse context: display name, provider, and price if it joins cleanly.
+    opt.label = `${m.display_name} · ${m.provider}${priceHint(m.id)}`;
+    cfgModelListEl.appendChild(opt);
+  }
+}
+
+// React to a chosen/typed model: a registry id prefills an empty baseURL and
+// clears the note; an unknown id is accepted as a quiet custom value (info, not
+// a warning) — the registry is a convenience, never a gate.
+function reflectModelChoice(): void {
+  const id = cfgModelEl.value.trim();
+  if (!id) {
+    cfgModelNoteEl.textContent = "";
+    return;
+  }
+  const entry = getModel(id);
+  if (entry) {
+    cfgModelNoteEl.textContent = "";
+    const def = PROVIDER_BASE_URL[entry.provider];
+    if (def && !cfgUrlEl.value.trim()) cfgUrlEl.value = def;
+  } else {
+    cfgModelNoteEl.textContent = "custom model (not in the registry) — saved as typed.";
+    console.info(`ludion: using custom fallback model "${id}" (not in the registry)`);
+  }
+}
+
 function fillSettingsForm(): void {
   const fb = configSource.get()?.fallback;
-  $<HTMLInputElement>("#cfg-url").value = fb?.baseURL ?? "";
-  $<HTMLInputElement>("#cfg-key").value = fb?.apiKey ?? "";
-  $<HTMLInputElement>("#cfg-model").value = fb?.model ?? "";
+  cfgUrlEl.value = fb?.baseURL ?? "";
+  cfgKeyEl.value = fb?.apiKey ?? "";
+  cfgModelEl.value = fb?.model ?? "";
+  cfgModelNoteEl.textContent = "";
 }
+populateModelSuggestions();
 fillSettingsForm();
+
+cfgModelEl.addEventListener("change", reflectModelChoice);
 
 $("#settings-toggle").addEventListener("click", () => {
   fillSettingsForm();
@@ -72,15 +135,16 @@ $("#settings-toggle").addEventListener("click", () => {
 });
 $("#cfg-close").addEventListener("click", () => settingsEl.close());
 $("#cfg-save").addEventListener("click", () => {
-  const baseURL = $<HTMLInputElement>("#cfg-url").value.trim();
-  const model = $<HTMLInputElement>("#cfg-model").value.trim();
-  const apiKey = $<HTMLInputElement>("#cfg-key").value.trim();
+  const baseURL = cfgUrlEl.value.trim();
+  const model = cfgModelEl.value.trim();
+  const apiKey = cfgKeyEl.value.trim();
   const fallback: { baseURL?: string; model?: string; apiKey?: string } = {};
   if (baseURL) fallback.baseURL = baseURL;
   if (model) fallback.model = model;
   if (apiKey) fallback.apiKey = apiKey;
   // Persist via the runtime config seam. No reload: the live config source is
-  // read by the very next inference request (Spec B step 1).
+  // read by the very next inference request (Spec B step 1). The picker only
+  // changes how the value is CHOSEN, not how it is stored or applied.
   writeDropinConfig(Object.keys(fallback).length > 0 ? { fallback } : null);
   settingsEl.close();
 });

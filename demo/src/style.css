@@ -641,6 +641,15 @@ footer p {
   outline-offset: -1px;
 }
 
+.cfg-model-note {
+  margin: -8px 0 0;
+  min-height: 1.2em;
+  font-size: 0.78rem;
+}
+.cfg-model-note:empty {
+  margin: 0;
+}
+
 .dialog-actions {
   display: flex;
   gap: 8px;
