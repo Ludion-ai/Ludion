@@ -1,0 +1,163 @@
+/* Ludion blog — long-form reading surface. Same palette and law as the demo:
+   white base, near-monochrome, blue is the only link accent, measured numbers
+   in mono. No gradients, no blur, no colored fills, no emoji. */
+
+:root {
+  --bg: #fafafa;
+  --surface: #ffffff;
+  --border: #e8e8ec;
+  --text: #0a0a0a;
+  --text-2: #71717a;
+  --accent: #1f6bff;
+  --monoface: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --sans:
+    -apple-system, BlinkMacSystemFont, "SF Pro Text", Inter, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 17px;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+}
+
+.wrap {
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 24px 20px 64px;
+}
+
+header.site {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  padding-bottom: 20px;
+  margin-bottom: 28px;
+  border-bottom: 1px solid var(--border);
+}
+
+header.site .wordmark {
+  font-family: var(--monoface);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+header.site nav {
+  margin-left: auto;
+  display: flex;
+  gap: 16px;
+  font-size: 0.9rem;
+}
+
+a {
+  color: var(--accent);
+  text-decoration: none;
+}
+a:hover {
+  text-decoration: underline;
+}
+
+h1 {
+  font-size: 1.7rem;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  margin: 0 0 8px;
+}
+
+.dek {
+  color: var(--text-2);
+  margin: 0 0 4px;
+}
+
+.meta {
+  color: var(--text-2);
+  font-family: var(--monoface);
+  font-size: 0.82rem;
+  margin: 0 0 28px;
+}
+
+article p {
+  margin: 0 0 18px;
+}
+
+article h2 {
+  font-size: 1.15rem;
+  margin: 36px 0 12px;
+}
+
+code {
+  font-family: var(--monoface);
+  font-size: 0.88em;
+}
+
+table.measured {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--monoface);
+  font-size: 0.86rem;
+  margin: 8px 0 22px;
+}
+
+table.measured caption {
+  text-align: left;
+  color: var(--text-2);
+  font-family: var(--sans);
+  font-size: 0.85rem;
+  margin-bottom: 8px;
+}
+
+table.measured th,
+table.measured td {
+  border: 1px solid var(--border);
+  padding: 7px 10px;
+  text-align: left;
+}
+
+table.measured th {
+  font-weight: 600;
+  background: var(--surface);
+}
+
+table.measured td.num {
+  text-align: right;
+}
+
+.posts {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.posts li {
+  padding: 18px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.posts a {
+  font-size: 1.15rem;
+}
+
+.posts .dek {
+  margin-top: 4px;
+}
+
+footer.note {
+  margin-top: 40px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border);
+  color: var(--text-2);
+  font-size: 0.85rem;
+}

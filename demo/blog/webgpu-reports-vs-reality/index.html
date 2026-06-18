@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <title>What browsers report about WebGPU is not what runs — ludion</title>
+    <meta
+      name="description"
+      content="Four real device measurements where a browser reports full WebGPU capability and the inference run still does not complete."
+    />
+    <link rel="stylesheet" href="/src/blog.css" />
+  </head>
+  <body>
+    <div class="wrap">
+      <header class="site">
+        <span class="wordmark">ludion</span>
+        <nav>
+          <a href="/blog/">writing</a>
+          <a href="/">demo</a>
+          <a href="https://github.com/Ludion-ai/Ludion" target="_blank" rel="noopener">GitHub</a>
+        </nav>
+      </header>
+
+      <article>
+        <h1>What browsers report about WebGPU is not what runs</h1>
+        <p class="dek">Four real device measurements, and what the numbers actually say.</p>
+        <p class="meta">2026-06-18</p>
+
+        <p>
+          I wanted to run a small language model in the browser, on the phone, with no
+          server in the loop. The feature detection is easy. You ask for a WebGPU
+          adapter, you read its limits, and if the buffer sizes are large enough you
+          assume you are good to go. Every device I tested reported WebGPU. On paper they
+          could all hold a 1B model.
+        </p>
+        <p>
+          Then I ran them. What a device reports about its GPU and what it finishes are
+          two different things. Here are four cases from my own measurements where the
+          gap is wide enough to matter.
+        </p>
+
+        <p>
+          All numbers below come from the raw measurement files in the repository. The
+          models are Llama-3.2-1B-Instruct, Qwen2.5-1.5B-Instruct, and Qwen2.5-0.5B-Instruct,
+          quantized to roughly 4-bit. The engines are WebLLM 0.2.84, transformers.js 4.2.0,
+          and wllama 3.4.1. Each run was cold cache, with a short prompt near 50 tokens and
+          a long prompt near 1200 tokens.
+        </p>
+
+        <h2>1. The iPhone reports a capable GPU and silently kills the tab</h2>
+        <p>
+          The device is an iPhone 11 Pro Max on iOS 18.7, Safari 26.5. It reports
+          <code>webgpu: true</code>, an Apple adapter with f16 support, and a
+          <code>maxBufferSize</code> of 715827880 bytes. By the numbers it should hold a
+          1B model in 4-bit.
+        </p>
+        <p>
+          It does not. Qwen2.5-1.5B through WebLLM downloaded all 728 MB and then failed
+          at init with <code>TypeError: Load failed</code>. Llama-3.2-1B through WebLLM
+          got further, reached generation on the WebGPU backend, and then the page
+          reloaded mid-generation with no exception and no out-of-memory error I could
+          catch. The smaller Qwen2.5-0.5B through wllama did the same thing at init: the
+          tab reloaded before it ever became ready. Across every engine and model on this
+          device, zero runs completed. The failure mode is not an error you handle. It is
+          the tab restarting under you.
+        </p>
+
+        <h2>2. An in-app browser reports the same capability and never finishes</h2>
+        <p>
+          The device is a Pixel 8a, 8 GB of memory, opened inside the LINE in-app browser
+          on Android 16. It reports <code>webgpu: true</code>, an Arm Valhall adapter with
+          f16, and a <code>maxBufferSize</code> of 4294967292 bytes, which is the full
+          4 GB ceiling. The adapter limits are indistinguishable from a capable
+          environment.
+        </p>
+        <p>
+          The Llama-3.2-1B session started, stalled mid-download, and never reached a
+          single completed run. The results file for that session has an empty runs list.
+          The adapter report told me nothing about whether the in-app browser would carry
+          a download and an init to the end. It did not.
+        </p>
+
+        <h2>3. Same hardware, same model, throughput differs by about two times</h2>
+        <p>
+          On a Windows desktop with an AMD RDNA 4 GPU, Chrome 148, I ran the same
+          Llama-3.2-1B with the short prompt through all three engines. WebGPU is present
+          and used in every case. The decode rate is the median of three runs.
+        </p>
+
+        <table class="measured">
+          <caption>Llama-3.2-1B, short prompt, decode tokens per second (median of 3), AMD RDNA 4</caption>
+          <thead>
+            <tr><th>engine</th><th class="num">decode tok/s</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>WebLLM 0.2.84</td><td class="num">196.17</td></tr>
+            <tr><td>transformers.js 4.2.0</td><td class="num">125.41</td></tr>
+            <tr><td>wllama 3.4.1</td><td class="num">97.61</td></tr>
+          </tbody>
+        </table>
+
+        <p>
+          The fastest engine decodes about twice as fast as the slowest on identical
+          hardware running the identical model. The WebGPU support flag reads the same for
+          all three. The throughput the user feels does not.
+        </p>
+
+        <h2>4. A mid-range Android reports capable and the prefill collapses</h2>
+        <p>
+          The device is a Pixel 8a again, this time in plain Chrome 149, not an in-app
+          browser. The Arm Valhall adapter reports the same 4 GB buffer ceiling. Here the
+          model loads and runs to completion, so I have full timings.
+        </p>
+        <p>
+          With the short prompt of 52 input tokens, time to first token is about 3.8
+          seconds across three runs (3782, 3954, 3752 ms). With the long prompt of 1213
+          input tokens, time to first token is 77153, 76996, and 76449 ms. That is 76 to
+          77 seconds before the first token of the answer appears. Decode after that holds
+          near 9 tokens per second. The same device that handles a one-line prompt in a
+          few seconds takes well over a minute to read a page of context.
+        </p>
+
+        <p>
+          So across four devices that all report WebGPU with adequate buffer limits, one
+          silently kills the tab, one never finishes a download, one varies by two times
+          on the engine alone, and one takes more than a minute to start answering once
+          the prompt grows. The capability the browser reports and the run that completes
+          are measured separately, and only the second one is real.
+        </p>
+      </article>
+
+      <footer class="note">
+        The measurements are in
+        <a href="https://github.com/Ludion-ai/Ludion/tree/main/bench/results" target="_blank" rel="noopener">bench/results</a>,
+        released to the public domain. Each device file holds the adapter report and the
+        per-run timings quoted above.
+      </footer>
+    </div>
+  </body>
+</html>

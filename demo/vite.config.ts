@@ -21,6 +21,10 @@ export default defineConfig({
       input: {
         main: fileURLToPath(new URL("./index.html", import.meta.url)),
         savings: fileURLToPath(new URL("./savings.html", import.meta.url)),
+        blog: fileURLToPath(new URL("./blog/index.html", import.meta.url)),
+        "blog-webgpu-reports-vs-reality": fileURLToPath(
+          new URL("./blog/webgpu-reports-vs-reality/index.html", import.meta.url),
+        ),
       },
     },
   },
