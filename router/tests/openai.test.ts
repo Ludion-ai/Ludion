@@ -1,9 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ChatCompletion, ChatCompletionChunk, RouterProbe } from "@ludion/shared";
 import OpenAI from "../src/openai";
+import type { LudionCompletionResponse } from "../src/openai";
 import {
   DROPIN_CONFIG_VERSION,
   LudionConfigError,
+  LudionUnsupportedParamError,
+  _resetParamWarnings,
   setDropinConfig,
   validateDropinConfig,
 } from "../src/openai";
@@ -87,6 +90,7 @@ const MESSAGES = [{ role: "user" as const, content: "hello there" }];
 
 beforeEach(() => {
   _resetDropinCache();
+  _resetParamWarnings();
   setDropinConfig(null);
 });
 afterEach(() => {
@@ -171,6 +175,114 @@ describe("OpenAI drop-in: import-line-only compatibility", () => {
     expect(headers.authorization).toBe("Bearer sk-secret");
     const body = JSON.parse((init as RequestInit).body as string);
     expect(body.model).toBe("gpt-4o"); // caller model → fallback target
+  });
+});
+
+// --- A.1: unsupported input fails loudly, never silently -------------------
+
+describe("supported surface: silent drops become explicit", () => {
+  it("hard-throws on a correctness-affecting param (tools), naming it, before any fetch", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch");
+    const client = new OpenAI({ apiKey: "sk-test", baseURL: "https://relay.example.test/v1" });
+    let caught: unknown;
+    try {
+      // `tools` is OpenAI-valid but unsupported here; passing it as an extra key.
+      await client.chat.completions.create({
+        model: "gpt-4o",
+        messages: MESSAGES,
+        tools: [{ type: "function", function: { name: "f" } }],
+      } as never);
+    } catch (e) {
+      caught = e;
+    }
+    expect(caught).toBeInstanceOf(LudionUnsupportedParamError);
+    expect((caught as LudionUnsupportedParamError).params).toEqual(["tools"]);
+    expect((caught as Error).message).toContain("'tools'");
+    expect((caught as Error).message).toContain("supported params:");
+    expect(fetchSpy).not.toHaveBeenCalled(); // thrown before any inference
+  });
+
+  it("hard-throws on response_format", async () => {
+    const client = new OpenAI({ apiKey: "sk-test" });
+    await expect(
+      client.chat.completions.create({
+        model: "gpt-4o",
+        messages: MESSAGES,
+        response_format: { type: "json_object" },
+      } as never),
+    ).rejects.toBeInstanceOf(LudionUnsupportedParamError);
+  });
+
+  it("names every dangerous param when several are passed", async () => {
+    const client = new OpenAI({ apiKey: "sk-test" });
+    let caught: LudionUnsupportedParamError | undefined;
+    try {
+      await client.chat.completions.create({
+        model: "gpt-4o",
+        messages: MESSAGES,
+        n: 3,
+        logit_bias: {},
+      } as never);
+    } catch (e) {
+      caught = e as LudionUnsupportedParamError;
+    }
+    expect([...(caught?.params ?? [])].sort()).toEqual(["logit_bias", "n"]);
+  });
+
+  it("warns once (not throws) on a cosmetic param (seed) and still returns", async () => {
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const make = () =>
+      new OpenAI({
+        apiKey: "sk-test",
+        __ludionTest: { probe: IPHONE, kv: memKV(), serverExecutor: mockServer },
+      });
+
+    const res1 = (await make().chat.completions.create({
+      model: "gpt-4o",
+      messages: MESSAGES,
+      seed: 42,
+    } as never)) as unknown as LudionCompletionResponse;
+    const res2 = (await make().chat.completions.create({
+      model: "gpt-4o",
+      messages: MESSAGES,
+      seed: 7,
+    } as never)) as unknown as LudionCompletionResponse;
+
+    expect(res1.choices[0]?.message.content).toBe("server says hi");
+    expect(res2.choices[0]?.message.content).toBe("server says hi");
+    const seedWarns = warnSpy.mock.calls.filter((c) => String(c[0]).includes("'seed'"));
+    expect(seedWarns.length).toBe(1); // warn-once per param name per process
+  });
+
+  it("warns once (not throws) on an unknown/metadata param (user)", async () => {
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const client = new OpenAI({
+      apiKey: "sk-test",
+      __ludionTest: { probe: IPHONE, kv: memKV(), serverExecutor: mockServer },
+    });
+    const res = await client.chat.completions.create({
+      model: "gpt-4o",
+      messages: MESSAGES,
+      user: "abc123",
+    } as never);
+    expect(res._ludion.target).toBe("server"); // harmless metadata does not break the call
+    expect(warnSpy.mock.calls.some((c) => String(c[0]).includes("'user'"))).toBe(true);
+  });
+
+  it("supported-only request still works unchanged on the local route", async () => {
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const client = new OpenAI({
+      apiKey: "sk-test",
+      __ludionTest: { probe: DESKTOP, kv: memKV(), localExecutor: mockLocal },
+    });
+    const res = await client.chat.completions.create({
+      model: "gpt-4o",
+      messages: MESSAGES,
+      temperature: 0.5,
+      max_tokens: 64,
+    });
+    expect(res._ludion.target).toBe("local");
+    expect(warnSpy).not.toHaveBeenCalled(); // no spurious warnings on supported params
   });
 });
 
