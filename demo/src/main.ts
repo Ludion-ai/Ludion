@@ -65,12 +65,19 @@ const cfgModelEl = $<HTMLInputElement>("#cfg-model");
 const cfgModelListEl = $<HTMLDataListElement>("#cfg-model-list");
 const cfgModelNoteEl = $("#cfg-model-note");
 
-// Spec C step 2: the fallback model is chosen from the registry (predictive),
-// not hand-typed. A native <datalist> suggests api models and STILL accepts any
-// custom value (escape hatch) — self-hosted endpoints and registry-unknown
-// models are first-class, not errors. Only kind:"api" is offered: a fallback is
-// by definition the server-side landing spot for requests the device could not
-// run locally, so a local model as the "fallback" would be contradictory.
+// Spec C step 2 + 2.1: the fallback model is chosen from the registry
+// (predictive), not hand-typed. A native <datalist> suggests api models and
+// STILL accepts any custom value (escape hatch) — self-hosted endpoints and
+// registry-unknown models are first-class, not errors. Only kind:"api" is
+// offered: a fallback is by definition the server-side landing spot for
+// requests the device could not run locally, so a local model as the
+// "fallback" would be contradictory.
+//
+// Step 2.1: the value the picker STORES is the entry's provider_model_id (the
+// exact string the provider's API expects), not the internal canonical id, so
+// selecting "Claude Sonnet 4.6" sends "claude-sonnet-4-6". Only entries whose
+// provider_model_id is verified are suggested: an unverified best-guess string
+// is never sent automatically (it stays reachable via the escape hatch).
 
 // Provider -> a sensible OpenAI-compatible base URL default. Only used to
 // PREFILL an empty field; a user-typed URL is never overwritten (escape hatch).
@@ -80,6 +87,12 @@ const PROVIDER_BASE_URL: Record<string, string> = {
   google: "https://generativelanguage.googleapis.com/v1beta/openai",
 };
 
+// The api models the picker offers: kind:"api" with a verified provider id.
+// Keyed by provider_model_id (the stored value) so a chosen/typed string maps
+// back to its registry entry for the baseURL prefill.
+const SUGGESTED_API = listModels({ kind: "api" }).filter((m) => m.provider_model_id_verified === true);
+const apiByProviderId = new Map(SUGGESTED_API.map((m) => [m.provider_model_id, m]));
+
 function priceHint(id: string): string {
   const p = getModelPricing(id);
   if (!p) return "";
@@ -88,32 +101,32 @@ function priceHint(id: string): string {
 
 function populateModelSuggestions(): void {
   cfgModelListEl.replaceChildren();
-  for (const m of listModels({ kind: "api" })) {
+  for (const m of SUGGESTED_API) {
     const opt = document.createElement("option");
-    opt.value = m.id;
-    // Terse context: display name, provider, and price if it joins cleanly.
+    // Store the provider-native string; show the friendly name in the label.
+    opt.value = m.provider_model_id!;
     opt.label = `${m.display_name} · ${m.provider}${priceHint(m.id)}`;
     cfgModelListEl.appendChild(opt);
   }
 }
 
-// React to a chosen/typed model: a registry id prefills an empty baseURL and
-// clears the note; an unknown id is accepted as a quiet custom value (info, not
-// a warning) — the registry is a convenience, never a gate.
+// React to a chosen/typed model: a known provider id prefills an empty baseURL
+// and clears the note; anything else is accepted as a quiet custom value (info,
+// not a warning) — the registry is a convenience, never a gate.
 function reflectModelChoice(): void {
-  const id = cfgModelEl.value.trim();
-  if (!id) {
+  const value = cfgModelEl.value.trim();
+  if (!value) {
     cfgModelNoteEl.textContent = "";
     return;
   }
-  const entry = getModel(id);
+  const entry = apiByProviderId.get(value) ?? getModel(value);
   if (entry) {
     cfgModelNoteEl.textContent = "";
     const def = PROVIDER_BASE_URL[entry.provider];
     if (def && !cfgUrlEl.value.trim()) cfgUrlEl.value = def;
   } else {
     cfgModelNoteEl.textContent = "custom model (not in the registry) — saved as typed.";
-    console.info(`ludion: using custom fallback model "${id}" (not in the registry)`);
+    console.info(`ludion: using custom fallback model "${value}" (not in the registry)`);
   }
 }
 

@@ -30,7 +30,7 @@ import type { PriceRow } from "./pricing";
 import registryData from "./registry.json";
 
 /** Bumped when the registry schema changes incompatibly. */
-export const MODEL_REGISTRY_VERSION = 1;
+export const MODEL_REGISTRY_VERSION = 2;
 
 /** How a model can be reached. A model may later be both-eligible; today each entry is one. */
 export type ModelKind = "api" | "local";
@@ -49,6 +49,20 @@ export interface ModelEntry {
   on_device_capable: boolean;
   /** api only: id of the pricing.json row that backs this model's price. */
   pricing_ref?: string;
+  /**
+   * api only (required for kind:"api"): the exact string the provider's API
+   * expects in the `model` param. Distinct from `id`, which is an internal
+   * canonical handle: e.g. id "claude-sonnet" -> provider_model_id
+   * "claude-sonnet-4-6". This is what a fallback request actually sends.
+   */
+  provider_model_id?: string;
+  /**
+   * api only (required for kind:"api"): true only when provider_model_id is
+   * confirmed against the provider's model-id reference. false marks a
+   * best-known value pending verification; consumers must not send an
+   * unverified string automatically (the picker withholds it).
+   */
+  provider_model_id_verified?: boolean;
   /** local only (required iff on_device_capable): e.g. "1.5B". */
   params?: string;
   /** local only (required iff on_device_capable): approx resident weights size, MB. */
@@ -158,6 +172,15 @@ export function validateModelRegistry(input: unknown): ModelRegistry {
       }
       if (!priceIds.has(m.pricing_ref)) {
         throw new LudionRegistryError(`${id}: pricing_ref "${m.pricing_ref}" matches no pricing.json row`);
+      }
+    }
+
+    if (m.kind === "api") {
+      if (!isNonEmptyString(m.provider_model_id)) {
+        throw new LudionRegistryError(`${id}: kind "api" requires a provider_model_id`);
+      }
+      if (typeof m.provider_model_id_verified !== "boolean") {
+        throw new LudionRegistryError(`${id}: kind "api" requires a boolean provider_model_id_verified`);
       }
     }
   }

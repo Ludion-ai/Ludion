@@ -25,6 +25,8 @@ function validRegistry(): ModelRegistry {
         context_length: 128000,
         on_device_capable: false,
         pricing_ref: "gpt-4o",
+        provider_model_id: "gpt-4o",
+        provider_model_id_verified: true,
       },
       {
         id: "llama-3.2-1b",
@@ -51,6 +53,16 @@ describe("model registry: bundled data loads and validates", () => {
     const priceIds = new Set(PRESET_PRICING.models.map((p) => p.id));
     for (const m of MODEL_REGISTRY.models) {
       if (m.pricing_ref !== undefined) expect(priceIds.has(m.pricing_ref)).toBe(true);
+    }
+  });
+
+  it("every api entry carries a provider_model_id and a verified flag", () => {
+    for (const m of MODEL_REGISTRY.models) {
+      if (m.kind === "api") {
+        expect(typeof m.provider_model_id).toBe("string");
+        expect(m.provider_model_id!.length).toBeGreaterThan(0);
+        expect(typeof m.provider_model_id_verified).toBe("boolean");
+      }
     }
   });
 
@@ -162,5 +174,17 @@ describe("model registry: validation fails loud on malformed authored data", () 
     const r = validRegistry();
     r.models[0]!.pricing_ref = "ghost-model";
     expect(() => validateModelRegistry(r)).toThrow(/matches no pricing.json row/);
+  });
+
+  it("api entry missing provider_model_id", () => {
+    const r = validRegistry();
+    delete (r.models[0] as Partial<ModelEntry>).provider_model_id;
+    expect(() => validateModelRegistry(r)).toThrow(/provider_model_id/);
+  });
+
+  it("api entry missing the provider_model_id_verified flag", () => {
+    const r = validRegistry();
+    delete (r.models[0] as Partial<ModelEntry>).provider_model_id_verified;
+    expect(() => validateModelRegistry(r)).toThrow(/provider_model_id_verified/);
   });
 });

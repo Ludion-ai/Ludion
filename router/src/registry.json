@@ -1,6 +1,6 @@
 {
-  "registry_version": 1,
-  "note": "Single authorable ledger of model IDENTITY (Spec C step 1). STATIC metadata only: id, provider, kind, context length, on-device capability, and for local models the params/memory hint/WebLLM id. This file holds NO measured device performance (that is bench data, joined by id/webllm_model_id) and NO price numbers (those live in pricing.json, joined by pricing_ref). context_length is the model's published nominal context window, not an independently re-verified figure; price authority and verification live in pricing.json. min_memory_hint_mb is the approximate resident weights size in MB (a download/floor hint), not a guaranteed runtime memory ceiling.",
+  "registry_version": 2,
+  "note": "Single authorable ledger of model IDENTITY (Spec C step 1+2.1). STATIC metadata only: id, provider, kind, context length, on-device capability, and for local models the params/memory hint/WebLLM id. This file holds NO measured device performance (that is bench data, joined by id/webllm_model_id) and NO price numbers (those live in pricing.json, joined by pricing_ref). For api models, provider_model_id is the exact string the provider's API expects in the model param (distinct from the canonical id); provider_model_id_verified is true only when confirmed against the provider's model-id reference, false when best-known and pending verification. context_length is the model's published nominal context window, not an independently re-verified figure; price authority and verification live in pricing.json. min_memory_hint_mb is the approximate resident weights size in MB (a download/floor hint), not a guaranteed runtime memory ceiling.",
   "models": [
     {
       "id": "claude-sonnet",
@@ -9,7 +9,9 @@
       "kind": "api",
       "context_length": 200000,
       "on_device_capable": false,
-      "pricing_ref": "claude-sonnet"
+      "pricing_ref": "claude-sonnet",
+      "provider_model_id": "claude-sonnet-4-6",
+      "provider_model_id_verified": true
     },
     {
       "id": "claude-haiku",
@@ -18,7 +20,9 @@
       "kind": "api",
       "context_length": 200000,
       "on_device_capable": false,
-      "pricing_ref": "claude-haiku"
+      "pricing_ref": "claude-haiku",
+      "provider_model_id": "claude-haiku-4-5-20251001",
+      "provider_model_id_verified": true
     },
     {
       "id": "gpt-4o",
@@ -27,7 +31,9 @@
       "kind": "api",
       "context_length": 128000,
       "on_device_capable": false,
-      "pricing_ref": "gpt-4o"
+      "pricing_ref": "gpt-4o",
+      "provider_model_id": "gpt-4o",
+      "provider_model_id_verified": true
     },
     {
       "id": "gpt-4o-mini",
@@ -36,7 +42,9 @@
       "kind": "api",
       "context_length": 128000,
       "on_device_capable": false,
-      "pricing_ref": "gpt-4o-mini"
+      "pricing_ref": "gpt-4o-mini",
+      "provider_model_id": "gpt-4o-mini",
+      "provider_model_id_verified": true
     },
     {
       "id": "gemini-flash",
@@ -45,7 +53,9 @@
       "kind": "api",
       "context_length": 1048576,
       "on_device_capable": false,
-      "pricing_ref": "gemini-flash"
+      "pricing_ref": "gemini-flash",
+      "provider_model_id": "gemini-3.1-flash-lite",
+      "provider_model_id_verified": false
     },
     {
       "id": "qwen2.5-1.5b",
