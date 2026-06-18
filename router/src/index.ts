@@ -15,8 +15,9 @@ import type { ServerExecutor } from "./server";
 import { createFetchServerExecutor, createNoFallbackExecutor } from "./server";
 import { createSafeBrowserKV, DEFAULT_STRIKE_TTL_MS, STRIKE_CAUGHT, StrikeStore } from "./strikes";
 import { estimatePromptTokens } from "./tokens";
-import type { DecisionLog, LudionChatRequest, LudionOptions, GenRequest } from "./types";
+import type { DecisionLog, FallbackConfig, LudionChatRequest, LudionOptions, GenRequest } from "./types";
 import { DEFAULT_LOCAL_CONTEXT_WINDOW, DEFAULT_LOCAL_MODEL, POLICY_V0 } from "./defaults";
+import { resolveEffectiveFallback } from "./config";
 
 // Public API surface (Gate 2 decisions Q3 — frozen at publish):
 // the Ludion facade, the typed errors, and the types those signatures
@@ -32,6 +33,24 @@ export type {
 } from "./types";
 export type { PolicyTable, PolicyRule, RouteTarget } from "./policy";
 export { LudionMidStreamError, LudionNoFallbackConfigured, LudionPrivacyUnroutable } from "./errors";
+
+// Runtime config seam (Spec A injection + Spec B step 1 persistence). The
+// facade reads the active source per request (see resolveFallback), so a UI
+// that calls setConfigSource/writeDropinConfig is honored on the next request
+// with no page reload. Lives in the leaf config.ts; re-exported here as the
+// core entry's config surface.
+export type { LudionDropinConfig, ConfigSource, ConfigStorage, StorageConfigSourceOptions } from "./config";
+export {
+  DROPIN_CONFIG_VERSION,
+  DEFAULT_CONFIG_STORAGE_KEY,
+  setDropinConfig,
+  getDropinConfig,
+  setConfigSource,
+  validateDropinConfig,
+  createStorageConfigSource,
+  writeDropinConfig,
+} from "./config";
+export { LudionConfigError } from "./errors";
 
 export type LudionStreamResponse = AsyncIterable<ChatCompletionChunk> & {
   readonly _ludion: DecisionLog;
@@ -52,11 +71,16 @@ export class Ludion {
   private readonly localContextWindow: number;
   private readonly strikes: StrikeStore;
   private readonly local: LocalExecutor;
-  private readonly server: ServerExecutor;
+  /** `create()`-time fallback (the per-request base; live config fills its gaps). */
+  private readonly baseFallback: FallbackConfig | undefined;
+  /** Test-injected server executor pins the server deterministically (ignores live config). */
+  private readonly testServerExecutor: ServerExecutor | undefined;
+  /** Reused no-fallback executor for the unconfigured (Phase 0) path. */
+  private readonly noFallbackExecutor: ServerExecutor;
+  /** Per-instance memo of fetch executors keyed by resolved {url, model, apiKey}. */
+  private readonly serverCache = new Map<string, ServerExecutor>();
   private readonly onDecision: ((log: DecisionLog) => void) | undefined;
   private readonly privacyDefault: boolean;
-  private readonly fallbackModel: string;
-  private readonly hasFallback: boolean;
   private readonly now: () => number;
 
   private constructor(options: LudionOptions, probe: RouterProbe, strikes: StrikeStore, now: () => number) {
@@ -66,17 +90,46 @@ export class Ludion {
     this.localContextWindow = options.localContextWindow ?? DEFAULT_LOCAL_CONTEXT_WINDOW;
     this.strikes = strikes;
     this.local = options._test?.localExecutor ?? createWebLLMExecutor(options.onLocalLoadProgress);
-    // Phase 0: fallback is optional. An injected test executor counts as a
-    // configured server (tests routinely omit `fallback`).
-    this.hasFallback = options.fallback !== undefined || options._test?.serverExecutor !== undefined;
-    this.server =
-      options._test?.serverExecutor ??
-      (options.fallback ? createFetchServerExecutor(options.fallback) : createNoFallbackExecutor());
+    // Phase 0: fallback is optional. The effective fallback is resolved PER
+    // REQUEST (resolveFallback) from create()-time config layered with the live
+    // injected config, so a UI config change is honored without a page reload.
+    this.baseFallback = options.fallback;
+    this.testServerExecutor = options._test?.serverExecutor;
+    this.noFallbackExecutor = createNoFallbackExecutor();
     this.onDecision = options.onDecision;
     this.privacyDefault = options.hints?.privacy ?? false;
-    this.fallbackModel = options.fallback?.model ?? "unconfigured";
     this.now = now;
     this.chat = { completions: { create: this.createCompletion.bind(this) } };
+  }
+
+  /** Resolved server target for one request: executor + whether a fallback exists + its model. */
+  private resolveFallback(): { server: ServerExecutor; hasFallback: boolean; fallbackModel: string } {
+    // An injected test executor pins the server (tests omit `fallback` and must
+    // not depend on global config state); live config is ignored in that mode.
+    if (this.testServerExecutor !== undefined) {
+      return {
+        server: this.testServerExecutor,
+        hasFallback: true,
+        fallbackModel: this.baseFallback?.model ?? "unconfigured",
+      };
+    }
+    // Precedence (Spec B): create()-time fields win, live injected config fills
+    // the rest. No injected config → identical to capturing options.fallback.
+    const fallback = resolveEffectiveFallback(this.baseFallback);
+    if (fallback === undefined) {
+      return { server: this.noFallbackExecutor, hasFallback: false, fallbackModel: "unconfigured" };
+    }
+    return { server: this.serverExecutorFor(fallback), hasFallback: true, fallbackModel: fallback.model };
+  }
+
+  private serverExecutorFor(fallback: FallbackConfig): ServerExecutor {
+    const key = JSON.stringify([fallback.url, fallback.model, fallback.apiKey ?? ""]);
+    let ex = this.serverCache.get(key);
+    if (ex === undefined) {
+      ex = createFetchServerExecutor(fallback);
+      this.serverCache.set(key, ex);
+    }
+    return ex;
   }
 
   static async create(options: LudionOptions = {}): Promise<Ludion> {
@@ -112,6 +165,8 @@ export class Ludion {
     };
     const struck = this.strikes.isStruck(this.localModel);
     const decision = evaluatePolicy(this.policy, this.probe, facts, struck);
+    // Read-point (Spec B): resolve the effective fallback for THIS request.
+    const fb = this.resolveFallback();
 
     const log: DecisionLog = {
       policy_version: this.policy.policy_version,
@@ -120,7 +175,7 @@ export class Ludion {
       model:
         decision.kind === "route" && decision.target === "local"
           ? this.localModel
-          : this.fallbackModel,
+          : fb.fallbackModel,
       privacy,
       stream: facts.stream,
       est_prompt_tokens: facts.est_prompt_tokens,
@@ -162,7 +217,7 @@ export class Ludion {
 
     // Phase 0 local-only mode: a server route with no fallback endpoint is a
     // typed, decision-time error — never a fetch to nowhere.
-    if (decision.target === "server" && !this.hasFallback) {
+    if (decision.target === "server" && !fb.hasFallback) {
       const err = new LudionNoFallbackConfigured(decision.rule_id);
       log.error = errorMessage(err);
       emitOnce();
@@ -176,9 +231,9 @@ export class Ludion {
     };
 
     if (!facts.stream) {
-      return this.runNonStream(genReq, decision.target, privacy, log, emitOnce);
+      return this.runNonStream(genReq, decision.target, privacy, log, emitOnce, fb);
     }
-    return this.buildStreamResponse(genReq, decision.target, privacy, log, emitOnce);
+    return this.buildStreamResponse(genReq, decision.target, privacy, log, emitOnce, fb);
   }
 
   // --- shared local plumbing ----------------------------------------------
@@ -207,6 +262,7 @@ export class Ludion {
     privacy: boolean,
     log: DecisionLog,
     emitOnce: () => void,
+    fb: { server: ServerExecutor; hasFallback: boolean; fallbackModel: string },
   ): Promise<LudionCompletionResponse> {
     if (target === "local") {
       try {
@@ -231,7 +287,7 @@ export class Ludion {
           emitOnce();
           throw e;
         }
-        if (!this.hasFallback) {
+        if (!fb.hasFallback) {
           // Phase 0: no server to degrade to — typed error instead of A-2 retry.
           const err = new LudionNoFallbackConfigured(log.rule_id);
           log.error = errorMessage(err);
@@ -239,11 +295,11 @@ export class Ludion {
           throw err;
         }
         log.degraded = "local→server";
-        log.model = this.fallbackModel;
+        log.model = fb.fallbackModel;
       }
     }
     try {
-      const completion = await this.server.complete(genReq, new AbortController().signal);
+      const completion = await fb.server.complete(genReq, new AbortController().signal);
       this.finalizeUsage(log, completion.usage ?? null, null);
       log.completed = true;
       emitOnce();
@@ -273,6 +329,7 @@ export class Ludion {
     privacy: boolean,
     log: DecisionLog,
     emitOnce: () => void,
+    fb: { server: ServerExecutor; hasFallback: boolean; fallbackModel: string },
   ): LudionStreamResponse {
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const self = this;
@@ -307,7 +364,7 @@ export class Ludion {
 
       const openServer = (): AsyncIterable<ChatCompletionChunk> => {
         abortRef.c = new AbortController();
-        return self.server.stream(genReq, abortRef.c.signal);
+        return fb.server.stream(genReq, abortRef.c.signal);
       };
 
       try {
@@ -357,10 +414,10 @@ export class Ludion {
             if (localSource === null) {
               // Phase 0: no server to degrade to — typed error (outer catch
               // records it in the log and emits).
-              if (!self.hasFallback) throw new LudionNoFallbackConfigured(log.rule_id);
+              if (!fb.hasFallback) throw new LudionNoFallbackConfigured(log.rule_id);
               // A-2: transparent retry — nothing was yielded yet.
               log.degraded = "local→server";
-              log.model = self.fallbackModel;
+              log.model = fb.fallbackModel;
               target = "server";
               genStart = self.now();
               yield* consume(openServer());

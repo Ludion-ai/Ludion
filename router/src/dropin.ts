@@ -2,138 +2,52 @@
  * Drop-in plumbing (Spec A) — the entry + injection seam that lets existing
  * SDK-shaped code run through the Ludion router by changing one import line.
  *
- * This module is SDK-agnostic. It owns three things:
+ * This module is SDK-agnostic. It owns two things:
  *   1. the adapter SEAM (`SdkAdapter`) — adapter #1 is OpenAI (see openai.ts);
  *      a future Anthropic/VercelAI adapter slots in here WITHOUT touching the
  *      decision core (policy.ts) or the executors (local.ts / server.ts),
- *   2. the external CONFIG injection point (`ConfigSource` + the in-memory
- *      default + `setDropinConfig` / `getDropinConfig`) that Spec B's UI will
- *      back with localStorage/remote — no storage or UI is built here,
- *   3. `resolveLudion()` — memoizes `Ludion.create()` per resolved config so a
+ *   2. `resolveLudion()` — memoizes `Ludion.create()` per resolved config so a
  *      per-request call never re-probes the device (or re-pops a WebGPU adapter
  *      request) on every message.
  *
+ * The CONFIG injection seam (`ConfigSource` + `setDropinConfig` /
+ * `getDropinConfig` / `setConfigSource` + validation + the storage source)
+ * lives in the dependency-leaf `config.ts` so the facade (`index.ts`) can read
+ * it per request without a circular import. It is re-exported below so Spec A's
+ * public drop-in surface is unchanged.
+ *
  * KEY CUSTODY: an apiKey supplied here is placed ONLY on `FallbackConfig` and
  * is forwarded by server.ts as an `Authorization: Bearer` header to the
- * developer's own endpoint. It is never stored, never logged, and the
- * in-memory config source below holds it only for the lifetime of the page.
+ * developer's own endpoint. It is never stored or logged by this module.
  */
 import type { FallbackConfig, LudionOptions } from "./types";
 import type { PolicyTable } from "./policy";
 import { Ludion } from "./index";
 import type { LudionChatRequest, LudionCompletionResponse, LudionStreamResponse } from "./index";
-import { LudionConfigError } from "./errors";
+import {
+  DEFAULT_BASE_URL,
+  getDropinConfig,
+  toChatCompletionsUrl,
+} from "./config";
 
-/** Bump when the externally-supplied config shape changes incompatibly. */
-export const DROPIN_CONFIG_VERSION = 1;
-
-/**
- * Externally-injectable config (Spec A #3). Drives the fallback target and
- * (optionally) the policy from OUTSIDE `create()`. Spec B's UI writes this;
- * for now it is set in code via `setDropinConfig()`.
- */
-export interface LudionDropinConfig {
-  /** Schema version; must equal DROPIN_CONFIG_VERSION (absent → assumed current). */
-  config_version?: number;
-  /** Where to degrade to, and the key custody for it. */
-  fallback?: {
-    /** OpenAI-style base URL, e.g. "https://api.openai.com/v1". "/chat/completions" is appended. */
-    baseURL?: string;
-    /** Default fallback model when a request omits one. */
-    model?: string;
-    /** Stays client-side; forwarded only to `baseURL` as a Bearer header. Never persisted by Ludion. */
-    apiKey?: string;
-  };
-  /** Optional routing policy override (validated minimally). */
-  policy?: PolicyTable;
-}
-
-/**
- * The injection interface Spec B implements (localStorage/remote-backed).
- * Synchronous + nullable so a missing config is just "use defaults".
- */
-export interface ConfigSource {
-  get(): LudionDropinConfig | null;
-}
-
-/** In-memory default config source — no persistence (Spec B replaces this). */
-class InMemoryConfigSource implements ConfigSource {
-  private current: LudionDropinConfig | null = null;
-  get(): LudionDropinConfig | null {
-    return this.current;
-  }
-  set(config: LudionDropinConfig | null): void {
-    this.current = config;
-  }
-}
-
-const defaultSource = new InMemoryConfigSource();
-let activeSource: ConfigSource = defaultSource;
-
-/**
- * Validate then install an externally-supplied config (code-level for now;
- * Spec B's UI calls this). Throws `LudionConfigError` on a malformed object.
- */
-export function setDropinConfig(config: LudionDropinConfig | null): void {
-  defaultSource.set(config === null ? null : validateDropinConfig(config));
-  activeSource = defaultSource;
-}
-
-/** Read the active config (null = none injected → built-in defaults apply). */
-export function getDropinConfig(): LudionDropinConfig | null {
-  return activeSource.get();
-}
-
-/**
- * Replace the config source entirely (Spec B: a localStorage/remote-backed
- * source). The seam Spec B's UI plugs into without rearchitecting the router.
- */
-export function setConfigSource(source: ConfigSource): void {
-  activeSource = source;
-}
-
-/**
- * Minimal structural validation (Spec A #3 "keep it minimal"). Confirms the
- * version is supported and the present fields are well-typed. Does NOT inspect
- * or transmit the apiKey.
- */
-export function validateDropinConfig(input: unknown): LudionDropinConfig {
-  if (input === null || typeof input !== "object") {
-    throw new LudionConfigError("config must be an object");
-  }
-  const cfg = input as Record<string, unknown>;
-  if (
-    cfg.config_version !== undefined &&
-    cfg.config_version !== DROPIN_CONFIG_VERSION
-  ) {
-    throw new LudionConfigError(
-      `unsupported config_version ${String(cfg.config_version)} (this build supports ${DROPIN_CONFIG_VERSION})`,
-    );
-  }
-  if (cfg.fallback !== undefined) {
-    if (typeof cfg.fallback !== "object" || cfg.fallback === null) {
-      throw new LudionConfigError("fallback must be an object");
-    }
-    const fb = cfg.fallback as Record<string, unknown>;
-    for (const key of ["baseURL", "model", "apiKey"] as const) {
-      if (fb[key] !== undefined && typeof fb[key] !== "string") {
-        throw new LudionConfigError(`fallback.${key} must be a string`);
-      }
-    }
-  }
-  if (cfg.policy !== undefined) {
-    const p = cfg.policy as Record<string, unknown>;
-    if (
-      typeof p !== "object" ||
-      p === null ||
-      typeof p.policy_version !== "string" ||
-      !Array.isArray(p.rules)
-    ) {
-      throw new LudionConfigError("policy must be a PolicyTable (policy_version: string, rules: array)");
-    }
-  }
-  return input as LudionDropinConfig;
-}
+// Re-export the config seam from its leaf home so the drop-in public surface
+// (Spec A) is stable: `import { setDropinConfig, ... } from "ludion-router/openai"`.
+export type {
+  LudionDropinConfig,
+  ConfigSource,
+  ConfigStorage,
+  StorageConfigSourceOptions,
+} from "./config";
+export {
+  DROPIN_CONFIG_VERSION,
+  DEFAULT_CONFIG_STORAGE_KEY,
+  setDropinConfig,
+  getDropinConfig,
+  setConfigSource,
+  validateDropinConfig,
+  createStorageConfigSource,
+  writeDropinConfig,
+} from "./config";
 
 /**
  * The ADAPTER SEAM. One interface; OpenAI is adapter #1 (openai.ts). A second
@@ -171,8 +85,6 @@ export interface ResolvedRouting {
   policy: PolicyTable | undefined;
 }
 
-const DEFAULT_BASE_URL = "https://api.openai.com/v1";
-
 /**
  * Merge SDK-client constructor options (highest precedence for the fields they
  * carry) with the injected config (defaults), and the per-request model, into
@@ -193,7 +105,7 @@ export function resolveRouting(
   if (model === undefined) {
     return { fallback: undefined, policy };
   }
-  const url = `${baseURL.replace(/\/+$/, "")}/chat/completions`;
+  const url = toChatCompletionsUrl(baseURL);
   const fallback: FallbackConfig = apiKey !== undefined ? { url, apiKey, model } : { url, model };
   return { fallback, policy };
 }

@@ -93,13 +93,17 @@
       <h2>Server fallback</h2>
       <p class="note">
         Requests the policy routes to <code>server</code> run on your own
-        OpenAI-compatible endpoint — nothing ships with this demo, no shared
-        key, ever. Stored in localStorage. The endpoint must allow browser
-        CORS from this origin (direct browser call, no proxy).
+        OpenAI-compatible endpoint. Nothing ships with this demo, no shared key,
+        ever. The key is stored only in this browser (localStorage on this
+        origin) and is sent only to the endpoint you set here. localStorage is
+        readable by any script on this origin, so treat this as a developer
+        convenience, not end-user secret storage. The endpoint must allow
+        browser CORS from this origin (direct browser call, no proxy). Saving
+        takes effect on your next message, no reload.
       </p>
       <label>
-        /chat/completions URL
-        <input id="cfg-url" type="url" placeholder="https://api.example.com/v1/chat/completions" />
+        API base URL
+        <input id="cfg-url" type="url" placeholder="https://api.example.com/v1" />
       </label>
       <label>
         API key (optional)
@@ -110,7 +114,7 @@
         <input id="cfg-model" type="text" placeholder="gpt-4o-mini" />
       </label>
       <div class="dialog-actions">
-        <button id="cfg-save" type="button">save &amp; reload</button>
+        <button id="cfg-save" type="button">save</button>
         <button id="cfg-close" type="button">close</button>
       </div>
     </dialog>

@@ -3,7 +3,13 @@ import "./style.css";
 // Single source for the mark (Gate 2.6 F-2): the operator's official vector
 // overwrites assets/ludion-hex-mark.svg and propagates here with no code change.
 import hexMarkUrl from "../../assets/ludion-hex-mark.svg";
-import { Ludion, LudionNoFallbackConfigured } from "ludion-router";
+import {
+  Ludion,
+  LudionNoFallbackConfigured,
+  createStorageConfigSource,
+  setConfigSource,
+  writeDropinConfig,
+} from "ludion-router";
 import type { DecisionLog } from "ludion-router";
 import { SavingsLedger } from "ludion-router/savings";
 import { evaluateVerdict } from "./verdict";
@@ -19,27 +25,19 @@ import { LONG_CJK_PROMPT } from "./longprompt";
  * No shared key ships with this demo, ever (Gate 2 §5).
  */
 
-const SETTINGS_KEY = "ludion.demo.fallback.v1";
 const REPO = "https://github.com/Ludion-ai/Ludion";
 const POLICY_TABLE_URL = `${REPO}#the-routing-policy-and-its-evidence`;
 const REPORT_URL = `${REPO}/blob/main/docs/report/2026-06-browser-inference-field-notes.md`;
 const REPORT_S4_URL = `${REPORT_URL}#4-iphone-11-pro-max-the-kill-ladder`;
 
-interface DemoSettings {
-  url: string;
-  apiKey: string;
-  model: string;
-}
-
-function loadSettings(): DemoSettings {
-  try {
-    const raw = localStorage.getItem(SETTINGS_KEY);
-    if (raw) return JSON.parse(raw) as DemoSettings;
-  } catch {
-    // fall through
-  }
-  return { url: "", apiKey: "", model: "" };
-}
+// Spec B step 1: the demo's fallback config lives behind the router's runtime
+// config seam, persisted to localStorage under "ludion.config.v1". The facade
+// reads it per request, so a settings change is honored by the NEXT request
+// with no location.reload(). HONEST TRADEOFF: a key in localStorage is readable
+// by any script on this origin — a developer convenience for a dev tool, not
+// end-user secret storage. Real secrets belong behind a server-side relay.
+const configSource = createStorageConfigSource();
+setConfigSource(configSource);
 
 const $ = <T extends HTMLElement>(sel: string): T => {
   const el = document.querySelector<T>(sel);
@@ -58,24 +56,33 @@ const instrumentLabelEl = $("#instrument-label");
 
 $<HTMLImageElement>("#brand-mark").src = hexMarkUrl;
 
-const settings = loadSettings();
-const configured = settings.url.trim() !== "" && settings.model.trim() !== "";
-
 // --- settings drawer ---------------------------------------------------------
 
-$<HTMLInputElement>("#cfg-url").value = settings.url;
-$<HTMLInputElement>("#cfg-key").value = settings.apiKey;
-$<HTMLInputElement>("#cfg-model").value = settings.model;
-$("#settings-toggle").addEventListener("click", () => settingsEl.showModal());
+function fillSettingsForm(): void {
+  const fb = configSource.get()?.fallback;
+  $<HTMLInputElement>("#cfg-url").value = fb?.baseURL ?? "";
+  $<HTMLInputElement>("#cfg-key").value = fb?.apiKey ?? "";
+  $<HTMLInputElement>("#cfg-model").value = fb?.model ?? "";
+}
+fillSettingsForm();
+
+$("#settings-toggle").addEventListener("click", () => {
+  fillSettingsForm();
+  settingsEl.showModal();
+});
 $("#cfg-close").addEventListener("click", () => settingsEl.close());
 $("#cfg-save").addEventListener("click", () => {
-  const next: DemoSettings = {
-    url: $<HTMLInputElement>("#cfg-url").value.trim(),
-    apiKey: $<HTMLInputElement>("#cfg-key").value.trim(),
-    model: $<HTMLInputElement>("#cfg-model").value.trim(),
-  };
-  localStorage.setItem(SETTINGS_KEY, JSON.stringify(next));
-  location.reload(); // F-8: rebuilds the Ludion instance; chat resets.
+  const baseURL = $<HTMLInputElement>("#cfg-url").value.trim();
+  const model = $<HTMLInputElement>("#cfg-model").value.trim();
+  const apiKey = $<HTMLInputElement>("#cfg-key").value.trim();
+  const fallback: { baseURL?: string; model?: string; apiKey?: string } = {};
+  if (baseURL) fallback.baseURL = baseURL;
+  if (model) fallback.model = model;
+  if (apiKey) fallback.apiKey = apiKey;
+  // Persist via the runtime config seam. No reload: the live config source is
+  // read by the very next inference request (Spec B step 1).
+  writeDropinConfig(Object.keys(fallback).length > 0 ? { fallback } : null);
+  settingsEl.close();
 });
 
 // --- probe card ---------------------------------------------------------------
@@ -322,18 +329,11 @@ const savings = new SavingsLedger();
 async function boot(): Promise<void> {
   const ludion = await Ludion.create({
     onDecision: (log) => savings.record(log),
-    // Zero-config by design (F-3, via the 0.1.1 API): no endpoint configured
-    // → no fallback at all. Server-routed requests then throw the typed
-    // LudionNoFallbackConfigured, which send() turns into the contextual card.
-    ...(configured
-      ? {
-          fallback: {
-            url: settings.url,
-            ...(settings.apiKey ? { apiKey: settings.apiKey } : {}),
-            model: settings.model,
-          },
-        }
-      : {}),
+    // Zero-config by design (F-3): no create()-time fallback. The endpoint is
+    // supplied at runtime through the live config source (settings drawer) and
+    // read per request — so a save is honored with no reload. Until one is set,
+    // server-routed requests throw the typed LudionNoFallbackConfigured, which
+    // send() turns into the contextual "add an endpoint" card.
     onLocalLoadProgress: onLoadProgress,
   });
 
