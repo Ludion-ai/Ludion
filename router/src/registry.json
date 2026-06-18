@@ -1,0 +1,84 @@
+{
+  "registry_version": 1,
+  "note": "Single authorable ledger of model IDENTITY (Spec C step 1). STATIC metadata only: id, provider, kind, context length, on-device capability, and for local models the params/memory hint/WebLLM id. This file holds NO measured device performance (that is bench data, joined by id/webllm_model_id) and NO price numbers (those live in pricing.json, joined by pricing_ref). context_length is the model's published nominal context window, not an independently re-verified figure; price authority and verification live in pricing.json. min_memory_hint_mb is the approximate resident weights size in MB (a download/floor hint), not a guaranteed runtime memory ceiling.",
+  "models": [
+    {
+      "id": "claude-sonnet",
+      "display_name": "Claude Sonnet 4.6",
+      "provider": "anthropic",
+      "kind": "api",
+      "context_length": 200000,
+      "on_device_capable": false,
+      "pricing_ref": "claude-sonnet"
+    },
+    {
+      "id": "claude-haiku",
+      "display_name": "Claude Haiku 4.5",
+      "provider": "anthropic",
+      "kind": "api",
+      "context_length": 200000,
+      "on_device_capable": false,
+      "pricing_ref": "claude-haiku"
+    },
+    {
+      "id": "gpt-4o",
+      "display_name": "GPT-4o",
+      "provider": "openai",
+      "kind": "api",
+      "context_length": 128000,
+      "on_device_capable": false,
+      "pricing_ref": "gpt-4o"
+    },
+    {
+      "id": "gpt-4o-mini",
+      "display_name": "GPT-4o-mini",
+      "provider": "openai",
+      "kind": "api",
+      "context_length": 128000,
+      "on_device_capable": false,
+      "pricing_ref": "gpt-4o-mini"
+    },
+    {
+      "id": "gemini-flash",
+      "display_name": "Gemini 3.1 Flash-Lite",
+      "provider": "google",
+      "kind": "api",
+      "context_length": 1048576,
+      "on_device_capable": false,
+      "pricing_ref": "gemini-flash"
+    },
+    {
+      "id": "qwen2.5-1.5b",
+      "display_name": "Qwen2.5-1.5B-Instruct",
+      "provider": "oss-local",
+      "kind": "local",
+      "context_length": 32768,
+      "on_device_capable": true,
+      "params": "1.5B",
+      "min_memory_hint_mb": 869,
+      "webllm_model_id": "Qwen2.5-1.5B-Instruct-q4f16_1-MLC"
+    },
+    {
+      "id": "llama-3.2-1b",
+      "display_name": "Llama-3.2-1B-Instruct",
+      "provider": "oss-local",
+      "kind": "local",
+      "context_length": 131072,
+      "on_device_capable": true,
+      "params": "1B",
+      "min_memory_hint_mb": 695,
+      "webllm_model_id": "Llama-3.2-1B-Instruct-q4f16_1-MLC"
+    },
+    {
+      "id": "qwen2.5-0.5b",
+      "display_name": "Qwen2.5-0.5B-Instruct",
+      "provider": "oss-local",
+      "kind": "local",
+      "context_length": 32768,
+      "on_device_capable": true,
+      "params": "0.5B",
+      "min_memory_hint_mb": 265,
+      "webllm_model_id": "Qwen2.5-0.5B-Instruct-q4f16_1-MLC"
+    }
+  ]
+}

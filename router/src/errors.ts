@@ -61,6 +61,20 @@ export class LudionConfigError extends Error {
 }
 
 /**
+ * Spec C: the bundled model registry (registry.json) failed validation at load
+ * — a malformed, duplicated, or out-of-version entry, or a `pricing_ref` that
+ * names no row in pricing.json. The registry is authored data, so a bad entry
+ * is a build/author error: it fails LOUD at module load rather than silently
+ * resolving a wrong model later. Never carries a key or any secret value.
+ */
+export class LudionRegistryError extends Error {
+  override name = "LudionRegistryError";
+  constructor(message: string) {
+    super(`invalid Ludion model registry: ${message}`);
+  }
+}
+
+/**
  * Drop-in (Spec A.1): the caller passed a `chat.completions.create` param the
  * router cannot honor faithfully (e.g. `tools`, `response_format`). Thrown
  * BEFORE any inference runs so the request never appears to succeed while

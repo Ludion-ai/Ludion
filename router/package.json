@@ -35,6 +35,10 @@
     "./openai": {
       "types": "./src/openai.ts",
       "default": "./src/openai.ts"
+    },
+    "./registry": {
+      "types": "./src/registry.ts",
+      "default": "./src/registry.ts"
     }
   },
   "publishConfig": {
@@ -50,6 +54,10 @@
       "./openai": {
         "types": "./dist/openai.d.ts",
         "default": "./dist/openai.js"
+      },
+      "./registry": {
+        "types": "./dist/registry.d.ts",
+        "default": "./dist/registry.js"
       }
     }
   },
