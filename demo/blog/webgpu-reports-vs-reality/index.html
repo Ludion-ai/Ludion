@@ -4,10 +4,10 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <title>What browsers report about WebGPU is not what runs — ludion</title>
+    <title>WebGPU feature detection was not enough to run small LLMs on phones — ludion</title>
     <meta
       name="description"
-      content="Four real device measurements where a browser reports full WebGPU capability and the inference run still does not complete."
+      content="Four browser environments that exposed WebGPU, and what the measurements say about whether a small LLM run completes."
     />
     <link rel="stylesheet" href="/src/blog.css" />
   </head>
@@ -23,20 +23,20 @@
       </header>
 
       <article>
-        <h1>What browsers report about WebGPU is not what runs</h1>
-        <p class="dek">Four real device measurements, and what the numbers actually say.</p>
+        <h1>WebGPU feature detection was not enough to run small LLMs on phones</h1>
+        <p class="dek">Four test environments where the browser exposed WebGPU, and what the measurements say.</p>
         <p class="meta">2026-06-18</p>
 
         <p>
-          I wanted to run a small language model in the browser, on the phone, with no
-          server in the loop. The feature detection is easy. You ask for a WebGPU
-          adapter, you read its limits, and if the buffer sizes are large enough you
-          assume it will run. Every device I tested reported WebGPU. On paper they
-          could all hold a 1B model.
+          I wanted to run a small language model in the browser, on the phone, without
+          sending inference to a server. The feature detection is easy. You ask for a
+          WebGPU adapter, you read its limits, and if the buffer sizes are large enough
+          you assume it will run. Every browser environment I tested exposed WebGPU. As a
+          first-pass check, the reported limits looked large enough for the model weights.
         </p>
         <p>
-          Then I ran them. What a device reports about its GPU and what it finishes are
-          two different things. Four cases from my own measurements.
+          Then I ran them. What a device reports about its GPU and what an inference run
+          completes are two different things. Four cases from my own measurements.
         </p>
 
         <p>
@@ -47,31 +47,32 @@
           a long prompt near 1200 tokens.
         </p>
 
-        <h2>1. The iPhone reports a capable GPU and silently kills the tab</h2>
+        <h2>1. Safari on iPhone reloads the page during generation</h2>
         <p>
           The device is an iPhone 11 Pro Max on iOS 18.7, Safari 26.5. It reports
           <code>webgpu: true</code>, an Apple adapter with f16 support, and a
-          <code>maxBufferSize</code> of 715827880 bytes. By the numbers it should hold a
-          1B model in 4-bit.
+          <code>maxBufferSize</code> of 715827880 bytes. The reported maxBufferSize was
+          large enough for the model weights, at least as a first-pass check.
         </p>
         <p>
-          It does not. Qwen2.5-1.5B through WebLLM downloaded all 728 MB and then failed
-          at init with <code>TypeError: Load failed</code>. Llama-3.2-1B through WebLLM
-          got further, reached generation on the WebGPU backend, and then the page
-          reloaded mid-generation with no exception and no out-of-memory error I could
-          catch. The smaller Qwen2.5-0.5B through wllama did the same thing at init: the
+          None of them completed. Qwen2.5-1.5B through WebLLM downloaded all 728 MB and
+          then failed at init with <code>TypeError: Load failed</code>. Llama-3.2-1B
+          through WebLLM got further, reached generation on the WebGPU backend, and then
+          the page reloaded mid-generation with no JavaScript-visible exception and no
+          out-of-memory error I could catch. The smaller Qwen2.5-0.5B through wllama did
+          the same thing at init: the
           tab reloaded before it ever became ready. Across every engine and model on this
           device, zero runs completed. The failure mode is not an error you handle. It is
           the tab restarting under you.
         </p>
 
-        <h2>2. An in-app browser reports the same capability and never finishes</h2>
+        <h2>2. LINE's in-app browser exposes WebGPU but the run never completes</h2>
         <p>
           The device is a Pixel 8a, 8 GB of memory, opened inside the LINE in-app browser
           on Android 16. It reports <code>webgpu: true</code>, an Arm Valhall adapter with
           f16, and a <code>maxBufferSize</code> of 4294967292 bytes, which is the full
-          4 GB ceiling. The adapter limits are indistinguishable from a capable
-          environment.
+          4 GB ceiling. Nothing in the adapter limits distinguished it from the Chrome run
+          that completed.
         </p>
         <p>
           The Llama-3.2-1B session started, stalled mid-download, and never reached a
@@ -80,7 +81,7 @@
           a download and an init to the end. It did not.
         </p>
 
-        <h2>3. Same hardware, same model, throughput differs by about two times</h2>
+        <h2>3. Same hardware and model, about two times the throughput by engine alone</h2>
         <p>
           On a Windows desktop with an AMD RDNA 4 GPU, Chrome 148, I ran the same
           Llama-3.2-1B with the short prompt through all three engines. WebGPU is present
@@ -105,7 +106,7 @@
           all three. The measured throughput does not.
         </p>
 
-        <h2>4. A mid-range Android reports capable and the prefill collapses</h2>
+        <h2>4. Pixel 8a completes, but a long prefill takes 76 seconds</h2>
         <p>
           The device is a Pixel 8a again, this time in plain Chrome 149, not an in-app
           browser. The Arm Valhall adapter reports the same 4 GB buffer ceiling. Here the
@@ -121,9 +122,10 @@
         </p>
 
         <p>
-          So across four devices that all report WebGPU with adequate buffer limits, the
-          capability the browser reports and the run that completes are measured
-          separately. Only the second one is real.
+          Across these four test environments, WebGPU exposure and large adapter limits
+          were not enough to predict whether a small LLM run would complete. Feature
+          detection answered whether WebGPU could be requested, not whether inference
+          would finish.
         </p>
       </article>
 
