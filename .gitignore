@@ -5,3 +5,5 @@ dist/
 *.deb
 *Zone.Identifier
 demo/public/qr.svg
+LUDION_INTEGRATION_AUDIT.md
+LUDION_AUDIT.md
