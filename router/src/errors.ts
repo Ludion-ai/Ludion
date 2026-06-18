@@ -47,6 +47,20 @@ export class LudionNoFallbackConfigured extends Error {
 }
 
 /**
+ * Drop-in (Spec A) externally-supplied config failed validation: a config
+ * object handed to `setDropinConfig()` (or supplied by a future Spec B config
+ * source) is malformed or carries an unsupported `config_version`. Thrown at
+ * the injection boundary so a bad UI/remote config surfaces a typed error
+ * instead of silently routing wrong. Never carries a key or any secret value.
+ */
+export class LudionConfigError extends Error {
+  override name = "LudionConfigError";
+  constructor(message: string) {
+    super(`invalid Ludion drop-in config: ${message}`);
+  }
+}
+
+/**
  * B-3: context-window-overflow errors are an input property, not a device
  * defect — they degrade to server but do NOT add a strike. Matched by error
  * name whitelist (WebLLM 0.2.84 error classes don't always set `.name`, so

@@ -31,6 +31,10 @@
     "./savings": {
       "types": "./src/savings.ts",
       "default": "./src/savings.ts"
+    },
+    "./openai": {
+      "types": "./src/openai.ts",
+      "default": "./src/openai.ts"
     }
   },
   "publishConfig": {
@@ -42,6 +46,10 @@
       "./savings": {
         "types": "./dist/savings.d.ts",
         "default": "./dist/savings.js"
+      },
+      "./openai": {
+        "types": "./dist/openai.d.ts",
+        "default": "./dist/openai.js"
       }
     }
   },
