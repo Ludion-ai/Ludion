@@ -1,7 +1,7 @@
 # ludion fallback relay — canonical Cloudflare Worker.
 # Deploy is the OPERATOR'S GATE. Bootstrap:
 #   npx wrangler secret put PROVIDER_API_KEY    # the real provider key, server-side only
-#   npx wrangler secret put RELAY_TOKEN         # optional low-value gate token (recommended)
+#   npx wrangler secret put RELAY_TOKEN         # REQUIRED by default (the auth boundary)
 #   # set UPSTREAM_BASE_URL + ALLOWED_ORIGINS below, then:
 #   npx wrangler deploy
 
@@ -15,14 +15,33 @@ compatibility_date = "2026-05-03"
 UPSTREAM_BASE_URL = "https://api.openai.com/v1"
 
 # Browser origins allowed to call this relay (comma-separated, no trailing slash).
-# PASTE-POINT: replace with your app origin(s). Do NOT use "*".
-# Local dev overrides live in .dev.vars (gitignored).
+# Defense-in-depth ONLY — CORS does not stop a non-browser caller. The auth
+# boundary is RELAY_TOKEN, not this list. Do NOT use "*".
+# PASTE-POINT: replace with your app origin(s). Local dev overrides live in
+# .dev.vars (gitignored).
 ALLOWED_ORIGINS = "https://your-app.example"
 
-# PROVIDER_API_KEY is a SECRET — never put it here. Set it with:
-#   npx wrangler secret put PROVIDER_API_KEY
-#
-# RELAY_TOKEN is an OPTIONAL secret. When set, the browser must send
-#   Authorization: Bearer <RELAY_TOKEN>
-# It is a low-value, rotatable gate token, NOT the provider key. Set it with:
-#   npx wrangler secret put RELAY_TOKEN
+# DANGER opt-out. Uncommenting this disables the token gate and leaves an OPEN
+# PROXY to your provider key for anyone who learns the URL. Only for setups with
+# their own auth in front of the relay. Leave commented for the safe default.
+# RELAY_OPEN = "true"
+
+# Secrets (never put these here):
+#   PROVIDER_API_KEY  the provider key, injected upstream:
+#                       npx wrangler secret put PROVIDER_API_KEY
+#   RELAY_TOKEN       REQUIRED by default; the browser must send
+#                       Authorization: Bearer <RELAY_TOKEN>. Low-value, rotatable
+#                       gate token, NOT the provider key:
+#                       npx wrangler secret put RELAY_TOKEN
+
+# OPTIONAL rate limit (loudly recommended for production). The native Workers
+# rate-limiting binding needs no resource creation, so enabling it stays a
+# one-step deploy: uncomment this block and `wrangler deploy`. The relay counts
+# per client IP and returns 429 over the cap. Note: limiting is approximate and
+# per-colo, and `period` accepts only 10 or 60 (seconds). Adjust `limit` to taste;
+# remove the block to disable. (Verify the binding syntax against your wrangler
+# version's docs if a deploy rejects it.)
+# [[ratelimits]]
+# binding = "RATE_LIMITER"
+# namespace_id = "1001"
+# simple = { limit = 60, period = 60 }

@@ -1,13 +1,16 @@
 import { describe, expect, it } from "vitest";
-import { handleRelay, type FetchLike, type RelayEnv } from "../src/relay";
+import { handleRelay, type FetchLike, type RateLimiter, type RelayEnv } from "../src/relay";
 
 const ORIGIN = "https://app.example";
+const TOKEN = "relay-tok";
+const AUTH = { Authorization: `Bearer ${TOKEN}` };
 
 function baseEnv(overrides: Partial<RelayEnv> = {}): RelayEnv {
   return {
     PROVIDER_API_KEY: "sk-test-secret",
     UPSTREAM_BASE_URL: "https://upstream.example/v1",
     ALLOWED_ORIGINS: `${ORIGIN},https://other.example`,
+    RELAY_TOKEN: TOKEN,
     ...overrides,
   };
 }
@@ -83,7 +86,7 @@ describe("CORS", () => {
     const up = captureUpstream(jsonResponse({}));
     const req = new Request("https://relay.example/chat/completions", {
       method: "POST",
-      headers: { "content-type": "application/json", Origin: "https://evil.example" },
+      headers: { "content-type": "application/json", Origin: "https://evil.example", ...AUTH },
       body: "{}",
     });
     const res = await handleRelay(req, baseEnv(), up.fetch);
@@ -92,58 +95,74 @@ describe("CORS", () => {
   });
 });
 
-describe("provider key custody", () => {
-  it("accepts a request with NO provider key and injects the secret upstream", async () => {
-    const up = captureUpstream(jsonResponse({ id: "x", choices: [] }));
-    const res = await handleRelay(post({ model: "gpt", messages: [] }), baseEnv(), up.fetch);
-
-    expect(res.status).toBe(200);
-    // The browser sent no Authorization; the relay injects the secret.
-    const auth = new Headers(up.seen().init.headers).get("authorization");
-    expect(auth).toBe("Bearer sk-test-secret");
-    // Upstream URL is base + /chat/completions.
-    expect(up.seen().url).toBe("https://upstream.example/v1/chat/completions");
-  });
-
-  it("never forwards a browser-sent Authorization upstream (relay token is dropped)", async () => {
+describe("relay token (auth boundary, required by default)", () => {
+  it("rejects a request with NO token with 401 before touching the upstream", async () => {
     const up = captureUpstream(jsonResponse({}));
-    await handleRelay(
-      post({ model: "gpt", messages: [] }, { Authorization: "Bearer sk-LEAK-from-browser" }),
-      baseEnv({ RELAY_TOKEN: "relay-tok" }),
-      up.fetch,
-    );
-    // Wrong relay token → request is refused before upstream is even called.
+    const res = await handleRelay(post({ model: "gpt", messages: [] }), baseEnv(), up.fetch);
+    expect(res.status).toBe(401);
     expect(() => up.seen()).toThrow();
   });
 
-  it("with RELAY_TOKEN set: correct token passes, and only the provider key reaches upstream", async () => {
-    const up = captureUpstream(jsonResponse({ ok: true }));
-    const res = await handleRelay(
-      post({ model: "gpt", messages: [] }, { Authorization: "Bearer relay-tok" }),
-      baseEnv({ RELAY_TOKEN: "relay-tok" }),
-      up.fetch,
-    );
-    expect(res.status).toBe(200);
-    const auth = new Headers(up.seen().init.headers).get("authorization");
-    expect(auth).toBe("Bearer sk-test-secret");
-    expect(auth).not.toContain("relay-tok");
-  });
-
-  it("with RELAY_TOKEN set: missing token is rejected with 401", async () => {
+  it("rejects a wrong token with 401 before touching the upstream", async () => {
     const up = captureUpstream(jsonResponse({}));
     const res = await handleRelay(
-      post({ model: "gpt", messages: [] }),
-      baseEnv({ RELAY_TOKEN: "relay-tok" }),
+      post({ model: "gpt", messages: [] }, { Authorization: "Bearer wrong-token" }),
+      baseEnv(),
       up.fetch,
     );
     expect(res.status).toBe(401);
     expect(() => up.seen()).toThrow();
   });
 
+  it("accepts the correct token, returns 200, and drops the token (only provider key upstream)", async () => {
+    const up = captureUpstream(jsonResponse({ ok: true }));
+    const res = await handleRelay(post({ model: "gpt", messages: [] }, AUTH), baseEnv(), up.fetch);
+    expect(res.status).toBe(200);
+    const auth = new Headers(up.seen().init.headers).get("authorization");
+    expect(auth).toBe("Bearer sk-test-secret");
+    expect(auth).not.toContain(TOKEN);
+  });
+
+  it("fails closed with 500 if neither RELAY_TOKEN nor RELAY_OPEN is configured", async () => {
+    const up = captureUpstream(jsonResponse({}));
+    const res = await handleRelay(
+      post({ model: "gpt", messages: [] }, AUTH),
+      baseEnv({ RELAY_TOKEN: "" }),
+      up.fetch,
+    );
+    expect(res.status).toBe(500);
+    expect(() => up.seen()).toThrow();
+  });
+
+  it("RELAY_OPEN opt-out: a no-token request is accepted (open proxy)", async () => {
+    const up = captureUpstream(jsonResponse({ ok: true }));
+    const res = await handleRelay(
+      post({ model: "gpt", messages: [] }),
+      baseEnv({ RELAY_TOKEN: "", RELAY_OPEN: "true" }),
+      up.fetch,
+    );
+    expect(res.status).toBe(200);
+    const auth = new Headers(up.seen().init.headers).get("authorization");
+    expect(auth).toBe("Bearer sk-test-secret");
+  });
+});
+
+describe("provider key custody", () => {
+  it("injects the secret upstream; the browser carries no provider key", async () => {
+    const up = captureUpstream(jsonResponse({ id: "x", choices: [] }));
+    const res = await handleRelay(post({ model: "gpt", messages: [] }, AUTH), baseEnv(), up.fetch);
+
+    expect(res.status).toBe(200);
+    const auth = new Headers(up.seen().init.headers).get("authorization");
+    expect(auth).toBe("Bearer sk-test-secret");
+    // Upstream URL is base + /chat/completions.
+    expect(up.seen().url).toBe("https://upstream.example/v1/chat/completions");
+  });
+
   it("returns 500 if the relay has no provider key secret", async () => {
     const up = captureUpstream(jsonResponse({}));
     const res = await handleRelay(
-      post({ model: "gpt", messages: [] }),
+      post({ model: "gpt", messages: [] }, AUTH),
       baseEnv({ PROVIDER_API_KEY: "" }),
       up.fetch,
     );
@@ -151,11 +170,61 @@ describe("provider key custody", () => {
   });
 });
 
+describe("rate limit (optional native binding)", () => {
+  function limiter(success: boolean): { binding: RateLimiter; keys: () => string[] } {
+    const keys: string[] = [];
+    return {
+      binding: {
+        async limit({ key }) {
+          keys.push(key);
+          return { success };
+        },
+      },
+      keys: () => keys,
+    };
+  }
+
+  it("refuses with 429 when the limiter rejects, before the upstream", async () => {
+    const up = captureUpstream(jsonResponse({}));
+    const rl = limiter(false);
+    const res = await handleRelay(
+      post({ model: "gpt", messages: [] }, AUTH),
+      baseEnv({ RATE_LIMITER: rl.binding }),
+      up.fetch,
+    );
+    expect(res.status).toBe(429);
+    expect(res.headers.get("Retry-After")).toBe("60");
+    expect(() => up.seen()).toThrow();
+  });
+
+  it("keys the limiter on the client IP", async () => {
+    const up = captureUpstream(jsonResponse({ ok: true }));
+    const rl = limiter(true);
+    await handleRelay(
+      post({ model: "gpt", messages: [] }, { ...AUTH, "CF-Connecting-IP": "203.0.113.7" }),
+      baseEnv({ RATE_LIMITER: rl.binding }),
+      up.fetch,
+    );
+    expect(rl.keys()).toEqual(["203.0.113.7"]);
+  });
+
+  it("allows the request through when the limiter succeeds", async () => {
+    const up = captureUpstream(jsonResponse({ ok: true }));
+    const rl = limiter(true);
+    const res = await handleRelay(
+      post({ model: "gpt", messages: [] }, AUTH),
+      baseEnv({ RATE_LIMITER: rl.binding }),
+      up.fetch,
+    );
+    expect(res.status).toBe(200);
+  });
+});
+
 describe("OpenAI-shaped passthrough", () => {
   it("passes the upstream JSON body and status through unchanged", async () => {
     const payload = { id: "chatcmpl-1", object: "chat.completion", choices: [{ index: 0 }] };
     const up = captureUpstream(jsonResponse(payload));
-    const res = await handleRelay(post({ model: "gpt", messages: [] }), baseEnv(), up.fetch);
+    const res = await handleRelay(post({ model: "gpt", messages: [] }, AUTH), baseEnv(), up.fetch);
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual(payload);
   });
@@ -167,7 +236,7 @@ describe("OpenAI-shaped passthrough", () => {
         headers: { "content-type": "application/json" },
       }),
     );
-    const res = await handleRelay(post({ model: "gpt", messages: [] }), baseEnv(), up.fetch);
+    const res = await handleRelay(post({ model: "gpt", messages: [] }, AUTH), baseEnv(), up.fetch);
     expect(res.status).toBe(429);
     expect(await res.json()).toEqual({ error: "rate limited" });
   });
@@ -185,7 +254,11 @@ describe("streaming", () => {
 
     // The relay must return as soon as the upstream responds — before the stream
     // is finished — proving it does not buffer the full body.
-    const res = await handleRelay(post({ model: "gpt", messages: [], stream: true }), baseEnv(), up.fetch);
+    const res = await handleRelay(
+      post({ model: "gpt", messages: [], stream: true }, AUTH),
+      baseEnv(),
+      up.fetch,
+    );
     expect(res.headers.get("content-type")).toBe("text/event-stream");
     expect(res.headers.get("Cache-Control")).toBe("no-store");
 
