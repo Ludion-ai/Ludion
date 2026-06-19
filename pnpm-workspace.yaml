@@ -5,3 +5,4 @@ packages:
   - demo
   - collector
   - relays/cloudflare-worker
+  - workspace

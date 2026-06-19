@@ -1,0 +1,18 @@
+# ludion-workspace — standalone Worker config for LOCAL verification only
+# (`wrangler dev`). Production runs the same handler behind the demo's Pages
+# Functions (see demo/wrangler.toml + demo/functions/*). Deploy is the
+# OPERATOR'S GATE.
+#
+# Local secrets go in .dev.vars (gitignored), e.g.:
+#   GITHUB_CLIENT_ID="..."        # a throwaway dev OAuth app
+#   GITHUB_CLIENT_SECRET="..."
+#   SESSION_SECRET="..."          # any long random string
+
+name = "ludion-workspace"
+main = "src/index.ts"
+compatibility_date = "2026-05-03"
+
+[[kv_namespaces]]
+binding = "WORKSPACE_KV"
+# PASTE-POINT: replace with the id from `wrangler kv namespace create WORKSPACE_KV`.
+id = "REPLACE_WITH_KV_NAMESPACE_ID"

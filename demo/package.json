@@ -12,7 +12,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "ludion-router": "workspace:*"
+    "ludion-router": "workspace:*",
+    "ludion-workspace": "workspace:*"
   },
   "devDependencies": {
     "@fontsource/ibm-plex-mono": "^5.2.7",

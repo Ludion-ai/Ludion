@@ -1,0 +1,19 @@
+# ludion-demo — Cloudflare Pages config (TEMPLATE). The Pages project serves the
+# built static site (dist/) and the same-origin Functions in functions/.
+# Deploy + binding + secrets are the OPERATOR'S GATE (see workspace/README.md).
+#
+# Pages secrets Lattice must set (never commit these):
+#   GITHUB_CLIENT_ID       GitHub OAuth app client id
+#   GITHUB_CLIENT_SECRET   GitHub OAuth app client secret
+#   SESSION_SECRET         long random string that signs the session cookie
+# Set each with:  npx wrangler pages secret put <NAME>
+
+name = "ludion-demo"
+pages_build_output_dir = "dist"
+compatibility_date = "2026-05-03"
+
+# Per-user, non-secret config store for the /api/config Functions.
+[[kv_namespaces]]
+binding = "WORKSPACE_KV"
+# PASTE-POINT: replace with the id from `wrangler kv namespace create WORKSPACE_KV`.
+id = "REPLACE_WITH_KV_NAMESPACE_ID"
