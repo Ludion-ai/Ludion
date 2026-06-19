@@ -7,11 +7,11 @@
  * not retrofit them). Tokens are --lx-* prefixed to make the boundary explicit.
  *
  * COLOR LAW (strict, re-skin §2): monochrome everything on true black. The
- * brand red is used ONLY for the wordmark + hex mark, the active nav item, and
- * genuine errors — NOT primary buttons (the re-skin drops that). Status and
- * data stay monochrome — dots, the routing donut, the gauges, and the savings
- * figure are NOT colored. No green, no other hue. Gradients appear ONLY as the
- * subtle monochrome tonal depth on cards (material) — never colored, never glow.
+ * brand red is used ONLY for the wordmark + hex mark, the active nav item, the
+ * primary button, and genuine errors. Status and data stay monochrome — dots,
+ * the routing donut, the gauges, and the savings figure are NOT colored. No
+ * green, no other hue. Gradients appear ONLY as the subtle monochrome tonal
+ * depth on cards (material) — never colored, never glow.
  */
 
 :root {
@@ -26,9 +26,10 @@
   --lx-card-grad: linear-gradient(180deg, #161618 0%, #0e0e10 60%, #0a0a0c 100%);
   --lx-card-edge: inset 0 1px 0 rgba(255, 255, 255, 0.06);
 
+  /* Brighter secondary/tertiary for Vercel-grade contrast on true black. */
   --lx-text: #f4f4f5;
-  --lx-text-2: #a1a1aa;
-  --lx-text-3: #71717a;
+  --lx-text-2: #c2c2cb;
+  --lx-text-3: #909099;
 
   /* The one brand hue: deep blood-red. Also the genuine-error hue. */
   --lx-brand: #c1121f;
@@ -60,8 +61,8 @@ body {
   background-position: -1px -1px;
   color: var(--lx-text);
   font-family: var(--lx-sans);
-  font-size: 14px;
-  line-height: 1.5;
+  font-size: 15px;
+  line-height: 1.55;
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
 }
@@ -147,7 +148,7 @@ body {
   outline: 0;
   color: var(--lx-text);
   font-family: var(--lx-sans);
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .lx-search input::placeholder {
@@ -165,9 +166,9 @@ body {
   display: flex;
   align-items: center;
   gap: 6px;
-  height: 30px;
-  padding: 0 10px;
-  font-size: 12px;
+  height: 32px;
+  padding: 0 11px;
+  font-size: 13px;
   color: var(--lx-text-2);
   background: var(--lx-surface);
   border: 1px solid var(--lx-border);
@@ -213,12 +214,12 @@ body {
   display: flex;
   align-items: center;
   gap: 12px;
-  height: 42px;
+  height: 44px;
   padding: 0 12px;
   border-radius: var(--lx-radius-sm);
   color: var(--lx-text-2);
   text-decoration: none;
-  font-size: 14px;
+  font-size: 15px;
   cursor: pointer;
   border: 0;
   background: transparent;
@@ -233,8 +234,8 @@ body {
 }
 
 .lx-nav-item .lx-ic {
-  width: 20px;
-  height: 20px;
+  width: 22px;
+  height: 22px;
   flex: 0 0 auto;
   color: currentColor;
 }
@@ -297,18 +298,18 @@ body {
 }
 
 .lx-page-sub {
-  color: var(--lx-text-3);
-  font-size: 13px;
-  margin: 2px 0 0;
+  color: var(--lx-text-2);
+  font-size: 14px;
+  margin: 3px 0 0;
 }
 
 .lx-window {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  height: 30px;
-  padding: 0 10px;
-  font-size: 12px;
+  height: 32px;
+  padding: 0 11px;
+  font-size: 13px;
   color: var(--lx-text-2);
   background: var(--lx-surface);
   border: 1px solid var(--lx-border);
@@ -337,10 +338,11 @@ body {
 
 .lx-kicker {
   display: block;
-  font-size: 11px;
-  letter-spacing: 0.06em;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
-  color: var(--lx-text-3);
+  color: var(--lx-text-2);
   margin: 0 0 12px;
 }
 
@@ -362,10 +364,11 @@ body {
 }
 
 .lx-stat-label {
-  font-size: 11px;
-  letter-spacing: 0.07em;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
-  color: var(--lx-text-3);
+  color: var(--lx-text-2);
   margin: 0 0 8px;
 }
 
@@ -378,7 +381,7 @@ body {
 }
 
 .lx-stat-sub {
-  font-size: 12px;
+  font-size: 13px;
   color: var(--lx-text-2);
   margin: 6px 0 0;
 }
@@ -579,7 +582,7 @@ body {
 }
 
 .lx-model-name {
-  font-size: 13px;
+  font-size: 14px;
   color: var(--lx-text);
   white-space: nowrap;
   overflow: hidden;
@@ -604,11 +607,11 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 11px;
+  font-size: 12px;
   color: var(--lx-text-2);
   border: 1px solid var(--lx-border-2);
   border-radius: 999px;
-  padding: 2px 8px;
+  padding: 2px 9px;
   white-space: nowrap;
 }
 
@@ -622,7 +625,7 @@ body {
 .lx-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 12px;
+  font-size: 13px;
 }
 
 .lx-table th {
@@ -654,11 +657,11 @@ body {
 }
 
 .lx-route-tag {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--lx-text);
   border: 1px solid var(--lx-border-2);
   border-radius: 999px;
-  padding: 1px 7px;
+  padding: 1px 8px;
 }
 
 /* buttons */
@@ -682,17 +685,16 @@ body {
   background: var(--lx-surface-2);
 }
 
-/* Primary CTA is monochrome (re-skin §2 keeps red OFF buttons): light fill on
- * black for emphasis, no brand hue. */
+/* Primary CTA carries the brand red (#C1121F) — restored this pass. */
 .lx-btn-primary {
-  background: var(--lx-text);
-  border-color: var(--lx-text);
-  color: #000000;
+  background: var(--lx-brand);
+  border-color: var(--lx-brand);
+  color: var(--lx-brand-ink);
   font-weight: 600;
 }
 
 .lx-btn-primary:hover {
-  background: #ffffff;
+  background: #a50f1a;
 }
 
 /* empty / onboarding */
@@ -700,19 +702,25 @@ body {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 6px;
-  padding: 8px 0;
+  gap: 4px;
+  padding: 2px 0 0;
+}
+
+/* Empty cards anchor their content to the top instead of stretching to the
+ * row's tallest sibling — kills the cavernous dead space (Vercel density). */
+.lx-card:has(.lx-empty) {
+  align-self: start;
 }
 
 .lx-empty-head {
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 600;
   color: var(--lx-text);
   margin: 0;
 }
 
 .lx-empty-sub {
-  font-size: 13px;
+  font-size: 14px;
   color: var(--lx-text-3);
   margin: 0;
 }
@@ -733,7 +741,7 @@ body {
 
 .lx-onboard-lead {
   color: var(--lx-text-2);
-  font-size: 13px;
+  font-size: 14px;
   margin: 0 0 16px;
 }
 
@@ -773,15 +781,15 @@ body {
 }
 
 .lx-step-title {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--lx-text);
   margin: 0;
 }
 
 .lx-step-sub {
-  font-size: 12px;
-  color: var(--lx-text-3);
+  font-size: 13px;
+  color: var(--lx-text-2);
   margin: 2px 0 0;
 }
 
@@ -810,10 +818,10 @@ body {
 }
 
 .lx-stub-sub {
-  color: var(--lx-text-3);
-  font-size: 13px;
+  color: var(--lx-text-2);
+  font-size: 14px;
   margin: 0;
-  max-width: 360px;
+  max-width: 380px;
 }
 
 /* genuine error (red is allowed here) */
