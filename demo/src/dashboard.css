@@ -6,30 +6,36 @@
  * public demo/savings/blog pages (which stay light + blue + green; §2 says do
  * not retrofit them). Tokens are --lx-* prefixed to make the boundary explicit.
  *
- * COLOR LAW (strict, §2): monochrome everything. The brand red is used ONLY for
- * the wordmark + hex mark, the active nav item, primary buttons, key
- * highlights, and genuine errors. Status and data stay monochrome — healthy
- * dots, the routing ring, and the savings figure are NOT colored. No green. No
- * other hue anywhere. Flat matte: no gradients, no glass, no blur, no glow.
+ * COLOR LAW (strict, re-skin §2): monochrome everything on true black. The
+ * brand red is used ONLY for the wordmark + hex mark, the active nav item, and
+ * genuine errors — NOT primary buttons (the re-skin drops that). Status and
+ * data stay monochrome — dots, the routing donut, the gauges, and the savings
+ * figure are NOT colored. No green, no other hue. Gradients appear ONLY as the
+ * subtle monochrome tonal depth on cards (material) — never colored, never glow.
  */
 
 :root {
-  --lx-bg: #0a0a0b;
-  --lx-surface: #141416;
-  --lx-surface-2: #1b1b1f;
-  --lx-border: rgba(255, 255, 255, 0.08);
-  --lx-border-2: rgba(255, 255, 255, 0.14);
+  /* True black base (re-skin §2); surfaces are brushed near-black. */
+  --lx-bg: #000000;
+  --lx-surface: #121214;
+  --lx-surface-2: #1c1c20;
+  --lx-border: rgba(255, 255, 255, 0.09);
+  --lx-border-2: rgba(255, 255, 255, 0.16);
+
+  /* Card material: a subtle monochrome top→bottom sheen + a thin lighter edge. */
+  --lx-card-grad: linear-gradient(180deg, #161618 0%, #0e0e10 60%, #0a0a0c 100%);
+  --lx-card-edge: inset 0 1px 0 rgba(255, 255, 255, 0.06);
 
   --lx-text: #f4f4f5;
   --lx-text-2: #a1a1aa;
   --lx-text-3: #71717a;
 
-  /* The one brand hue. Also the genuine-error hue. Nothing else is colored. */
-  --lx-brand: #e5484d;
+  /* The one brand hue: deep blood-red. Also the genuine-error hue. */
+  --lx-brand: #c1121f;
   --lx-brand-ink: #ffffff;
 
-  --lx-radius: 12px;
-  --lx-radius-sm: 8px;
+  --lx-radius: 16px;
+  --lx-radius-sm: 10px;
 
   --lx-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", Inter, "Segoe UI",
     Roboto, "Helvetica Neue", Arial, sans-serif;
@@ -47,7 +53,11 @@ body {
 }
 
 body {
-  background: var(--lx-bg);
+  /* True black + a faint dot-grid texture (Nothing spirit). */
+  background-color: var(--lx-bg);
+  background-image: radial-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+  background-size: 22px 22px;
+  background-position: -1px -1px;
   color: var(--lx-text);
   font-family: var(--lx-sans);
   font-size: 14px;
@@ -105,7 +115,7 @@ body {
 
 .lx-brand-word {
   font-weight: 700;
-  font-size: 16px;
+  font-size: 18px;
   letter-spacing: -0.01em;
 }
 
@@ -181,7 +191,7 @@ body {
 
 .lx-body {
   display: grid;
-  grid-template-columns: 232px 1fr;
+  grid-template-columns: 248px 1fr;
   min-height: 0;
 }
 
@@ -202,13 +212,13 @@ body {
 .lx-nav-item {
   display: flex;
   align-items: center;
-  gap: 10px;
-  height: 36px;
-  padding: 0 10px;
+  gap: 12px;
+  height: 42px;
+  padding: 0 12px;
   border-radius: var(--lx-radius-sm);
   color: var(--lx-text-2);
   text-decoration: none;
-  font-size: 13px;
+  font-size: 14px;
   cursor: pointer;
   border: 0;
   background: transparent;
@@ -223,8 +233,8 @@ body {
 }
 
 .lx-nav-item .lx-ic {
-  width: 18px;
-  height: 18px;
+  width: 20px;
+  height: 20px;
   flex: 0 0 auto;
   color: currentColor;
 }
@@ -280,10 +290,10 @@ body {
 }
 
 .lx-page-title {
-  font-size: 18px;
+  font-size: 22px;
   font-weight: 700;
   margin: 0;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.015em;
 }
 
 .lx-page-sub {
@@ -312,10 +322,11 @@ body {
 }
 
 .lx-card {
-  background: var(--lx-surface);
+  background: var(--lx-card-grad);
   border: 1px solid var(--lx-border);
   border-radius: var(--lx-radius);
-  padding: 16px;
+  box-shadow: var(--lx-card-edge);
+  padding: 18px;
   min-width: 0;
 }
 
@@ -341,20 +352,25 @@ body {
 }
 
 .lx-stat {
-  background: var(--lx-surface);
+  display: flex;
+  flex-direction: column;
+  background: var(--lx-card-grad);
   border: 1px solid var(--lx-border);
   border-radius: var(--lx-radius);
-  padding: 14px 16px;
+  box-shadow: var(--lx-card-edge);
+  padding: 16px 18px;
 }
 
 .lx-stat-label {
-  font-size: 12px;
+  font-size: 11px;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
   color: var(--lx-text-3);
   margin: 0 0 8px;
 }
 
 .lx-stat-num {
-  font-size: 26px;
+  font-size: 30px;
   font-weight: 700;
   letter-spacing: -0.02em;
   font-family: var(--lx-mono);
@@ -367,41 +383,135 @@ body {
   margin: 6px 0 0;
 }
 
-/* routing ring */
+.lx-stat-viz {
+  margin-top: 12px;
+}
+
+.lx-stat-viz .lx-spark {
+  width: 100%;
+}
+
+.lx-stat-viz .lx-gauge {
+  width: 60px;
+  height: 60px;
+}
+
+/* --- viz primitives (all monochrome; skeletons when empty) --------------- */
+
+/* routing donut */
 .lx-ring-wrap {
   display: flex;
   align-items: center;
   gap: 18px;
 }
 
-.lx-ring {
-  width: 116px;
-  height: 116px;
+.lx-donut {
+  width: 124px;
+  height: 124px;
   flex: 0 0 auto;
+  display: block;
 }
 
-.lx-ring-track {
+.lx-donut-track {
   fill: none;
   stroke: var(--lx-surface-2);
-  stroke-width: 12;
+  stroke-width: 13;
 }
 
-.lx-ring-arc {
+.lx-donut-arc {
   fill: none;
   stroke: var(--lx-text);
-  stroke-width: 12;
+  stroke-width: 13;
   stroke-linecap: round;
   transform: rotate(-90deg);
   transform-origin: center;
 }
 
-.lx-ring-center {
+.lx-donut-center {
   fill: var(--lx-text);
   font-family: var(--lx-mono);
-  font-size: 20px;
+  font-size: 22px;
   font-weight: 700;
   text-anchor: middle;
   dominant-baseline: central;
+}
+
+/* radial gauge (270° arc) */
+.lx-gauge {
+  display: block;
+}
+
+.lx-gauge-track,
+.lx-gauge-arc {
+  fill: none;
+  stroke-linecap: round;
+  transform: rotate(135deg);
+  transform-origin: center;
+}
+
+.lx-gauge-track {
+  stroke: var(--lx-surface-2);
+  stroke-width: 12;
+}
+
+.lx-gauge-arc {
+  stroke: var(--lx-text);
+  stroke-width: 12;
+}
+
+/* sparkline */
+.lx-spark {
+  width: 120px;
+  height: 34px;
+  display: block;
+}
+
+.lx-spark-line {
+  fill: none;
+  stroke: var(--lx-text-2);
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.lx-spark-base {
+  stroke: var(--lx-border-2);
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+  vector-effect: non-scaling-stroke;
+}
+
+.lx-spark-dot {
+  fill: var(--lx-text-2);
+}
+
+/* area chart */
+.lx-area {
+  width: 100%;
+  height: 96px;
+  display: block;
+  margin-top: 12px;
+}
+
+.lx-area-fill {
+  fill: rgba(244, 244, 245, 0.07);
+  stroke: none;
+}
+
+.lx-area-line {
+  fill: none;
+  stroke: var(--lx-text);
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.lx-area-base {
+  stroke: var(--lx-border-2);
+  stroke-width: 1;
+  stroke-dasharray: 4 4;
+  vector-effect: non-scaling-stroke;
 }
 
 .lx-legend {
@@ -572,15 +682,17 @@ body {
   background: var(--lx-surface-2);
 }
 
+/* Primary CTA is monochrome (re-skin §2 keeps red OFF buttons): light fill on
+ * black for emphasis, no brand hue. */
 .lx-btn-primary {
-  background: var(--lx-brand);
-  border-color: var(--lx-brand);
-  color: var(--lx-brand-ink);
+  background: var(--lx-text);
+  border-color: var(--lx-text);
+  color: #000000;
   font-weight: 600;
 }
 
 .lx-btn-primary:hover {
-  background: #d23b40;
+  background: #ffffff;
 }
 
 /* empty / onboarding */
@@ -606,10 +718,11 @@ body {
 }
 
 .lx-onboard {
-  background: var(--lx-surface);
+  background: var(--lx-card-grad);
   border: 1px solid var(--lx-border);
   border-radius: var(--lx-radius);
-  padding: 20px;
+  box-shadow: var(--lx-card-edge);
+  padding: 22px;
 }
 
 .lx-onboard-title {

@@ -6,8 +6,20 @@
  */
 import type { SavingsSummary } from "ludion-router/savings";
 import type { StoredConfig } from "ludion-workspace/schema";
-import { badge, card, el, emptyState, ring, statTile, table } from "./components";
 import {
+  areaChart,
+  badge,
+  card,
+  donut,
+  el,
+  emptyState,
+  radialGauge,
+  sparkline,
+  statTile,
+  table,
+} from "./components";
+import {
+  dailySeries,
   hasData,
   overviewStats,
   recentDecisions,
@@ -66,26 +78,42 @@ function pageHead(): HTMLElement {
 function statsRow(data: OverviewData): HTMLElement {
   const wrap = el("section", "lx-stats lx-col-12");
   if (!hasData(data.snapshot)) {
-    wrap.append(statTile("Requests routed", EM_DASH, "no requests yet"));
-    wrap.append(statTile("On-device", EM_DASH, "no requests yet"));
-    wrap.append(statTile("Success rate", EM_DASH, "no requests yet"));
-    wrap.append(statTile("Cost saved", EM_DASH, "no requests yet"));
+    // Empty = elegant skeletons (flat baselines, empty gauge), never fake values.
+    wrap.append(statTile("Requests routed", EM_DASH, "no requests yet", sparkline([])));
+    wrap.append(statTile("On-device", EM_DASH, "no requests yet", sparkline([])));
+    wrap.append(statTile("Success rate", EM_DASH, "no requests yet", radialGauge(null, "")));
+    wrap.append(statTile("Cost saved", EM_DASH, "no requests yet", sparkline([])));
     return wrap;
   }
   const s = overviewStats(data.snapshot, data.summary);
+  const series = dailySeries(data.summary);
   wrap.append(
-    statTile("Requests routed", s.routed.toLocaleString(), `${s.local.toLocaleString()} on device · ${s.server.toLocaleString()} fallback`),
+    statTile(
+      "Requests routed",
+      s.routed.toLocaleString(),
+      `${s.local.toLocaleString()} on device · ${s.server.toLocaleString()} fallback`,
+      sparkline(series.routed),
+    ),
   );
-  wrap.append(statTile("On-device", formatPct(s.localPct / 100), "of routed requests"));
+  wrap.append(
+    statTile("On-device", formatPct(s.localPct / 100), "of routed requests", sparkline(series.local)),
+  );
+  // No honest per-day success series (see shape.dailySeries); gauge the aggregate.
   wrap.append(
     statTile(
       "Success rate",
       s.successRate === null ? EM_DASH : formatPct(s.successRate),
       "requests completed",
+      radialGauge(s.successRate, s.successRate === null ? "" : formatPct(s.successRate)),
     ),
   );
   wrap.append(
-    statTile("Cost saved", formatUSD(data.summary.total_saved, data.summary.currency), `vs ${data.summary.pricing_basis.model} pricing`),
+    statTile(
+      "Cost saved",
+      formatUSD(data.summary.total_saved, data.summary.currency),
+      `vs ${data.summary.pricing_basis.model} pricing`,
+      sparkline(series.saved),
+    ),
   );
   return wrap;
 }
@@ -93,12 +121,13 @@ function statsRow(data: OverviewData): HTMLElement {
 function routingCard(data: OverviewData): HTMLElement {
   const c = card({ kicker: "Routing", span: 4 });
   if (!hasData(data.snapshot)) {
+    c.append(donut(null, EM_DASH));
     c.append(emptyState("Nothing routed yet", "On-device vs fallback share appears after your first request."));
     return c;
   }
   const s = overviewStats(data.snapshot, data.summary);
   const wrap = el("div", "lx-ring-wrap");
-  wrap.append(ring(s.localPct, formatPct(s.localPct / 100)));
+  wrap.append(donut(s.localPct, formatPct(s.localPct / 100)));
   const legend = el("div", "lx-legend");
   const r1 = el("div", "lx-legend-row");
   r1.append(el("span", "lx-dot lx-dot-strong"));
@@ -120,6 +149,7 @@ function routingCard(data: OverviewData): HTMLElement {
 function savingsCard(data: OverviewData): HTMLElement {
   const c = card({ kicker: "Savings", span: 4 });
   if (!hasData(data.snapshot) || data.summary.local_count === 0) {
+    c.append(areaChart([]));
     c.append(emptyState("No savings yet", "Savings accrue when requests run on this device instead of the API."));
     return c;
   }
@@ -132,6 +162,7 @@ function savingsCard(data: OverviewData): HTMLElement {
       `${formatUSD(data.summary.total_saved, data.summary.currency)} would-be → ${formatUSD(0, data.summary.currency)} actual, across ${n.toLocaleString()} on-device request${n === 1 ? "" : "s"}`,
     ),
   );
+  c.append(areaChart(dailySeries(data.summary).saved));
   return c;
 }
 

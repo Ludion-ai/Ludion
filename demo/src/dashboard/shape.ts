@@ -116,6 +116,32 @@ export function topModelsByShare(snap: Snapshot, limit = 4): ModelShare[] {
     .slice(0, limit);
 }
 
+export interface DaySeries {
+  days: string[];
+  /** local + server routed per day. */
+  routed: number[];
+  /** local (on-device) routed per day. */
+  local: number[];
+  /** savings (counterfactual cost avoided) per day. */
+  saved: number[];
+}
+
+/**
+ * Per-day series for the stat-tile sparklines and the savings area chart, taken
+ * straight from `summary.by_day` (already sorted oldest-first by computeSavings).
+ * Note: there is no honest per-day success-rate series — `by_day` carries no
+ * completed/total split and the rollup fold drops the `completed` flag — so the
+ * success-rate tile uses a gauge of the single aggregate instead, not a spark.
+ */
+export function dailySeries(summary: SavingsSummary): DaySeries {
+  return {
+    days: summary.by_day.map((d) => d.day),
+    routed: summary.by_day.map((d) => d.local_count + d.server_count),
+    local: summary.by_day.map((d) => d.local_count),
+    saved: summary.by_day.map((d) => d.saved),
+  };
+}
+
 function routingOf(target: LedgerEntry["target"]): Routing {
   return target === "local" ? "on-device" : target === "server" ? "fallback" : "unroutable";
 }

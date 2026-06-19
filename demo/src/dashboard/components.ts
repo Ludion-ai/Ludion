@@ -80,36 +80,130 @@ export function card(opts: CardOpts = {}): HTMLElement {
   return c;
 }
 
-export function statTile(label: string, value: string, sub?: string): HTMLElement {
+export function statTile(label: string, value: string, sub?: string, viz?: Node): HTMLElement {
   const t = el("div", "lx-stat");
   t.append(el("p", "lx-stat-label", label));
   t.append(el("p", "lx-stat-num", value));
   if (sub !== undefined) t.append(el("p", "lx-stat-sub", sub));
+  if (viz) {
+    const v = el("div", "lx-stat-viz");
+    v.append(viz);
+    t.append(v);
+  }
   return t;
 }
 
-/** A monochrome routing ring. `pct` is 0..100 for the strong (on-device) arc. */
-export function ring(pct: number, centerLabel: string): SVGSVGElement {
-  const size = 116;
-  const r = 48;
+/*
+ * Empty-capable monochrome viz primitives (2b-1 re-skin). Each renders an
+ * elegant skeleton when it has no data (empty ring, flat dashed baseline) —
+ * never a fabricated value. All are pure SVG over data the caller already holds.
+ */
+
+/** A monochrome donut. `pct` is 0..100, or null for the empty skeleton. */
+export function donut(pct: number | null, centerLabel: string): SVGSVGElement {
+  const size = 132;
+  const r = 54;
   const cx = size / 2;
   const c = 2 * Math.PI * r;
-  const clamped = Math.max(0, Math.min(100, pct));
+  const has = pct !== null;
+  const clamped = Math.max(0, Math.min(100, pct ?? 0));
   const svg = svgEl("svg", { viewBox: `0 0 ${size} ${size}`, role: "img" });
-  svg.setAttribute("class", "lx-ring");
-  svg.setAttribute("aria-label", `${Math.round(clamped)}% on device`);
-  svg.append(svgEl("circle", { cx, cy: cx, r, class: "lx-ring-track" }));
-  const arc = svgEl("circle", {
-    cx,
-    cy: cx,
-    r,
-    class: "lx-ring-arc",
-    "stroke-dasharray": `${(clamped / 100) * c} ${c}`,
-  });
-  svg.append(arc);
-  const text = svgEl("text", { x: cx, y: cx, class: "lx-ring-center" });
+  svg.setAttribute("class", "lx-donut");
+  svg.setAttribute("aria-label", has ? `${Math.round(clamped)}% on device` : "no data yet");
+  svg.append(svgEl("circle", { cx, cy: cx, r, class: "lx-donut-track" }));
+  if (has) {
+    svg.append(
+      svgEl("circle", {
+        cx,
+        cy: cx,
+        r,
+        class: "lx-donut-arc",
+        "stroke-dasharray": `${(clamped / 100) * c} ${c}`,
+      }),
+    );
+  }
+  const text = svgEl("text", { x: cx, y: cx, class: "lx-donut-center" });
   text.textContent = centerLabel;
   svg.append(text);
+  return svg;
+}
+
+/** A 270° radial gauge. `fraction` is 0..1, or null for the empty skeleton. */
+export function radialGauge(fraction: number | null, ariaLabel: string): SVGSVGElement {
+  const size = 132;
+  const r = 54;
+  const cx = size / 2;
+  const c = 2 * Math.PI * r;
+  const sweep = 0.75; // 270° of the circle
+  const has = fraction !== null;
+  const f = Math.max(0, Math.min(1, fraction ?? 0));
+  const svg = svgEl("svg", { viewBox: `0 0 ${size} ${size}`, role: "img" });
+  svg.setAttribute("class", "lx-gauge");
+  svg.setAttribute("aria-label", has ? ariaLabel : "no data yet");
+  svg.append(
+    svgEl("circle", { cx, cy: cx, r, class: "lx-gauge-track", "stroke-dasharray": `${sweep * c} ${c}` }),
+  );
+  if (has) {
+    svg.append(
+      svgEl("circle", {
+        cx,
+        cy: cx,
+        r,
+        class: "lx-gauge-arc",
+        "stroke-dasharray": `${f * sweep * c} ${c}`,
+      }),
+    );
+  }
+  return svg;
+}
+
+/** A tiny trend sparkline. Empty array → a flat dashed baseline. */
+export function sparkline(values: number[]): SVGSVGElement {
+  const w = 120;
+  const h = 34;
+  const pad = 2;
+  const svg = svgEl("svg", { viewBox: `0 0 ${w} ${h}`, preserveAspectRatio: "none", "aria-hidden": "true" });
+  svg.setAttribute("class", "lx-spark");
+  if (values.length === 0) {
+    svg.append(svgEl("line", { x1: pad, y1: h / 2, x2: w - pad, y2: h / 2, class: "lx-spark-base" }));
+    return svg;
+  }
+  const max = Math.max(...values);
+  const min = Math.min(...values);
+  const span = max - min || 1;
+  const n = values.length;
+  const x = (i: number): number => (n === 1 ? w / 2 : pad + (i / (n - 1)) * (w - 2 * pad));
+  const y = (v: number): number => h - pad - ((v - min) / span) * (h - 2 * pad);
+  if (n === 1) {
+    svg.append(svgEl("circle", { cx: w / 2, cy: y(values[0]!), r: 2, class: "lx-spark-dot" }));
+    return svg;
+  }
+  const pts = values.map((v, i) => `${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(" ");
+  svg.append(svgEl("polyline", { points: pts, class: "lx-spark-line" }));
+  return svg;
+}
+
+/** A filled area chart. Empty array → a dashed axis baseline. */
+export function areaChart(values: number[]): SVGSVGElement {
+  const w = 320;
+  const h = 110;
+  const pad = 4;
+  const svg = svgEl("svg", { viewBox: `0 0 ${w} ${h}`, preserveAspectRatio: "none", role: "img" });
+  svg.setAttribute("class", "lx-area");
+  if (values.length === 0) {
+    svg.setAttribute("aria-label", "no data yet");
+    svg.append(svgEl("line", { x1: pad, y1: h - pad, x2: w - pad, y2: h - pad, class: "lx-area-base" }));
+    return svg;
+  }
+  const max = Math.max(...values, 0);
+  const span = max || 1;
+  const n = values.length;
+  const x = (i: number): number => (n === 1 ? w / 2 : pad + (i / (n - 1)) * (w - 2 * pad));
+  const y = (v: number): number => h - pad - (v / span) * (h - 2 * pad);
+  const line = values.map((v, i) => `${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(" ");
+  const right = n === 1 ? w / 2 : w - pad;
+  svg.append(svgEl("polygon", { points: `${pad},${h - pad} ${line} ${right},${h - pad}`, class: "lx-area-fill" }));
+  svg.append(svgEl("polyline", { points: line, class: "lx-area-line" }));
   return svg;
 }
 

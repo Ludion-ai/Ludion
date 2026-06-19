@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { LedgerEntry, SavingsSummary } from "ludion-router/savings";
 import {
+  dailySeries,
   hasData,
   overviewStats,
   recentDecisions,
@@ -129,6 +130,31 @@ describe("topModelsByShare", () => {
     const top = topModelsByShare({ entries: [entry({ model: "ghost" })], rollups: [] });
     expect(top[0]!.label).toBe("ghost");
     expect(top[0]!.status).toBeNull();
+  });
+});
+
+describe("dailySeries — per-day chart data from summary.by_day", () => {
+  it("splits routed/local/saved per day in by_day order", () => {
+    const s = dailySeries(
+      summary({
+        by_day: [
+          { day: "2026-06-13", saved: 0.5, local_count: 2, server_count: 1 },
+          { day: "2026-06-14", saved: 1.25, local_count: 3, server_count: 0 },
+        ],
+      }),
+    );
+    expect(s.days).toEqual(["2026-06-13", "2026-06-14"]);
+    expect(s.routed).toEqual([3, 3]); // local + server
+    expect(s.local).toEqual([2, 3]);
+    expect(s.saved).toEqual([0.5, 1.25]);
+  });
+
+  it("is all-empty arrays when there is no day data (drives the skeletons)", () => {
+    const s = dailySeries(summary({}));
+    expect(s.days).toEqual([]);
+    expect(s.routed).toEqual([]);
+    expect(s.local).toEqual([]);
+    expect(s.saved).toEqual([]);
   });
 });
 
