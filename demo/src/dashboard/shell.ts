@@ -6,8 +6,10 @@
  */
 import type { StoredConfig } from "ludion-workspace/schema";
 import { el, hexMark, icon } from "./components";
-import { readSnapshot, readSummary, type Identity } from "./data";
+import { putConfig, readRelayToken, readSnapshot, readSummary, syncDropinConfig, type Identity } from "./data";
 import { renderOverview } from "./overview";
+import { renderModels } from "./models";
+import { renderRelay } from "./relay";
 
 interface NavSection {
   id: string;
@@ -25,12 +27,10 @@ const SECTIONS: NavSection[] = [
   { id: "settings", label: "Settings" },
 ];
 
-/** What each not-yet-built section says (2b-2 replaces these). */
+/** What each not-yet-built section says (2b-2b replaces these). */
 const STUB_COPY: Record<string, string> = {
-  routing: "The routing table and per-rule breakdown land here in 2b-2.",
-  models: "Pick and verify the fallback models your endpoint serves — coming in 2b-2.",
-  relay: "Generate a relay that keeps your provider key server-side — coming in 2b-2.",
-  decisions: "The full decision-log explorer arrives in 2b-2.",
+  routing: "The routing table and per-rule breakdown land here in 2b-2b.",
+  decisions: "The full decision-log explorer arrives in 2b-2b.",
   savings: "The savings deep-dive (reskinned to this system) arrives in 2b-2.",
   devices: "Per-device capability and routing arrive in 2b-2.",
   settings: "Workspace settings and config editing arrive in 2b-2.",
@@ -132,18 +132,35 @@ export function mountShell(opts: ShellOptions): void {
 
   opts.root.replaceChildren(app);
 
+  // Mutable setup state: config is re-read from the server on each successful
+  // write; the relay token is client-only (held in ludion.config.v1).
+  let config = opts.config;
+  let token = readRelayToken();
+
+  // Persist a non-secret config and mirror the assembled client config (with the
+  // client-only token) into localStorage. The token never enters this PUT.
+  const save = async (next: StoredConfig): Promise<StoredConfig> => {
+    config = await putConfig(next);
+    syncDropinConfig(config, token);
+    return config;
+  };
+  const setToken = (next: string): void => {
+    token = next;
+    syncDropinConfig(config, token);
+  };
+
   const render = (): void => {
     const id = currentSection();
     setActive(id);
     if (id === "overview") {
       // Re-read the ledger each time so the view reflects the current device.
       outlet.replaceChildren(
-        renderOverview({
-          snapshot: readSnapshot(),
-          summary: readSummary(),
-          config: opts.config,
-        }),
+        renderOverview({ snapshot: readSnapshot(), summary: readSummary(), config }),
       );
+    } else if (id === "models") {
+      outlet.replaceChildren(renderModels({ config, save, refresh: render }));
+    } else if (id === "relay") {
+      outlet.replaceChildren(renderRelay({ config, token, save, setToken, refresh: render }));
     } else {
       const label = SECTIONS.find((s) => s.id === id)?.label ?? id;
       outlet.replaceChildren(renderStub(id, label));

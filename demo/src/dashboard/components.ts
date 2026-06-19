@@ -246,6 +246,34 @@ export function table(spec: TableSpec): HTMLElement {
   return scroll;
 }
 
+/**
+ * A monospace, copy-to-clipboard block. The text is set via textContent (never
+ * innerHTML), so config values and URLs are never interpolated into markup.
+ * `inline` renders a single-line field (a command / URL); otherwise a pre block.
+ */
+export function copyBlock(text: string, opts: { inline?: boolean; label?: string } = {}): HTMLElement {
+  const wrap = el("div", opts.inline ? "lx-copy lx-copy-inline" : "lx-copy");
+  const body = el(opts.inline ? "code" : "pre", "lx-copy-text");
+  body.textContent = text;
+  wrap.append(body);
+  const btn = el("button", "lx-copy-btn", "Copy");
+  btn.type = "button";
+  btn.setAttribute("aria-label", opts.label ? `Copy ${opts.label}` : "Copy");
+  btn.addEventListener("click", () => {
+    void navigator.clipboard?.writeText(text).then(
+      () => {
+        btn.textContent = "Copied";
+        window.setTimeout(() => (btn.textContent = "Copy"), 1200);
+      },
+      () => {
+        btn.textContent = "Copy failed";
+      },
+    );
+  });
+  wrap.append(btn);
+  return wrap;
+}
+
 /** A calm empty state for a single card. */
 export function emptyState(head: string, sub: string): HTMLElement {
   const e = el("div", "lx-empty");

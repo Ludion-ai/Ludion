@@ -7,8 +7,10 @@
  */
 import { SavingsLedger } from "ludion-router/savings";
 import type { SavingsSummary } from "ludion-router/savings";
+import { createStorageConfigSource, writeDropinConfig } from "ludion-router";
 import type { StoredConfig } from "ludion-workspace/schema";
 import type { Snapshot } from "./shape";
+import { assembleDropinConfig } from "./setup";
 
 export interface Identity {
   login: string;
@@ -39,10 +41,42 @@ export async function fetchIdentity(): Promise<Identity | null> {
   return (await res.json()) as Identity;
 }
 
-/** GET /api/config — read-only here (editing is 2b-2). Null on 401. */
+/** GET /api/config — the saved non-secret config. Null on 401. */
 export async function fetchConfig(): Promise<StoredConfig | null> {
   const res = await fetch("/api/config", { headers: { accept: "application/json" } });
   if (res.status === 401) return null;
   if (!res.ok) throw new Error(`/api/config ${res.status}`);
   return (await res.json()) as StoredConfig;
+}
+
+/**
+ * PUT /api/config — persist the non-secret config (2b-2a Models/Relay writes).
+ * The payload carries ONLY { config_version, fallback:{baseURL,model}, relayUrl }
+ * — never the relay token (StoredConfig has no field for it, and the server
+ * re-validates). Returns the server's stored shape.
+ */
+export async function putConfig(config: StoredConfig): Promise<StoredConfig> {
+  const res = await fetch("/api/config", {
+    method: "PUT",
+    headers: { "content-type": "application/json", accept: "application/json" },
+    body: JSON.stringify(config),
+  });
+  if (!res.ok) throw new Error(`PUT /api/config ${res.status}`);
+  return (await res.json()) as StoredConfig;
+}
+
+/** Read the client-only relay token from the persisted drop-in config. */
+export function readRelayToken(): string | null {
+  const cfg = createStorageConfigSource().get();
+  const token = cfg?.fallback?.apiKey;
+  return typeof token === "string" && token.length > 0 ? token : null;
+}
+
+/**
+ * Mirror the assembled client `ludion.config.v1` into localStorage so the
+ * drop-in router uses it on the next request. The token stays here, in the
+ * browser, and is NEVER sent to a Ludion server (§5).
+ */
+export function syncDropinConfig(config: StoredConfig | null, token: string | null): void {
+  writeDropinConfig(assembleDropinConfig(config, token));
 }
