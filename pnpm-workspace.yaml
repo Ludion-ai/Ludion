@@ -4,3 +4,4 @@ packages:
   - router
   - demo
   - collector
+  - relays/cloudflare-worker

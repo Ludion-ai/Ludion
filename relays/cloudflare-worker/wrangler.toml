@@ -1,0 +1,28 @@
+# ludion fallback relay — canonical Cloudflare Worker.
+# Deploy is the OPERATOR'S GATE. Bootstrap:
+#   npx wrangler secret put PROVIDER_API_KEY    # the real provider key, server-side only
+#   npx wrangler secret put RELAY_TOKEN         # optional low-value gate token (recommended)
+#   # set UPSTREAM_BASE_URL + ALLOWED_ORIGINS below, then:
+#   npx wrangler deploy
+
+name = "ludion-fallback-relay"
+main = "src/index.ts"
+compatibility_date = "2026-05-03"
+
+[vars]
+# OpenAI-compatible upstream. "/chat/completions" is appended by the relay.
+# PASTE-POINT: e.g. "https://api.openai.com/v1".
+UPSTREAM_BASE_URL = "https://api.openai.com/v1"
+
+# Browser origins allowed to call this relay (comma-separated, no trailing slash).
+# PASTE-POINT: replace with your app origin(s). Do NOT use "*".
+# Local dev overrides live in .dev.vars (gitignored).
+ALLOWED_ORIGINS = "https://your-app.example"
+
+# PROVIDER_API_KEY is a SECRET — never put it here. Set it with:
+#   npx wrangler secret put PROVIDER_API_KEY
+#
+# RELAY_TOKEN is an OPTIONAL secret. When set, the browser must send
+#   Authorization: Bearer <RELAY_TOKEN>
+# It is a low-value, rotatable gate token, NOT the provider key. Set it with:
+#   npx wrangler secret put RELAY_TOKEN
