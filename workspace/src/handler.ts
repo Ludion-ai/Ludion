@@ -252,6 +252,16 @@ export async function handleRequest(
     return handleLogout(request);
   }
 
+  if (url.pathname === "/api/me") {
+    if (request.method !== "GET") return errorResponse(405, "method_not_allowed", "use GET");
+    const session = await currentSession(request, env, resolved.now());
+    if (session === null) return errorResponse(401, "unauthorized", "login required");
+    // Identity only — both fields are non-secret and already inside the signed
+    // session cookie. 2b reads this to render the account avatar/initials (the
+    // cookie itself is httpOnly, so client JS cannot read it directly).
+    return json({ login: session.login, uid: session.uid });
+  }
+
   if (url.pathname === "/api/config") {
     const session = await currentSession(request, env, resolved.now());
     if (session === null) return errorResponse(401, "unauthorized", "login required");

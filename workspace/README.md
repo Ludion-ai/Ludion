@@ -35,6 +35,9 @@ adding that token in the browser. The token never travels server-ward.
   GitHub user id and handle, mints a signed session cookie, and discards the
   GitHub token. Nothing from GitHub is stored except the id and handle.
 - `POST /auth/logout` clears the session cookie.
+- `GET /api/me` returns the current user's `{ login, uid }` from the session
+  (identity only, non-secret). The session cookie is httpOnly, so the 2b UI
+  reads this to render the account avatar/initials.
 - `GET /api/config` returns the current user's stored config, or an empty default.
 - `PUT /api/config` validates and stores the config. A payload with a key, token,
   or content field is rejected with 400 and nothing is written.
@@ -81,6 +84,7 @@ gate, config round-trip, per-user scoping, and rejection of secret/content field
 
 ## What 2b's UI will call
 
+- `GET /api/me` to render the account avatar/initials from the GitHub login.
 - `GET /api/config` to load the developer's saved fallback/model/relayUrl.
 - `PUT /api/config` to save edits (non-secret only).
 - `/auth/login` and `/auth/logout` for the session.

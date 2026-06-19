@@ -156,6 +156,35 @@ describe("/api/* auth gate", () => {
   });
 });
 
+describe("/api/me (identity for the 2b avatar)", () => {
+  it("returns the session login and uid when authenticated", async () => {
+    const { env, deps } = baseEnv(new MemKV());
+    const res = await handleRequest(
+      req("/api/me", { headers: { Cookie: await sessionCookie("42", "octocat") } }),
+      env,
+      deps,
+    );
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ login: "octocat", uid: "42" });
+  });
+
+  it("rejects unauthenticated /api/me with 401", async () => {
+    const { env, deps } = baseEnv(new MemKV());
+    const res = await handleRequest(req("/api/me"), env, deps);
+    expect(res.status).toBe(401);
+  });
+
+  it("rejects a non-GET /api/me with 405", async () => {
+    const { env, deps } = baseEnv(new MemKV());
+    const res = await handleRequest(
+      req("/api/me", { method: "POST", headers: { Cookie: await sessionCookie() } }),
+      env,
+      deps,
+    );
+    expect(res.status).toBe(405);
+  });
+});
+
 describe("/api/config round-trip", () => {
   let kv: MemKV;
   beforeEach(() => {

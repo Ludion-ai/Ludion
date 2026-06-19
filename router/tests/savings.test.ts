@@ -285,6 +285,45 @@ describe("PricingStore — override beats preset (acceptance #4)", () => {
   });
 });
 
+describe("snapshot — read-only view for the dashboard (2b)", () => {
+  it("returns recorded entries in order, with empty rollups before any fold", () => {
+    const kv = memKV();
+    const ledger = new SavingsLedger(kv);
+    ledger.record(log({ model: "m1", target: "local" }));
+    ledger.record(log({ model: "m2", target: "server" }));
+    const snap = ledger.snapshot();
+    expect(snap.entries.map((e) => e.model)).toEqual(["m1", "m2"]);
+    expect(snap.entries.map((e) => e.target)).toEqual(["local", "server"]);
+    expect(snap.rollups).toEqual([]);
+  });
+
+  it("returns copies — mutating the view never changes stored state", () => {
+    const kv = memKV();
+    const ledger = new SavingsLedger(kv);
+    ledger.record(log({ model: "m1" }));
+    const snap = ledger.snapshot();
+    snap.entries[0]!.model = "tampered";
+    expect(ledger.snapshot().entries[0]!.model).toBe("m1");
+  });
+
+  it("exposes folded rollups once entries exceed the cap", () => {
+    const kv = memKV();
+    const ledger = new SavingsLedger(kv, Date.now, 2);
+    ledger.record(log({ model: "m" }));
+    ledger.record(log({ model: "m" }));
+    ledger.record(log({ model: "m" })); // overflow → one entry folds
+    const snap = ledger.snapshot();
+    expect(snap.entries).toHaveLength(2);
+    const rolled = snap.rollups.reduce((n, r) => n + r.count, 0);
+    expect(rolled).toBe(1);
+  });
+
+  it("is empty for a fresh ledger", () => {
+    const snap = new SavingsLedger(memKV()).snapshot();
+    expect(snap).toEqual({ entries: [], rollups: [] });
+  });
+});
+
 describe("pricing.json honesty (acceptance #4)", () => {
   it("every seed row is dated and sourced", () => {
     for (const row of PRESET_PRICING.models) {

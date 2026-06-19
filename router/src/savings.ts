@@ -181,6 +181,22 @@ export class SavingsLedger {
     return computeSavings(blob, basis);
   }
 
+  /**
+   * Read-only view of the persisted ledger: a copy of the raw recent entries
+   * (in record order, oldest first) plus the folded daily rollups. The
+   * dashboard (2b) reads this to derive per-model routing share, the completed
+   * rate, and the recent-decisions list — figures `summary()` does not break
+   * out. Copies are returned so a caller cannot mutate stored state through the
+   * view. Still counts/metadata only; there is no content to leak.
+   */
+  snapshot(): { entries: LedgerEntry[]; rollups: DailyRollup[] } {
+    const blob = this.read();
+    return {
+      entries: blob.entries.map((e) => ({ ...e })),
+      rollups: blob.rollups.map((r) => ({ ...r })),
+    };
+  }
+
   /** Wipe the ledger (e.g. a user "reset savings"). */
   clear(): void {
     this.write(freshBlob());

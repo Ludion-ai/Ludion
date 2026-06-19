@@ -21,6 +21,10 @@ export default defineConfig({
       input: {
         main: fileURLToPath(new URL("./index.html", import.meta.url)),
         savings: fileURLToPath(new URL("./savings.html", import.meta.url)),
+        // The logged-in workspace (Gate 2b). Same-origin so the 2a session
+        // cookie applies; its own dark+red stylesheet, isolated from the public
+        // pages. Imports only ludion-router/savings + /registry (no engine).
+        dashboard: fileURLToPath(new URL("./dashboard.html", import.meta.url)),
         blog: fileURLToPath(new URL("./blog/index.html", import.meta.url)),
         "blog-webgpu-reports-vs-reality": fileURLToPath(
           new URL("./blog/webgpu-reports-vs-reality/index.html", import.meta.url),
