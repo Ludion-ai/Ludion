@@ -7,7 +7,7 @@
   "description": "Ludion Gate 1 demo chat page (doubles as Gate 2 public demo)",
   "scripts": {
     "dev": "vite",
-    "build": "node scripts/gen-qr.mjs && vite build",
+    "build": "node scripts/gen-qr.mjs && vite build && wrangler pages functions build --outdir dist/_worker.js",
     "preview": "vite preview",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
@@ -23,6 +23,7 @@
     "qrcode": "^1.5.4",
     "typescript": "5.9.3",
     "vite": "7.3.5",
-    "vitest": "4.1.8"
+    "vitest": "4.1.8",
+    "wrangler": "4.86.0"
   }
 }
