@@ -354,3 +354,29 @@ describe("storage invariant: secret/content rejection", () => {
     expect(res.status).toBe(400);
   });
 });
+
+describe("/api/_debug/oauth (temporary credential fingerprint)", () => {
+  it("returns safe fingerprints login-free, never the raw secret", async () => {
+    const { env, deps } = baseEnv(new MemKV());
+    const res = await handleRequest(req("/api/_debug/oauth"), env, deps);
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as {
+      github_client_id: string | null;
+      github_client_secret: { present: boolean; length?: number; sha256_prefix?: string };
+      session_secret: { present: boolean; length?: number };
+    };
+    expect(body.github_client_id).toBe("client-id");
+    expect(body.github_client_secret.present).toBe(true);
+    expect(body.github_client_secret.length).toBe("client-secret".length);
+    expect(body.github_client_secret.sha256_prefix).toMatch(/^[0-9a-f]{8}$/);
+    expect(body.session_secret).toEqual({ present: true, length: SESSION_SECRET.length });
+    // The raw client secret must never appear anywhere in the response.
+    expect(JSON.stringify(body)).not.toContain("client-secret");
+  });
+
+  it("rejects a non-GET with 405", async () => {
+    const { env, deps } = baseEnv(new MemKV());
+    const res = await handleRequest(req("/api/_debug/oauth", { method: "POST" }), env, deps);
+    expect(res.status).toBe(405);
+  });
+});

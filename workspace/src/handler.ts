@@ -252,6 +252,36 @@ async function handleConfig(
   return errorResponse(405, "method_not_allowed", "use GET or PUT");
 }
 
+// --- /api/_debug/oauth (TEMPORARY) ------------------------------------------
+
+async function sha256Hex(value: string): Promise<string> {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
+  return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+/**
+ * TEMPORARY: safe fingerprints of the OAuth credentials this worker reads. The
+ * raw client secret, the session secret, and any access token are NEVER part of
+ * the response — only a length and a SHA-256 prefix that cannot reconstruct the
+ * value. Remove this once the production credential wiring is confirmed.
+ */
+async function handleDebugOAuth(env: WorkspaceEnv): Promise<Response> {
+  const clientId = env.GITHUB_CLIENT_ID;
+  const secret = env.GITHUB_CLIENT_SECRET;
+  const sessionSecret = env.SESSION_SECRET;
+  return json({
+    github_client_id: typeof clientId === "string" && clientId.length > 0 ? clientId : null,
+    github_client_secret:
+      typeof secret === "string" && secret.length > 0
+        ? { present: true, length: secret.length, sha256_prefix: (await sha256Hex(secret)).slice(0, 8) }
+        : { present: false },
+    session_secret:
+      typeof sessionSecret === "string" && sessionSecret.length > 0
+        ? { present: true, length: sessionSecret.length }
+        : { present: false },
+  });
+}
+
 // --- router -----------------------------------------------------------------
 
 export async function handleRequest(
@@ -277,6 +307,16 @@ export async function handleRequest(
   if (url.pathname === "/auth/logout") {
     if (request.method !== "POST") return errorResponse(405, "method_not_allowed", "use POST");
     return handleLogout(request);
+  }
+
+  // TEMPORARY diagnostic (login-free): fingerprints the OAuth credentials the
+  // running worker actually reads, so a misconfigured Pages secret can be spotted
+  // without a deploy. Returns the full client_id (non-secret), and only the
+  // length + SHA-256 prefix of the client secret and the length of the session
+  // secret — never a raw secret, never an access token. REMOVE once diagnosed.
+  if (url.pathname === "/api/_debug/oauth") {
+    if (request.method !== "GET") return errorResponse(405, "method_not_allowed", "use GET");
+    return handleDebugOAuth(env);
   }
 
   if (url.pathname === "/api/me") {
