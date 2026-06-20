@@ -1,33 +1,39 @@
 /*
- * Relay section + config assembly (Workspace 2b-2a, Gate 6-C) — the
- * friction-killer. The primary flow is now one-click: a "Deploy to Cloudflare"
- * button stands the relay up in the dev's own account, Cloudflare prompts for the
- * provider key + relay token + upstream + origins, and the dev pastes the Worker
- * URL back. Status derives from config.relayUrl. The relay token is minted
- * client-side and lives only in ludion.config.v1 — never sent server-ward. The
- * proven CLI path is kept behind a disclosure. Paste-deploy writes relayUrl +
- * fallback.baseURL (=relay) to 2a config.
+ * Relay section + config assembly (Workspace 2b-2a, Gates 6-C / 6-C-2) — the
+ * friction-killer, stripped to the floor. The flow is one-click: a "Deploy to
+ * Cloudflare" button stands the relay up in the dev's own account, Cloudflare
+ * prompts for the provider key + relay token + upstream + origins, and the dev
+ * pastes the Worker URL back. Paste-back self-verifies (§2.1): the workspace
+ * probes the relay end to end and reports a precise status. The relay token is
+ * auto-minted client-side (§2.4) and lives only in ludion.config.v1 — never sent
+ * server-ward. The proven CLI path is kept behind a disclosure.
  */
 import { getModel } from "ludion-router/registry";
 import { card, copyBlock, el } from "./components";
 import type { ScreenContext } from "./models";
+import type { ProbeOutcome } from "./setup";
 import {
   DEPLOY_BUTTON_URL,
   IMPORT_LINE,
+  PLAYGROUND_ORIGIN,
+  TEMPLATE_DEFAULT_UPSTREAM,
   allowedOriginsSuggestion,
   assembleDropinConfig,
   deploySteps,
+  describeProbe,
   generateRelayToken,
+  isProbableWorkerUrl,
   relayBaseUrl,
   relayDeployed,
   relayProviderMismatch,
   toStoredPayload,
   upstreamGuidance,
+  upstreamMatchesDefault,
   wranglerVars,
 } from "./setup";
 
 export interface RelayContext extends ScreenContext {
-  /** The client-only relay token (held in ludion.config.v1), or null. */
+  /** The client-only relay token (held in ludion.config.v1). Auto-minted. */
   token: string | null;
   /** Persist a freshly generated token client-side (never sent server-ward). */
   setToken: (token: string) => void;
@@ -35,11 +41,31 @@ export interface RelayContext extends ScreenContext {
   relayProvider: string | null;
   /** Record the provider at relay-setup time (client-only, never server-ward). */
   setRelayProvider: (provider: string) => void;
+  /** The last auto-verify probe result (ephemeral shell state), or null. */
+  lastProbe: ProbeOutcome | null;
+  /** Run the §2.1 auto-verify probes against a deployed relay. */
+  probe: (relayUrl: string, token: string, probeModel: string) => Promise<ProbeOutcome>;
+  /** Stash the latest probe result so a re-render keeps the status line. */
+  setLastProbe: (outcome: ProbeOutcome | null) => void;
 }
 
 /** The provider of the currently selected fallback model, or null. */
 function currentProvider(ctx: RelayContext): string | null {
   return getModel(ctx.config?.fallback?.model ?? "")?.provider ?? null;
+}
+
+/** The upstream model id the probe should ask the relay to forward. */
+function probeModelId(ctx: RelayContext): string {
+  const m = getModel(ctx.config?.fallback?.model ?? "");
+  return m?.provider_model_id ?? m?.id ?? "";
+}
+
+/** Save the relay URL, record the provider, then self-verify end to end (§2.1). */
+async function saveAndProbe(ctx: RelayContext, url: string): Promise<void> {
+  await ctx.save(toStoredPayload(ctx.config, { relayUrl: url, baseURL: url }));
+  const provider = currentProvider(ctx);
+  if (provider !== null) ctx.setRelayProvider(provider);
+  ctx.setLastProbe(await ctx.probe(url, ctx.token ?? "", probeModelId(ctx)));
 }
 
 function pageHead(): HTMLElement {
@@ -69,6 +95,32 @@ function statusCard(ctx: RelayContext): HTMLElement {
   }
   c.append(row);
 
+  // §2.1 — the live connection status from the last auto-verify probe.
+  if (ctx.lastProbe) {
+    const msg = describeProbe(ctx.lastProbe);
+    c.append(el("p", `lx-form-status ${msg.ok ? "lx-form-ok" : "lx-form-error"}`, msg.text));
+  }
+
+  // §2.6 — re-run the full on-device→relay probe on demand once deployed.
+  if (deployed) {
+    const status = el("p", "lx-form-status");
+    const test = el("button", "lx-btn lx-btn-ghost", "Test fallback");
+    test.type = "button";
+    test.addEventListener("click", () => {
+      const url = relayBaseUrl(ctx.config);
+      if (!url) return;
+      status.textContent = "Testing the relay end to end…";
+      status.className = "lx-form-status";
+      test.disabled = true;
+      void (async () => {
+        ctx.setLastProbe(await ctx.probe(url, ctx.token ?? "", probeModelId(ctx)));
+        ctx.refresh();
+      })();
+    });
+    c.append(test);
+    c.append(status);
+  }
+
   // §4.2 — non-blocking warning when the fallback provider drifted from the one
   // the relay was set up for. The relay's UPSTREAM_BASE_URL is now stale.
   if (deployed && relayProviderMismatch(ctx.relayProvider, currentProvider(ctx))) {
@@ -96,11 +148,20 @@ function deployCard(ctx: RelayContext): HTMLElement {
     return c;
   }
 
+  // §2.5 — tight three-step guide, scannable before the controls.
+  c.append(el("p", "lx-form-label", "Three steps"));
+  const guide = el("ol", "lx-deploy-steps");
+  guide.append(el("li", "lx-deploy-step", "Deploy to Cloudflare (button below)."));
+  guide.append(el("li", "lx-deploy-step", "In Cloudflare, enter your provider key and paste the relay token."));
+  guide.append(el("li", "lx-deploy-step", "Paste the deployed Worker URL back here — it verifies itself."));
+  c.append(guide);
+
+  // §2.5 — reframe the detour as protection, plainly.
   c.append(
     el(
       "p",
       "lx-card-lead",
-      "Click Deploy to Cloudflare. The relay deploys into your own account, and Cloudflare prompts you for the values below. Your provider key goes into Cloudflare, never to Ludion.",
+      "Your provider key is stored in your own Cloudflare and never reaches Ludion's servers. The relay deploys into your account; Cloudflare prompts you for the values below.",
     ),
   );
 
@@ -110,32 +171,34 @@ function deployCard(ctx: RelayContext): HTMLElement {
   deploy.setAttribute("rel", "noopener noreferrer");
   c.append(deploy);
 
+  // §2.2 — no-account path, conservative copy (post-signup continuation is not
+  // doc-confirmed, so we do not promise the exact screen sequence).
+  c.append(
+    el(
+      "p",
+      "lx-note",
+      "No Cloudflare account? You can sign in or sign up with your GitHub account on the Cloudflare login page. Since the deploy already uses GitHub, you almost certainly have it.",
+    ),
+  );
+
+  // §2.4 — token is auto-generated by the shell; shown pre-filled, regenerate
+  // stays explicit (with the existing break-on-redeploy warning).
   c.append(el("p", "lx-form-label", "Relay token"));
-  if (ctx.token) {
-    c.append(copyBlock(ctx.token, { inline: true, label: "relay token" }));
-    c.append(
-      el(
-        "p",
-        "lx-note",
-        "Paste this as RELAY_TOKEN in the deploy prompt. It must match exactly, or the relay returns 401 and the fallback fails silently. It lives in your browser config only — never sent to Ludion.",
-      ),
-    );
-    const regen = el("button", "lx-btn lx-btn-ghost", "Regenerate token");
-    regen.type = "button";
-    regen.addEventListener("click", () => {
-      ctx.setToken(generateRelayToken());
-      ctx.refresh();
-    });
-    c.append(regen);
-  } else {
-    const gen = el("button", "lx-btn lx-btn-primary", "Generate token");
-    gen.type = "button";
-    gen.addEventListener("click", () => {
-      ctx.setToken(generateRelayToken());
-      ctx.refresh();
-    });
-    c.append(gen);
-  }
+  c.append(copyBlock(ctx.token ?? "", { inline: true, label: "relay token" }));
+  c.append(
+    el(
+      "p",
+      "lx-note",
+      "Paste this as RELAY_TOKEN in the deploy prompt. It must match exactly, or the relay returns 401 and the fallback fails silently. It lives in your browser config only — never sent to Ludion.",
+    ),
+  );
+  const regen = el("button", "lx-btn lx-btn-ghost", "Regenerate token");
+  regen.type = "button";
+  regen.addEventListener("click", () => {
+    ctx.setToken(generateRelayToken());
+    ctx.refresh();
+  });
+  c.append(regen);
 
   c.append(el("p", "lx-form-label", "What Cloudflare will ask for"));
   const ul = el("ul", "lx-note-list");
@@ -144,10 +207,18 @@ function deployCard(ctx: RelayContext): HTMLElement {
   );
   ul.append(el("li", undefined, "RELAY_TOKEN — paste the token above."));
 
+  // §2.3 — the template default upstream is OpenAI's. Only tell the dev to
+  // change UPSTREAM_BASE_URL when their provider differs from that default.
   const up = upstreamGuidance(model);
   const upLi = el("li");
-  if (up.url) {
-    upLi.append(document.createTextNode(`UPSTREAM_BASE_URL — for ${model.display_name} (${model.provider}): `));
+  if (upstreamMatchesDefault(model)) {
+    upLi.append(
+      document.createTextNode(
+        `UPSTREAM_BASE_URL — already correct for ${model.display_name} (${model.provider}); leave the default (${TEMPLATE_DEFAULT_UPSTREAM}).`,
+      ),
+    );
+  } else if (up.url) {
+    upLi.append(document.createTextNode(`UPSTREAM_BASE_URL — change it for ${model.display_name} (${model.provider}) to: `));
     upLi.append(copyBlock(up.url, { inline: true, label: "upstream base URL" }));
     if (up.note) upLi.append(el("span", "lx-deploy-note", up.note));
   } else {
@@ -155,8 +226,14 @@ function deployCard(ctx: RelayContext): HTMLElement {
   }
   ul.append(upLi);
 
+  // §2.3 — origin cannot be known by Ludion; the template defaults to the
+  // playground so first-test verifies, and the dev adds their app origin.
   const orLi = el("li");
-  orLi.append(document.createTextNode("ALLOWED_ORIGINS — your app's origin. To test from this playground too: "));
+  orLi.append(
+    document.createTextNode(
+      `ALLOWED_ORIGINS — defaults to the playground (${PLAYGROUND_ORIGIN}) so this verify works on first deploy. For production, set it to your app's origin: `,
+    ),
+  );
   orLi.append(copyBlock(allowedOriginsSuggestion(location.origin), { inline: true, label: "allowed origins" }));
   ul.append(orLi);
   c.append(ul);
@@ -167,7 +244,11 @@ function deployCard(ctx: RelayContext): HTMLElement {
 function pasteCard(ctx: RelayContext): HTMLElement {
   const c = card({ kicker: "Paste deploy", span: 12 });
   c.append(
-    el("p", "lx-card-lead", "After the deploy finishes, paste the Worker URL. The workspace points your config at it."),
+    el(
+      "p",
+      "lx-card-lead",
+      "After the deploy finishes, paste the Worker URL. The workspace points your config at it and verifies it end to end.",
+    ),
   );
   const form = el("div", "lx-form-row");
   const input = el("input", "lx-input");
@@ -175,25 +256,25 @@ function pasteCard(ctx: RelayContext): HTMLElement {
   input.placeholder = "https://ludion-fallback-relay.<account>.workers.dev";
   input.value = ctx.config?.relayUrl ?? "";
   input.setAttribute("aria-label", "Deployed Worker URL");
-  const btn = el("button", "lx-btn lx-btn-primary", "Save relay URL");
+  const btn = el("button", "lx-btn lx-btn-primary", "Save and verify");
   btn.type = "button";
   const status = el("p", "lx-form-status");
 
   const save = async (): Promise<void> => {
     const url = input.value.trim();
-    if (!/^https?:\/\//i.test(url)) {
-      status.textContent = "Enter an http(s) URL.";
+    // §2.1 — validate the URL shape before saving or probing.
+    if (!isProbableWorkerUrl(url)) {
+      ctx.setLastProbe({ kind: "invalid_url" });
+      status.textContent = "Enter the deployed Worker URL. It must start with https://.";
       status.className = "lx-form-status lx-form-error";
       return;
     }
-    status.textContent = "Saving…";
+    status.textContent = "Saving and verifying…";
     status.className = "lx-form-status";
     btn.disabled = true;
     try {
-      await ctx.save(toStoredPayload(ctx.config, { relayUrl: url, baseURL: url }));
-      // Record the provider this relay was set up for (§4.2), client-side only.
-      const provider = currentProvider(ctx);
-      if (provider !== null) ctx.setRelayProvider(provider);
+      await saveAndProbe(ctx, url);
+      // The probe result renders in statusCard after refresh.
       ctx.refresh();
     } catch (e) {
       status.textContent = `Could not save: ${e instanceof Error ? e.message : String(e)}`;

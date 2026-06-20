@@ -7,14 +7,18 @@
   "main": "src/index.ts",
   "compatibility_date": "2026-05-03",
 
-  // Set these during deploy. Both ship as placeholders so you must fill them in.
+  // Sensible defaults so the common case needs no editing. Change them in the
+  // deploy wizard only if they do not match your setup.
   "vars": {
     // Your provider's OpenAI-compatible base URL. The relay appends
-    // "/chat/completions". For OpenAI: https://api.openai.com/v1.
-    "UPSTREAM_BASE_URL": "https://your-provider.example/v1",
+    // "/chat/completions". Defaults to OpenAI; change it if your fallback
+    // model's provider differs (the workspace shows the right value).
+    "UPSTREAM_BASE_URL": "https://api.openai.com/v1",
     // Comma-separated browser origins allowed to call this relay. No trailing
-    // slash, never "*". This is defense-in-depth, not the auth boundary.
-    "ALLOWED_ORIGINS": "https://your-app.example"
+    // slash, never "*". Defaults to the Ludion playground so the workspace's
+    // paste-back verify works on first deploy. Add your own app origin for
+    // production. This is defense-in-depth, not the auth boundary.
+    "ALLOWED_ORIGINS": "https://ludion.ai"
   },
 
   // Native Workers rate limiting. No resource creation needed, so it stays a

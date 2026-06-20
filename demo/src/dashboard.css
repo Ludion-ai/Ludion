@@ -34,6 +34,8 @@
   /* The one brand hue: deep blood-red. Also the genuine-error hue. */
   --lx-brand: #c1121f;
   --lx-brand-ink: #ffffff;
+  /* Success hue, used only for the relay "connected" status line. */
+  --lx-ok: #3fb950;
 
   --lx-radius: 16px;
   --lx-radius-sm: 10px;
@@ -962,6 +964,10 @@ body {
 
 .lx-form-error {
   color: var(--lx-brand);
+}
+
+.lx-form-ok {
+  color: var(--lx-ok);
 }
 
 .lx-form-row {

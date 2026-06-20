@@ -20,10 +20,10 @@
         "description": "Paste the relay token shown in your Ludion workspace. It must match exactly, or the relay returns 401."
       },
       "UPSTREAM_BASE_URL": {
-        "description": "Your provider's OpenAI-compatible base URL. It must match your fallback model's provider."
+        "description": "Your provider's OpenAI-compatible base URL. Defaults to OpenAI; change it only if your fallback model's provider differs."
       },
       "ALLOWED_ORIGINS": {
-        "description": "Comma-separated origins allowed to call this relay. Use your app's domain."
+        "description": "Comma-separated origins allowed to call this relay. Defaults to the Ludion playground so paste-back verify works; add your app's domain for production."
       }
     }
   },

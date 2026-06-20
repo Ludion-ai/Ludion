@@ -17,10 +17,13 @@ you for four values:
   Cloudflare. It never reaches Ludion.
 - `RELAY_TOKEN` (secret) — paste the token shown in your Ludion workspace. It
   must match exactly, or the relay returns 401.
-- `UPSTREAM_BASE_URL` (var) — your provider's OpenAI-compatible base URL. The
-  workspace shows you the right value for your fallback model.
-- `ALLOWED_ORIGINS` (var) — your app's origin. Comma-separated, no trailing
-  slash, never `*`.
+- `UPSTREAM_BASE_URL` (var) — your provider's OpenAI-compatible base URL.
+  Defaults to OpenAI (`https://api.openai.com/v1`); change it only if your
+  fallback model's provider differs. The workspace shows the right value.
+- `ALLOWED_ORIGINS` (var) — origins allowed to call this relay. Comma-separated,
+  no trailing slash, never `*`. Defaults to the Ludion playground
+  (`https://ludion.ai`) so the workspace verify works on first deploy. Add your
+  own app origin for production.
 
 The template deploys with no code edits. After it is live, copy the Worker URL
 and paste it back into the workspace.

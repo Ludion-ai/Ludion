@@ -7,6 +7,7 @@
 import type { StoredConfig } from "ludion-workspace/schema";
 import { el, hexMark, icon } from "./components";
 import {
+  probeRelay,
   putConfig,
   readRelaySetupProvider,
   readRelayToken,
@@ -16,6 +17,7 @@ import {
   writeRelaySetupProvider,
   type Identity,
 } from "./data";
+import { generateRelayToken, type ProbeOutcome } from "./setup";
 import { renderOverview } from "./overview";
 import { renderModels } from "./models";
 import { renderRelay } from "./relay";
@@ -146,6 +148,9 @@ export function mountShell(opts: ShellOptions): void {
   let config = opts.config;
   let token = readRelayToken();
   let relayProvider = readRelaySetupProvider();
+  // Ephemeral: the last auto-verify probe result, so a re-render (which the save
+  // path triggers) keeps the inline "Relay connected" / error line visible.
+  let lastProbe: ProbeOutcome | null = null;
 
   // Persist a non-secret config and mirror the assembled client config (with the
   // client-only token) into localStorage. The token never enters this PUT.
@@ -164,6 +169,9 @@ export function mountShell(opts: ShellOptions): void {
     relayProvider = next;
     writeRelaySetupProvider(next);
   };
+  const setLastProbe = (next: ProbeOutcome | null): void => {
+    lastProbe = next;
+  };
 
   const render = (): void => {
     const id = currentSection();
@@ -176,8 +184,22 @@ export function mountShell(opts: ShellOptions): void {
     } else if (id === "models") {
       outlet.replaceChildren(renderModels({ config, save, refresh: render }));
     } else if (id === "relay") {
+      // §2.4 — auto-generate the relay token on first relay render so it is
+      // pre-filled with no discrete "Generate" click. Regenerate stays explicit.
+      if (token === null) setToken(generateRelayToken());
       outlet.replaceChildren(
-        renderRelay({ config, token, relayProvider, save, setToken, setRelayProvider, refresh: render }),
+        renderRelay({
+          config,
+          token,
+          relayProvider,
+          lastProbe,
+          save,
+          setToken,
+          setRelayProvider,
+          probe: probeRelay,
+          setLastProbe,
+          refresh: render,
+        }),
       );
     } else {
       const label = SECTIONS.find((s) => s.id === id)?.label ?? id;

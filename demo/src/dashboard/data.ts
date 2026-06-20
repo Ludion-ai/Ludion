@@ -10,7 +10,7 @@ import type { SavingsSummary } from "ludion-router/savings";
 import { createStorageConfigSource, writeDropinConfig } from "ludion-router";
 import type { StoredConfig } from "ludion-workspace/schema";
 import type { Snapshot } from "./shape";
-import { assembleDropinConfig } from "./setup";
+import { assembleDropinConfig, type ProbeOutcome } from "./setup";
 
 export interface Identity {
   login: string;
@@ -103,4 +103,62 @@ export function writeRelaySetupProvider(provider: string): void {
   } catch {
     /* storage unavailable — the mismatch warning simply will not show. */
   }
+}
+
+/**
+ * Verify a deployed relay end to end from the browser (§2.1). Two probes against
+ * the dev's own relay:
+ *  1. a no-token POST — expect 401, proving the token gate is live;
+ *  2. a token-authed POST with a 1-token completion — the cheapest call that
+ *     exercises token + upstream + provider key together.
+ * The provider key is never involved here; only the relay token (client-side
+ * already) is sent. A thrown fetch is classified as CORS (relay reachable but
+ * origin refused) vs unreachable using an opaque no-cors reachability check, so
+ * the caller can name the right fix. No provider spend beyond one minimal token.
+ */
+export async function probeRelay(
+  relayUrl: string,
+  token: string,
+  probeModel: string,
+): Promise<ProbeOutcome> {
+  const base = relayUrl.trim().replace(/\/+$/, "");
+  const endpoint = `${base}/chat/completions`;
+
+  const reachable = async (): Promise<boolean> => {
+    try {
+      // Opaque: resolves if the host responded at all, rejects only on a real
+      // network/DNS failure. Lets us tell CORS-refusal apart from unreachable.
+      await fetch(base, { mode: "no-cors" });
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  let noTokenStatus: number;
+  try {
+    const res = await fetch(endpoint, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: "{}",
+    });
+    noTokenStatus = res.status;
+  } catch {
+    return (await reachable()) ? { kind: "cors" } : { kind: "unreachable" };
+  }
+
+  let authRes: Response;
+  try {
+    authRes = await fetch(endpoint, {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
+      body: JSON.stringify({ model: probeModel, messages: [{ role: "user", content: "ping" }], max_tokens: 1 }),
+    });
+  } catch {
+    return (await reachable()) ? { kind: "cors" } : { kind: "unreachable" };
+  }
+
+  if (authRes.status === 401) return { kind: "token_mismatch" };
+  if (authRes.ok) return noTokenStatus === 401 ? { kind: "connected" } : { kind: "connected_open" };
+  return { kind: "upstream_error", status: authRes.status };
 }

@@ -23,8 +23,22 @@ export const IMPORT_LINE = "import OpenAI from 'https://esm.run/ludion-router/op
 /** The public relay template repo Lattice mirrors relay-template/ to. */
 export const RELAY_TEMPLATE_REPO = "https://github.com/Ludion-ai/ludion-relay-template";
 
-/** The verified "Deploy to Cloudflare" button target for the relay template. */
+/**
+ * The verified "Deploy to Cloudflare" button target for the relay template.
+ * The button URL takes only `url=<repo>`; it cannot pre-fill per-dev var values
+ * (confirmed against current docs, §0), so non-secret defaults live in the
+ * template's wrangler.jsonc and the workspace only tells the dev what to change.
+ */
 export const DEPLOY_BUTTON_URL = `https://deploy.workers.cloudflare.com/?url=${RELAY_TEMPLATE_REPO}`;
+
+/**
+ * The relay template's baked-in defaults. UPSTREAM_BASE_URL defaults to the most
+ * common verified provider so the common case needs no typing; ALLOWED_ORIGINS
+ * defaults to the playground so the §2.1 auto-verify probe works on first deploy.
+ * Both must stay in sync with relay-template/wrangler.jsonc.
+ */
+export const TEMPLATE_DEFAULT_UPSTREAM = "https://api.openai.com/v1";
+export const PLAYGROUND_ORIGIN = "https://ludion.ai";
 
 /**
  * Provider -> OpenAI-compatible upstream base URL for the Worker's
@@ -91,8 +105,79 @@ export function upstreamGuidance(model: ModelEntry | undefined): {
  * playground origin, so testing from this workspace also clears the origin check.
  */
 export function allowedOriginsSuggestion(appOrigin: string): string {
-  const ludion = "https://ludion.ai";
-  return appOrigin === ludion ? ludion : `${appOrigin},${ludion}`;
+  return appOrigin === PLAYGROUND_ORIGIN ? PLAYGROUND_ORIGIN : `${appOrigin},${PLAYGROUND_ORIGIN}`;
+}
+
+/** True when a fallback model's upstream matches the template default (no typing needed). */
+export function upstreamMatchesDefault(model: ModelEntry | undefined): boolean {
+  return upstreamFor(model)?.url === TEMPLATE_DEFAULT_UPSTREAM;
+}
+
+/** The deployed Worker URL the dev pastes back must be an https URL. */
+export function isProbableWorkerUrl(url: string): boolean {
+  return /^https:\/\/\S+$/i.test(url.trim());
+}
+
+/**
+ * The outcome of the paste-back auto-verify probes (§2.1). Network access lives
+ * in data.ts; this is the pure result type so the message mapping is testable.
+ *  - connected: token gate live AND the token-authed call resolved end-to-end.
+ *  - connected_open: end-to-end works but the no-token probe was not rejected
+ *    (RELAY_OPEN is likely set, leaving the key ungated).
+ *  - token_mismatch: the authed probe got 401 — stored token != deployed token.
+ *  - upstream_error: the relay reached the upstream and it returned non-2xx
+ *    (wrong UPSTREAM_BASE_URL or a bad provider key).
+ *  - cors: the relay was reachable but refused this origin.
+ *  - unreachable: the URL did not respond.
+ *  - invalid_url: the pasted value is not an https URL.
+ */
+export type ProbeOutcome =
+  | { kind: "connected" }
+  | { kind: "connected_open" }
+  | { kind: "token_mismatch" }
+  | { kind: "upstream_error"; status: number }
+  | { kind: "cors" }
+  | { kind: "unreachable" }
+  | { kind: "invalid_url" };
+
+export interface ProbeMessage {
+  ok: boolean;
+  text: string;
+}
+
+/** Map a probe outcome to an actionable status line (§2.1: name the cause + fix). */
+export function describeProbe(outcome: ProbeOutcome): ProbeMessage {
+  switch (outcome.kind) {
+    case "connected":
+      return { ok: true, text: "Relay connected. The token gate is live and the upstream resolved end to end." };
+    case "connected_open":
+      return {
+        ok: false,
+        text: "Relay reachable and the upstream resolved, but the no-token probe was not rejected. Your key is ungated — remove RELAY_OPEN from the relay and redeploy.",
+      };
+    case "token_mismatch":
+      return {
+        ok: false,
+        text: "Token mismatch. The relay returned 401: its RELAY_TOKEN does not match the token above. Re-enter the token in Cloudflare, or regenerate and redeploy.",
+      };
+    case "upstream_error":
+      return {
+        ok: false,
+        text: `Upstream returned ${outcome.status}. Check UPSTREAM_BASE_URL points at your provider's OpenAI-compatible endpoint and that PROVIDER_API_KEY is valid.`,
+      };
+    case "cors":
+      return {
+        ok: false,
+        text: `Reached the relay, but it refused this origin. Add ${PLAYGROUND_ORIGIN} to ALLOWED_ORIGINS in your relay and redeploy.`,
+      };
+    case "unreachable":
+      return {
+        ok: false,
+        text: "Could not reach that URL. Confirm it is the deployed Worker URL (https), then verify again.",
+      };
+    case "invalid_url":
+      return { ok: false, text: "Enter the deployed Worker URL. It must start with https://." };
+  }
 }
 
 /**

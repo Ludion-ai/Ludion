@@ -3,17 +3,22 @@ import { validateStoredConfig } from "ludion-workspace/schema";
 import type { StoredConfig } from "ludion-workspace/schema";
 import {
   DEPLOY_BUTTON_URL,
+  PLAYGROUND_ORIGIN,
   RELAY_TEMPLATE_REPO,
+  TEMPLATE_DEFAULT_UPSTREAM,
   allowedOriginsSuggestion,
   assembleDropinConfig,
+  describeProbe,
   fallbackModels,
   generateRelayToken,
+  isProbableWorkerUrl,
   relayBaseUrl,
   relayDeployed,
   relayProviderMismatch,
   toStoredPayload,
   upstreamFor,
   upstreamGuidance,
+  upstreamMatchesDefault,
   wranglerVars,
 } from "./setup";
 
@@ -144,5 +149,48 @@ describe("one-click deploy (Gate 6-C)", () => {
     expect(relayProviderMismatch("openai", "openai")).toBe(false);
     expect(relayProviderMismatch(null, "openai")).toBe(false);
     expect(relayProviderMismatch("openai", null)).toBe(false);
+  });
+});
+
+describe("strip onboarding to the floor (Gate 6-C-2)", () => {
+  it("upstreamMatchesDefault is true only for the template default provider", () => {
+    const openai = fallbackModels().selectable.find((m) => m.provider === "openai");
+    expect(TEMPLATE_DEFAULT_UPSTREAM).toBe("https://api.openai.com/v1");
+    expect(upstreamFor(openai)?.url).toBe(TEMPLATE_DEFAULT_UPSTREAM);
+    expect(upstreamMatchesDefault(openai)).toBe(true);
+    const anthropic = fallbackModels().selectable.find((m) => m.provider === "anthropic");
+    expect(upstreamMatchesDefault(anthropic)).toBe(false);
+    expect(upstreamMatchesDefault(undefined)).toBe(false);
+  });
+
+  it("the playground origin is the template's default ALLOWED_ORIGINS", () => {
+    expect(PLAYGROUND_ORIGIN).toBe("https://ludion.ai");
+  });
+
+  it("isProbableWorkerUrl accepts only https URLs, trimmed", () => {
+    expect(isProbableWorkerUrl("https://r.account.workers.dev")).toBe(true);
+    expect(isProbableWorkerUrl("  https://r.account.workers.dev  ")).toBe(true);
+    expect(isProbableWorkerUrl("http://r.account.workers.dev")).toBe(false);
+    expect(isProbableWorkerUrl("r.account.workers.dev")).toBe(false);
+    expect(isProbableWorkerUrl("")).toBe(false);
+    expect(isProbableWorkerUrl("https://")).toBe(false);
+  });
+
+  it("describeProbe names a cause + fix for every outcome class", () => {
+    expect(describeProbe({ kind: "connected" })).toEqual({
+      ok: true,
+      text: expect.stringContaining("connected"),
+    });
+    expect(describeProbe({ kind: "connected_open" }).ok).toBe(false);
+    expect(describeProbe({ kind: "connected_open" }).text).toMatch(/RELAY_OPEN/);
+    expect(describeProbe({ kind: "token_mismatch" }).ok).toBe(false);
+    expect(describeProbe({ kind: "token_mismatch" }).text).toMatch(/401|RELAY_TOKEN/);
+    const up = describeProbe({ kind: "upstream_error", status: 502 });
+    expect(up.ok).toBe(false);
+    expect(up.text).toMatch(/502/);
+    expect(up.text).toMatch(/UPSTREAM_BASE_URL/);
+    expect(describeProbe({ kind: "cors" }).text).toContain(PLAYGROUND_ORIGIN);
+    expect(describeProbe({ kind: "unreachable" }).ok).toBe(false);
+    expect(describeProbe({ kind: "invalid_url" }).text).toMatch(/https:\/\//);
   });
 });
