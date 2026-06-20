@@ -122,6 +122,58 @@ describe("auth: callback (mocked GitHub exchange)", () => {
     expect(res.status).toBe(400);
     expect(called).toBe(false);
   });
+
+  it("surfaces GitHub's error/error_description on an HTTP 200 with no token, without leaking the client secret", async () => {
+    const fetchImpl: FetchLike = async (url) => {
+      if (url.startsWith("https://github.test/login/oauth/access_token")) {
+        return new Response(
+          JSON.stringify({
+            error: "bad_verification_code",
+            error_description: "The code passed is incorrect or expired.",
+          }),
+          { status: 200, headers: { "content-type": "application/json" } },
+        );
+      }
+      return new Response("not found", { status: 404 });
+    };
+    const { env, deps } = baseEnv(new MemKV(), fetchImpl);
+    const res = await handleRequest(
+      req("/auth/callback?code=abc&state=fixed-state-123", {
+        headers: { Cookie: "ludion_oauth_state=fixed-state-123" },
+      }),
+      env,
+      deps,
+    );
+    expect(res.status).toBe(401);
+    const payload = (await res.json()) as { error: { code: string; message: string } };
+    expect(payload.error.code).toBe("oauth_no_token");
+    expect(payload.error.message).toContain("bad_verification_code");
+    expect(payload.error.message).toContain("The code passed is incorrect or expired.");
+    expect(payload.error.message).not.toContain("client-secret");
+  });
+
+  it("surfaces GitHub's body on a non-2xx token response, without leaking the client secret", async () => {
+    const fetchImpl: FetchLike = async (url) => {
+      if (url.startsWith("https://github.test/login/oauth/access_token")) {
+        return new Response("upstream boom", { status: 502 });
+      }
+      return new Response("not found", { status: 404 });
+    };
+    const { env, deps } = baseEnv(new MemKV(), fetchImpl);
+    const res = await handleRequest(
+      req("/auth/callback?code=abc&state=fixed-state-123", {
+        headers: { Cookie: "ludion_oauth_state=fixed-state-123" },
+      }),
+      env,
+      deps,
+    );
+    expect(res.status).toBe(401);
+    const payload = (await res.json()) as { error: { code: string; message: string } };
+    expect(payload.error.code).toBe("oauth_exchange_failed");
+    expect(payload.error.message).toContain("502");
+    expect(payload.error.message).toContain("upstream boom");
+    expect(payload.error.message).not.toContain("client-secret");
+  });
 });
 
 describe("auth: logout", () => {

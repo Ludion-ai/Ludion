@@ -134,11 +134,36 @@ async function handleCallback(
       redirect_uri: `${url.origin}/auth/callback`,
     }),
   });
-  if (!tokenRes.ok) return errorResponse(401, "oauth_exchange_failed", "GitHub token exchange failed");
-  const tokenBody = (await tokenRes.json()) as { access_token?: string };
+  if (!tokenRes.ok) {
+    // Surface GitHub's response body for diagnosis. A non-2xx token response
+    // never carries the access_token (that appears only in a 200 success body)
+    // and never echoes our client_secret, so this is safe to expose.
+    const body = (await tokenRes.text().catch(() => "")).trim();
+    return errorResponse(
+      401,
+      "oauth_exchange_failed",
+      `GitHub token exchange failed (HTTP ${tokenRes.status})${body ? `: ${body.slice(0, 300)}` : ""}`,
+    );
+  }
+  // GitHub returns HTTP 200 even for OAuth failures, putting {error,
+  // error_description} in the body in place of access_token. Surface just those
+  // two fields so the cause (e.g. bad_verification_code, redirect_uri_mismatch)
+  // is visible — never the access_token, never the client_secret.
+  const tokenBody = (await tokenRes.json().catch(() => ({}))) as {
+    access_token?: string;
+    error?: string;
+    error_description?: string;
+  };
   const accessToken = tokenBody.access_token;
   if (typeof accessToken !== "string" || accessToken.length === 0) {
-    return errorResponse(401, "oauth_no_token", "GitHub returned no access token");
+    const detail = [tokenBody.error, tokenBody.error_description]
+      .filter((s): s is string => typeof s === "string" && s.length > 0)
+      .join(" — ");
+    return errorResponse(
+      401,
+      "oauth_no_token",
+      `GitHub returned no access token${detail ? `: ${detail}` : ""}`,
+    );
   }
 
   const userRes = await deps.fetch(`${githubApiBase(env)}/user`, {
