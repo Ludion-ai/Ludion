@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <title>Ludion — watch your browser decide where AI runs</title>
+    <meta
+      name="description"
+      content="Per-request routing of AI inference: on-device WebGPU when the device can, server when it can't — decided by a measured, versioned policy."
+    />
+  </head>
+  <body>
+    <div id="app">
+      <header>
+        <div class="brand">
+          <!-- src set from assets/ludion-hex-mark.svg in main.ts (single source). -->
+          <img id="brand-mark" class="mark" alt="" width="28" height="28" />
+          <span class="wordmark">Ludion</span>
+          <span class="tagline">Watch your browser decide where AI runs.</span>
+        </div>
+        <nav>
+          <a href="./savings.html">savings</a>
+          <a href="https://github.com/Ludion-ai/Ludion" target="_blank" rel="noopener">GitHub</a>
+          <a href="https://www.npmjs.com/package/ludion-router" target="_blank" rel="noopener">npm</a>
+          <a
+            href="https://github.com/Ludion-ai/Ludion/blob/main/docs/report/2026-06-browser-inference-field-notes.md"
+            target="_blank"
+            rel="noopener"
+            >report</a
+          >
+          <button id="settings-toggle" type="button">settings</button>
+        </nav>
+      </header>
+
+      <section id="probe-card" aria-live="polite">
+        <div class="probe-main">
+          <span class="probe-kicker">YOUR DEVICE</span>
+          <p id="probe-summary">probing…</p>
+          <p id="probe-caps" class="mono"></p>
+          <p id="probe-verdict"></p>
+          <p id="probe-compare" class="probe-compare"></p>
+        </div>
+        <aside id="instrument" class="inst-idle" aria-hidden="true">
+          <svg viewBox="0 0 96 170">
+            <line class="waterline" x1="4" y1="85" x2="92" y2="85" />
+            <g id="capsule">
+              <g id="capsule-inner">
+                <rect class="capsule-body" x="36" y="61" width="24" height="48" rx="12" />
+                <circle class="capsule-bubble" cx="48" cy="73" r="5" />
+              </g>
+            </g>
+          </svg>
+          <span id="instrument-label" class="mono">idle</span>
+        </aside>
+      </section>
+
+      <main id="chat-card">
+        <div id="chat"></div>
+      </main>
+
+      <div id="chips"></div>
+
+      <form id="composer">
+        <textarea id="input" rows="2" placeholder="message…"></textarea>
+        <button id="send" type="submit">send</button>
+      </form>
+
+      <footer>
+        <div>
+          <p>Open this on your phone — same app, different verdict.</p>
+          <p class="foot-sub">
+            The policy and its evidence:
+            <a href="https://github.com/Ludion-ai/Ludion#the-routing-policy-and-its-evidence" target="_blank" rel="noopener"
+              >routing table</a
+            >
+            ·
+            <a
+              href="https://github.com/Ludion-ai/Ludion/blob/main/docs/report/2026-06-browser-inference-field-notes.md"
+              target="_blank"
+              rel="noopener"
+              >field notes</a
+            >
+            ·
+            <a href="https://github.com/Ludion-ai/Ludion/blob/main/LICENSE" target="_blank" rel="noopener">MIT</a>
+          </p>
+        </div>
+        <img id="qr" src="/qr.svg" alt="QR code for this demo" width="92" height="92" />
+      </footer>
+    </div>
+
+    <dialog id="settings">
+      <h2>Server fallback</h2>
+      <p class="note">
+        Requests the policy routes to <code>server</code> run on your own
+        OpenAI-compatible endpoint. Nothing ships with this demo, no shared key,
+        ever. The key is stored only in this browser (localStorage on this
+        origin) and is sent only to the endpoint you set here. localStorage is
+        readable by any script on this origin, so treat this as a developer
+        convenience, not end-user secret storage. The endpoint must allow
+        browser CORS from this origin (direct browser call, no proxy). Saving
+        takes effect on your next message, no reload.
+      </p>
+      <label>
+        API base URL
+        <input id="cfg-url" type="url" placeholder="https://api.example.com/v1" />
+      </label>
+      <label>
+        API key (optional)
+        <input id="cfg-key" type="password" autocomplete="off" />
+      </label>
+      <label>
+        model
+        <input id="cfg-model" type="text" list="cfg-model-list" placeholder="gpt-4o-mini" autocomplete="off" />
+        <datalist id="cfg-model-list"></datalist>
+      </label>
+      <p id="cfg-model-note" class="note cfg-model-note" aria-live="polite"></p>
+      <div class="dialog-actions">
+        <button id="cfg-save" type="button">save</button>
+        <button id="cfg-close" type="button">close</button>
+      </div>
+    </dialog>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

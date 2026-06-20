@@ -1,0 +1,4 @@
+# The workspace moved off the root to /app (the root is now the public landing).
+# Keep old workspace links working.
+/dashboard      /app   301
+/dashboard.html /app   301

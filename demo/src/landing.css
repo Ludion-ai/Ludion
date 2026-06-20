@@ -1,0 +1,354 @@
+/*
+ * Public landing layout (spec §4). Tokens, the card material, the buttons, and
+ * the copy blocks all come from dashboard.css — this file adds only the public
+ * page's composition on top, so the landing and the workspace read as one
+ * product. Same color law: true black, monochrome, brand red only on the
+ * wordmark, hex mark, primary CTA, active states, and errors.
+ */
+
+.ld-nav {
+  gap: 0;
+  justify-content: space-between;
+}
+
+.ld-brand {
+  text-decoration: none;
+  color: var(--lx-text);
+}
+
+.ld-nav-right {
+  gap: 18px;
+}
+
+.ld-nav-link {
+  color: var(--lx-text-2);
+  text-decoration: none;
+  font-size: 14px;
+}
+
+.ld-nav-link:hover {
+  color: var(--lx-text);
+}
+
+.ld-nav-icon {
+  display: inline-flex;
+  align-items: center;
+  color: var(--lx-text-2);
+}
+
+.ld-nav-icon:hover {
+  color: var(--lx-text);
+}
+
+.ld-main {
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 0 20px 96px;
+}
+
+.ld-section {
+  padding: 64px 0 8px;
+}
+
+/* --- hero ------------------------------------------------------------------ */
+
+.ld-hero {
+  padding-top: 88px;
+}
+
+.ld-h1 {
+  font-size: 40px;
+  line-height: 1.12;
+  letter-spacing: -0.02em;
+  font-weight: 700;
+  margin: 0;
+  max-width: 16ch;
+}
+
+.ld-sub {
+  font-size: 17px;
+  color: var(--lx-text-2);
+  max-width: 60ch;
+  margin: 20px 0 0;
+}
+
+.ld-import {
+  margin: 32px 0 24px;
+}
+
+/* The import line is the focal point: give it presence above the rest. */
+.ld-import .lx-copy {
+  border-color: var(--lx-border-2);
+  background: var(--lx-card-grad);
+}
+
+.ld-import .lx-copy-text {
+  font-size: 15px;
+}
+
+.ld-cta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+/* --- shared section type --------------------------------------------------- */
+
+.ld-h2 {
+  font-size: 24px;
+  letter-spacing: -0.01em;
+  font-weight: 700;
+  margin: 0 0 6px;
+}
+
+.ld-lead {
+  color: var(--lx-text-2);
+  margin: 0 0 18px;
+  max-width: 64ch;
+}
+
+.ld-note {
+  color: var(--lx-text-3);
+  font-size: 13px;
+  margin: 14px 0 0;
+}
+
+.ld-inline-link {
+  color: var(--lx-text);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* --- live demo ------------------------------------------------------------- */
+
+.ld-demo {
+  margin-top: 40px;
+}
+
+.ld-run {
+  margin-top: 6px;
+}
+
+.ld-stage {
+  margin-top: 18px;
+}
+
+.ld-stage:empty {
+  margin-top: 0;
+}
+
+.ld-demo-status {
+  color: var(--lx-text-3);
+}
+
+.ld-transcript {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.ld-msg {
+  display: grid;
+  grid-template-columns: 64px 1fr;
+  gap: 12px;
+  align-items: start;
+}
+
+.ld-msg-role {
+  font-family: var(--lx-mono);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: var(--lx-text-3);
+  padding-top: 2px;
+}
+
+.ld-msg-body {
+  white-space: pre-wrap;
+  color: var(--lx-text);
+}
+
+.ld-fact {
+  color: var(--lx-text-2);
+  font-size: 13px;
+  margin: 4px 0 0;
+  padding-left: 76px;
+}
+
+.ld-progress {
+  margin-top: 14px;
+}
+
+.ld-progress:empty {
+  margin-top: 0;
+}
+
+.ld-progress-text {
+  color: var(--lx-text-3);
+  font-size: 12px;
+  margin: 0 0 6px;
+}
+
+.ld-bar {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--lx-surface-2);
+  overflow: hidden;
+}
+
+.ld-bar-fill {
+  height: 100%;
+  background: var(--lx-text-3);
+  transition: width 0.2s ease;
+}
+
+.ld-ledger {
+  color: var(--lx-text-2);
+  font-size: 13px;
+  margin: 16px 0 0;
+}
+
+.ld-ledger:empty {
+  margin: 0;
+}
+
+.ld-composer {
+  display: flex;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.ld-input {
+  flex: 1 1 auto;
+  height: 38px;
+  padding: 0 14px;
+  background: var(--lx-surface);
+  border: 1px solid var(--lx-border);
+  border-radius: var(--lx-radius-sm);
+  color: var(--lx-text);
+  font-family: var(--lx-sans);
+  font-size: 15px;
+}
+
+.ld-input::placeholder {
+  color: var(--lx-text-3);
+}
+
+/* --- how it works ---------------------------------------------------------- */
+
+.ld-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.ld-step {
+  display: grid;
+  grid-template-columns: 32px 1fr;
+  gap: 14px;
+  align-items: start;
+}
+
+.ld-step-n {
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--lx-border-2);
+  border-radius: var(--lx-radius-sm);
+  color: var(--lx-text-2);
+  font-size: 14px;
+}
+
+.ld-step-text {
+  margin: 4px 0 8px;
+  color: var(--lx-text);
+}
+
+.ld-inline-code {
+  display: inline-block;
+  font-size: 13px;
+  color: var(--lx-text-2);
+  background: var(--lx-surface);
+  border: 1px solid var(--lx-border);
+  border-radius: var(--lx-radius-sm);
+  padding: 4px 8px;
+}
+
+.ld-step-body {
+  padding-top: 4px;
+  color: var(--lx-text);
+}
+
+/* --- savings / quickstart cards -------------------------------------------- */
+
+.ld-savings,
+.ld-quickstart {
+  margin-top: 40px;
+}
+
+.ld-quickstart .lx-copy {
+  margin-top: 14px;
+}
+
+/* --- footer ---------------------------------------------------------------- */
+
+.ld-footer {
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 32px 20px 64px;
+  border-top: 1px solid var(--lx-border);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ld-foot-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ld-foot-tag {
+  color: var(--lx-text-3);
+  font-size: 13px;
+  margin: 0;
+}
+
+.ld-foot-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+  margin-top: 4px;
+}
+
+/* --- responsive ------------------------------------------------------------ */
+
+@media (max-width: 640px) {
+  .ld-h1 {
+    font-size: 30px;
+    max-width: none;
+  }
+  .ld-sub {
+    font-size: 16px;
+  }
+  .ld-hero {
+    padding-top: 56px;
+  }
+  .ld-section {
+    padding-top: 48px;
+  }
+  .ld-msg {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+  .ld-fact {
+    padding-left: 0;
+  }
+  .ld-nav-right {
+    gap: 12px;
+  }
+}

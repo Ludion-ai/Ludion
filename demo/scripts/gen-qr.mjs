@@ -6,7 +6,8 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import QRCode from "qrcode";
 
-const DEMO_URL = "https://ludion-demo.pages.dev/";
+// The playground now lives at /demo (the root is the public landing).
+const DEMO_URL = "https://ludion-demo.pages.dev/demo";
 
 const outDir = join(dirname(fileURLToPath(import.meta.url)), "..", "public");
 mkdirSync(outDir, { recursive: true });
