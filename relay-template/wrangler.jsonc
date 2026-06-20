@@ -1,0 +1,32 @@
+{
+  // Ludion fallback relay — one-click deploy template.
+  // Deploy with the button in the README, or `wrangler deploy` from the CLI.
+  // The two secrets (PROVIDER_API_KEY, RELAY_TOKEN) are declared in
+  // .dev.vars.example, so the dashboard deploy flow prompts you for them.
+  "name": "ludion-fallback-relay",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-05-03",
+
+  // Set these during deploy. Both ship as placeholders so you must fill them in.
+  "vars": {
+    // Your provider's OpenAI-compatible base URL. The relay appends
+    // "/chat/completions". For OpenAI: https://api.openai.com/v1.
+    "UPSTREAM_BASE_URL": "https://your-provider.example/v1",
+    // Comma-separated browser origins allowed to call this relay. No trailing
+    // slash, never "*". This is defense-in-depth, not the auth boundary.
+    "ALLOWED_ORIGINS": "https://your-app.example"
+  },
+
+  // Native Workers rate limiting. No resource creation needed, so it stays a
+  // one-click deploy. The relay counts per client IP and returns 429 over the
+  // cap, so a leaked token cannot drain your provider budget. period accepts
+  // only 10 or 60 seconds; adjust limit to taste, or remove this block to
+  // disable.
+  "ratelimits": [
+    {
+      "name": "RATE_LIMITER",
+      "namespace_id": "1001",
+      "simple": { "limit": 60, "period": 60 }
+    }
+  ]
+}

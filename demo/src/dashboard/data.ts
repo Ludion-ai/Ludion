@@ -80,3 +80,27 @@ export function readRelayToken(): string | null {
 export function syncDropinConfig(config: StoredConfig | null, token: string | null): void {
   writeDropinConfig(assembleDropinConfig(config, token));
 }
+
+const RELAY_PROVIDER_KEY = "ludion.relay.provider";
+
+/**
+ * The provider the relay was last set up for (§4.2). Client-only: it tracks the
+ * deployed relay's upstream so a later fallback-provider switch can warn. It is
+ * never a server field and never sent server-ward.
+ */
+export function readRelaySetupProvider(): string | null {
+  try {
+    const v = localStorage.getItem(RELAY_PROVIDER_KEY);
+    return v !== null && v.length > 0 ? v : null;
+  } catch {
+    return null;
+  }
+}
+
+export function writeRelaySetupProvider(provider: string): void {
+  try {
+    localStorage.setItem(RELAY_PROVIDER_KEY, provider);
+  } catch {
+    /* storage unavailable — the mismatch warning simply will not show. */
+  }
+}

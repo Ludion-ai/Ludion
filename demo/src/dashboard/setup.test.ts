@@ -2,13 +2,18 @@ import { describe, expect, it } from "vitest";
 import { validateStoredConfig } from "ludion-workspace/schema";
 import type { StoredConfig } from "ludion-workspace/schema";
 import {
+  DEPLOY_BUTTON_URL,
+  RELAY_TEMPLATE_REPO,
+  allowedOriginsSuggestion,
   assembleDropinConfig,
   fallbackModels,
   generateRelayToken,
   relayBaseUrl,
   relayDeployed,
+  relayProviderMismatch,
   toStoredPayload,
   upstreamFor,
+  upstreamGuidance,
   wranglerVars,
 } from "./setup";
 
@@ -103,5 +108,41 @@ describe("wranglerVars + generateRelayToken", () => {
     const t = generateRelayToken();
     expect(t).toMatch(/^[0-9a-f]{64}$/);
     expect(generateRelayToken()).not.toBe(t);
+  });
+});
+
+describe("one-click deploy (Gate 6-C)", () => {
+  it("builds the verified Deploy to Cloudflare button URL from the template repo", () => {
+    expect(DEPLOY_BUTTON_URL).toBe(`https://deploy.workers.cloudflare.com/?url=${RELAY_TEMPLATE_REPO}`);
+    expect(RELAY_TEMPLATE_REPO).toBe("https://github.com/Ludion-ai/ludion-relay-template");
+  });
+
+  it("upstreamGuidance gives a verified URL for openai and a confirm note for anthropic", () => {
+    const openai = fallbackModels().selectable.find((m) => m.provider === "openai");
+    expect(upstreamGuidance(openai)).toEqual({ url: "https://api.openai.com/v1", verified: true, note: "" });
+    const anthropic = fallbackModels().selectable.find((m) => m.provider === "anthropic");
+    const g = upstreamGuidance(anthropic);
+    expect(g.url).toBe("https://api.anthropic.com/v1");
+    expect(g.verified).toBe(false);
+    expect(g.note.length).toBeGreaterThan(0);
+  });
+
+  it("upstreamGuidance never guesses for an unknown model — no URL, generic note", () => {
+    const g = upstreamGuidance(undefined);
+    expect(g.url).toBeNull();
+    expect(g.note).toMatch(/OpenAI-compatible base URL/);
+    expect(upstreamFor(undefined)).toBeNull();
+  });
+
+  it("allowedOriginsSuggestion appends the playground origin, without duplicating it", () => {
+    expect(allowedOriginsSuggestion("https://app.example")).toBe("https://app.example,https://ludion.ai");
+    expect(allowedOriginsSuggestion("https://ludion.ai")).toBe("https://ludion.ai");
+  });
+
+  it("relayProviderMismatch flags only a real drift between known providers", () => {
+    expect(relayProviderMismatch("openai", "anthropic")).toBe(true);
+    expect(relayProviderMismatch("openai", "openai")).toBe(false);
+    expect(relayProviderMismatch(null, "openai")).toBe(false);
+    expect(relayProviderMismatch("openai", null)).toBe(false);
   });
 });

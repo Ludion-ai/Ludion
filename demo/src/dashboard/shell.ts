@@ -6,7 +6,16 @@
  */
 import type { StoredConfig } from "ludion-workspace/schema";
 import { el, hexMark, icon } from "./components";
-import { putConfig, readRelayToken, readSnapshot, readSummary, syncDropinConfig, type Identity } from "./data";
+import {
+  putConfig,
+  readRelaySetupProvider,
+  readRelayToken,
+  readSnapshot,
+  readSummary,
+  syncDropinConfig,
+  writeRelaySetupProvider,
+  type Identity,
+} from "./data";
 import { renderOverview } from "./overview";
 import { renderModels } from "./models";
 import { renderRelay } from "./relay";
@@ -136,6 +145,7 @@ export function mountShell(opts: ShellOptions): void {
   // write; the relay token is client-only (held in ludion.config.v1).
   let config = opts.config;
   let token = readRelayToken();
+  let relayProvider = readRelaySetupProvider();
 
   // Persist a non-secret config and mirror the assembled client config (with the
   // client-only token) into localStorage. The token never enters this PUT.
@@ -147,6 +157,12 @@ export function mountShell(opts: ShellOptions): void {
   const setToken = (next: string): void => {
     token = next;
     syncDropinConfig(config, token);
+  };
+  // Client-only: record the provider the relay was set up for so a later
+  // fallback switch can warn (§4.2). Never enters the server PUT.
+  const setRelayProvider = (next: string): void => {
+    relayProvider = next;
+    writeRelaySetupProvider(next);
   };
 
   const render = (): void => {
@@ -160,7 +176,9 @@ export function mountShell(opts: ShellOptions): void {
     } else if (id === "models") {
       outlet.replaceChildren(renderModels({ config, save, refresh: render }));
     } else if (id === "relay") {
-      outlet.replaceChildren(renderRelay({ config, token, save, setToken, refresh: render }));
+      outlet.replaceChildren(
+        renderRelay({ config, token, relayProvider, save, setToken, setRelayProvider, refresh: render }),
+      );
     } else {
       const label = SECTIONS.find((s) => s.id === id)?.label ?? id;
       outlet.replaceChildren(renderStub(id, label));

@@ -1065,6 +1065,28 @@ body {
   color: var(--lx-text-3);
 }
 
+/* collapsible CLI fallback */
+.lx-details {
+  border: 1px solid var(--lx-border);
+  border-radius: 8px;
+  padding: 12px 14px;
+}
+
+.lx-summary {
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--lx-text-2);
+  user-select: none;
+}
+
+.lx-summary:hover {
+  color: var(--lx-text);
+}
+
+.lx-details[open] .lx-summary {
+  margin-bottom: 12px;
+}
+
 /* --- responsive ---------------------------------------------------------- */
 
 @media (max-width: 920px) {

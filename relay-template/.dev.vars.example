@@ -1,0 +1,12 @@
+# Secrets for the relay. Cloudflare prompts for these during the deploy flow,
+# and stores them as encrypted Worker secrets. For local dev, copy this file to
+# .dev.vars (gitignored) and fill in real values.
+
+# Your provider API key. The relay injects it as the upstream Authorization
+# header. It stays server-side and never reaches the browser or Ludion.
+PROVIDER_API_KEY=
+
+# The relay token. Paste the exact value shown in your Ludion workspace. The
+# browser must send Authorization: Bearer <RELAY_TOKEN>. It is a low-value,
+# rotatable gate token, not your provider key.
+RELAY_TOKEN=

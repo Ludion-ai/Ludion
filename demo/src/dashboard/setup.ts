@@ -20,6 +20,12 @@ import type { StoredConfig } from "ludion-workspace/schema";
 /** The one import-line swap that routes existing OpenAI code through Ludion. */
 export const IMPORT_LINE = "import OpenAI from 'https://esm.run/ludion-router/openai'";
 
+/** The public relay template repo Lattice mirrors relay-template/ to. */
+export const RELAY_TEMPLATE_REPO = "https://github.com/Ludion-ai/ludion-relay-template";
+
+/** The verified "Deploy to Cloudflare" button target for the relay template. */
+export const DEPLOY_BUTTON_URL = `https://deploy.workers.cloudflare.com/?url=${RELAY_TEMPLATE_REPO}`;
+
 /**
  * Provider -> OpenAI-compatible upstream base URL for the Worker's
  * UPSTREAM_BASE_URL. OpenAI's is the verified default (matches the router's
@@ -54,6 +60,47 @@ export function fallbackModels(): FallbackModels {
 export function upstreamFor(model: ModelEntry | undefined): { url: string; verified: boolean } | null {
   if (!model) return null;
   return PROVIDER_UPSTREAM[model.provider] ?? null;
+}
+
+/**
+ * UPSTREAM_BASE_URL guidance for a fallback model (§3.3). A mapped provider
+ * yields its OpenAI-compatible base URL; an unmapped one yields no URL and a
+ * generic instruction — never a guessed value.
+ */
+export function upstreamGuidance(model: ModelEntry | undefined): {
+  url: string | null;
+  verified: boolean;
+  note: string;
+} {
+  const u = upstreamFor(model);
+  if (!u) {
+    return { url: null, verified: false, note: "Set this to your provider's OpenAI-compatible base URL." };
+  }
+  if (!u.verified) {
+    return {
+      url: u.url,
+      verified: false,
+      note: "Confirm this points at the provider's OpenAI-compatible endpoint, not its native API.",
+    };
+  }
+  return { url: u.url, verified: true, note: "" };
+}
+
+/**
+ * Suggested ALLOWED_ORIGINS (§3.4): the dev's own app origin plus the Ludion
+ * playground origin, so testing from this workspace also clears the origin check.
+ */
+export function allowedOriginsSuggestion(appOrigin: string): string {
+  const ludion = "https://ludion.ai";
+  return appOrigin === ludion ? ludion : `${appOrigin},${ludion}`;
+}
+
+/**
+ * True when the relay was set up for a different provider than the current
+ * fallback (§4.2). Both sides must be known to flag a mismatch.
+ */
+export function relayProviderMismatch(setupProvider: string | null, currentProvider: string | null): boolean {
+  return setupProvider !== null && currentProvider !== null && setupProvider !== currentProvider;
 }
 
 /** True once a relay URL is recorded — drives the Relay status + assembly. */
