@@ -92,6 +92,8 @@ describe("auth: callback (mocked GitHub exchange)", () => {
       deps,
     );
     expect(res.status).toBe(302);
+    // Post-login lands on the workspace at /app, not the public landing at /.
+    expect(res.headers.get("Location")).toBe("https://app.test/app");
     const cookies = res.headers.getSetCookie();
     const session = cookies.find((c) => c.startsWith(`${SESSION_COOKIE}=`));
     expect(session).toBeDefined();

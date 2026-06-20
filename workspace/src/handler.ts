@@ -163,7 +163,9 @@ async function handleCallback(
   };
   const token = await signSession(session, env.SESSION_SECRET);
 
-  const headers = new Headers({ Location: `${url.origin}/` });
+  // Land the freshly signed-in user on the workspace (/app), not the public
+  // landing at the root. Logout still returns to / (handleLogout).
+  const headers = new Headers({ Location: `${url.origin}/app` });
   headers.append(
     "Set-Cookie",
     serializeCookie(SESSION_COOKIE, token, { maxAgeSeconds: Math.floor(SESSION_TTL_MS / 1000) }),
