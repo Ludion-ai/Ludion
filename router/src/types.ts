@@ -36,6 +36,10 @@ export interface FallbackConfig {
  * to the full record. `onDecision` fires exactly once, at terminal state.
  */
 export interface DecisionLog {
+  /** Schema version of the derived DecisionEvent (telemetry.ts). */
+  schema_version: string;
+  /** Unique per-decision id (uuid). Random — NEVER derived from prompt content. */
+  decision_id: string;
   policy_version: string;
   rule_id: string;
   /** "unroutable" = privacy:true with no local path (LudionPrivacyUnroutable thrown). */
@@ -48,6 +52,20 @@ export interface DecisionLog {
   max_tokens: number;
   /** Local KV context window in effect (B-4; default 4096). */
   local_context_window: number;
+  /**
+   * On-device engine state for this request:
+   *   "cold"    = the WebLLM engine was (re)created this request,
+   *   "warm"    = an already-loaded engine was reused,
+   *   "unknown" = no on-device load was attempted (server route, or failed
+   *               before the load reported a state).
+   */
+  cache_state: "cold" | "warm" | "unknown";
+  /**
+   * Wall time (ms) of a COLD on-device model load; null when warm or when no
+   * load happened. A total only — WebLLM 0.2.84 does not expose a clean
+   * download/compile split or a byte count, so those are deliberately omitted.
+   */
+  load_total_ms: number | null;
   strike_state: Record<ModelId, number>;
   probe: RouterProbe;
   decided_at: string;

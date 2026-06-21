@@ -19,8 +19,13 @@ import type { GenRequest } from "./types";
  * Cancellation ([VERIFY-2]): WebLLM 0.2.84 has no AbortSignal on chat
  * completions; `engine.interruptGenerate()` is the interruption mechanism.
  */
+/** Whether `ensureLoaded` reused a warm engine or had to (re)create a cold one. */
+export interface LoadOutcome {
+  cacheState: "cold" | "warm";
+}
+
 export interface LocalExecutor {
-  ensureLoaded(modelId: string, contextWindow: number): Promise<void>;
+  ensureLoaded(modelId: string, contextWindow: number): Promise<LoadOutcome>;
   stream(req: GenRequest): Promise<AsyncIterable<ChatCompletionChunk>>;
   complete(req: GenRequest): Promise<ChatCompletion>;
   interrupt(): Promise<void>;
@@ -33,8 +38,8 @@ export function createWebLLMExecutor(
   let loadedModelId: string | null = null;
 
   return {
-    async ensureLoaded(modelId: string, contextWindow: number): Promise<void> {
-      if (engine && loadedModelId === modelId) return;
+    async ensureLoaded(modelId: string, contextWindow: number): Promise<LoadOutcome> {
+      if (engine && loadedModelId === modelId) return { cacheState: "warm" };
       if (typeof navigator === "undefined" || !("gpu" in navigator) || !navigator.gpu) {
         throw new Error("WebGPU not available (navigator.gpu missing); WebLLM has no fallback");
       }
@@ -56,6 +61,7 @@ export function createWebLLMExecutor(
         { context_window_size: contextWindow },
       );
       loadedModelId = modelId;
+      return { cacheState: "cold" };
     },
 
     async stream(req: GenRequest): Promise<AsyncIterable<ChatCompletionChunk>> {

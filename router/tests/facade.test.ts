@@ -107,6 +107,7 @@ function mockLocal(spy: LocalSpy, mode: LocalMode = { kind: "ok" }): LocalExecut
     async ensureLoaded() {
       spy.loadCalls++;
       if (mode.kind === "fail-load") throw mode.error;
+      return { cacheState: "cold" as const };
     },
     // eslint-disable-next-line @typescript-eslint/require-await
     async stream() {

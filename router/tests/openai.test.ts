@@ -62,7 +62,10 @@ function chunkOf(content: string, model: string): ChatCompletionChunk {
 }
 
 const mockLocal: LocalExecutor = {
-  async ensureLoaded() {},
+  // eslint-disable-next-line @typescript-eslint/require-await
+  async ensureLoaded() {
+    return { cacheState: "cold" as const };
+  },
   // eslint-disable-next-line @typescript-eslint/require-await
   async stream() {
     return (async function* () {

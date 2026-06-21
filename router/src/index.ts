@@ -18,6 +18,7 @@ import { estimatePromptTokens } from "./tokens";
 import type { DecisionLog, FallbackConfig, LudionChatRequest, LudionOptions, GenRequest } from "./types";
 import { DEFAULT_LOCAL_CONTEXT_WINDOW, DEFAULT_LOCAL_MODEL, POLICY_V0 } from "./defaults";
 import { resolveEffectiveFallback } from "./config";
+import { DECISION_SCHEMA_VERSION, emitDecision, newDecisionId } from "./telemetry";
 
 // Public API surface (Gate 2 decisions Q3 — frozen at publish):
 // the Ludion facade, the typed errors, and the types those signatures
@@ -169,6 +170,8 @@ export class Ludion {
     const fb = this.resolveFallback();
 
     const log: DecisionLog = {
+      schema_version: DECISION_SCHEMA_VERSION,
+      decision_id: newDecisionId(),
       policy_version: this.policy.policy_version,
       rule_id: decision.rule_id,
       target: decision.kind === "route" ? decision.target : "unroutable",
@@ -181,6 +184,8 @@ export class Ludion {
       est_prompt_tokens: facts.est_prompt_tokens,
       max_tokens: facts.max_tokens ?? this.policy.default_max_tokens,
       local_context_window: this.localContextWindow,
+      cache_state: "unknown",
+      load_total_ms: null,
       strike_state: this.strikes.snapshot(),
       probe: this.probe,
       decided_at: new Date(this.now()).toISOString(),
@@ -205,6 +210,9 @@ export class Ludion {
         } catch {
           // consumer callback errors must not break the request
         }
+        // Module-level sink (local ledger + opt-in central). Inference-path
+        // safe: a single synchronous buffer push, drained on a microtask.
+        emitDecision(log);
       };
     })();
 
@@ -243,11 +251,18 @@ export class Ludion {
     if (!isContextOverflowError(e)) this.strikes.addStrike(this.localModel, STRIKE_CAUGHT);
   }
 
-  /** Load under a "load"-stage tombstone (tab kill during download/init → kill strike on next boot). */
-  private async ensureLocalLoaded(): Promise<void> {
+  /**
+   * Load under a "load"-stage tombstone (tab kill during download/init → kill
+   * strike on next boot). Records the on-device cache state and, for a cold
+   * load, the total load wall time onto the decision log.
+   */
+  private async ensureLocalLoaded(log: DecisionLog): Promise<void> {
     this.strikes.writeTombstone(this.localModel, "load");
+    const startedAt = this.now();
     try {
-      await this.local.ensureLoaded(this.localModel, this.localContextWindow);
+      const { cacheState } = await this.local.ensureLoaded(this.localModel, this.localContextWindow);
+      log.cache_state = cacheState;
+      log.load_total_ms = cacheState === "cold" ? this.now() - startedAt : null;
     } finally {
       // Reached on resolve OR caught throw; a tab kill never reaches it.
       this.strikes.clearTombstone();
@@ -266,7 +281,7 @@ export class Ludion {
   ): Promise<LudionCompletionResponse> {
     if (target === "local") {
       try {
-        await this.ensureLocalLoaded();
+        await this.ensureLocalLoaded(log);
         this.strikes.writeTombstone(this.localModel, "generate");
         try {
           const completion = await this.local.complete(genReq);
@@ -372,7 +387,7 @@ export class Ludion {
           if (target === "local") {
             let localSource: AsyncIterable<ChatCompletionChunk> | null = null;
             try {
-              await self.ensureLocalLoaded();
+              await self.ensureLocalLoaded(log);
               genStart = self.now(); // D-3: ttft measured from generation start, excluding model load
               self.strikes.writeTombstone(self.localModel, "generate");
               localInFlight = true;

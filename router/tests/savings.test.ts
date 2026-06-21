@@ -22,6 +22,8 @@ function memKV(): KV {
 /** Minimal valid-enough DecisionLog for the ledger (it reads counts/meta only). */
 function log(over: Partial<DecisionLog>): DecisionLog {
   return {
+    schema_version: "decision.v1",
+    decision_id: "test-decision",
     policy_version: "v0",
     rule_id: "R4",
     target: "local",
@@ -31,6 +33,8 @@ function log(over: Partial<DecisionLog>): DecisionLog {
     est_prompt_tokens: 10,
     max_tokens: 256,
     local_context_window: 4096,
+    cache_state: "cold",
+    load_total_ms: null,
     strike_state: {},
     probe: {} as DecisionLog["probe"],
     decided_at: "2026-06-15T10:00:00.000Z",
