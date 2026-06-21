@@ -11,6 +11,7 @@ import {
   describeProbe,
   fallbackModels,
   generateRelayToken,
+  integrationSnippet,
   isProbableWorkerUrl,
   relayBaseUrl,
   relayDeployed,
@@ -192,5 +193,63 @@ describe("strip onboarding to the floor (Gate 6-C-2)", () => {
     expect(describeProbe({ kind: "cors" }).text).toContain(PLAYGROUND_ORIGIN);
     expect(describeProbe({ kind: "unreachable" }).ok).toBe(false);
     expect(describeProbe({ kind: "invalid_url" }).text).toMatch(/https:\/\//);
+  });
+});
+
+describe("integrationSnippet — personalized, real, runnable drop-in", () => {
+  const REAL_IMPORT = "import OpenAI from 'https://esm.run/ludion-router/openai';";
+
+  it("relay configured: bakes relay URL + token + model into the real API", () => {
+    const config: StoredConfig = {
+      config_version: 1,
+      fallback: { model: "gpt-4o-mini", baseURL: "https://r.workers.dev" },
+      relayUrl: "https://r.workers.dev",
+    };
+    const s = integrationSnippet(config, "tok_secret");
+    expect(s.hasRelay).toBe(true);
+    // The real import specifier and client construction.
+    expect(s.dropin).toContain(REAL_IMPORT);
+    expect(s.dropin).toContain("new OpenAI({");
+    // The live config values, baked in literally (different origin → no shared storage).
+    expect(s.dropin).toContain('baseURL: "https://r.workers.dev"');
+    expect(s.dropin).toContain('apiKey: "tok_secret"');
+    // Usage exercises the real create() + response shape, with the fallback model.
+    expect(s.usage).toContain('model: "gpt-4o-mini"');
+    expect(s.usage).toContain("client.chat.completions.create({");
+    expect(s.usage).toContain("res.choices[0].message.content");
+    // On-device only: no privacy hint forced when a relay can take the fallback.
+    expect(s.usage).not.toContain("privacy");
+  });
+
+  it("no relay: on-device-only snippet, no broken fallback fields", () => {
+    const config: StoredConfig = { config_version: 1, fallback: { model: "gpt-4o-mini" } };
+    const s = integrationSnippet(config, null);
+    expect(s.hasRelay).toBe(false);
+    expect(s.dropin).toContain(REAL_IMPORT);
+    expect(s.dropin).toContain("new OpenAI();");
+    // No relay URL or token leaks into the no-relay snippet.
+    expect(s.dropin).not.toContain("baseURL");
+    expect(s.dropin).not.toContain("apiKey");
+    // Real public per-request hint keeps it on-device; model shown as the future target.
+    expect(s.usage).toContain("ludion: { privacy: true }");
+    expect(s.usage).toContain('model: "gpt-4o-mini"');
+    expect(s.usage).toContain("res.choices[0].message.content");
+  });
+
+  it("relay URL but no token: not a full snippet (never emit unauthable fallback)", () => {
+    const config: StoredConfig = {
+      config_version: 1,
+      fallback: { model: "gpt-4o-mini" },
+      relayUrl: "https://r.workers.dev",
+    };
+    expect(integrationSnippet(config, null).hasRelay).toBe(false);
+  });
+
+  it("nothing configured: on-device-only with no model line", () => {
+    const s = integrationSnippet(null, null);
+    expect(s.hasRelay).toBe(false);
+    expect(s.dropin).toContain("new OpenAI();");
+    expect(s.usage).not.toContain("model:");
+    expect(s.usage).toContain("ludion: { privacy: true }");
   });
 });

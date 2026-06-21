@@ -217,6 +217,88 @@ export function assembleDropinConfig(
 }
 
 /**
+ * The personalized in-app integration snippet (the /app Quickstart section).
+ * Real, runnable `ludion-router/openai` API — a dev who copies these lines gets
+ * a working integration. Generated live from the dev's stored config, in two
+ * states:
+ *  - relay configured (relay URL + token + fallback model all present): the full
+ *    drop-in — `new OpenAI({ baseURL: <relay>, apiKey: <token> })` and a
+ *    `create({ model: <fallback>, ... })` call. On-device first; the relay is
+ *    the fallback. The token is client-side by design (it only authenticates to
+ *    the relay, never reaches Ludion).
+ *  - no relay yet: the on-device-only drop-in — `new OpenAI()` with no fallback,
+ *    and a `create({ ..., ludion: { privacy: true } })` call that keeps the
+ *    request on the device (a request that can't run on-device throws a typed
+ *    error rather than an unauthenticated fetch). Add a relay to enable API
+ *    fallback. We never emit a fallback snippet with empty relay fields.
+ *
+ * Values are baked in literally because the dev's app runs on a different origin
+ * than this workspace, so the persisted `ludion.config.v1` storage source is not
+ * shared — the personalized values must travel in the copied code.
+ */
+export interface IntegrationSnippet {
+  /** True when the full on-device + relay snippet is emitted. */
+  hasRelay: boolean;
+  /** The drop-in: import + client construction. */
+  dropin: string;
+  /** A minimal usage example: one chat completion call + reading the reply. */
+  usage: string;
+}
+
+export function integrationSnippet(
+  config: StoredConfig | null,
+  token: string | null,
+): IntegrationSnippet {
+  const importLine = `${IMPORT_LINE};`;
+  const model = config?.fallback?.model;
+  const relay = relayBaseUrl(config);
+  const hasToken = typeof token === "string" && token.length > 0;
+  const hasModel = typeof model === "string" && model.length > 0;
+  const hasRelay = relayDeployed(config) && typeof relay === "string" && relay.length > 0 && hasToken && hasModel;
+
+  if (hasRelay) {
+    const dropin = [
+      importLine,
+      "",
+      "// On-device first; falls back to your relay when a request can't run on-device.",
+      "const client = new OpenAI({",
+      `  baseURL: ${JSON.stringify(relay)}, // your relay; Ludion appends /chat/completions`,
+      `  apiKey: ${JSON.stringify(token)}, // your relay token (client-side by design)`,
+      "});",
+    ].join("\n");
+    const usage = [
+      "const res = await client.chat.completions.create({",
+      `  model: ${JSON.stringify(model)}, // fallback target; on-device used where eligible`,
+      '  messages: [{ role: "user", content: "Hello from Ludion" }],',
+      "});",
+      "",
+      "console.log(res.choices[0].message.content);",
+    ].join("\n");
+    return { hasRelay, dropin, usage };
+  }
+
+  const dropin = [
+    importLine,
+    "",
+    "// On-device only: no relay yet, so requests run on the user's device.",
+    "// Add a relay (see Relay) to fall back to the API when a request can't run on-device.",
+    "const client = new OpenAI();",
+  ].join("\n");
+  const usageLines = ["const res = await client.chat.completions.create({"];
+  if (hasModel) {
+    usageLines.push(`  model: ${JSON.stringify(model)}, // fallback target once you add a relay`);
+  }
+  usageLines.push(
+    '  messages: [{ role: "user", content: "Hello from Ludion" }],',
+    "  ludion: { privacy: true }, // keep this request on-device for now",
+    "});",
+    "",
+    "console.log(res.choices[0].message.content);",
+  );
+  return { hasRelay, dropin, usage: usageLines.join("\n") };
+}
+
+/**
  * The exact StoredConfig payload `PUT /api/config` receives. Built from
  * non-secret fields only — there is no field that could carry the token, and
  * the server re-validates (schema.ts) regardless. Used by the screens and

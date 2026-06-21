@@ -29,6 +29,7 @@ function svgEl<K extends keyof SVGElementTagNameMap>(
 
 /** Thin line icons (20x20, currentColor stroke). Keyed by nav section. */
 const ICON_PATHS: Record<string, string[]> = {
+  quickstart: ["M8 7l-4 5 4 5", "M16 7l4 5-4 5", "M13 5l-2 14"],
   overview: ["M3 3h7v7H3zM14 3h7v4h-7zM14 11h7v10h-7zM3 14h7v7H3z"],
   routing: ["M6 3v6a4 4 0 0 0 4 4h8", "M14 9l4 4-4 4", "M6 21v-6"],
   models: ["M12 3l8 4-8 4-8-4 8-4z", "M4 11l8 4 8-4", "M4 15l8 4 8-4"],

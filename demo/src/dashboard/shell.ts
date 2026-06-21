@@ -17,10 +17,11 @@ import {
   writeRelaySetupProvider,
   type Identity,
 } from "./data";
-import { generateRelayToken, type ProbeOutcome } from "./setup";
+import { generateRelayToken, relayDeployed, type ProbeOutcome } from "./setup";
 import { renderOverview } from "./overview";
 import { renderModels } from "./models";
 import { renderRelay } from "./relay";
+import { renderQuickstart } from "./quickstart";
 
 interface NavSection {
   id: string;
@@ -28,6 +29,7 @@ interface NavSection {
 }
 
 const SECTIONS: NavSection[] = [
+  { id: "quickstart", label: "Quickstart" },
   { id: "overview", label: "Overview" },
   { id: "routing", label: "Routing" },
   { id: "models", label: "Models" },
@@ -57,9 +59,9 @@ function initials(login: string): string {
   return login.slice(0, 2).toUpperCase() || "?";
 }
 
-function currentSection(): string {
+function currentSection(fallbackId: string): string {
   const h = location.hash.replace(/^#/, "");
-  return SECTIONS.some((s) => s.id === h) ? h : "overview";
+  return SECTIONS.some((s) => s.id === h) ? h : fallbackId;
 }
 
 function topbar(identity: Identity): HTMLElement {
@@ -174,9 +176,13 @@ export function mountShell(opts: ShellOptions): void {
   };
 
   const render = (): void => {
-    const id = currentSection();
+    // A dev who has not set up a relay lands on Quickstart (the integration
+    // path they need first); once a relay exists, Overview is the default.
+    const id = currentSection(relayDeployed(config) ? "overview" : "quickstart");
     setActive(id);
-    if (id === "overview") {
+    if (id === "quickstart") {
+      outlet.replaceChildren(renderQuickstart({ config, token }));
+    } else if (id === "overview") {
       // Re-read the ledger each time so the view reflects the current device.
       outlet.replaceChildren(
         renderOverview({ snapshot: readSnapshot(), summary: readSummary(), config }),
