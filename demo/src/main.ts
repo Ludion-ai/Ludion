@@ -11,7 +11,6 @@ import {
   writeDropinConfig,
 } from "ludion-router";
 import type { DecisionLog } from "ludion-router";
-import { SavingsLedger } from "ludion-router/savings";
 import { getModel, getModelPricing, listModels } from "ludion-router/registry";
 import { evaluateVerdict } from "./verdict";
 import type { Verdict } from "./verdict";
@@ -398,14 +397,12 @@ function renderChips(ludion: Ludion, send: (content: string, display?: string) =
 
 const history: { role: "user" | "assistant"; content: string }[] = [];
 
-// Gate 6-B: opt in to the client-side savings ledger (6-A). Counts/metadata
-// only, localStorage, never content — the /savings page reads what accrues
-// here. Explicit, visible opt-in: the router writes nothing unless wired.
-const savings = new SavingsLedger();
-
 async function boot(): Promise<void> {
   const ludion = await Ludion.create({
-    onDecision: (log) => savings.record(log),
+    // Local savings ledger is default-on inside the router (fed by the decision
+    // sink), so no manual onDecision→ledger wiring here — the /savings page
+    // reads what the sink records. Counts/metadata only, localStorage, never
+    // content.
     // Zero-config by design (F-3): no create()-time fallback. The endpoint is
     // supplied at runtime through the live config source (settings drawer) and
     // read per request — so a save is honored with no reload. Until one is set,

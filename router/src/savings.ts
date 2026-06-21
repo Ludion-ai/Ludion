@@ -5,20 +5,18 @@
  * savings tracker that phoned home to compute totals would contradict the
  * whole claim.
  *
- * Opt-in by construction (§5): the router core writes no storage for savings.
- * An integrator turns this on by wiring the helper to `onDecision`:
- *
- *   const ledger = new SavingsLedger();
- *   const ludion = Ludion.create({ onDecision: (log) => ledger.record(log) });
- *
- * No `SavingsLedger` instance ⇒ nothing is ever written. The ledger stores
- * COUNTS AND METADATA ONLY — never prompt or response content (the source
- * DecisionLog carries no content, and this schema has no content field, so the
- * privacy guarantee is structural, not a filter).
+ * Default-on, local-only: `Ludion.create` calls `enableLocalLedger`, which
+ * subscribes one module-level ledger to the decision sink (telemetry.ts) so
+ * EVERY terminal decision — drop-in path included — is recorded without any
+ * manual `onDecision` wiring. Nothing leaves the device: the ledger reads/writes
+ * `localStorage` only. It stores COUNTS AND METADATA ONLY — never prompt or
+ * response content (the source DecisionLog carries no content, and this schema
+ * has no content field, so the privacy guarantee is structural, not a filter).
  */
 import type { DecisionLog } from "./types";
 import type { KV } from "./strikes";
 import { createSafeBrowserKV } from "./strikes";
+import { registerDecisionConsumer } from "./telemetry";
 import { PRESET_PRICING, PricingStore } from "./pricing";
 import type { PriceBasis, PricingTable } from "./pricing";
 
@@ -201,6 +199,29 @@ export class SavingsLedger {
   clear(): void {
     this.write(freshBlob());
   }
+}
+
+/**
+ * The default-on local ledger. A single module-level SavingsLedger subscribed to
+ * the decision sink (telemetry.ts), so EVERY terminal decision — drop-in path
+ * included — is recorded locally with no manual `onDecision` wiring. Local-only:
+ * reads/writes `localStorage`, never the network.
+ */
+let localLedger: SavingsLedger | null = null;
+
+/**
+ * Enable (idempotently) the default-on local ledger. Registers exactly one sink
+ * consumer regardless of how many `Ludion` instances exist, so a decision is
+ * recorded once — no double-counting. Returns the shared ledger. Called from
+ * `Ludion.create`; the dashboard reads the same store via its own
+ * `new SavingsLedger()` (the localStorage key is fixed).
+ */
+export function enableLocalLedger(): SavingsLedger {
+  if (localLedger === null) {
+    localLedger = new SavingsLedger();
+    registerDecisionConsumer((log) => localLedger?.record(log));
+  }
+  return localLedger;
 }
 
 /** Fold an aged-out entry into the matching daily rollup bucket. */

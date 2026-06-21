@@ -19,6 +19,7 @@ import type { DecisionLog, FallbackConfig, LudionChatRequest, LudionOptions, Gen
 import { DEFAULT_LOCAL_CONTEXT_WINDOW, DEFAULT_LOCAL_MODEL, POLICY_V0 } from "./defaults";
 import { resolveEffectiveFallback } from "./config";
 import { DECISION_SCHEMA_VERSION, emitDecision, newDecisionId } from "./telemetry";
+import { enableLocalLedger } from "./savings";
 
 // Public API surface (Gate 2 decisions Q3 — frozen at publish):
 // the Ludion facade, the typed errors, and the types those signatures
@@ -142,6 +143,10 @@ export class Ludion {
     strikes.recoverTombstone();
     // Probe once per Ludion instance (per page load). Never imports WebLLM.
     const probe = options._test?.probe ?? (await probeRouterDevice());
+    // Local ledger is default-on (local-only): subscribe it to the decision
+    // sink once so every decision — drop-in path included — is recorded without
+    // manual onDecision wiring. Idempotent across instances (no double-count).
+    enableLocalLedger();
     return new Ludion(options, probe, strikes, now);
   }
 

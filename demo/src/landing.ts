@@ -6,7 +6,6 @@ import "./dashboard.css";
 import "./landing.css";
 import { card, copyBlock, el, hexMark } from "./dashboard/components";
 import { IMPORT_LINE } from "./dashboard/setup";
-import type { DecisionLog } from "ludion-router";
 
 /*
  * The public, login-free landing (ludion.ai/). It makes NO auth call and sets
@@ -137,7 +136,6 @@ function buildDemo(): HTMLElement {
 }
 
 interface LedgerLike {
-  record(log: DecisionLog): void;
   summary(): { local_count: number; server_count: number; total_requests: number };
 }
 
@@ -166,7 +164,9 @@ async function startDemo(stage: HTMLElement, run: HTMLButtonElement): Promise<vo
   // No config source is installed: a server-routed request throws
   // LudionNoFallbackConfigured at decision time (no fetch). On-device only.
   const ludion = await mod.Ludion.create({
-    onDecision: (log) => ledger.record(log),
+    // No manual onDecision→ledger fill: the router's default-on local ledger
+    // (fed by the decision sink) records every decision into the same
+    // localStorage store this `ledger` reads from below.
     onLocalLoadProgress: (p) => {
       progress.replaceChildren();
       const pct = Math.round((p.progress ?? 0) * 100);
