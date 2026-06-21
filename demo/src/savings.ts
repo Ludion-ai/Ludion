@@ -37,13 +37,39 @@ const el = <K extends keyof HTMLElementTagNameMap>(
   return node;
 };
 
+/** Fraction digits that keep a non-zero sub-cent amount from rendering as $0.00. */
+function usdFractionDigits(amount: number): number {
+  const a = Math.abs(amount);
+  if (a === 0 || a >= 0.005) return 2; // whole cents
+  if (a >= 0.00005) return 4;
+  return 6; // very small but real — never collapse to $0.00
+}
+
 function formatUSD(amount: number, currency: string): string {
+  // Fixed en-US locale (not the browser locale) for stable rendering, with
+  // sub-cent precision so a real would-be saving never rounds away to $0.00.
+  const maximumFractionDigits = usdFractionDigits(amount);
   try {
-    return new Intl.NumberFormat(undefined, { style: "currency", currency }).format(amount);
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency,
+      minimumFractionDigits: 2,
+      maximumFractionDigits,
+    }).format(amount);
   } catch {
     // Unknown currency code → plain number with the code appended.
-    return `${amount.toFixed(2)} ${currency}`;
+    return `${amount.toFixed(maximumFractionDigits)} ${currency}`;
   }
+}
+
+/** Illustrative request rate for the savings scale projection. */
+const PROJECTION_REQ_PER_DAY = 1000;
+
+/** "at N req/day ≈ $X/mo" projected from the observed per-request saving. */
+function projectionLine(s: SavingsSummary): string {
+  const perReq = s.local_count > 0 ? s.total_saved / s.local_count : 0;
+  const monthly = perReq * PROJECTION_REQ_PER_DAY * 30;
+  return `at ${PROJECTION_REQ_PER_DAY.toLocaleString("en-US")} req/day ≈ ${formatUSD(monthly, s.currency)}/mo`;
 }
 
 /** UTC-safe pretty date from a "YYYY-MM-DD" string (no Date timezone shift). */
@@ -51,7 +77,7 @@ function prettyDay(day: string): string {
   const [y, m, d] = day.split("-").map(Number);
   if (!y || !m || !d) return day;
   try {
-    return new Intl.DateTimeFormat(undefined, {
+    return new Intl.DateTimeFormat("en-US", {
       timeZone: "UTC",
       month: "short",
       day: "numeric",
@@ -73,6 +99,7 @@ function heroPanel(s: SavingsSummary): HTMLElement {
     `across ${s.local_count.toLocaleString()} request${s.local_count === 1 ? "" : "s"} that ran on this device instead of the API`,
   );
   wrap.append(sub);
+  if (s.local_count > 0) wrap.append(el("p", "s-hero-proj", projectionLine(s)));
   return wrap;
 }
 

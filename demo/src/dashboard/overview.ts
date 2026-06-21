@@ -35,12 +35,38 @@ export interface OverviewData {
 
 const EM_DASH = "—";
 
+/** Fraction digits that keep a non-zero sub-cent amount from rendering as $0.00. */
+function usdFractionDigits(amount: number): number {
+  const a = Math.abs(amount);
+  if (a === 0 || a >= 0.005) return 2; // whole cents
+  if (a >= 0.00005) return 4;
+  return 6; // very small but real — never collapse to $0.00
+}
+
 function formatUSD(amount: number, currency: string): string {
+  // Fixed en-US locale (not the browser locale) for stable rendering, with
+  // sub-cent precision so a real would-be saving never rounds away to $0.00.
+  const maximumFractionDigits = usdFractionDigits(amount);
   try {
-    return new Intl.NumberFormat(undefined, { style: "currency", currency }).format(amount);
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency,
+      minimumFractionDigits: 2,
+      maximumFractionDigits,
+    }).format(amount);
   } catch {
-    return `${amount.toFixed(2)} ${currency}`;
+    return `${amount.toFixed(maximumFractionDigits)} ${currency}`;
   }
+}
+
+/** Illustrative request rate for the savings scale projection. */
+const PROJECTION_REQ_PER_DAY = 1000;
+
+/** "at N req/day ≈ $X/mo" projected from the observed per-request saving. */
+function projectionLine(summary: SavingsSummary): string {
+  const perReq = summary.local_count > 0 ? summary.total_saved / summary.local_count : 0;
+  const monthly = perReq * PROJECTION_REQ_PER_DAY * 30;
+  return `at ${PROJECTION_REQ_PER_DAY.toLocaleString("en-US")} req/day ≈ ${formatUSD(monthly, summary.currency)}/mo`;
 }
 
 function formatPct(fraction: number): string {
@@ -51,7 +77,7 @@ function formatWhen(ts: string): string {
   const t = Date.parse(ts);
   if (Number.isNaN(t)) return ts;
   try {
-    return new Intl.DateTimeFormat(undefined, {
+    return new Intl.DateTimeFormat("en-US", {
       month: "short",
       day: "numeric",
       hour: "2-digit",
@@ -66,7 +92,13 @@ function pageHead(): HTMLElement {
   const head = el("div", "lx-page-head");
   const left = el("div");
   left.append(el("h1", "lx-page-title", "Overview"));
-  left.append(el("p", "lx-page-sub", "Routing on this device — read locally, never sent anywhere."));
+  left.append(
+    el(
+      "p",
+      "lx-page-sub",
+      "Routing on this device. Nothing is sent by default; with telemetry on, only anonymized metadata (never your prompts) leaves the device.",
+    ),
+  );
   head.append(left);
   // Time-window control: display-only in 2b-1 (§4).
   const win = el("span", "lx-window", "Last 30 days");
@@ -162,6 +194,7 @@ function savingsCard(data: OverviewData): HTMLElement {
       `${formatUSD(data.summary.total_saved, data.summary.currency)} would-be → ${formatUSD(0, data.summary.currency)} actual, across ${n.toLocaleString()} on-device request${n === 1 ? "" : "s"}`,
     ),
   );
+  c.append(el("p", "lx-save-proj", projectionLine(data.summary)));
   c.append(areaChart(dailySeries(data.summary).saved));
   return c;
 }
