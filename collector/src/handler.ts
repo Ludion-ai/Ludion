@@ -1,4 +1,5 @@
 import { validateBenchDocument } from "../../bench/src/schema";
+import { validateDecisionBatch } from "../../shared/src/telemetry";
 import { readAggregate, rebuildAggregate } from "./aggregate";
 
 /**
@@ -52,6 +53,18 @@ export const DAILY_LIMIT = 10; // spec §2-2
 const RATE_TTL_SECONDS = 172800; // 2 days — covers UTC-date stragglers (decisions Q1)
 const STATS_KEY = "stats:total";
 
+// --- decision telemetry (POST /v1/decisions) --------------------------------
+// Route/schema/storage prefix are deliberately separated from bench submission.
+/** A decision batch can carry up to MAX_BATCH_EVENTS events — a larger cap than bench docs. */
+export const DECISIONS_MAX_BODY_BYTES = 1024 * 1024; // 1 MiB
+/** Per-IP/day cap on decision batches — higher than bench (telemetry is higher-volume). */
+export const DECISIONS_DAILY_LIMIT = 5000;
+const DECISIONS_STATS_KEY = "decisions:total";
+/** R2 key prefix for raw decision batches, kept apart from bench submissions. */
+const DECISIONS_PREFIX = "decisions";
+/** Project-id charset safe to embed in an R2 object key (no path traversal). */
+const PROJECT_ID_RE = /^[A-Za-z0-9_-]{1,64}$/;
+
 type ErrorCode =
   | "method_not_allowed"
   | "origin_forbidden"
@@ -61,6 +74,7 @@ type ErrorCode =
   | "no_sessions"
   | "rate_limited"
   | "unauthorized"
+  | "invalid_project"
   | "not_found";
 
 function errorResponse(
@@ -114,7 +128,12 @@ async function readCounter(kv: KVLike, key: string): Promise<number> {
 
 /** Best-effort counter bump: never turns an accepted submission into an error (decisions Q1). */
 async function bumpCounter(kv: KVLike, key: string, ttl?: number): Promise<number> {
-  const next = (await readCounter(kv, key)) + 1;
+  return bumpCounterBy(kv, key, 1, ttl);
+}
+
+/** Best-effort counter bump by an arbitrary delta. Fail-open like `bumpCounter`. */
+async function bumpCounterBy(kv: KVLike, key: string, delta: number, ttl?: number): Promise<number> {
+  const next = (await readCounter(kv, key)) + delta;
   try {
     await kv.put(key, String(next), ttl !== undefined ? { expirationTtl: ttl } : undefined);
   } catch {
@@ -213,6 +232,83 @@ async function handleSubmit(
   });
 }
 
+/**
+ * POST /v1/decisions — opt-in, content-free decision telemetry intake.
+ *
+ * The body is a `DecisionBatch` validated by the shared allow-list validator
+ * (`validateDecisionBatch`): unknown keys are rejected, so a prompt/completion/
+ * secret field can never be stored. Raw batches land in R2 under a per-project
+ * key (separated from bench), and per-project + total event counters go to KV.
+ */
+async function handleDecisions(request: Request, env: CollectorEnv): Promise<Response> {
+  const cors = corsHeaders(request, env);
+  const origin = request.headers.get("Origin");
+  if (origin !== null && !allowedOrigins(env).includes(origin)) {
+    return errorResponse(403, "origin_forbidden", "origin not allowed");
+  }
+
+  const declared = Number(request.headers.get("Content-Length") ?? "0");
+  if (declared > DECISIONS_MAX_BODY_BYTES) {
+    return errorResponse(413, "too_large", `body exceeds ${DECISIONS_MAX_BODY_BYTES} bytes`, cors);
+  }
+
+  // Rate limit BEFORE body work, on a SEPARATE key prefix from bench (rld:).
+  const ip = request.headers.get("CF-Connecting-IP") ?? "unknown";
+  const rateKey = `rld:${utcDate()}:${await sha256Hex(env.IP_HASH_SALT + ip)}`;
+  if ((await readCounter(env.COLLECTOR_KV, rateKey)) >= DECISIONS_DAILY_LIMIT) {
+    return errorResponse(429, "rate_limited", `limit ${DECISIONS_DAILY_LIMIT} decision batches/day`, {
+      ...cors,
+      "Retry-After": "86400",
+    });
+  }
+
+  const body = await request.text();
+  const bodyBytes = new TextEncoder().encode(body);
+  if (bodyBytes.byteLength > DECISIONS_MAX_BODY_BYTES) {
+    return errorResponse(413, "too_large", `body exceeds ${DECISIONS_MAX_BODY_BYTES} bytes`, cors);
+  }
+
+  let batch: unknown;
+  try {
+    batch = JSON.parse(body);
+  } catch {
+    return errorResponse(400, "invalid_json", "body is not valid JSON", cors);
+  }
+
+  const result = validateDecisionBatch(batch);
+  if (!result.ok) {
+    return errorResponse(
+      400,
+      "schema_invalid",
+      `schema validation failed: ${result.errors.slice(0, 5).join("; ")}`,
+      cors,
+    );
+  }
+
+  const projectId = (batch as { projectId: string }).projectId;
+  if (!PROJECT_ID_RE.test(projectId)) {
+    return errorResponse(400, "invalid_project", "projectId must be 1-64 chars of [A-Za-z0-9_-]", cors);
+  }
+
+  const json = { "content-type": "application/json", ...cors };
+
+  // Store the raw batch + received_at, nothing else; per-project key prefix.
+  const key = `${DECISIONS_PREFIX}/${projectId}/${utcDate()}/${crypto.randomUUID()}.json`;
+  const stored = { ...(batch as Record<string, unknown>), received_at: new Date().toISOString() };
+  await env.SUBMISSIONS.put(key, JSON.stringify(stored));
+
+  // Counters → KV: per-project + global event totals. Best-effort (fail-open).
+  const eventCount = (batch as { events: unknown[] }).events.length;
+  await bumpCounter(env.COLLECTOR_KV, rateKey, RATE_TTL_SECONDS);
+  await bumpCounterBy(env.COLLECTOR_KV, `decisions:project:${projectId}`, eventCount);
+  const total = await bumpCounterBy(env.COLLECTOR_KV, DECISIONS_STATS_KEY, eventCount);
+
+  return new Response(JSON.stringify({ ok: true, stored_events: eventCount, total_events: total }), {
+    status: 200,
+    headers: json,
+  });
+}
+
 async function handleAggregate(request: Request, env: CollectorEnv): Promise<Response> {
   const aggregate = await readAggregate(env);
   return new Response(JSON.stringify(aggregate), {
@@ -294,6 +390,12 @@ export async function handleRequest(
       return errorResponse(405, "method_not_allowed", "use POST", { Allow: "POST" });
     }
     return handleSubmit(request, env, ctx);
+  }
+  if (url.pathname === "/v1/decisions") {
+    if (request.method !== "POST") {
+      return errorResponse(405, "method_not_allowed", "use POST", { Allow: "POST" });
+    }
+    return handleDecisions(request, env);
   }
   if (url.pathname === "/v1/stats") {
     if (request.method !== "GET") {

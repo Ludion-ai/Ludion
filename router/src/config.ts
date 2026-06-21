@@ -42,6 +42,22 @@ export interface LudionDropinConfig {
   };
   /** Optional routing policy override (validated minimally). */
   policy?: PolicyTable;
+  /**
+   * Project id for opt-in central decision telemetry (non-secret). Required —
+   * with `telemetry.central` and `telemetry.endpoint` — for anything to be sent.
+   */
+  projectId?: string;
+  /**
+   * Opt-in central decision telemetry. DEFAULT-OFF: nothing is transmitted
+   * unless `central: true`, a `projectId` (above), and an `endpoint` are all set.
+   * Content-free metadata only (the DecisionEvent schema has no content field).
+   */
+  telemetry?: {
+    /** Master switch. Absent/false = no central send (local ledger is unaffected). */
+    central?: boolean;
+    /** Collector base URL (e.g. the deployed ludion-collector). `/v1/decisions` is appended. */
+    endpoint?: string;
+  };
 }
 
 /**
@@ -125,6 +141,21 @@ export function validateDropinConfig(input: unknown): LudionDropinConfig {
       !Array.isArray(p.rules)
     ) {
       throw new LudionConfigError("policy must be a PolicyTable (policy_version: string, rules: array)");
+    }
+  }
+  if (cfg.projectId !== undefined && typeof cfg.projectId !== "string") {
+    throw new LudionConfigError("projectId must be a string");
+  }
+  if (cfg.telemetry !== undefined) {
+    if (typeof cfg.telemetry !== "object" || cfg.telemetry === null) {
+      throw new LudionConfigError("telemetry must be an object");
+    }
+    const t = cfg.telemetry as Record<string, unknown>;
+    if (t.central !== undefined && typeof t.central !== "boolean") {
+      throw new LudionConfigError("telemetry.central must be a boolean");
+    }
+    if (t.endpoint !== undefined && typeof t.endpoint !== "string") {
+      throw new LudionConfigError("telemetry.endpoint must be a string");
     }
   }
   return input as LudionDropinConfig;

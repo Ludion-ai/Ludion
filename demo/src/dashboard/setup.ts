@@ -213,7 +213,13 @@ export function assembleDropinConfig(
   if (baseURL !== undefined) fallback.baseURL = baseURL;
   if (model !== undefined) fallback.model = model;
   if (token !== null && token.length > 0) fallback.apiKey = token;
-  return { config_version: 1, fallback };
+  const out: LudionDropinConfig = { config_version: 1, fallback };
+  // projectId is non-secret and travels server-ward; it gates opt-in central
+  // telemetry (the client also sets telemetry.central + endpoint to transmit).
+  if (config?.projectId !== undefined && config.projectId.length > 0) {
+    out.projectId = config.projectId;
+  }
+  return out;
 }
 
 /**

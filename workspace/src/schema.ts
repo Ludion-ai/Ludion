@@ -35,6 +35,8 @@ export interface StoredConfig {
   fallback: StoredFallback;
   /** Deployed relay URL the developer pasted (non-secret). */
   relayUrl?: string;
+  /** Project id for opt-in central decision telemetry (non-secret, no content). */
+  projectId?: string;
 }
 
 export class WorkspaceConfigError extends Error {
@@ -44,7 +46,7 @@ export class WorkspaceConfigError extends Error {
   }
 }
 
-const TOP_LEVEL_KEYS = new Set(["config_version", "fallback", "relayUrl"]);
+const TOP_LEVEL_KEYS = new Set(["config_version", "fallback", "relayUrl", "projectId"]);
 const FALLBACK_KEYS = new Set(["baseURL", "model"]);
 
 /**
@@ -138,6 +140,11 @@ export function validateStoredConfig(input: unknown): StoredConfig {
     if (typeof cfg.relayUrl !== "string") throw new WorkspaceConfigError("relayUrl must be a string");
     if (!isValidHttpUrl(cfg.relayUrl)) throw new WorkspaceConfigError("relayUrl must be an http(s) URL");
     out.relayUrl = cfg.relayUrl;
+  }
+
+  if (cfg.projectId !== undefined) {
+    if (typeof cfg.projectId !== "string") throw new WorkspaceConfigError("projectId must be a string");
+    out.projectId = cfg.projectId;
   }
 
   return out;

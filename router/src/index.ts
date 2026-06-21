@@ -20,6 +20,7 @@ import { DEFAULT_LOCAL_CONTEXT_WINDOW, DEFAULT_LOCAL_MODEL, POLICY_V0 } from "./
 import { resolveEffectiveFallback } from "./config";
 import { DECISION_SCHEMA_VERSION, emitDecision, newDecisionId } from "./telemetry";
 import { enableLocalLedger } from "./savings";
+import { enableCentralTelemetry } from "./telemetry-central";
 
 // Public API surface (Gate 2 decisions Q3 — frozen at publish):
 // the Ludion facade, the typed errors, and the types those signatures
@@ -147,6 +148,10 @@ export class Ludion {
     // sink once so every decision — drop-in path included — is recorded without
     // manual onDecision wiring. Idempotent across instances (no double-count).
     enableLocalLedger();
+    // Central telemetry is opt-in/default-off: the consumer drops every event
+    // (no buffer, no network) until the drop-in config sets telemetry.central +
+    // endpoint + projectId. Safe to register unconditionally.
+    enableCentralTelemetry();
     return new Ludion(options, probe, strikes, now);
   }
 

@@ -17,5 +17,5 @@
     "noEmit": true,
     "types": []
   },
-  "include": ["src", "tests", "scripts", "vitest.config.ts", "../bench/src/schema.ts"]
+  "include": ["src", "tests", "scripts", "vitest.config.ts", "../bench/src/schema.ts", "../shared/src/telemetry.ts"]
 }
