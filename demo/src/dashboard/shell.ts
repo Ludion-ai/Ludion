@@ -5,8 +5,11 @@
  * is built so 2b-2 drops sections into SECTIONS + the router with no rework.
  */
 import type { StoredConfig } from "ludion-workspace/schema";
+import { PRESET_PRICING, PricingStore } from "ludion-router/savings";
 import { el, hexMark, icon } from "./components";
 import {
+  DOGFOOD_PROJECT,
+  fetchProjectAggregate,
   probeRelay,
   putConfig,
   readRelaySetupProvider,
@@ -18,7 +21,8 @@ import {
   type Identity,
 } from "./data";
 import { generateRelayToken, relayDeployed, type ProbeOutcome } from "./setup";
-import { renderOverview } from "./overview";
+import { projectOverviewData } from "./project";
+import { PROJECT_SUBTITLE, renderOverviewScoped } from "./scope";
 import { renderModels } from "./models";
 import { renderRelay } from "./relay";
 import { renderQuickstart } from "./quickstart";
@@ -183,9 +187,21 @@ export function mountShell(opts: ShellOptions): void {
     if (id === "quickstart") {
       outlet.replaceChildren(renderQuickstart({ config, token }));
     } else if (id === "overview") {
-      // Re-read the ledger each time so the view reflects the current device.
+      // Two alternative scopes for the SAME cards: This device (local ledger,
+      // re-read each render) and Project (collector aggregate, priced with the
+      // same basis the local view uses).
       outlet.replaceChildren(
-        renderOverview({ snapshot: readSnapshot(), summary: readSummary(), config }),
+        renderOverviewScoped({
+          readLocal: () => ({ snapshot: readSnapshot(), summary: readSummary(), config }),
+          fetchProject: async () => {
+            const agg = await fetchProjectAggregate(
+              DOGFOOD_PROJECT.collectorUrl,
+              DOGFOOD_PROJECT.projectId,
+            );
+            const basis = new PricingStore().resolveBasis(PRESET_PRICING);
+            return projectOverviewData(agg, basis, config, PROJECT_SUBTITLE);
+          },
+        }),
       );
     } else if (id === "models") {
       outlet.replaceChildren(renderModels({ config, save, refresh: render }));

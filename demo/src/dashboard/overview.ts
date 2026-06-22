@@ -31,7 +31,12 @@ export interface OverviewData {
   snapshot: Snapshot;
   summary: SavingsSummary;
   config: StoredConfig | null;
+  /** Per-scope page subtitle; falls back to the this-device copy when absent. */
+  subtitle?: string;
 }
+
+const DEVICE_SUBTITLE =
+  "Routing on this device. Nothing is sent by default; with telemetry on, only anonymized metadata (never your prompts) leaves the device.";
 
 const EM_DASH = "—";
 
@@ -88,17 +93,11 @@ function formatWhen(ts: string): string {
   }
 }
 
-function pageHead(): HTMLElement {
+function pageHead(subtitle?: string): HTMLElement {
   const head = el("div", "lx-page-head");
   const left = el("div");
   left.append(el("h1", "lx-page-title", "Overview"));
-  left.append(
-    el(
-      "p",
-      "lx-page-sub",
-      "Routing on this device. Nothing is sent by default; with telemetry on, only anonymized metadata (never your prompts) leaves the device.",
-    ),
-  );
+  left.append(el("p", "lx-page-sub", subtitle ?? DEVICE_SUBTITLE));
   head.append(left);
   // Time-window control: display-only in 2b-1 (§4).
   const win = el("span", "lx-window", "Last 30 days");
@@ -296,7 +295,7 @@ function onboarding(config: StoredConfig | null): HTMLElement {
 
 export function renderOverview(data: OverviewData): HTMLElement {
   const root = el("div");
-  root.append(pageHead());
+  root.append(pageHead(data.subtitle));
   const grid = el("div", "lx-grid");
   grid.append(statsRow(data));
   grid.append(routingCard(data));

@@ -10,7 +10,19 @@ import type { SavingsSummary } from "ludion-router/savings";
 import { createStorageConfigSource, writeDropinConfig } from "ludion-router";
 import type { StoredConfig } from "ludion-workspace/schema";
 import type { Snapshot } from "./shape";
+import type { ProjectAggregate } from "./project";
 import { assembleDropinConfig, type ProbeOutcome } from "./setup";
+
+/**
+ * Dogfood project wiring for the Overview "Project" scope. The collector returns
+ * a content-free per-project aggregate; this is a read-only opt-in view, not a
+ * write. Per-dev projectId provisioning is a later step — for now this is a
+ * single hardcoded dogfood target (matches chat-test.html's telemetry config).
+ */
+export const DOGFOOD_PROJECT = {
+  projectId: "ludion-dogfood-1",
+  collectorUrl: "https://ludion-collector.ludion.workers.dev",
+} as const;
 
 export interface Identity {
   login: string;
@@ -63,6 +75,23 @@ export async function putConfig(config: StoredConfig): Promise<StoredConfig> {
   });
   if (!res.ok) throw new Error(`PUT /api/config ${res.status}`);
   return (await res.json()) as StoredConfig;
+}
+
+/**
+ * GET <collector>/v1/aggregate?projectId=<id> — the central collector's
+ * content-free per-project aggregate (the "Project" scope). Read-only: the
+ * dashboard never POSTs decisions here, it only reads the opted-in rollup. No
+ * admin token; the endpoint is public derived data.
+ */
+export async function fetchProjectAggregate(
+  collectorUrl: string,
+  projectId: string,
+): Promise<ProjectAggregate> {
+  const base = collectorUrl.trim().replace(/\/+$/, "");
+  const url = `${base}/v1/aggregate?projectId=${encodeURIComponent(projectId)}`;
+  const res = await fetch(url, { headers: { accept: "application/json" } });
+  if (!res.ok) throw new Error(`aggregate ${res.status}`);
+  return (await res.json()) as ProjectAggregate;
 }
 
 /** Read the client-only relay token from the persisted drop-in config. */
