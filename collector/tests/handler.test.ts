@@ -239,8 +239,19 @@ describe("GET /v1/stats", () => {
     await submit(env, JSON.stringify(validDoc()));
     const res = await handleRequest(new Request("https://collector.test/v1/stats"), env);
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ total_submissions: 1 });
+    expect(await res.json()).toEqual({ total_submissions: 1, decisions_total: 0 });
     expect(res.headers.get("Cache-Control")).toBe("public, max-age=60");
+  });
+
+  it("omits a per-project decision count unless a valid projectId is given", async () => {
+    const env = makeEnv();
+    const res = await handleRequest(new Request("https://collector.test/v1/stats"), env);
+    expect(await res.json()).not.toHaveProperty("decisions_project");
+    const bad = await handleRequest(
+      new Request("https://collector.test/v1/stats?projectId=../etc"),
+      env,
+    );
+    expect(await bad.json()).not.toHaveProperty("decisions_project");
   });
 });
 

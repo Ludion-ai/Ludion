@@ -96,13 +96,39 @@ function allowedOrigins(env: CollectorEnv): string[] {
 }
 
 /**
+ * Loopback dev origins (any port) are allowed in addition to the explicit
+ * production allow-list, so the chat-test app and a CDN-loaded router running on
+ * a local dev server can POST decision telemetry during end-to-end verification.
+ * This is a deliberate dev convenience, NOT an open `*`: only http(s) loopback
+ * hosts match, and every production origin still comes from ALLOWED_ORIGINS so
+ * the real allow-list stays explicit and visible.
+ */
+function isLocalhostDevOrigin(origin: string): boolean {
+  let url: URL;
+  try {
+    url = new URL(origin);
+  } catch {
+    return false;
+  }
+  if (url.protocol !== "http:" && url.protocol !== "https:") return false;
+  return url.hostname === "localhost" || url.hostname === "127.0.0.1" || url.hostname === "[::1]";
+}
+
+/** An origin is allowed if it is an explicit production origin or a loopback dev origin. */
+function isOriginAllowed(origin: string, env: CollectorEnv): boolean {
+  return allowedOrigins(env).includes(origin) || isLocalhostDevOrigin(origin);
+}
+
+/**
  * CORS headers for the response. Browser requests from a foreign origin get no
  * CORS headers (the browser blocks the read); non-browser clients (no Origin
- * header) pass — CORS is a browser containment line, not authentication.
+ * header) pass — CORS is a browser containment line, not authentication. The
+ * specific allowed origin is echoed (never `*`), with `Vary: Origin` so a
+ * shared cache never serves one origin's ACAO header to another.
  */
 function corsHeaders(request: Request, env: CollectorEnv): Record<string, string> {
   const origin = request.headers.get("Origin");
-  if (origin !== null && allowedOrigins(env).includes(origin)) {
+  if (origin !== null && isOriginAllowed(origin, env)) {
     return { "Access-Control-Allow-Origin": origin, Vary: "Origin" };
   }
   return {};
@@ -149,7 +175,7 @@ async function handleSubmit(
 ): Promise<Response> {
   const cors = corsHeaders(request, env);
   const origin = request.headers.get("Origin");
-  if (origin !== null && !allowedOrigins(env).includes(origin)) {
+  if (origin !== null && !isOriginAllowed(origin, env)) {
     return errorResponse(403, "origin_forbidden", "origin not allowed");
   }
 
@@ -243,7 +269,7 @@ async function handleSubmit(
 async function handleDecisions(request: Request, env: CollectorEnv): Promise<Response> {
   const cors = corsHeaders(request, env);
   const origin = request.headers.get("Origin");
-  if (origin !== null && !allowedOrigins(env).includes(origin)) {
+  if (origin !== null && !isOriginAllowed(origin, env)) {
     return errorResponse(403, "origin_forbidden", "origin not allowed");
   }
 
@@ -327,9 +353,23 @@ async function handleAggregate(request: Request, env: CollectorEnv): Promise<Res
   });
 }
 
-async function handleStats(request: Request, env: CollectorEnv): Promise<Response> {
+async function handleStats(request: Request, env: CollectorEnv, url: URL): Promise<Response> {
   const total = await readCounter(env.COLLECTOR_KV, STATS_KEY);
-  return new Response(JSON.stringify({ total_submissions: total }), {
+  // Decision ingestion is observable here as event COUNTS only — no content, no
+  // means (see handleDecisions). `decisions_total` is the global event count;
+  // `?projectId=` adds that project's event count so the chat-test app can
+  // confirm its own ingestion end to end without the admin token.
+  const decisionsTotal = await readCounter(env.COLLECTOR_KV, DECISIONS_STATS_KEY);
+  const body: Record<string, number> = {
+    total_submissions: total,
+    decisions_total: decisionsTotal,
+  };
+  const projectId = url.searchParams.get("projectId");
+  // Validate to the ingestion charset so a crafted id can never probe arbitrary KV keys.
+  if (projectId !== null && PROJECT_ID_RE.test(projectId)) {
+    body.decisions_project = await readCounter(env.COLLECTOR_KV, `decisions:project:${projectId}`);
+  }
+  return new Response(JSON.stringify(body), {
     status: 200,
     headers: {
       "content-type": "application/json",
@@ -405,7 +445,7 @@ export async function handleRequest(
     if (request.method !== "GET") {
       return errorResponse(405, "method_not_allowed", "use GET", { Allow: "GET" });
     }
-    return handleStats(request, env);
+    return handleStats(request, env, url);
   }
   if (url.pathname === "/v1/aggregate") {
     if (request.method !== "GET") {

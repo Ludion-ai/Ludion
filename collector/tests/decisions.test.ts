@@ -154,3 +154,52 @@ describe("POST /v1/decisions", () => {
     expect(res.status).toBe(413);
   });
 });
+
+describe("/v1/decisions CORS", () => {
+  it("answers the OPTIONS preflight for a localhost dev origin", async () => {
+    const res = await handleRequest(
+      new Request("https://collector.test/v1/decisions", {
+        method: "OPTIONS",
+        headers: { Origin: "http://localhost:5173" },
+      }),
+      makeEnv(),
+    );
+    expect(res.status).toBe(204);
+    expect(res.headers.get("Access-Control-Allow-Origin")).toBe("http://localhost:5173");
+    expect(res.headers.get("Access-Control-Allow-Methods")).toContain("POST");
+    expect(res.headers.get("Access-Control-Allow-Headers")?.toLowerCase()).toContain("content-type");
+    expect(res.headers.get("Vary")).toBe("Origin");
+  });
+
+  it("echoes CORS on a cross-origin POST from a localhost dev origin", async () => {
+    const env = makeEnv();
+    const res = await post(env, JSON.stringify(batch()), { Origin: "http://localhost:5173" });
+    expect(res.status).toBe(200);
+    expect(res.headers.get("Access-Control-Allow-Origin")).toBe("http://localhost:5173");
+  });
+
+  it("echoes CORS for the explicit production origin", async () => {
+    const res = await post(makeEnv(), JSON.stringify(batch()), { Origin: "https://ludion.ai" });
+    expect(res.headers.get("Access-Control-Allow-Origin")).toBe("https://ludion.ai");
+  });
+
+  it("still rejects a non-loopback foreign origin (no open `*`)", async () => {
+    const res = await post(makeEnv(), JSON.stringify(batch()), { Origin: "https://evil.example" });
+    expect(res.status).toBe(403);
+    expect(res.headers.get("Access-Control-Allow-Origin")).toBeNull();
+  });
+});
+
+describe("/v1/stats decision observability", () => {
+  it("reports decisions_total and a per-project count after ingestion", async () => {
+    const env = makeEnv();
+    await post(env, JSON.stringify(batch({ projectId: "proj-abc", events: [event(), event()] })));
+    const res = await handleRequest(
+      new Request("https://collector.test/v1/stats?projectId=proj-abc"),
+      env,
+    );
+    const json = await res.json();
+    expect(json.decisions_total).toBe(2);
+    expect(json.decisions_project).toBe(2);
+  });
+});
