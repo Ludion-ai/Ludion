@@ -60,6 +60,16 @@ export interface ProjectAggregate {
 /** The recent table's Rule column: the content-free wire schema carries no rule. */
 const NO_RULE = "—";
 
+/**
+ * An aggregate with no decisions collected yet — drives the Overview empty state
+ * (an opt-in prompt) instead of a wall of zeros. A 200 empty shell from the
+ * collector (unknown / freshly-created project) lands here too. Errors count as
+ * collected data, so a project that only logged failures is NOT empty.
+ */
+export function isEmptyAggregate(agg: ProjectAggregate): boolean {
+  return agg.routed === 0 && agg.error === 0;
+}
+
 function isoOf(t: number): string {
   const d = new Date(t);
   return Number.isNaN(d.getTime()) ? new Date(0).toISOString() : d.toISOString();

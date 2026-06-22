@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { PriceBasis } from "ludion-router/savings";
-import { projectOverviewData, type ProjectAggregate } from "./project";
+import { isEmptyAggregate, projectOverviewData, type ProjectAggregate } from "./project";
 
 const BASIS: PriceBasis = {
   model: "test-basis",
@@ -85,5 +85,19 @@ describe("projectOverviewData", () => {
     expect(data.summary.server_count).toBe(0);
     expect(data.summary.total_saved).toBe(0);
     expect(data.snapshot.entries).toEqual([]);
+  });
+});
+
+describe("isEmptyAggregate", () => {
+  it("is empty when no decisions were collected at all", () => {
+    expect(isEmptyAggregate(agg())).toBe(true);
+  });
+
+  it("is not empty once any routed decision exists", () => {
+    expect(isEmptyAggregate(agg({ routed: 1, on_device: 1, success: 1 }))).toBe(false);
+  });
+
+  it("treats error-only telemetry as collected data (not empty)", () => {
+    expect(isEmptyAggregate(agg({ error: 2 }))).toBe(false);
   });
 });

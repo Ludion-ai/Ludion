@@ -93,7 +93,7 @@ function formatWhen(ts: string): string {
   }
 }
 
-function pageHead(subtitle?: string): HTMLElement {
+export function overviewPageHead(subtitle?: string): HTMLElement {
   const head = el("div", "lx-page-head");
   const left = el("div");
   left.append(el("h1", "lx-page-title", "Overview"));
@@ -295,7 +295,7 @@ function onboarding(config: StoredConfig | null): HTMLElement {
 
 export function renderOverview(data: OverviewData): HTMLElement {
   const root = el("div");
-  root.append(pageHead(data.subtitle));
+  root.append(overviewPageHead(data.subtitle));
   const grid = el("div", "lx-grid");
   grid.append(statsRow(data));
   grid.append(routingCard(data));

@@ -14,15 +14,13 @@ import {
   putConfig,
   readRelaySetupProvider,
   readRelayToken,
-  readSnapshot,
-  readSummary,
   syncDropinConfig,
   writeRelaySetupProvider,
   type Identity,
 } from "./data";
 import { generateRelayToken, relayDeployed, type ProbeOutcome } from "./setup";
 import { projectOverviewData } from "./project";
-import { PROJECT_SUBTITLE, renderOverviewScoped } from "./scope";
+import { PROJECT_SUBTITLE, renderProjectOverview } from "./project-overview";
 import { renderModels } from "./models";
 import { renderRelay } from "./relay";
 import { renderQuickstart } from "./quickstart";
@@ -187,20 +185,19 @@ export function mountShell(opts: ShellOptions): void {
     if (id === "quickstart") {
       outlet.replaceChildren(renderQuickstart({ config, token }));
     } else if (id === "overview") {
-      // Two alternative scopes for the SAME cards: This device (local ledger,
-      // re-read each render) and Project (collector aggregate, priced with the
-      // same basis the local view uses).
+      // Overview is the project aggregate, one view: the collector's content-free
+      // per-project rollup (the developer's data), priced with the same basis the
+      // local view uses. The local-ledger "this device" view is not shown here.
       outlet.replaceChildren(
-        renderOverviewScoped({
-          readLocal: () => ({ snapshot: readSnapshot(), summary: readSummary(), config }),
-          fetchProject: async () => {
-            const agg = await fetchProjectAggregate(
-              DOGFOOD_PROJECT.collectorUrl,
-              DOGFOOD_PROJECT.projectId,
-            );
-            const basis = new PricingStore().resolveBasis(PRESET_PRICING);
-            return projectOverviewData(agg, basis, config, PROJECT_SUBTITLE);
-          },
+        renderProjectOverview({
+          fetch: () => fetchProjectAggregate(DOGFOOD_PROJECT.collectorUrl, DOGFOOD_PROJECT.projectId),
+          toData: (agg) =>
+            projectOverviewData(
+              agg,
+              new PricingStore().resolveBasis(PRESET_PRICING),
+              config,
+              PROJECT_SUBTITLE,
+            ),
         }),
       );
     } else if (id === "models") {
