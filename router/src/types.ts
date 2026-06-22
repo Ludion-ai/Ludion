@@ -64,6 +64,20 @@ export interface DecisionLog {
    * Wall time (ms) of a COLD on-device model load; null when warm or when no
    * load happened. A total only — WebLLM 0.2.84 does not expose a clean
    * download/compile split or a byte count, so those are deliberately omitted.
+   *
+   * CAVEAT — UNLABELED BIMODAL MIXTURE: the cold bucket conflates a first-time
+   * download+compile with a disk-cached recompile (the OPFS/Cache weight cache
+   * is a separate axis from cache_state, which tracks only in-memory engine
+   * reuse). No field labels which mode a given sample is, so this is NOT
+   * recoverable by stratifying on cache_state or device_class. Treat it as a
+   * mixture: never present as a bare mean; p50/p90/distribution only (use
+   * summarizeLoadTotalMs from @ludion/shared). The local ledger deliberately
+   * drops this field so the on-device dashboard cannot present it at all.
+   *
+   * TODO(weights_cached): the proper fix is a `weights_cached` boolean probed
+   * from OPFS/Cache-API before the load, to label download-vs-cached and split
+   * the mixture. Deferred — WebLLM 0.2.84 does not expose disk-cache hits
+   * cleanly.
    */
   load_total_ms: number | null;
   strike_state: Record<ModelId, number>;

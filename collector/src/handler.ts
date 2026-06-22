@@ -298,6 +298,10 @@ async function handleDecisions(request: Request, env: CollectorEnv): Promise<Res
   await env.SUBMISSIONS.put(key, JSON.stringify(stored));
 
   // Counters → KV: per-project + global event totals. Best-effort (fail-open).
+  // Only event COUNTS are aggregated here — never a load_total_ms mean. That
+  // field is an unlabeled bimodal mixture (see DecisionEvent.load_total_ms in
+  // shared); any later summary must be p50/p90 via summarizeLoadTotalMs over
+  // the raw events stored above, not an average computed at ingest.
   const eventCount = (batch as { events: unknown[] }).events.length;
   await bumpCounter(env.COLLECTOR_KV, rateKey, RATE_TTL_SECONDS);
   await bumpCounterBy(env.COLLECTOR_KV, `decisions:project:${projectId}`, eventCount);

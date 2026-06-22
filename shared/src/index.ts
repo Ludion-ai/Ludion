@@ -21,10 +21,12 @@ export type {
   DecisionCacheState,
   DecisionValidation,
   DecisionBatch,
+  LoadTotalDistribution,
 } from "./telemetry";
 export {
   DECISION_SCHEMA_VERSION,
   MAX_BATCH_EVENTS,
   validateDecisionEvent,
   validateDecisionBatch,
+  summarizeLoadTotalMs,
 } from "./telemetry";

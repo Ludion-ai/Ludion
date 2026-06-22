@@ -64,6 +64,9 @@ export function toDecisionEvent(log: DecisionLog): DecisionEvent {
     ...(log.tokens_in !== null ? { input_tokens: log.tokens_in } : {}),
     ...(log.tokens_out !== null ? { output_tokens: log.tokens_out } : {}),
     ...(log.ttft_ms !== null ? { latency_ms: log.ttft_ms } : {}),
+    // load_total_ms is an unlabeled bimodal mixture (download+compile vs
+    // disk-cached recompile); forward it as-is but summarize only via
+    // summarizeLoadTotalMs (p50/p90), never a mean. See types.ts for the caveat.
     ...(log.load_total_ms !== null ? { load_total_ms: log.load_total_ms } : {}),
     cache_state: log.cache_state,
     device_class: log.probe.os_class,

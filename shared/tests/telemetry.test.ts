@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   DECISION_SCHEMA_VERSION,
   MAX_BATCH_EVENTS,
+  summarizeLoadTotalMs,
   validateDecisionBatch,
   validateDecisionEvent,
   type DecisionEvent,
@@ -93,5 +94,29 @@ describe("validateDecisionBatch", () => {
 
   it("rejects an unknown top-level batch key", () => {
     expect(validateDecisionBatch(batch({ extra: 1 })).ok).toBe(false);
+  });
+});
+
+describe("summarizeLoadTotalMs", () => {
+  it("returns p50/p90 over a bimodal sample (no mean)", () => {
+    // Two modes: ~fast disk-cached recompile and ~slow first download.
+    const r = summarizeLoadTotalMs([800, 850, 900, 19000, 20000, 21000]);
+    expect(r).toEqual({ count: 6, p50: 900, p90: 21000 });
+  });
+
+  it("never exposes a mean/avg key (the structural no-mean guard)", () => {
+    const r = summarizeLoadTotalMs([800, 850, 900, 19000, 20000, 21000])!;
+    expect(Object.keys(r).sort()).toEqual(["count", "p50", "p90"]);
+    expect(r).not.toHaveProperty("mean");
+    expect(r).not.toHaveProperty("avg");
+  });
+
+  it("returns null for an empty input", () => {
+    expect(summarizeLoadTotalMs([])).toBeNull();
+  });
+
+  it("drops non-finite and negative samples", () => {
+    const r = summarizeLoadTotalMs([NaN, -5, Infinity, 1000]);
+    expect(r).toEqual({ count: 1, p50: 1000, p90: 1000 });
   });
 });

@@ -28,7 +28,17 @@ export interface DecisionEvent {
   output_tokens?: number;
   /** Reconciled from the router's ttft_ms (time to first content token). */
   latency_ms?: number;
-  /** Wall time of a cold on-device model load; absent when warm or no load. */
+  /**
+   * Wall time of a cold on-device model load; absent when warm or no load.
+   *
+   * CAVEAT — UNLABELED BIMODAL MIXTURE: the cold bucket conflates a first-time
+   * download+compile with a disk-cached recompile, and no field labels which
+   * mode a sample is. It is NOT recoverable by stratifying on cache_state
+   * (which tracks only in-memory engine reuse, a different axis from the
+   * OPFS/Cache weight cache) or device_class. Treat it as a mixture: never
+   * present as a bare mean. The only sanctioned summary is summarizeLoadTotalMs
+   * (p50/p90/distribution) below.
+   */
   load_total_ms?: number;
   cache_state?: DecisionCacheState;
   /** RouterProbe.os_class — the capability axis, not an identity. */
@@ -159,4 +169,36 @@ export function validateDecisionBatch(value: unknown): DecisionValidation {
     if (!r.ok) errors.push(...r.errors);
   });
   return { ok: errors.length === 0, errors };
+}
+
+/**
+ * Percentile summary of load_total_ms — the ONLY sanctioned way to summarize
+ * the field. It returns count + p50/p90 and deliberately carries NO mean/avg
+ * key: load_total_ms is an unlabeled bimodal mixture (first download+compile
+ * vs disk-cached recompile, see DecisionEvent.load_total_ms), so an average
+ * conflates two populations and is misleading. Any consumer that wants a single
+ * summary number must use a percentile from here, not Σx/n.
+ */
+export interface LoadTotalDistribution {
+  count: number;
+  p50: number;
+  p90: number;
+}
+
+/** Nearest-rank percentile (rank = ceil(p/100 · n)), clamped to [1, n]. */
+function nearestRank(sorted: readonly number[], p: number): number {
+  const rank = Math.ceil((p / 100) * sorted.length);
+  const idx = Math.min(sorted.length, Math.max(1, rank)) - 1;
+  return sorted[idx]!;
+}
+
+/**
+ * Summarize a set of load_total_ms samples as p50/p90 (never a mean). Returns
+ * null for an empty input. Non-finite or negative values are dropped.
+ */
+export function summarizeLoadTotalMs(values: readonly number[]): LoadTotalDistribution | null {
+  const clean = values.filter((v) => typeof v === "number" && Number.isFinite(v) && v >= 0);
+  if (clean.length === 0) return null;
+  const sorted = [...clean].sort((a, b) => a - b);
+  return { count: sorted.length, p50: nearestRank(sorted, 50), p90: nearestRank(sorted, 90) };
 }
