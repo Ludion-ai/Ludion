@@ -12,7 +12,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "supplier-table": "tsx scripts/supplier-table.ts",
-    "report-data": "tsx scripts/report-data.ts"
+    "report-data": "tsx scripts/report-data.ts",
+    "policy-audit": "tsx scripts/policy-audit.ts"
   },
   "dependencies": {
     "@huggingface/transformers": "4.2.0",

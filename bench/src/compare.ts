@@ -29,13 +29,13 @@ const IAB_UA_TOKENS: readonly RegExp[] = [
   /GSA\//,
 ];
 
-function classifyEnv(ua: string): "browser" | "webview-iab" {
+export function classifyEnv(ua: string): "browser" | "webview-iab" {
   return IAB_UA_TOKENS.some((re) => re.test(ua)) ? "webview-iab" : "browser";
 }
 
-type OsClass = "ios-webkit" | "android-chromium" | "desktop" | "other";
+export type OsClass = "ios-webkit" | "android-chromium" | "desktop" | "other";
 
-function classifyOsClass(facts: { ua: string; platform: string; maxTouchPoints: number }): OsClass {
+export function classifyOsClass(facts: { ua: string; platform: string; maxTouchPoints: number }): OsClass {
   if (/iPhone|iPad|iPod/.test(facts.ua)) return "ios-webkit";
   if (facts.platform === "MacIntel" && facts.maxTouchPoints > 1) return "ios-webkit";
   if (/Android/.test(facts.ua)) return "android-chromium";
