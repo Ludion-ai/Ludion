@@ -30,6 +30,30 @@ const POLICY_TABLE_URL = `${REPO}#the-routing-policy-and-its-evidence`;
 const REPORT_URL = `${REPO}/blob/main/docs/report/2026-06-browser-inference-field-notes.md`;
 const REPORT_S4_URL = `${REPORT_URL}#4-iphone-11-pro-max-the-kill-ladder`;
 
+// --- demo on-device model + grounded cost comparison (Commit C) ---------------
+// EXPLICIT on-device model for the demo (not the router default). Qwen2.5-0.5B
+// is the smallest viable on-device model in the registry (~265 MB vs ~664 MB
+// for Llama-3.2-1B) — a far faster first-load for a public demo whose tasks are
+// short (explain ~100 words, a haiku, a summary). NOTE: on-device OUTPUT QUALITY
+// at 0.5B is UNVERIFIED here (no WebGPU in CI) and must be checked in a real
+// browser; to revert to the 1B default, set this to "llama-3.2-1b".
+const DEMO_LOCAL_MODEL_ID = "qwen2.5-0.5b";
+const demoModel = getModel(DEMO_LOCAL_MODEL_ID);
+if (!demoModel?.webllm_model_id) {
+  throw new Error(`demo on-device model "${DEMO_LOCAL_MODEL_ID}" is missing from the registry`);
+}
+const DEMO_LOCAL_WEBLLM_ID = demoModel.webllm_model_id;
+const DEMO_LOCAL_NAME = demoModel.display_name;
+// Download-size hint from the registry (min_memory_hint_mb) — never invented.
+const DEMO_LOCAL_MB = demoModel.min_memory_hint_mb ?? null;
+
+// Grounded, attributed dollar estimate (DEMO ONLY): the would-be API cost of a
+// task's ACTUAL tokens on a NAMED comparison model, using real registry pricing.
+// gpt-4o-mini is a cheap mainstream default — a conservative comparison, not the
+// priciest model, so the figure never overstates what was avoided.
+const COMPARE_MODEL_ID = "gpt-4o-mini";
+const COMPARE_PRICING = getModelPricing(COMPARE_MODEL_ID); // PriceRow | undefined
+
 // Spec B step 1: the demo's fallback config lives behind the router's runtime
 // config seam, persisted to localStorage under "ludion.config.v1". The facade
 // reads it per request, so a settings change is honored by the NEXT request
@@ -305,6 +329,53 @@ function fmt(n: number | null, digits = 0): string {
   return n === null ? "–" : n.toFixed(digits);
 }
 
+// Would-be API cost of THIS task on the comparison model, from real tokens.
+// tokens_in/out may be estimated (then tokens_in backfills from est_prompt_tokens
+// per DecisionLog.tokens_source); null pricing → no estimate (reported, not faked).
+function taskApiCostUsd(log: DecisionLog): number | null {
+  if (!COMPARE_PRICING) return null;
+  const tokensIn = log.tokens_in ?? log.est_prompt_tokens;
+  const tokensOut = log.tokens_out ?? 0;
+  return (tokensIn / 1e6) * COMPARE_PRICING.input_per_1m + (tokensOut / 1e6) * COMPARE_PRICING.output_per_1m;
+}
+
+function usd(n: number): string {
+  if (n >= 0.01) return `$${n.toFixed(2)}`;
+  if (n >= 0.0001) return `$${n.toFixed(4)}`;
+  return "<$0.0001";
+}
+
+// --- session counter (Commit C): client-side, this tab only --------------------
+const counter = { total: 0, browser: 0, server: 0, avoidedUsd: 0 };
+let counterCard: HTMLElement | null = null;
+
+function renderCounter(): void {
+  const savings =
+    COMPARE_PRICING && counter.browser > 0
+      ? ` · <strong>${usd(counter.avoidedUsd)} avoided</strong> vs ${COMPARE_PRICING.label} API`
+      : "";
+  const html =
+    `<span class="mono dim">session</span> · total ${counter.total} · browser-routed ${counter.browser} · ` +
+    `server fallback ${counter.server} · <strong>server calls avoided ${counter.browser}</strong>${savings}`;
+  if (!counterCard) counterCard = addCard(html, "session-counter");
+  else counterCard.innerHTML = html;
+  chatEl.appendChild(counterCard); // keep the tally at the bottom of the feed
+  counterCard.scrollIntoView({ block: "end" });
+}
+
+// Fold a completed/attempted request into the session tally.
+function tallyServerRoute(): void {
+  counter.total += 1;
+  counter.server += 1;
+  renderCounter();
+}
+function tallyLocalRoute(costUsd: number | null): void {
+  counter.total += 1;
+  counter.browser += 1;
+  if (costUsd !== null) counter.avoidedUsd += costUsd;
+  renderCounter();
+}
+
 function addStripCard(log: DecisionLog): void {
   const target = log.target.toUpperCase();
   const tcls = log.target === "local" ? "t-local" : "t-server";
@@ -317,6 +388,21 @@ function addStripCard(log: DecisionLog): void {
      <span class="mono dim">${log.policy_version} · ${log.model}</span>`,
     "decision-row",
   );
+
+  // Grounded dollar estimate for a request that actually ran on-device.
+  if (log.target === "local" && !log.degraded && COMPARE_PRICING) {
+    const cost = taskApiCostUsd(log);
+    if (cost !== null) {
+      const tin = log.tokens_in ?? log.est_prompt_tokens;
+      const tout = log.tokens_out ?? 0;
+      addCard(
+        `<span class="mono dim">this task ≈ ${usd(cost)} on ${COMPARE_PRICING.label} via the API ` +
+          `(${tin}+${tout} tok @ $${COMPARE_PRICING.input_per_1m}/$${COMPARE_PRICING.output_per_1m} per 1M, ${COMPARE_PRICING.price_as_of}) · ` +
+          `<strong>$0 on-device</strong> — estimate, not a quote.</span>`,
+        "savings-estimate",
+      );
+    }
+  }
 }
 
 function addServerNeedsEndpointCard(rule_id: string): void {
@@ -337,8 +423,12 @@ let loadBar: HTMLProgressElement | null = null;
 
 function onLoadProgress(p: { progress: number; text: string }): void {
   if (!loadCard) {
+    // Cache honesty (WebLLM 0.2.84 exposes no reliable disk-cache-hit signal, so
+    // we never claim "already cached" before the first load completes). Size is
+    // the registry hint for the chosen model, not a hardcoded number.
+    const size = DEMO_LOCAL_MB != null ? `~${DEMO_LOCAL_MB} MB` : "the model";
     loadCard = addCard(
-      `Downloading Llama-3.2-1B (664 MB, one-time — cached for next visits)
+      `First run downloads ${DEMO_LOCAL_NAME} (${size}) — cached after, so later visits skip this.
        <progress max="1" value="0"></progress><span class="mono dim load-text"></span>`,
       "load-card",
     );
@@ -399,6 +489,9 @@ const history: { role: "user" | "assistant"; content: string }[] = [];
 
 async function boot(): Promise<void> {
   const ludion = await Ludion.create({
+    // Explicit smallest-viable on-device model for the demo (Commit C); see
+    // DEMO_LOCAL_MODEL_ID above for the one-line revert to the 1B default.
+    localModel: DEMO_LOCAL_WEBLLM_ID,
     // Local savings ledger is default-on inside the router (fed by the decision
     // sink), so no manual onDecision→ledger wiring here — the /savings page
     // reads what the sink records. Counts/metadata only, localStorage, never
@@ -464,6 +557,10 @@ async function send(ludion: Ludion, content: string, display?: string): Promise<
     // flipped the effective target.
     if (log.degraded) setInstrument("server");
     addStripCard(log);
+    // Session tally: a degrade to server counts as a server fallback, not a
+    // browser-routed avoid.
+    if (log.target === "server" || log.degraded === "local→server") tallyServerRoute();
+    else tallyLocalRoute(taskApiCostUsd(log));
   } catch (e) {
     clearLoadCard();
     // F-3: no endpoint configured and the policy wants the server. The 0.1.1
@@ -471,6 +568,7 @@ async function send(ludion: Ludion, content: string, display?: string): Promise<
     if (e instanceof LudionNoFallbackConfigured) {
       setInstrument("server");
       addServerNeedsEndpointCard(e.rule_id);
+      tallyServerRoute(); // routed to server (even though it didn't execute)
       history.pop(); // request never executed
       return;
     }
