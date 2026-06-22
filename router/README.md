@@ -108,73 +108,6 @@ prefixed `ludion-router:` and names the HTTP status (e.g.
 `ludion-router: fallback endpoint HTTP 404`) — it is **not** a typed class, so
 catch relay failures by prefix/status, not `instanceof`.
 
-## OpenAI drop-in (supported surface)
-
-Existing OpenAI code can route through Ludion by changing one import line:
-
-```js
-import OpenAI from "https://esm.run/ludion-router/openai";
-const client = new OpenAI({ apiKey, baseURL });
-const res = await client.chat.completions.create({ model: "gpt-4o", messages });
-// res is OpenAI-shaped; res._ludion carries the routing DecisionLog.
-```
-
-The caller model string is the fallback target, not a forced value and not
-mapped onto the device. On-device requests run the configured local model where
-the policy is eligible; everything else degrades to the named model at baseURL.
-
-This surface is intentionally small, and it fails loudly rather than silently
-dropping input it cannot honor. The contract:
-
-- Supported params: `messages`, `model`, `stream`, `temperature`, `max_tokens`
-  (or `max_completion_tokens`), and the Ludion extension `ludion`.
-- Correctness-affecting params throw `LudionUnsupportedParamError` before any
-  inference runs, naming the offending param(s): `tools`, `tool_choice`,
-  `functions`, `function_call`, `response_format`, `n`, `logprobs`,
-  `top_logprobs`, `logit_bias`. Ignoring these would change what the model is
-  asked to do or return, so a silent drop is treated as a defect.
-- Best-effort params (`seed`, `stop`, `presence_penalty`, `frequency_penalty`)
-  and any unknown param (for example `user`) warn once by name and then run.
-  Quality may differ but the response shape is unaffected.
-- Streaming returns a bare async iterable. Use `for await`. The OpenAI stream
-  helpers `.tee()`, `.controller`, and `.toReadableStream()` are not provided.
-- Errors are Ludion error classes (and `ludion-router:` prefixed network
-  errors), not OpenAI `APIError` with a `.status` field.
-- Method coverage is `client.chat.completions.create` only. Other namespaces
-  (`completions`, `embeddings`, `models`, `responses`, `.beta`) are absent.
-
-## Runtime config (no reload)
-
-Routing and fallback config can be supplied from outside `create()` and changed
-at runtime. The facade reads the active config source **on every request**, so a
-setting changed in your UI is honored by the very next request with no
-`location.reload()`. Precedence is per field: `create()`-time `fallback` wins for
-the fields it carries, the injected config fills the rest.
-
-- `setDropinConfig({ fallback, policy })` installs an in-memory config (validated,
-  versioned). Nothing is persisted.
-- `setConfigSource(source)` swaps in your own `ConfigSource` (`{ get(): config | null }`).
-- `createStorageConfigSource({ storage?, key? })` returns a `ConfigSource` backed
-  by browser storage (defaults to `localStorage` under `ludion.config.v1`).
-  `get()` reads and validates on every call; a corrupt or out-of-version value
-  falls back to defaults and warns once.
-- `writeDropinConfig(config, { storage?, key? })` validates then persists (pass
-  `null` to clear). Validation happens before the write, so a bad value never
-  persists.
-
-Typical wiring: `setConfigSource(createStorageConfigSource())` once at startup,
-then `writeDropinConfig(...)` from your settings UI on save.
-
-An apiKey supplied through any of these stays client-side and is sent only to
-your own baseURL as a Bearer header. It is never stored or logged by Ludion
-itself. Persistence is opt-in via `createStorageConfigSource`/`writeDropinConfig`.
-
-HONEST TRADEOFF: a key persisted to `localStorage` is readable by any script on
-your origin (XSS-exfiltratable). That default suits a developer tool, not
-end-user secret storage. For per-tab persistence pass `{ storage: sessionStorage }`;
-for no persistence keep the in-memory default. Real secrets belong behind a
-server-side relay so the key never reaches the browser (see the recipes below).
-
 ## Fallback endpoint: browser CORS is REQUIRED
 
 The browser calls the configured `/chat/completions` URL directly with `fetch`.
@@ -283,7 +216,7 @@ downloaded JSON to `bench/results/` still works — naming convention in
   with the provider key in server-side env, never in client code.
 - **Policy v0 is a 2-point interpolation in places** (e.g. the Android prompt
   threshold sits between two measured points; the region between is unmeasured).
-- **Not production-hardened.** v0.1.0 is a measured starting point, not a
+- **Not production-hardened.** v0.3.0 is a measured starting point, not a
   battle-tested router.
 
 ## License

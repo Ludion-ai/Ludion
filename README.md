@@ -216,7 +216,7 @@ downloaded JSON to `bench/results/` still works — naming convention in
   with the provider key in server-side env, never in client code.
 - **Policy v0 is a 2-point interpolation in places** (e.g. the Android prompt
   threshold sits between two measured points; the region between is unmeasured).
-- **Not production-hardened.** v0.1.0 is a measured starting point, not a
+- **Not production-hardened.** v0.3.0 is a measured starting point, not a
   battle-tested router.
 
 ## License
