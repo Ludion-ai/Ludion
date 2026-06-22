@@ -1,6 +1,7 @@
 import { validateBenchDocument } from "../../bench/src/schema";
-import { validateDecisionBatch } from "../../shared/src/telemetry";
+import { validateDecisionBatch, type DecisionEvent } from "../../shared/src/telemetry";
 import { readAggregate, rebuildAggregate } from "./aggregate";
+import { readDecisionAggregate, recordDecisionAggregate } from "./decisions";
 
 /**
  * ludion-collector — Gate 2.7 submission intake (Cloudflare Worker).
@@ -328,10 +329,16 @@ async function handleDecisions(request: Request, env: CollectorEnv): Promise<Res
   // field is an unlabeled bimodal mixture (see DecisionEvent.load_total_ms in
   // shared); any later summary must be p50/p90 via summarizeLoadTotalMs over
   // the raw events stored above, not an average computed at ingest.
-  const eventCount = (batch as { events: unknown[] }).events.length;
+  const events = (batch as { events: DecisionEvent[] }).events;
+  const eventCount = events.length;
   await bumpCounter(env.COLLECTOR_KV, rateKey, RATE_TTL_SECONDS);
   await bumpCounterBy(env.COLLECTOR_KV, `decisions:project:${projectId}`, eventCount);
   const total = await bumpCounterBy(env.COLLECTOR_KV, DECISIONS_STATS_KEY, eventCount);
+
+  // Per-project content-free aggregate for the /app "Project" scope: counts,
+  // savings token sums, and the recent-N ring. Incremental KV (no R2 scan);
+  // fail-open so it never turns an accepted ingest into an error.
+  await recordDecisionAggregate(env.COLLECTOR_KV, projectId, events);
 
   return new Response(JSON.stringify({ ok: true, stored_events: eventCount, total_events: total }), {
     status: 200,
@@ -339,7 +346,28 @@ async function handleDecisions(request: Request, env: CollectorEnv): Promise<Res
   });
 }
 
-async function handleAggregate(request: Request, env: CollectorEnv): Promise<Response> {
+async function handleAggregate(request: Request, env: CollectorEnv, url: URL): Promise<Response> {
+  const cors = corsHeaders(request, env);
+  // `?projectId=` selects the per-project decision aggregate (the /app "Project"
+  // scope); no param keeps the existing bench rollup. No admin token either way —
+  // both surfaces are derived, content-free public data.
+  const projectId = url.searchParams.get("projectId");
+  if (projectId !== null) {
+    if (!PROJECT_ID_RE.test(projectId)) {
+      return errorResponse(400, "invalid_project", "projectId must be 1-64 chars of [A-Za-z0-9_-]", cors);
+    }
+    const aggregate = await readDecisionAggregate(env.COLLECTOR_KV, projectId);
+    return new Response(JSON.stringify(aggregate), {
+      status: 200,
+      headers: {
+        "content-type": "application/json",
+        // Incrementally maintained in KV; O(1) read. Short cache so the dogfood
+        // dashboard reflects fresh decisions without hammering the worker.
+        "Cache-Control": "public, max-age=30",
+        ...cors,
+      },
+    });
+  }
   const aggregate = await readAggregate(env);
   return new Response(JSON.stringify(aggregate), {
     status: 200,
@@ -348,7 +376,7 @@ async function handleAggregate(request: Request, env: CollectorEnv): Promise<Res
       // Precomputed in KV; O(1) per request regardless of submission count, and
       // edge/browser cache holds it for 300s (decisions OQ2; stale is accepted, F-8).
       "Cache-Control": "public, max-age=300",
-      ...corsHeaders(request, env),
+      ...cors,
     },
   });
 }
@@ -451,7 +479,7 @@ export async function handleRequest(
     if (request.method !== "GET") {
       return errorResponse(405, "method_not_allowed", "use GET", { Allow: "GET" });
     }
-    return handleAggregate(request, env);
+    return handleAggregate(request, env, url);
   }
   if (url.pathname.startsWith("/v1/admin/")) {
     if (request.method !== "GET") {

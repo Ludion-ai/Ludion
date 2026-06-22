@@ -203,3 +203,84 @@ describe("/v1/stats decision observability", () => {
     expect(json.decisions_project).toBe(2);
   });
 });
+
+describe("GET /v1/aggregate?projectId=", () => {
+  it("rejects an invalid projectId without touching KV", async () => {
+    const res = await handleRequest(
+      new Request("https://collector.test/v1/aggregate?projectId=../etc"),
+      makeEnv(),
+    );
+    expect(res.status).toBe(400);
+    expect((await res.json()).error.code).toBe("invalid_project");
+  });
+
+  it("returns an empty-but-valid shell for a project with no ingestion", async () => {
+    const res = await handleRequest(
+      new Request("https://collector.test/v1/aggregate?projectId=proj-fresh"),
+      makeEnv(),
+    );
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json.schema).toBe("ludion.decisions.aggregate.v0");
+    expect(json.routed).toBe(0);
+    expect(json.recent).toEqual([]);
+  });
+
+  it("builds a content-free per-project aggregate at ingest (counts, savings, recent)", async () => {
+    const env = makeEnv();
+    await post(
+      env,
+      JSON.stringify(
+        batch({
+          projectId: "proj-abc",
+          events: [
+            event({ route: "local", model: "qwen2.5-0.5b", input_tokens: 10, output_tokens: 20 }),
+            event({ route: "fallback", model: "claude-haiku", input_tokens: 5, output_tokens: 7 }),
+            event({ route: "error", model: "claude-haiku" }),
+          ],
+        }),
+      ),
+    );
+    const res = await handleRequest(
+      new Request("https://collector.test/v1/aggregate?projectId=proj-abc"),
+      env,
+    );
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json.routed).toBe(2);
+    expect(json.on_device).toBe(1);
+    expect(json.fallback).toBe(1);
+    expect(json.success).toBe(2);
+    expect(json.error).toBe(1);
+    // Only local rows feed the savings token sums.
+    expect(json.saved_tokens_in).toBe(10);
+    expect(json.saved_tokens_out).toBe(20);
+    expect(json.by_model).toEqual({ "qwen2.5-0.5b": 1, "claude-haiku": 1 });
+    expect(json.recent).toHaveLength(3);
+    // Content-free: only the allow-listed row fields, oldest-first.
+    expect(Object.keys(json.recent[0]).sort()).toEqual(
+      ["model", "route", "t", "tokens_in", "tokens_out"].sort(),
+    );
+    expect(json.recent[0].route).toBe("local");
+  });
+
+  it("accumulates across batches and caps the recent ring", async () => {
+    const env = makeEnv();
+    await post(env, JSON.stringify(batch({ projectId: "proj-ring", events: [event(), event()] })));
+    await post(env, JSON.stringify(batch({ projectId: "proj-ring", events: [event()] })));
+    const res = await handleRequest(
+      new Request("https://collector.test/v1/aggregate?projectId=proj-ring"),
+      env,
+    );
+    const json = await res.json();
+    expect(json.routed).toBe(3);
+    expect(json.recent.length).toBeLessThanOrEqual(50);
+    expect(json.recent).toHaveLength(3);
+  });
+
+  it("still serves the bench rollup when no projectId is given", async () => {
+    const res = await handleRequest(new Request("https://collector.test/v1/aggregate"), makeEnv());
+    expect(res.status).toBe(200);
+    expect((await res.json()).schema).toBe("ludion.aggregate.v0");
+  });
+});
