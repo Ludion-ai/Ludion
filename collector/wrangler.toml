@@ -13,7 +13,7 @@ compatibility_date = "2026-05-03"
 [vars]
 # Browser origins allowed to submit / read stats (decisions F-2).
 # Operator-editable; local dev overrides live in .dev.vars (gitignored).
-ALLOWED_ORIGINS = "https://ludion-bench.pages.dev,https://ludion-demo.pages.dev"
+ALLOWED_ORIGINS = "https://ludion.ai,https://ludion-bench.pages.dev,https://ludion-demo.pages.dev"
 
 [[kv_namespaces]]
 binding = "COLLECTOR_KV"
