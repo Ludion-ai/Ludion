@@ -48,11 +48,23 @@ const DEMO_LOCAL_NAME = demoModel.display_name;
 const DEMO_LOCAL_MB = demoModel.min_memory_hint_mb ?? null;
 
 // Grounded, attributed dollar estimate (DEMO ONLY): the would-be API cost of a
-// task's ACTUAL tokens on a NAMED comparison model, using real registry pricing.
-// gpt-4o-mini is a cheap mainstream default — a conservative comparison, not the
-// priciest model, so the figure never overstates what was avoided.
-const COMPARE_MODEL_ID = "gpt-4o-mini";
-const COMPARE_PRICING = getModelPricing(COMPARE_MODEL_ID); // PriceRow | undefined
+// task's ACTUAL tokens on a SELECTED comparison model, using real registry
+// pricing. The comparison model is user-selectable (selector below). We do NOT
+// default to the cheapest: the honest comparison is "what the dev would
+// otherwise call", which is usually a larger model — defaulting to gpt-4o-mini
+// would minimize the shown savings.
+const COMPARE_CANDIDATE_IDS = ["gpt-4o", "claude-sonnet", "gpt-4o-mini"];
+// Keep only candidates that actually have pricing in pricing.json (omit, never
+// fake, a missing one).
+const COMPARE_OPTION_IDS = COMPARE_CANDIDATE_IDS.filter(
+  (id) => getModelPricing(id) !== undefined && getModel(id) !== undefined,
+);
+// Default to a mid/realistic option (gpt-4o), not the cheapest; fall back to the
+// first available if gpt-4o has no pricing.
+let selectedCompareId = COMPARE_OPTION_IDS.includes("gpt-4o")
+  ? "gpt-4o"
+  : (COMPARE_OPTION_IDS[0] ?? "gpt-4o");
+const selectedPricing = () => getModelPricing(selectedCompareId);
 
 // Spec B step 1: the demo's fallback config lives behind the router's runtime
 // config seam, persisted to localStorage under "ludion.config.v1". The facade
@@ -329,14 +341,23 @@ function fmt(n: number | null, digits = 0): string {
   return n === null ? "–" : n.toFixed(digits);
 }
 
-// Would-be API cost of THIS task on the comparison model, from real tokens.
-// tokens_in/out may be estimated (then tokens_in backfills from est_prompt_tokens
-// per DecisionLog.tokens_source); null pricing → no estimate (reported, not faked).
+// Tokens this request would have billed on a comparison API. tokens_in/out may
+// be estimated (then tokens_in backfills from est_prompt_tokens per
+// DecisionLog.tokens_source). Dollars are derived from these tokens at the
+// SELECTED model's pricing, so changing the selector re-prices live.
+function tokensOf(log: DecisionLog): { tin: number; tout: number } {
+  return { tin: log.tokens_in ?? log.est_prompt_tokens, tout: log.tokens_out ?? 0 };
+}
+function costUsd(tin: number, tout: number, price: { input_per_1m: number; output_per_1m: number }): number {
+  return (tin / 1e6) * price.input_per_1m + (tout / 1e6) * price.output_per_1m;
+}
+// Would-be API cost of THIS task on the currently selected model (null = no
+// pricing for the selection → no estimate, reported not faked).
 function taskApiCostUsd(log: DecisionLog): number | null {
-  if (!COMPARE_PRICING) return null;
-  const tokensIn = log.tokens_in ?? log.est_prompt_tokens;
-  const tokensOut = log.tokens_out ?? 0;
-  return (tokensIn / 1e6) * COMPARE_PRICING.input_per_1m + (tokensOut / 1e6) * COMPARE_PRICING.output_per_1m;
+  const p = selectedPricing();
+  if (!p) return null;
+  const { tin, tout } = tokensOf(log);
+  return costUsd(tin, tout, p);
 }
 
 function usd(n: number): string {
@@ -345,22 +366,85 @@ function usd(n: number): string {
   return "<$0.0001";
 }
 
-// --- session counter (Commit C): client-side, this tab only --------------------
-const counter = { total: 0, browser: 0, server: 0, avoidedUsd: 0 };
+// --- session counter + scale projection (Commit C) -----------------------------
+// Client-side, this tab only. We accumulate raw TOKENS (not dollars) so the
+// dollar figures re-price instantly when the comparison model changes.
+const counter = { total: 0, browser: 0, server: 0, sumTokensIn: 0, sumTokensOut: 0 };
+
+// Scale projection — math replicated from demo/src/dashboard/overview.ts
+// (projectionLine / PROJECTION_REQ_PER_DAY): a module-private helper there over
+// SavingsSummary, so it can't be imported; the formula is per-request saving ×
+// 1,000 req/day × 30 days. Labeled as a projection at an assumed volume.
+const PROJECTION_REQ_PER_DAY = 1000;
+
+function sessionAvoidedUsd(): number | null {
+  const p = selectedPricing();
+  if (!p) return null;
+  return costUsd(counter.sumTokensIn, counter.sumTokensOut, p);
+}
+function monthlyProjectionUsd(): number | null {
+  const avoided = sessionAvoidedUsd();
+  if (avoided === null || counter.browser === 0) return null;
+  const perReq = avoided / counter.browser;
+  return perReq * PROJECTION_REQ_PER_DAY * 30;
+}
+
 let counterCard: HTMLElement | null = null;
+let counterStatsEl: HTMLElement | null = null;
+
+// One persistent card holding the comparison-model selector (created once, never
+// overwritten so its listener survives) plus a stats line that we re-render.
+function ensureCounterCard(): void {
+  if (counterCard) return;
+  counterCard = addCard("", "session-counter");
+
+  if (COMPARE_OPTION_IDS.length > 0) {
+    const label = document.createElement("label");
+    label.className = "mono dim";
+    label.textContent = "compare vs ";
+    const sel = document.createElement("select");
+    for (const id of COMPARE_OPTION_IDS) {
+      const p = getModelPricing(id)!;
+      const m = getModel(id)!;
+      const opt = document.createElement("option");
+      opt.value = id;
+      opt.textContent = `${m.display_name} ($${p.input_per_1m}/$${p.output_per_1m} per 1M)`;
+      if (id === selectedCompareId) opt.selected = true;
+      sel.appendChild(opt);
+    }
+    sel.addEventListener("change", () => {
+      selectedCompareId = sel.value;
+      renderCounter(); // re-price session avoided + projection against the new model
+    });
+    label.appendChild(sel);
+    counterCard.appendChild(label);
+  }
+
+  counterStatsEl = document.createElement("div");
+  counterCard.appendChild(counterStatsEl);
+}
 
 function renderCounter(): void {
+  ensureCounterCard();
+  const p = selectedPricing();
+  const avoided = sessionAvoidedUsd();
+  const monthly = monthlyProjectionUsd();
+
   const savings =
-    COMPARE_PRICING && counter.browser > 0
-      ? ` · <strong>${usd(counter.avoidedUsd)} avoided</strong> vs ${COMPARE_PRICING.label} API`
+    p && avoided !== null && counter.browser > 0
+      ? ` · <strong>${usd(avoided)} avoided</strong> vs ${p.label} (${p.price_as_of})`
       : "";
-  const html =
+  const projection =
+    monthly !== null
+      ? `<br /><span class="mono dim">projection — at ${PROJECTION_REQ_PER_DAY.toLocaleString("en-US")} req/day ≈ <strong>${usd(monthly)}/mo</strong> avoided (assumed volume, not measured)</span>`
+      : "";
+
+  counterStatsEl!.innerHTML =
     `<span class="mono dim">session</span> · total ${counter.total} · browser-routed ${counter.browser} · ` +
-    `server fallback ${counter.server} · <strong>server calls avoided ${counter.browser}</strong>${savings}`;
-  if (!counterCard) counterCard = addCard(html, "session-counter");
-  else counterCard.innerHTML = html;
-  chatEl.appendChild(counterCard); // keep the tally at the bottom of the feed
-  counterCard.scrollIntoView({ block: "end" });
+    `server fallback ${counter.server} · <strong>server calls avoided ${counter.browser}</strong>${savings}${projection}`;
+
+  chatEl.appendChild(counterCard!); // keep the tally at the bottom of the feed
+  counterCard!.scrollIntoView({ block: "end" });
 }
 
 // Fold a completed/attempted request into the session tally.
@@ -369,10 +453,12 @@ function tallyServerRoute(): void {
   counter.server += 1;
   renderCounter();
 }
-function tallyLocalRoute(costUsd: number | null): void {
+function tallyLocalRoute(log: DecisionLog): void {
   counter.total += 1;
   counter.browser += 1;
-  if (costUsd !== null) counter.avoidedUsd += costUsd;
+  const { tin, tout } = tokensOf(log);
+  counter.sumTokensIn += tin;
+  counter.sumTokensOut += tout;
   renderCounter();
 }
 
@@ -389,15 +475,17 @@ function addStripCard(log: DecisionLog): void {
     "decision-row",
   );
 
-  // Grounded dollar estimate for a request that actually ran on-device.
-  if (log.target === "local" && !log.degraded && COMPARE_PRICING) {
+  // Grounded dollar estimate for a request that actually ran on-device, priced
+  // against the currently selected comparison model (a per-request snapshot;
+  // the live session avoided/projection in the counter re-price on selection).
+  const price = selectedPricing();
+  if (log.target === "local" && !log.degraded && price) {
     const cost = taskApiCostUsd(log);
     if (cost !== null) {
-      const tin = log.tokens_in ?? log.est_prompt_tokens;
-      const tout = log.tokens_out ?? 0;
+      const { tin, tout } = tokensOf(log);
       addCard(
-        `<span class="mono dim">this task ≈ ${usd(cost)} on ${COMPARE_PRICING.label} via the API ` +
-          `(${tin}+${tout} tok @ $${COMPARE_PRICING.input_per_1m}/$${COMPARE_PRICING.output_per_1m} per 1M, ${COMPARE_PRICING.price_as_of}) · ` +
+        `<span class="mono dim">this task ≈ ${usd(cost)} on ${price.label} via the API ` +
+          `(${tin}+${tout} tok @ $${price.input_per_1m}/$${price.output_per_1m} per 1M, ${price.price_as_of}) · ` +
           `<strong>$0 on-device</strong> — estimate, not a quote.</span>`,
         "savings-estimate",
       );
@@ -517,6 +605,9 @@ async function boot(): Promise<void> {
     const content = inputEl.value.trim();
     if (content) submit(content);
   });
+  // Surface the comparison-model selector + (zeroed) tally up front so a visitor
+  // sets their comparison before running anything.
+  renderCounter();
 }
 
 async function send(ludion: Ludion, content: string, display?: string): Promise<void> {
@@ -560,7 +651,7 @@ async function send(ludion: Ludion, content: string, display?: string): Promise<
     // Session tally: a degrade to server counts as a server fallback, not a
     // browser-routed avoid.
     if (log.target === "server" || log.degraded === "local→server") tallyServerRoute();
-    else tallyLocalRoute(taskApiCostUsd(log));
+    else tallyLocalRoute(log);
   } catch (e) {
     clearLoadCard();
     // F-3: no endpoint configured and the policy wants the server. The 0.1.1
