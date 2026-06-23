@@ -542,14 +542,44 @@ interface Chip {
   desktopOnly?: boolean;
 }
 
+// Presets are TRANSFORMATION tasks: the model rewrites/condenses/labels text
+// that is supplied IN the prompt. A small on-device model handles these well
+// because they need no world-knowledge recall — unlike open-ended generation
+// ("explain X", "write a haiku"), which a 0.5B model answers confidently but
+// often wrong. Each chip carries its own short sample input so it runs as-is.
 const CHIPS: Chip[] = [
   {
-    label: "Explain browser AI (~100 words)",
-    prompt: "Explain how an AI model runs in a browser, in about 100 words.",
+    label: "Polish a rough message",
+    prompt:
+      'Rewrite this message to be clearer and more polite. ' +
+      'Reply with only the rewritten message:\n\n' +
+      '"hey i need that report asap, you were supposed to send it yesterday"',
   },
   {
-    label: "Haiku about deep water",
-    prompt: "Write a haiku about deep water.",
+    label: "Summarize a paragraph",
+    prompt:
+      'Summarize the text below in one sentence. Reply with only the summary:\n\n' +
+      'Our app runs AI models directly in your web browser using WebGPU. ' +
+      'There is no server to set up and no API key required — everything runs ' +
+      'on your own device, which keeps your data private and avoids per-request ' +
+      'cloud costs.',
+  },
+  {
+    label: "Extract keywords",
+    prompt:
+      'Extract 5 keywords from the text below. ' +
+      'Reply with only a comma-separated list:\n\n' +
+      'The trail climbs through old-growth forest before opening onto a ridge ' +
+      'with views of the coast. Bring water, sturdy boots, and a rain jacket — ' +
+      'the weather changes fast.',
+  },
+  {
+    label: "Classify sentiment",
+    prompt:
+      'Classify the sentiment of this review as positive, negative, or neutral. ' +
+      'Reply with only one word:\n\n' +
+      '"The battery dies in two hours and support never answered my emails. ' +
+      'Very disappointed."',
   },
   {
     label: "長文を要約 — long prompt → watch it route to server",
@@ -558,6 +588,14 @@ const CHIPS: Chip[] = [
     desktopOnly: true,
   },
 ];
+
+// Default prefill: a transformation task (tone polish) so the free-form input
+// demonstrates the demo's strength out of the box. Set here (not in demo.html)
+// to keep this change to a single owned file.
+const DEFAULT_PREFILL =
+  'Rewrite this message to be clearer and more polite. ' +
+  'Reply with only the rewritten message:\n\n' +
+  '"hey i need that report asap, you were supposed to send it yesterday"';
 
 function renderChips(ludion: Ludion, send: (content: string, display?: string) => void): void {
   for (const chip of CHIPS) {
@@ -600,6 +638,7 @@ async function boot(): Promise<void> {
     void send(ludion, content, display);
   };
   renderChips(ludion, submit);
+  if (!inputEl.value) inputEl.value = DEFAULT_PREFILL;
   composerEl.addEventListener("submit", (ev) => {
     ev.preventDefault();
     const content = inputEl.value.trim();
