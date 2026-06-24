@@ -69,6 +69,18 @@ export type FetchLike = (input: string, init: RequestInit) => Promise<Response>;
 
 const RELAY_PATH = "/chat/completions";
 
+// A chat-completion request is small; anything larger is almost certainly abuse.
+const MAX_BODY_BYTES = 32 * 1024; // 32 KB
+
+/** Minimal shape check: an OpenAI chat-completion body is a JSON object with a messages array. */
+function isChatBody(body: unknown): body is { messages: unknown[] } {
+  return (
+    typeof body === "object" &&
+    body !== null &&
+    Array.isArray((body as { messages?: unknown }).messages)
+  );
+}
+
 function allowedOrigins(env: RelayEnv): string[] {
   return env.ALLOWED_ORIGINS.split(",")
     .map((o) => o.trim())
@@ -198,7 +210,27 @@ export async function handleRelay(
     }
   }
 
+  // Body abuse guard (placed AFTER the auth/origin gates so unauthorized callers
+  // short-circuit first). Cap the size, then require a minimally well-formed
+  // chat-completion body. Cheap precheck on the declared Content-Length, then a
+  // hard cap on the actual decoded bytes (Content-Length may be absent or lie).
+  const declared = Number(request.headers.get("content-length"));
+  if (Number.isFinite(declared) && declared > MAX_BODY_BYTES) {
+    return errorResponse(413, "payload_too_large", "request body too large", cors);
+  }
   const body = await request.text();
+  if (new TextEncoder().encode(body).length > MAX_BODY_BYTES) {
+    return errorResponse(413, "payload_too_large", "request body too large", cors);
+  }
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(body);
+  } catch {
+    return errorResponse(400, "invalid_json", "invalid JSON body", cors);
+  }
+  if (!isChatBody(parsed)) {
+    return errorResponse(400, "invalid_body", "invalid chat-completion body", cors);
+  }
 
   // Provider key is injected here from the secret. The browser's Authorization
   // (relay token, if any) is intentionally NOT forwarded.

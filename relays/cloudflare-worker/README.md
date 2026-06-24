@@ -32,11 +32,15 @@ Read this before deploying. Do not overstate what you are getting.
   the real and only strong claim: it keeps your key off the client.
 - What it does not protect by itself: the relay token is visible to anyone using
   your app (view-source, network tab). CORS does not stop a non-browser caller
-  (curl or a server ignores it). So the relay endpoint is only as protected as
-  its token plus rate limiting. "Keeps your key off the client" is true. "Your
-  relay is secure" is not.
-- What to add for production: a rate limit (see below) and/or your own per-user
-  auth in front of the relay. Rotate `RELAY_TOKEN` if it leaks
+  (curl or a server ignores it). The token alone is NOT abuse control — a leaked
+  token lets one caller spend through the relay. The per-IP rate limit (below,
+  ON by default) is the abuse layer. "Keeps your key off the client" is true.
+  "Your relay is secure" is not.
+- Built-in guards: a 32 KB request-body cap (oversized bodies are rejected with
+  413 before the upstream call) and a per-IP rate limit that ships ON by default
+  (see below). Together they bound how much a leaked token can cost you.
+- What to add for production: tune the rate limit to your traffic and/or add your
+  own per-user auth in front of the relay. Rotate `RELAY_TOKEN` if it leaks
   (`wrangler secret put RELAY_TOKEN` again).
 
 ## Which registry models work through pure passthrough
@@ -86,13 +90,13 @@ carefully:
    npx wrangler deploy
    ```
 
-### Rate limit (optional, recommended for production)
+### Rate limit (ON by default)
 
-The token stops casual abuse, but a leaked token is still a token. Add a rate
-limit so a leaked token cannot drain your provider budget. The template uses the
-native Workers rate-limiting binding because it needs no resource creation, so
-enabling it stays a one-step deploy: uncomment the block in `wrangler.toml` and
-`wrangler deploy`.
+The token gate alone is NOT abuse control — a leaked token is still a token, and
+one caller can drain your provider budget. So the template ships a per-IP rate
+limit ENABLED by default, using the native Workers rate-limiting binding (no
+resource to create, so it stays a one-step deploy). It is already uncommented in
+`wrangler.toml`:
 
 ```toml
 [[ratelimits]]
@@ -101,11 +105,18 @@ namespace_id = "1001"
 simple = { limit = 60, period = 60 }
 ```
 
-The relay counts per client IP and returns 429 over the cap. Defaults to 60
-requests per 60 seconds. Adjust `limit` to taste; `period` accepts only 10 or 60
-seconds. Limiting is approximate and per-colo, so treat it as an abuse guard, not
-an exact quota. Remove the block to disable. If a deploy rejects the binding,
-check the binding syntax against your wrangler version's docs.
+The relay counts per client IP (`CF-Connecting-IP`) and returns 429 over the cap.
+The default is 60 requests per IP per 60 seconds — a deliberately safe starting
+point you should TUNE to your expected traffic. `period` accepts only 10 or 60
+seconds, and limiting is approximate and per-colo, so treat it as an abuse guard,
+not an exact quota.
+
+Escape hatch (do not leave it silently broken): if `wrangler deploy` REJECTS the
+`[[ratelimits]]` block (binding syntax varies by wrangler version), either update
+the syntax per your wrangler version's docs to keep the cap, OR explicitly comment
+the block out — which is a DELIBERATE choice to run with no rate limit, not an
+accident. The deploy failing loudly is intended; do not ship a relay whose only
+abuse control silently disappeared.
 
 ### Open relay (advanced, unsafe)
 
