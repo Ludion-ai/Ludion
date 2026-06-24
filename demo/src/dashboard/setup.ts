@@ -18,7 +18,7 @@ import type { LudionDropinConfig } from "ludion-router";
 import type { StoredConfig } from "ludion-workspace/schema";
 
 /** The one import-line swap that routes existing OpenAI code through Ludion. */
-export const IMPORT_LINE = "import OpenAI from 'https://esm.run/ludion-router/openai'";
+export const IMPORT_LINE = "import OpenAI from 'ludion-router/openai'";
 
 /** The public relay template repo Lattice mirrors relay-template/ to. */
 export const RELAY_TEMPLATE_REPO = "https://github.com/Ludion-ai/ludion-relay-template";

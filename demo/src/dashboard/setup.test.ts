@@ -197,7 +197,7 @@ describe("strip onboarding to the floor (Gate 6-C-2)", () => {
 });
 
 describe("integrationSnippet — personalized, real, runnable drop-in", () => {
-  const REAL_IMPORT = "import OpenAI from 'https://esm.run/ludion-router/openai';";
+  const REAL_IMPORT = "import OpenAI from 'ludion-router/openai';";
 
   it("relay configured: bakes relay URL + token + model into the real API", () => {
     const config: StoredConfig = {
