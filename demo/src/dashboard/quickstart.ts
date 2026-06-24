@@ -33,7 +33,7 @@ function pageHead(): HTMLElement {
   return head;
 }
 
-function dropinCard(snippet: ReturnType<typeof integrationSnippet>): HTMLElement {
+function dropinCard(snippet: ReturnType<typeof integrationSnippet>, token: string | null): HTMLElement {
   const c = card({ kicker: "1. Drop it in", span: 12 });
   const row = el("div", "lx-status-row");
   row.append(
@@ -53,7 +53,7 @@ function dropinCard(snippet: ReturnType<typeof integrationSnippet>): HTMLElement
         : "No relay yet, so this runs on-device only. Copy it to start; add a relay below for API fallback.",
     ),
   );
-  c.append(copyBlock(snippet.dropin, { label: "drop-in code" }));
+  c.append(copyBlock(snippet.dropin, { label: "drop-in code", secret: token }));
   return c;
 }
 
@@ -119,7 +119,7 @@ export function renderQuickstart(ctx: QuickstartContext): HTMLElement {
   const root = el("div");
   root.append(pageHead());
   const grid = el("div", "lx-grid");
-  grid.append(dropinCard(snippet));
+  grid.append(dropinCard(snippet, ctx.token));
   grid.append(usageCard(snippet));
   grid.append(notesCard(snippet.hasRelay));
   root.append(grid);

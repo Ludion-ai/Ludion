@@ -261,16 +261,74 @@ export function table(spec: TableSpec): HTMLElement {
   return scroll;
 }
 
+/** A short visual mask for a secret: first4…last4, or dots when very short. */
+function maskSecret(secret: string): string {
+  if (secret.length <= 8) return "•".repeat(Math.max(secret.length, 4));
+  return `${secret.slice(0, 4)}…${secret.slice(-4)}`;
+}
+
+/** A small eye / eye-off toggle icon. eye-off (with slash) means "click to hide". */
+function eyeIcon(revealed: boolean): SVGSVGElement {
+  const svg = svgEl("svg", { viewBox: "0 0 24 24", fill: "none", "aria-hidden": "true" });
+  svg.setAttribute("class", "lx-ic");
+  const paths = [
+    "M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z",
+    "M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6z",
+  ];
+  if (revealed) paths.push("M3 3l18 18");
+  for (const d of paths) {
+    svg.append(
+      svgEl("path", {
+        d,
+        stroke: "currentColor",
+        "stroke-width": 1.6,
+        "stroke-linecap": "round",
+        "stroke-linejoin": "round",
+      }),
+    );
+  }
+  return svg;
+}
+
 /**
  * A monospace, copy-to-clipboard block. The text is set via textContent (never
  * innerHTML), so config values and URLs are never interpolated into markup.
  * `inline` renders a single-line field (a command / URL); otherwise a pre block.
+ *
+ * `secret`: when given (and present in `text`), the block is MASKED by default —
+ * every occurrence of the secret is shown as `first4…last4`, with an eye toggle
+ * at the right edge that reveals/hides the plaintext (per-render state, never
+ * persisted). Copy ALWAYS copies the real `text`, never the masked form.
  */
-export function copyBlock(text: string, opts: { inline?: boolean; label?: string } = {}): HTMLElement {
+export function copyBlock(
+  text: string,
+  opts: { inline?: boolean; label?: string; secret?: string | null } = {},
+): HTMLElement {
   const wrap = el("div", opts.inline ? "lx-copy lx-copy-inline" : "lx-copy");
   const body = el(opts.inline ? "code" : "pre", "lx-copy-text");
-  body.textContent = text;
+  const secret = opts.secret;
+  const masking = typeof secret === "string" && secret.length > 0 && text.includes(secret);
+  const maskedText = masking ? text.split(secret).join(maskSecret(secret)) : text;
+  body.textContent = maskedText;
   wrap.append(body);
+
+  if (masking) {
+    let revealed = false;
+    const reveal = el("button", "lx-reveal-btn");
+    reveal.type = "button";
+    const sync = (): void => {
+      body.textContent = revealed ? text : maskedText;
+      reveal.setAttribute("aria-label", revealed ? "Hide relay token" : "Show relay token");
+      reveal.replaceChildren(eyeIcon(revealed));
+    };
+    reveal.addEventListener("click", () => {
+      revealed = !revealed;
+      sync();
+    });
+    sync();
+    wrap.append(reveal);
+  }
+
   const btn = el("button", "lx-copy-btn", "Copy");
   btn.type = "button";
   btn.setAttribute("aria-label", opts.label ? `Copy ${opts.label}` : "Copy");

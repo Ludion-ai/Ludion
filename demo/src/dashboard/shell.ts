@@ -66,6 +66,19 @@ function currentSection(fallbackId: string): string {
   return SECTIONS.some((s) => s.id === h) ? h : fallbackId;
 }
 
+/**
+ * Log out via the existing same-origin `POST /auth/logout` (Pages adapter →
+ * ludion-workspace handler). The backend clears the httpOnly session cookie
+ * (Max-Age=0) and 302-redirects to `/`; fetch follows that redirect, so the
+ * cookie is cleared by the time this resolves. We then navigate to `/` to land
+ * on the public page logged out. Throws on a failed request so the caller can
+ * surface it without faking success.
+ */
+async function postLogout(): Promise<void> {
+  const res = await fetch("/auth/logout", { method: "POST" });
+  if (!res.ok && !res.redirected) throw new Error(`logout ${res.status}`);
+}
+
 function topbar(identity: Identity): HTMLElement {
   const bar = el("header", "lx-topbar");
 
@@ -87,9 +100,60 @@ function topbar(identity: Identity): HTMLElement {
   const env = el("span", "lx-env", "Production");
   env.setAttribute("aria-disabled", "true");
   right.append(env);
-  const avatar = el("div", "lx-avatar", initials(identity.login));
+
+  // Account menu: the avatar triggers a tiny popover whose only action is logout
+  // (wired to the existing endpoint). Kept minimal — not a full account menu.
+  const account = el("div", "lx-account");
+  const avatar = el("button", "lx-avatar", initials(identity.login));
+  avatar.type = "button";
   avatar.title = identity.login;
-  right.append(avatar);
+  avatar.setAttribute("aria-label", `Account: ${identity.login}`);
+  avatar.setAttribute("aria-haspopup", "menu");
+  avatar.setAttribute("aria-expanded", "false");
+
+  const menu = el("div", "lx-account-menu");
+  menu.setAttribute("role", "menu");
+  menu.hidden = true;
+  menu.append(el("p", "lx-account-who", identity.login));
+  const logoutBtn = el("button", "lx-account-item", "Log out");
+  logoutBtn.type = "button";
+  logoutBtn.setAttribute("role", "menuitem");
+  const err = el("p", "lx-account-error");
+  err.hidden = true;
+  menu.append(logoutBtn, err);
+
+  const setOpen = (open: boolean): void => {
+    menu.hidden = !open;
+    avatar.setAttribute("aria-expanded", String(open));
+  };
+  avatar.addEventListener("click", (e) => {
+    e.stopPropagation();
+    setOpen(menu.hidden);
+  });
+  menu.addEventListener("click", (e) => e.stopPropagation());
+  document.addEventListener("click", () => setOpen(false));
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") setOpen(false);
+  });
+
+  logoutBtn.addEventListener("click", () => {
+    logoutBtn.disabled = true;
+    err.hidden = true;
+    void (async () => {
+      try {
+        await postLogout();
+        window.location.assign("/");
+      } catch {
+        // Keep the user where they are; surface the failure, allow a retry.
+        err.textContent = "Logout failed. Try again.";
+        err.hidden = false;
+        logoutBtn.disabled = false;
+      }
+    })();
+  });
+
+  account.append(avatar, menu);
+  right.append(account);
   bar.append(right);
 
   return bar;

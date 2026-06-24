@@ -179,6 +179,11 @@ body {
   border-radius: var(--lx-radius-sm);
 }
 
+.lx-account {
+  position: relative;
+  flex: 0 0 auto;
+}
+
 .lx-avatar {
   width: 30px;
   height: 30px;
@@ -190,6 +195,70 @@ body {
   color: var(--lx-text);
   background: var(--lx-surface-2);
   border: 1px solid var(--lx-border-2);
+  padding: 0;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.lx-avatar:hover {
+  border-color: var(--lx-text-3);
+}
+
+.lx-account-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 184px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px;
+  background: var(--lx-surface);
+  border: 1px solid var(--lx-border-2);
+  border-radius: var(--lx-radius-sm);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  z-index: 20;
+}
+
+.lx-account-who {
+  margin: 0;
+  padding: 6px 10px 8px;
+  border-bottom: 1px solid var(--lx-border);
+  font-family: var(--lx-mono);
+  font-size: 12px;
+  color: var(--lx-text-3);
+  word-break: break-all;
+}
+
+.lx-account-item {
+  width: 100%;
+  height: 34px;
+  padding: 0 10px;
+  margin-top: 2px;
+  text-align: left;
+  font-size: 13px;
+  font-family: inherit;
+  color: var(--lx-text);
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.lx-account-item:hover {
+  background: var(--lx-surface-2);
+}
+
+.lx-account-item:disabled {
+  color: var(--lx-text-3);
+  cursor: default;
+}
+
+.lx-account-error {
+  margin: 4px 0 2px;
+  padding: 0 10px;
+  font-size: 12px;
+  color: var(--lx-brand);
 }
 
 /* --- body: sidebar + outlet ---------------------------------------------- */
@@ -1073,6 +1142,35 @@ body {
 
 .lx-copy-btn:hover {
   color: var(--lx-text);
+}
+
+/* reveal (eye) toggle for masked secrets — sits left of Copy, same right edge */
+.lx-reveal-btn {
+  flex: 0 0 auto;
+  align-self: flex-start;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  color: var(--lx-text-3);
+  background: var(--lx-surface-2);
+  border: 1px solid var(--lx-border-2);
+  border-radius: var(--lx-radius-sm);
+  cursor: pointer;
+}
+
+.lx-copy-inline .lx-reveal-btn {
+  align-self: center;
+}
+
+.lx-reveal-btn:hover {
+  color: var(--lx-text);
+}
+
+.lx-reveal-btn .lx-ic {
+  width: 15px;
+  height: 15px;
 }
 
 /* deploy steps */
