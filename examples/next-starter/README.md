@@ -55,3 +55,12 @@ provider key server-side; the browser only ever talks to your own origin.
 The relay (`app/api/chat/route.ts`) is the
 [Next.js route-handler recipe](../../docs/recipes/nextjs-route-handler.md):
 browser → same-origin `/api/chat` → your provider. No CORS, no client-side key.
+
+Because that route holds your provider key, it ships with a **minimal abuse
+guard** so it can't be used as an open public relay (which would let an attacker
+page spend your credits from a victim's browser): it rejects cross-site requests
+(Origin/Referer must match this deployment), caps the request body at 32 KB, and
+requires a well-formed chat-completion body. Behind a proxy/CDN set `APP_ORIGIN`
+(e.g. `https://your-app.com`) so the origin check is exact; otherwise it falls
+back to the request `Host`. This is a starter-grade guard only — add rate
+limiting and real auth before putting a real budget behind it.
