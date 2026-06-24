@@ -7,3 +7,10 @@ dist/
 demo/public/qr.svg
 LUDION_INTEGRATION_AUDIT.md
 LUDION_AUDIT.md
+demo/.wrangler/
+examples/next-starter/package-lock.json
+demo/.wrangler/
+
+# Cloudflare Wrangler local state/build artifacts
+.wrangler/
+**/.wrangler/
