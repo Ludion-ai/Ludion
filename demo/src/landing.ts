@@ -111,36 +111,9 @@ function buildHero(): HTMLElement {
   s.append(ctas);
 
   const heroGrid = el("div", "ld-hero-grid");
-  heroGrid.append(buildExampleRun(), buildRoutingDiagram());
+  heroGrid.append(buildRoutingDiagram());
   s.append(heroGrid);
   return s;
-}
-
-function buildExampleRun(): HTMLElement {
-  const panel = el("section", "ld-example-run");
-  panel.append(el("span", "lx-kicker", "Example waste removed"));
-  const metrics = el("div", "ld-metrics");
-  metrics.append(metric("LLM calls", "100"));
-  metrics.append(metric("Browser-sized", "38"));
-  metrics.append(metric("Kept on server", "62"));
-  metrics.append(metric("Visible local failures", "0"));
-  metrics.append(metric("Cloud calls avoided", "38"));
-  panel.append(metrics);
-  panel.append(
-    el(
-      "p",
-      "ld-note",
-      "Actual savings depend on task mix, device mix, prompt length, model choice, and fallback policy.",
-    ),
-  );
-  return panel;
-}
-
-function metric(label: string, value: string): HTMLElement {
-  const item = el("div", "ld-metric");
-  item.append(el("strong", "ld-metric-value", value));
-  item.append(el("span", "ld-metric-label", label));
-  return item;
 }
 
 function buildRoutingDiagram(): HTMLElement {
@@ -201,6 +174,182 @@ function flowBranch(title: string, body: string): HTMLElement {
   b.append(el("strong", undefined, title));
   b.append(el("span", undefined, body));
   return b;
+}
+
+// --- capability checks lie (measured proof under the hero) ------------------
+
+const TINY_PROMPT = "Say hello in one short sentence.";
+
+/**
+ * The page's core, measured claim: a browser reporting WebGPU support is not
+ * the same as successfully running a small model. Part A lets the visitor run
+ * it on their own device (lazy — the engine is fetched only on click, never in
+ * the initial bundle, mirroring startDemo below). Part B is three real device
+ * runs from bench/results/; every number carries its source path in a comment.
+ */
+function buildCapabilityCheck(): HTMLElement {
+  const s = el("section", "ld-section ld-capability");
+  s.id = "capability";
+  s.append(el("h2", "ld-h2", "\u201cWebGPU supported\u201d is not \u201cthe model runs.\u201d"));
+  s.append(
+    el(
+      "p",
+      "ld-lead",
+      "Every device below reported WebGPU support. Only one of them actually ran a small model cleanly. Capability flags lie \u2014 so Ludion measures the real run instead of trusting the flag.",
+    ),
+  );
+
+  // Part A — the visitor runs it on their own device.
+  const live = el("div", "ld-cap-live");
+  const hasGpu =
+    typeof navigator !== "undefined" &&
+    "gpu" in navigator &&
+    Boolean((navigator as Navigator & { gpu?: unknown }).gpu);
+  live.append(el("p", "ld-cap-report lx-mono", `Your browser reports: WebGPU ${hasGpu ? "\u2705" : "\u274c"}`));
+  live.append(
+    el(
+      "p",
+      "ld-cap-hint",
+      hasGpu
+        ? "That flag only says the API exists. It does not say a model will load, run, or finish. See for yourself:"
+        : "No WebGPU here \u2014 Ludion would route this to your server fallback. On a WebGPU device, the question is whether it actually runs:",
+    ),
+  );
+  const run = el("button", "lx-btn lx-btn-primary ld-cap-run", "Run a tiny model in your browser \u2192");
+  run.type = "button";
+  live.append(run);
+  const stage = el("div", "ld-stage");
+  live.append(stage);
+  run.addEventListener("click", () => {
+    run.disabled = true;
+    void runTinyModel(stage, run);
+  });
+  s.append(live);
+
+  // Part B — three measured device runs, every number from bench/results/.
+  s.append(buildMeasuredComparison());
+  return s;
+}
+
+async function runTinyModel(stage: HTMLElement, run: HTMLButtonElement): Promise<void> {
+  stage.replaceChildren();
+  const status = el("p", "ld-demo-status lx-mono", "loading the router (model is fetched only on this click)\u2026");
+  stage.append(status);
+
+  // Lazy: the same on-demand WebLLM integration startDemo uses (dynamic
+  // import of ludion-router) — the engine never enters the initial bundle.
+  let mod: typeof import("ludion-router");
+  try {
+    mod = await import("ludion-router");
+  } catch (e) {
+    status.textContent = `could not load the demo: ${e instanceof Error ? e.message : String(e)}`;
+    run.disabled = false;
+    return;
+  }
+
+  const progress = el("div", "ld-progress");
+  const out = el("p", "ld-cap-out");
+  stage.append(progress, out);
+
+  try {
+    // No config source installed (same as startDemo): a server-routed device
+    // throws LudionNoFallbackConfigured — handled honestly below.
+    const ludion = await mod.Ludion.create({
+      onLocalLoadProgress: (p) => {
+        progress.replaceChildren();
+        const pct = Math.round((p.progress ?? 0) * 100);
+        progress.append(el("p", "lx-mono ld-progress-text", `${p.text || "downloading model"} \u2014 ${pct}%`));
+        const bar = el("div", "ld-bar");
+        const fill = el("div", "ld-bar-fill");
+        fill.style.width = `${pct}%`;
+        bar.append(fill);
+        progress.append(bar);
+      },
+    });
+    status.textContent = "running\u2026";
+    const startedAt = performance.now();
+    let ttftMs: number | null = null;
+    const stream = await ludion.chat.completions.create({
+      messages: [{ role: "user", content: TINY_PROMPT }],
+      max_tokens: 32,
+      stream: true,
+    });
+    let text = "";
+    for await (const chunk of stream) {
+      const delta = chunk.choices[0]?.delta?.content;
+      if (delta) {
+        if (ttftMs === null) ttftMs = performance.now() - startedAt;
+        text += delta;
+        out.textContent = text;
+      }
+    }
+    progress.replaceChildren();
+    status.textContent =
+      ttftMs === null
+        ? "the model loaded but produced no tokens on your device."
+        : `\u2705 ran on your device \u2014 first token in ${Math.round(ttftMs)} ms.`;
+  } catch (e) {
+    progress.replaceChildren();
+    if (e instanceof mod.LudionNoFallbackConfigured) {
+      status.textContent =
+        "your browser reports WebGPU, but the router did not run this locally on your device \u2014 it would route to your server fallback. That gap is the point.";
+    } else {
+      status.textContent = `stalled / failed on your device: ${
+        e instanceof Error ? `${e.name}: ${e.message}` : String(e)
+      }`;
+    }
+  } finally {
+    run.disabled = false;
+  }
+}
+
+function buildMeasuredComparison(): HTMLElement {
+  const wrap = el("div", "ld-cap-measured");
+  wrap.append(el("span", "lx-kicker ld-cap-measured-title", "Three real devices \u2014 all reported WebGPU \u2705"));
+
+  const rows: Array<{ device: string; outcome: string }> = [
+    {
+      device: "Desktop Chrome",
+      // desktop-chrome-20260610T102824.json $.runs[20].ttft_ms = 44
+      // (webllm Llama-3.2-1B, short prompt; sibling runs[18]=41, runs[19]=45 ms)
+      outcome: "ran clean \u2014 first token in 44 ms",
+    },
+    {
+      device: "iPhone 11 Pro Max (Safari)",
+      // iphone-11-pro-max-20260610T112313.json $.runs[0].error.error_name = "probable_oom_tab_kill"
+      // iphone-11-pro-max-20260610T111359.json $.runs[0].error.error_message = "Load failed"
+      // no run on this device produced a ttft_ms (NOT FOUND) — never a token
+      outcome: "tab killed mid-run \u2014 never produced a single token",
+    },
+    {
+      device: "Pixel 8a (Chrome)",
+      // pixel-8a-20260610T125416.json $.runs[3].ttft_ms = 77153  (= ~77 s)
+      // pixel-8a-20260610T125416.json $.runs[3].error = null → counts as "success" (no latency gate)
+      outcome: "\u201csucceeded\u201d \u2014 but first token took 77 s (reported success, unusable)",
+    },
+  ];
+
+  const list = el("div", "ld-cap-rows");
+  for (const r of rows) {
+    const row = el("div", "ld-cap-row");
+    row.append(el("span", "ld-cap-device", r.device));
+    row.append(el("span", "ld-cap-reported lx-mono", "WebGPU \u2705"));
+    row.append(el("span", "ld-cap-outcome", r.outcome));
+    list.append(row);
+  }
+  wrap.append(list);
+
+  // LINE in-app browser case as a one-line caption (not a 4th row):
+  // pixel-8a-line-iab-20260610T124347.json $.runs = [] (no run); $.operator_notes
+  // documents it reported webgpu:true then stalled mid-download.
+  wrap.append(
+    el(
+      "p",
+      "ld-cap-caption",
+      "Also measured: the LINE in-app browser on the same Pixel 8a reported WebGPU \u2705 too \u2014 then stalled mid-download and never ran. Every number above is a measured run in bench/results/.",
+    ),
+  );
+  return wrap;
 }
 
 // --- live on-device demo (the proof) ----------------------------------------
@@ -610,6 +759,7 @@ function mount(): void {
   root.append(buildNav());
   const main = el("main", "ld-main");
   main.append(buildHero());
+  main.append(buildCapabilityCheck());
   main.append(buildProblem());
   main.append(buildRoutedWork());
   main.append(buildHowItWorks());

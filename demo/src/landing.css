@@ -341,6 +341,90 @@
   transition: width 0.2s ease;
 }
 
+/* capability-vs-reality section (measured proof beneath the hero) */
+.ld-cap-live {
+  margin-top: 18px;
+  border: 1px solid var(--lx-border);
+  border-radius: var(--lx-radius);
+  background: var(--lx-surface);
+  padding: 18px;
+}
+
+.ld-cap-report {
+  font-size: 15px;
+  color: var(--lx-text);
+  margin: 0;
+}
+
+.ld-cap-hint {
+  color: var(--lx-text-3);
+  font-size: 14px;
+  margin: 6px 0 0;
+}
+
+.ld-cap-run {
+  margin-top: 14px;
+}
+
+.ld-cap-out {
+  margin: 12px 0 0;
+  white-space: pre-wrap;
+  color: var(--lx-text);
+}
+
+.ld-cap-measured {
+  margin-top: 24px;
+}
+
+.ld-cap-measured-title {
+  display: block;
+  margin-bottom: 12px;
+}
+
+.ld-cap-rows {
+  display: grid;
+  gap: 10px;
+}
+
+.ld-cap-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 2fr);
+  align-items: center;
+  gap: 14px;
+  border: 1px solid var(--lx-border);
+  border-radius: var(--lx-radius-sm);
+  background: var(--lx-surface);
+  padding: 12px 14px;
+}
+
+.ld-cap-device {
+  font-weight: 600;
+  color: var(--lx-text);
+}
+
+.ld-cap-reported {
+  color: var(--lx-text-3);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.ld-cap-outcome {
+  color: var(--lx-text-2);
+}
+
+.ld-cap-caption {
+  margin: 12px 0 0;
+  color: var(--lx-text-3);
+  font-size: 13px;
+}
+
+@media (max-width: 720px) {
+  .ld-cap-row {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+}
+
 .ld-ledger {
   color: var(--lx-text-2);
   font-size: 13px;
