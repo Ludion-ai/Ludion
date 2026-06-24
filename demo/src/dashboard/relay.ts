@@ -323,16 +323,40 @@ function assemblyCard(ctx: RelayContext): HTMLElement {
   const model = ctx.config?.fallback?.model;
   const base = relayBaseUrl(ctx.config);
   const missing: string[] = [];
-  if (!model) missing.push("a fallback model");
   if (!base) missing.push("a deployed relay URL");
+  if (!model) missing.push("a fallback model");
   if (!ctx.token) missing.push("a relay token");
+
+  // Until a relay URL exists, do NOT render a config: a lone
+  // { fallback: { apiKey } } reads as a leaked provider key sitting in the
+  // browser, when it is only the not-yet-usable relay token. Show what's needed.
+  if (!base) {
+    c.append(
+      el(
+        "p",
+        "lx-card-lead",
+        "Your drop-in ludion.config.v1 assembles here once the relay is set up. Deploy a relay and pick a fallback model above; the full config — your relay URL plus your client-side relay token — then appears ready to copy.",
+      ),
+    );
+    c.append(
+      el(
+        "p",
+        "lx-note",
+        "The relay token is a low-value, client-visible gate token (not your provider key) — it lives in your browser config by design and only authenticates to your relay.",
+      ),
+    );
+    c.append(el("p", "lx-note", `Still needed for a working setup: ${missing.join(", ")}.`));
+    c.append(el("p", "lx-form-label", "One import line"));
+    c.append(copyBlock(IMPORT_LINE, { inline: true, label: "import line" }));
+    return c;
+  }
 
   const assembled = assembleDropinConfig(ctx.config, ctx.token);
   c.append(
     el(
       "p",
       "lx-card-lead",
-      "Your client ludion.config.v1 — server fields plus the client-only token. The token lives here, never on a Ludion server.",
+      "Your client ludion.config.v1. The apiKey field holds your relay token — a low-value, client-visible token that only authenticates to your relay. Your provider key is NOT here; it stays in the Worker secret.",
     ),
   );
   c.append(copyBlock(JSON.stringify(assembled, null, 2), { label: "config" }));
