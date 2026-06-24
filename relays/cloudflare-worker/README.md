@@ -100,7 +100,7 @@ resource to create, so it stays a one-step deploy). It is already uncommented in
 
 ```toml
 [[ratelimits]]
-binding = "RATE_LIMITER"
+name = "RATE_LIMITER"
 namespace_id = "1001"
 simple = { limit = 60, period = 60 }
 ```

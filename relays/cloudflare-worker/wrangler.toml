@@ -50,6 +50,6 @@ ALLOWED_ORIGINS = "https://your-app.example"
 # this block out — which is a DELIBERATE choice to run with no rate limit, not an
 # accident. Failing loudly at deploy is intended.
 [[ratelimits]]
-binding = "RATE_LIMITER"
+name = "RATE_LIMITER"
 namespace_id = "1001"
 simple = { limit = 60, period = 60 }
