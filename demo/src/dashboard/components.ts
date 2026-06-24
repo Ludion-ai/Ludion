@@ -57,15 +57,29 @@ export function icon(name: string, cls = "lx-ic"): SVGSVGElement {
   return svg;
 }
 
-/** The brand hex mark, in brand red (colored via CSS `color`). */
+/**
+ * The brand hex-cluster mark — six flat-top hexagons, two-tone red. Inlined
+ * (byte-faithful) from assets/ludion-logo.svg so the fills stay theme-controlled
+ * via CSS vars (--lx-brand bright / --lx-brand-dark) rather than baked in. Sized
+ * by .lx-brand-mark (22px); the 0 0 900 900 viewBox scales to fit. LP + /app use
+ * this; the demo/savings keep their own blue <img> asset.
+ */
 export function hexMark(): SVGSVGElement {
-  const svg = svgEl("svg", { viewBox: "0 0 24 24", "aria-hidden": "true" });
+  const svg = svgEl("svg", { viewBox: "0 0 900 900", fill: "none", "aria-hidden": "true" });
   svg.setAttribute("class", "lx-brand-mark");
-  const hex = svgEl("path", {
-    d: "M12 2l8.66 5v10L12 22l-8.66-5V7L12 2z",
-    fill: "currentColor",
-  });
-  svg.append(hex);
+  const BRIGHT = "var(--lx-brand)";
+  const DARK = "var(--lx-brand-dark)";
+  const polys: ReadonlyArray<readonly [string, string]> = [
+    ["582.00,198.00 516.00,312.32 384.00,312.32 318.00,198.00 384.00,83.68 516.00,83.68", BRIGHT],
+    ["800.24,324.00 734.24,438.32 602.24,438.32 536.24,324.00 602.24,209.68 734.24,209.68", DARK],
+    ["800.24,576.00 734.24,690.32 602.24,690.32 536.24,576.00 602.24,461.68 734.24,461.68", BRIGHT],
+    ["582.00,702.00 516.00,816.32 384.00,816.32 318.00,702.00 384.00,587.68 516.00,587.68", DARK],
+    ["363.76,576.00 297.76,690.32 165.76,690.32 99.76,576.00 165.76,461.68 297.76,461.68", BRIGHT],
+    ["363.76,324.00 297.76,438.32 165.76,438.32 99.76,324.00 165.76,209.68 297.76,209.68", DARK],
+  ];
+  for (const [points, fill] of polys) {
+    svg.append(svgEl("polygon", { points, fill }));
+  }
   return svg;
 }
 

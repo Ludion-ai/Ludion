@@ -31,8 +31,10 @@
   --lx-text-2: #c2c2cb;
   --lx-text-3: #909099;
 
-  /* The one brand hue: deep blood-red. Also the genuine-error hue. */
-  --lx-brand: #c1121f;
+  /* The brand reds (finalized hex-cluster mark): bright + dark two-tone. The
+     bright tone is also the genuine-error hue. */
+  --lx-brand: #e8232b;
+  --lx-brand-dark: #9e1620;
   --lx-brand-ink: #ffffff;
   /* Success hue, used only for the relay "connected" status line. */
   --lx-ok: #3fb950;
