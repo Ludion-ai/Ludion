@@ -109,11 +109,18 @@ function buildHero(): HTMLElement {
   ctas.append(ctaLink("View GitHub", REPO));
   ctas.append(ctaLink("Get integration help", CONTACT_URL));
   s.append(ctas);
+  return s;
+}
 
+/**
+ * THE SAFETY LAYER diagram, in its original `ld-hero-grid` wrapper so its width
+ * and spacing are unchanged — only its position moves: it now renders after the
+ * capability section (problem first, then "how we solve it").
+ */
+function buildSafetyLayer(): HTMLElement {
   const heroGrid = el("div", "ld-hero-grid");
   heroGrid.append(buildRoutingDiagram());
-  s.append(heroGrid);
-  return s;
+  return heroGrid;
 }
 
 function buildRoutingDiagram(): HTMLElement {
@@ -760,6 +767,7 @@ function mount(): void {
   const main = el("main", "ld-main");
   main.append(buildHero());
   main.append(buildCapabilityCheck());
+  main.append(buildSafetyLayer());
   main.append(buildProblem());
   main.append(buildRoutedWork());
   main.append(buildHowItWorks());
