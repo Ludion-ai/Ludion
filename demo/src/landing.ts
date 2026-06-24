@@ -105,8 +105,7 @@ function buildHero(): HTMLElement {
   s.append(el("p", "ld-support", "Browser when safe. Server when needed. Measured every time."));
 
   const ctas = el("div", "ld-cta-row");
-  ctas.append(ctaLink("Try the demo", "/demo", true));
-  ctas.append(ctaLink("View GitHub", REPO));
+  ctas.append(ctaLink("View GitHub", REPO, true));
   ctas.append(ctaLink("Get integration help", CONTACT_URL));
   s.append(ctas);
   return s;
