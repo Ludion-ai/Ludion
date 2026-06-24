@@ -34,3 +34,7 @@ const ludion = await Ludion.create({
 
 A clone-and-run template with the Next.js relay already wired up lives at
 [`examples/next-starter/`](../../examples/next-starter/).
+
+Building a brand-new app and wiring it in from scratch (install → call from a UI
+handler → deploy a relay that allows your own origin → run on localhost)? See the
+full walkthrough: [Integrate into your own app](../integrate-external-app.md).

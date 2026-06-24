@@ -12,7 +12,7 @@
  *    fetches the relay, never the provider directly (that is the relay's point
  *    and §5). So the provider upstream never enters the client config.
  */
-import { listModels } from "ludion-router/registry";
+import { getModel, listModels } from "ludion-router/registry";
 import type { ModelEntry } from "ludion-router/registry";
 import type { LudionDropinConfig } from "ludion-router";
 import type { StoredConfig } from "ludion-workspace/schema";
@@ -22,6 +22,9 @@ export const IMPORT_LINE = "import OpenAI from 'ludion-router/openai'";
 
 /** The public relay template repo Lattice mirrors relay-template/ to. */
 export const RELAY_TEMPLATE_REPO = "https://github.com/Ludion-ai/ludion-relay-template";
+
+/** The from-scratch external-app integration walkthrough (docs/integrate-external-app.md). */
+export const WALKTHROUGH_URL = "https://github.com/Ludion-ai/Ludion/blob/main/docs/integrate-external-app.md";
 
 /**
  * The verified "Deploy to Cloudflare" button target for the relay template.
@@ -228,15 +231,23 @@ export function assembleDropinConfig(
  * a working integration. Generated live from the dev's stored config, in two
  * states:
  *  - relay configured (relay URL + token + fallback model all present): the full
- *    drop-in — `new OpenAI({ baseURL: <relay>, apiKey: <token> })` and a
- *    `create({ model: <fallback>, ... })` call. On-device first; the relay is
- *    the fallback. The token is client-side by design (it only authenticates to
- *    the relay, never reaches Ludion).
+ *    drop-in — `new OpenAI({ baseURL: <relay>, apiKey: <token> })` plus an
+ *    `ask(prompt)` handler wrapping the `create({ model, ... })` call — a
+ *    function the dev invokes on user action, NOT a module-top-level await (a
+ *    top-level await runs at import and crashes the app on the first failure).
+ *    On-device first; the relay is the fallback. The token is client-side by
+ *    design (it only authenticates to the relay, never reaches Ludion).
  *  - no relay yet: the on-device-only drop-in — `new OpenAI()` with no fallback,
- *    and a `create({ ..., ludion: { privacy: true } })` call that keeps the
- *    request on the device (a request that can't run on-device throws a typed
- *    error rather than an unauthenticated fetch). Add a relay to enable API
- *    fallback. We never emit a fallback snippet with empty relay fields.
+ *    and an `ask(prompt)` handler whose `create({ ..., ludion: { privacy: true } })`
+ *    call keeps the request on the device (a request that can't run on-device
+ *    throws a typed error rather than an unauthenticated fetch). Add a relay to
+ *    enable API fallback. We never emit a fallback snippet with empty relay fields.
+ *
+ * The baked `model` is resolved to the registry entry's `provider_model_id` (the
+ * REAL id the provider expects), because the router forwards the model string to
+ * the provider verbatim — a logical registry id like "claude-sonnet" would be
+ * rejected. For a non-registry model the snippet falls back to the raw id and a
+ * comment tells the dev to substitute their provider's real model id.
  *
  * Values are baked in literally because the dev's app runs on a different origin
  * than this workspace, so the persisted `ludion.config.v1` storage source is not
@@ -257,6 +268,10 @@ export function integrationSnippet(
 ): IntegrationSnippet {
   const importLine = `${IMPORT_LINE};`;
   const model = config?.fallback?.model;
+  // Bake the REAL provider id (registry provider_model_id), not the logical id:
+  // the router forwards the model string verbatim, so a logical id is rejected.
+  const providerModel =
+    typeof model === "string" && model.length > 0 ? (getModel(model)?.provider_model_id ?? model) : undefined;
   const relay = relayBaseUrl(config);
   const hasToken = typeof token === "string" && token.length > 0;
   const hasModel = typeof model === "string" && model.length > 0;
@@ -273,12 +288,17 @@ export function integrationSnippet(
       "});",
     ].join("\n");
     const usage = [
-      "const res = await client.chat.completions.create({",
-      `  model: ${JSON.stringify(model)}, // fallback target; on-device used where eligible`,
-      '  messages: [{ role: "user", content: "Hello from Ludion" }],',
-      "});",
-      "",
-      "console.log(res.choices[0].message.content);",
+      "// Call this from a UI handler (click, form submit) — never at module top level.",
+      "// A top-level await runs at import and takes your app down if the call fails.",
+      "export async function ask(prompt: string): Promise<string> {",
+      "  // model is sent to your provider verbatim. This is the real provider id for a",
+      "  // registry model; for your own provider/model, use your provider's real model id.",
+      "  const res = await client.chat.completions.create({",
+      `    model: ${JSON.stringify(providerModel)},`,
+      '    messages: [{ role: "user", content: prompt }],',
+      "  });",
+      '  return res.choices[0].message.content ?? "";',
+      "}",
     ].join("\n");
     return { hasRelay, dropin, usage };
   }
@@ -290,16 +310,24 @@ export function integrationSnippet(
     "// Add a relay (see Relay) to fall back to the API when a request can't run on-device.",
     "const client = new OpenAI();",
   ].join("\n");
-  const usageLines = ["const res = await client.chat.completions.create({"];
+  const usageLines = [
+    "// Call this from a UI handler (click, form submit) — never at module top level.",
+    "export async function ask(prompt: string): Promise<string> {",
+    "  const res = await client.chat.completions.create({",
+  ];
   if (hasModel) {
-    usageLines.push(`  model: ${JSON.stringify(model)}, // fallback target once you add a relay`);
+    usageLines.push(
+      "    // fallback target once you add a relay; sent to your provider verbatim — use a real",
+      "    // provider model id (replace if you use your own provider/model).",
+      `    model: ${JSON.stringify(providerModel)},`,
+    );
   }
   usageLines.push(
-    '  messages: [{ role: "user", content: "Hello from Ludion" }],',
-    "  ludion: { privacy: true }, // keep this request on-device for now",
-    "});",
-    "",
-    "console.log(res.choices[0].message.content);",
+    '    messages: [{ role: "user", content: prompt }],',
+    "    ludion: { privacy: true }, // keep this request on-device for now",
+    "  });",
+    '  return res.choices[0].message.content ?? "";',
+    "}",
   );
   return { hasRelay, dropin, usage: usageLines.join("\n") };
 }

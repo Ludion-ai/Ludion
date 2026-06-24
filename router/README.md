@@ -25,6 +25,11 @@ The same app, three environments — each response carries its routing decision:
 npm install ludion-router
 ```
 
+> **Integrating into your own app?** Full from-scratch walkthrough — install,
+> wire the call into a UI handler (not a top-level await), deploy a relay that
+> allows your own origin, run on localhost:
+> [docs/integrate-external-app.md](https://github.com/Ludion-ai/Ludion/blob/main/docs/integrate-external-app.md).
+
 Zero config, zero keys — local-only mode. On a WebGPU desktop this runs entirely
 on-device; on any machine **without** WebGPU (CI, many laptops, iOS) the policy
 routes to a server, and with no fallback configured that throws a typed
@@ -34,19 +39,22 @@ at the fallback example below:
 ```ts
 import { Ludion } from "ludion-router";
 
-const messages = [{ role: "user", content: "Write a haiku about the ocean." }];
-
-try {
-  const ludion = await Ludion.create();
-  const stream = await ludion.chat.completions.create({ messages, stream: true });
-  let text = "";
-  for await (const chunk of stream) text += chunk.choices[0]?.delta?.content ?? "";
-  console.log(text); // ran entirely on the user's GPU
-} catch (e) {
-  // No WebGPU + no fallback → the request routed to a server that isn't
-  // configured, so it throws LudionNoFallbackConfigured. Add a fallback
-  // (next example) to complete server-routed requests too.
-  console.error(e);
+// Call this from your app — a click handler, a route — not at module top level.
+// A top-level await runs at import and crashes your app if the call fails.
+async function ask() {
+  const messages = [{ role: "user", content: "Write a haiku about the ocean." }];
+  try {
+    const ludion = await Ludion.create();
+    const stream = await ludion.chat.completions.create({ messages, stream: true });
+    let text = "";
+    for await (const chunk of stream) text += chunk.choices[0]?.delta?.content ?? "";
+    console.log(text); // ran entirely on the user's GPU
+  } catch (e) {
+    // No WebGPU + no fallback → the request routed to a server that isn't
+    // configured, so it throws LudionNoFallbackConfigured. Add a fallback
+    // (next example) to complete server-routed requests too.
+    console.error(e);
+  }
 }
 ```
 
@@ -57,23 +65,26 @@ never in client code:
 ```ts
 import { Ludion } from "ludion-router";
 
-const ludion = await Ludion.create({
-  fallback: {
-    url: "/api/chat", // your relay proxy → your LLM provider (key server-side)
-    model: "your-server-model",
-  },
-});
+// Call this from your app, not at module top level.
+async function ask() {
+  const ludion = await Ludion.create({
+    fallback: {
+      url: "/api/chat", // your relay proxy → your LLM provider (key server-side)
+      model: "your-server-model",
+    },
+  });
 
-const stream = await ludion.chat.completions.create({
-  messages: [{ role: "user", content: "Hello!" }],
-  max_tokens: 256,
-  stream: true,
-});
+  const stream = await ludion.chat.completions.create({
+    messages: [{ role: "user", content: "Hello!" }],
+    max_tokens: 256,
+    stream: true,
+  });
 
-let text = "";
-for await (const chunk of stream) text += chunk.choices[0]?.delta?.content ?? "";
+  let text = "";
+  for await (const chunk of stream) text += chunk.choices[0]?.delta?.content ?? "";
 
-console.log(stream._ludion); // the decision log: target, rule_id, policy_version, ttft_ms, tps, ...
+  console.log(stream._ludion); // the decision log: target, rule_id, policy_version, ttft_ms, tps, ...
+}
 ```
 
 The relay is ~15 lines: copy one from
@@ -116,12 +127,18 @@ Existing OpenAI code can route through Ludion by changing one import line:
 import OpenAI from "ludion-router/openai";
 
 const client = new OpenAI({ apiKey, baseURL });
-const res = await client.chat.completions.create({ model: "gpt-4o", messages });
-// res is OpenAI-shaped; res._ludion carries the routing DecisionLog.
+
+// Call this from your app, not at module top level.
+async function ask() {
+  const res = await client.chat.completions.create({ model: "gpt-4o", messages });
+  // res is OpenAI-shaped; res._ludion carries the routing DecisionLog.
+}
 ```
 
-The caller `model` string is the fallback target, not a forced value and not
-mapped onto the device. On-device requests run the configured local model where
+The caller `model` string is the fallback target, passed through to your
+provider **verbatim** — use your provider's real model id (e.g. `gpt-4o`,
+`claude-3-5-sonnet-latest`), not an internal logical handle. It is not a forced
+value and not mapped onto the device. On-device requests run the configured local model where
 the policy is eligible; everything else degrades to the named model at `baseURL`.
 
 This surface is intentionally small, and it fails loudly rather than silently

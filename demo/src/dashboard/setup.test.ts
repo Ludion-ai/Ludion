@@ -199,10 +199,10 @@ describe("strip onboarding to the floor (Gate 6-C-2)", () => {
 describe("integrationSnippet — personalized, real, runnable drop-in", () => {
   const REAL_IMPORT = "import OpenAI from 'ludion-router/openai';";
 
-  it("relay configured: bakes relay URL + token + model into the real API", () => {
+  it("relay configured: bakes relay URL + token + the real provider model id into the real API", () => {
     const config: StoredConfig = {
       config_version: 1,
-      fallback: { model: "gpt-4o-mini", baseURL: "https://r.workers.dev" },
+      fallback: { model: "claude-sonnet", baseURL: "https://r.workers.dev" },
       relayUrl: "https://r.workers.dev",
     };
     const s = integrationSnippet(config, "tok_secret");
@@ -213,8 +213,12 @@ describe("integrationSnippet — personalized, real, runnable drop-in", () => {
     // The live config values, baked in literally (different origin → no shared storage).
     expect(s.dropin).toContain('baseURL: "https://r.workers.dev"');
     expect(s.dropin).toContain('apiKey: "tok_secret"');
-    // Usage exercises the real create() + response shape, with the fallback model.
-    expect(s.usage).toContain('model: "gpt-4o-mini"');
+    // Integration shape: a handler function, NOT a module-top-level await.
+    expect(s.usage).toContain("export async function ask(prompt: string)");
+    // (B) The baked model is the registry provider_model_id, not the logical id —
+    // the router forwards it verbatim, so the logical id would be rejected.
+    expect(s.usage).toContain('model: "claude-sonnet-4-6"');
+    expect(s.usage).not.toContain('model: "claude-sonnet"');
     expect(s.usage).toContain("client.chat.completions.create({");
     expect(s.usage).toContain("res.choices[0].message.content");
     // On-device only: no privacy hint forced when a relay can take the fallback.
@@ -230,7 +234,8 @@ describe("integrationSnippet — personalized, real, runnable drop-in", () => {
     // No relay URL or token leaks into the no-relay snippet.
     expect(s.dropin).not.toContain("baseURL");
     expect(s.dropin).not.toContain("apiKey");
-    // Real public per-request hint keeps it on-device; model shown as the future target.
+    // Integration shape + real public per-request hint keeps it on-device.
+    expect(s.usage).toContain("export async function ask(prompt: string)");
     expect(s.usage).toContain("ludion: { privacy: true }");
     expect(s.usage).toContain('model: "gpt-4o-mini"');
     expect(s.usage).toContain("res.choices[0].message.content");

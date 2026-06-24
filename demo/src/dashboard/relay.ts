@@ -17,6 +17,7 @@ import {
   IMPORT_LINE,
   PLAYGROUND_ORIGIN,
   TEMPLATE_DEFAULT_UPSTREAM,
+  WALKTHROUGH_URL,
   allowedOriginsSuggestion,
   assembleDropinConfig,
   deploySteps,
@@ -226,12 +227,13 @@ function deployCard(ctx: RelayContext): HTMLElement {
   }
   ul.append(upLi);
 
-  // §2.3 — origin cannot be known by Ludion; the template defaults to the
-  // playground so first-test verifies, and the dev adds their app origin.
+  // §2.3 — origin cannot be known by Ludion. Lead with the dev's OWN origin
+  // requirement (without it every browser call dies on CORS); the playground
+  // origin only matters when testing from this workspace.
   const orLi = el("li");
   orLi.append(
     document.createTextNode(
-      `ALLOWED_ORIGINS — defaults to the playground (${PLAYGROUND_ORIGIN}) so this verify works on first deploy. For production, set it to your app's origin: `,
+      `ALLOWED_ORIGINS — the origins YOUR app calls the relay from. Add your own dev and production origins (e.g. http://localhost:5173 for a Vite dev server), comma-separated, no trailing slash — without your origin, every browser call dies on CORS. The playground (${PLAYGROUND_ORIGIN}) only matters if you also test from here: `,
     ),
   );
   orLi.append(copyBlock(allowedOriginsSuggestion(location.origin), { inline: true, label: "allowed origins" }));
@@ -362,6 +364,23 @@ function assemblyCard(ctx: RelayContext): HTMLElement {
   c.append(copyBlock(JSON.stringify(assembled, null, 2), { label: "config" }));
   c.append(el("p", "lx-form-label", "One import line"));
   c.append(copyBlock(IMPORT_LINE, { inline: true, label: "import line" }));
+  // §5 — clarify the two config paths so an external app doesn't try to "drop in"
+  // a config it can never read. This JSON is the workspace-origin localStorage
+  // path; integrating your own app passes the values as constructor args in code.
+  const routeNote = el("p", "lx-note");
+  routeNote.append(
+    document.createTextNode(
+      "This ludion.config.v1 is read from this workspace's browser storage (the ludion.ai origin). Your own app runs on a different origin and can't read it — pass these values directly in code instead: new OpenAI({ baseURL: <relay>, apiKey: <relay token> }). Full walkthrough: ",
+    ),
+  );
+  const routeLink = el("a");
+  routeLink.href = WALKTHROUGH_URL;
+  routeLink.target = "_blank";
+  routeLink.rel = "noopener noreferrer";
+  routeLink.textContent = "Integrate into your own app";
+  routeNote.append(routeLink);
+  routeNote.append(document.createTextNode("."));
+  c.append(routeNote);
   if (missing.length > 0) {
     c.append(el("p", "lx-note", `Still needed for a working setup: ${missing.join(", ")}.`));
   } else {

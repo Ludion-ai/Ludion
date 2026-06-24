@@ -10,7 +10,7 @@
  */
 import { card, copyBlock, el } from "./components";
 import type { StoredConfig } from "ludion-workspace/schema";
-import { integrationSnippet } from "./setup";
+import { WALKTHROUGH_URL, integrationSnippet } from "./setup";
 
 export interface QuickstartContext {
   config: StoredConfig | null;
@@ -59,7 +59,13 @@ function dropinCard(snippet: ReturnType<typeof integrationSnippet>): HTMLElement
 
 function usageCard(snippet: ReturnType<typeof integrationSnippet>): HTMLElement {
   const c = card({ kicker: "2. Call it", span: 12 });
-  c.append(el("p", "lx-card-lead", "A chat completion looks exactly like the OpenAI SDK."));
+  c.append(
+    el(
+      "p",
+      "lx-card-lead",
+      "Call it from a UI handler — a click or form submit — never at module top level. The call itself is plain OpenAI shape.",
+    ),
+  );
   c.append(copyBlock(snippet.usage, { label: "usage example" }));
   return c;
 }
@@ -87,6 +93,23 @@ function notesCard(hasRelay: boolean): HTMLElement {
       "Your provider key never touches Ludion. It stays in your relay; the token in the snippet only authenticates to that relay and is client-side by design.",
     ),
   );
+  ul.append(
+    el(
+      "li",
+      undefined,
+      "The model id is sent to your provider verbatim — use your provider's real model id (e.g. claude-3-5-sonnet-latest), not an internal logical handle.",
+    ),
+  );
+  const walkthroughLi = el("li");
+  walkthroughLi.append(document.createTextNode("Building a new app from scratch? Full walkthrough: "));
+  const walkthroughLink = el("a");
+  walkthroughLink.href = WALKTHROUGH_URL;
+  walkthroughLink.target = "_blank";
+  walkthroughLink.rel = "noopener noreferrer";
+  walkthroughLink.textContent = "Integrate into your own app";
+  walkthroughLi.append(walkthroughLink);
+  walkthroughLi.append(document.createTextNode("."));
+  ul.append(walkthroughLi);
   c.append(ul);
   return c;
 }
