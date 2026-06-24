@@ -113,14 +113,16 @@ function buildHero(): HTMLElement {
 }
 
 /**
- * THE SAFETY LAYER diagram, in its original `ld-hero-grid` wrapper so its width
- * and spacing are unchanged — only its position moves: it now renders after the
- * capability section (problem first, then "how we solve it").
+ * THE SAFETY LAYER diagram, wrapped in a standard `ld-section` so it spans the
+ * normal content width like the other sections. (It previously sat in the
+ * 2-column `ld-hero-grid`, whose other column was the deleted projection card —
+ * leaving the diagram pinned to a half-width left column with an empty right
+ * half.) Renders after the capability section: problem first, then how it's solved.
  */
 function buildSafetyLayer(): HTMLElement {
-  const heroGrid = el("div", "ld-hero-grid");
-  heroGrid.append(buildRoutingDiagram());
-  return heroGrid;
+  const s = el("section", "ld-section");
+  s.append(buildRoutingDiagram());
+  return s;
 }
 
 function buildRoutingDiagram(): HTMLElement {
