@@ -20,6 +20,7 @@ import { IMPORT_LINE } from "./dashboard/setup";
 const REPO = "https://github.com/Ludion-ai/Ludion";
 const DOCS_URL = `${REPO}#readme`;
 const NPM_URL = "https://www.npmjs.com/package/ludion-router";
+const CONTACT_URL = `${REPO}/issues/new`;
 
 /** GitHub mark — monochrome, inherits currentColor. */
 function githubMark(): SVGSVGElement {
@@ -65,8 +66,9 @@ function buildNav(): HTMLElement {
   brand.append(hexMark(), el("span", "lx-brand-word", "Ludion"));
 
   const right = el("nav", "lx-topbar-right ld-nav-right");
-  right.append(navLink("Docs", DOCS_URL, { external: true }));
-  right.append(navLink("Blog", "/blog"));
+  right.append(navLink("How it works", "#how"));
+  right.append(navLink("Use cases", "#use-cases"));
+  right.append(navLink("Demo", "/demo"));
   const gh = el("a", "ld-nav-icon");
   (gh as HTMLAnchorElement).href = REPO;
   (gh as HTMLAnchorElement).target = "_blank";
@@ -74,7 +76,7 @@ function buildNav(): HTMLElement {
   gh.setAttribute("aria-label", "GitHub");
   gh.append(githubMark());
   right.append(gh);
-  right.append(ctaLink("Open workspace", "/app", true));
+  right.append(ctaLink("Workspace", "/app", true));
 
   bar.append(brand, right);
   return bar;
@@ -84,25 +86,121 @@ function buildNav(): HTMLElement {
 
 function buildHero(): HTMLElement {
   const s = el("section", "ld-section ld-hero");
-  s.append(el("h1", "ld-h1", "Run language models in the browser. Hit the API only when you have to."));
+  s.append(el("p", "ld-eyebrow lx-mono", "AI apps are overpaying for cloud inference."));
+  s.append(el("h1", "ld-h1", "Stop paying cloud prices for browser-sized AI tasks."));
   s.append(
     el(
       "p",
       "ld-sub",
-      "Ludion is a drop-in OpenAI-compatible router. Swap one import and requests run on the user's device when the hardware can handle it, and fall back to your API when it can't. Fewer API calls, and prompts that stay on the device.",
+      "Ludion routes cheap, low-risk LLM calls to WebLLM in the user's browser, with your server kept as fallback for slow devices, long prompts, unsupported browsers, and local failures.",
     ),
   );
-
-  // The centerpiece: the import line as a copyable code card (spec §3).
-  const focal = el("div", "ld-import");
-  focal.append(copyBlock(IMPORT_LINE, { inline: true, label: "import line" }));
-  s.append(focal);
+  s.append(
+    el(
+      "p",
+      "ld-attack",
+      "The waste is not the hard prompts. It is sending every rewrite, tag, title, and short classification to the server by default.",
+    ),
+  );
+  s.append(el("p", "ld-support", "Browser when safe. Server when needed. Measured every time."));
 
   const ctas = el("div", "ld-cta-row");
-  ctas.append(ctaLink("Open workspace", "/app", true));
-  ctas.append(ctaLink("Read the docs", DOCS_URL));
+  ctas.append(ctaLink("Try the demo", "/demo", true));
+  ctas.append(ctaLink("View GitHub", REPO));
+  ctas.append(ctaLink("Get integration help", CONTACT_URL));
   s.append(ctas);
+
+  const heroGrid = el("div", "ld-hero-grid");
+  heroGrid.append(buildExampleRun(), buildRoutingDiagram());
+  s.append(heroGrid);
   return s;
+}
+
+function buildExampleRun(): HTMLElement {
+  const panel = el("section", "ld-example-run");
+  panel.append(el("span", "lx-kicker", "Example waste removed"));
+  const metrics = el("div", "ld-metrics");
+  metrics.append(metric("LLM calls", "100"));
+  metrics.append(metric("Browser-sized", "38"));
+  metrics.append(metric("Kept on server", "62"));
+  metrics.append(metric("Visible local failures", "0"));
+  metrics.append(metric("Cloud calls avoided", "38"));
+  panel.append(metrics);
+  panel.append(
+    el(
+      "p",
+      "ld-note",
+      "Actual savings depend on task mix, device mix, prompt length, model choice, and fallback policy.",
+    ),
+  );
+  return panel;
+}
+
+function metric(label: string, value: string): HTMLElement {
+  const item = el("div", "ld-metric");
+  item.append(el("strong", "ld-metric-value", value));
+  item.append(el("span", "ld-metric-label", label));
+  return item;
+}
+
+function buildRoutingDiagram(): HTMLElement {
+  const panel = el("section", "ld-route-diagram");
+  panel.append(el("span", "lx-kicker", "The safety layer"));
+  const flow = el("div", "ld-flow");
+  flow.append(flowNode("LLM request"));
+  flow.append(flowArrow());
+  flow.append(flowNode("Ludion"));
+  flow.append(flowArrow());
+  const split = el("div", "ld-flow-split");
+  split.append(
+    flowBranch("Browser WebLLM", "short prompt, low-risk task, known-good device"),
+    flowBranch("Server fallback", "iOS, in-app browser, long prompt, unknown device, local failure, high-risk task"),
+  );
+  flow.append(split);
+  panel.append(flow);
+  return panel;
+}
+
+function buildProblem(): HTMLElement {
+  const c = card({ kicker: "The problem" });
+  c.classList.add("ld-problem");
+  c.append(
+    el(
+      "h2",
+      "ld-h2",
+      "The default path is economically wrong.",
+    ),
+  );
+  c.append(
+    el(
+      "p",
+      "ld-lead",
+      "Most AI apps send every request to the cloud, even when the task is short, cheap, private, and browser-sized.",
+    ),
+  );
+  c.append(
+    el(
+      "p",
+      "ld-lead",
+      "But browser inference cannot be assumed. WebGPU support is not enough. Devices differ, in-app browsers break, prompt length matters, and local failure must not break the user experience.",
+    ),
+  );
+  return c;
+}
+
+function flowNode(text: string): HTMLElement {
+  return el("div", "ld-flow-node lx-mono", text);
+}
+
+function flowArrow(): HTMLElement {
+  return el("div", "ld-flow-arrow", "->");
+}
+
+function flowBranch(title: string, body: string): HTMLElement {
+  const b = el("div", "ld-flow-branch");
+  b.append(el("strong", undefined, title));
+  b.append(el("span", undefined, body));
+  return b;
 }
 
 // --- live on-device demo (the proof) ----------------------------------------
@@ -112,12 +210,13 @@ const DEFAULT_PROMPT = "Write a haiku about deep water.";
 function buildDemo(): HTMLElement {
   const c = card({ kicker: "Live, on-device, no login" });
   c.classList.add("ld-demo");
-  c.append(el("h2", "ld-h2", "Watch it run in your browser"));
+  c.id = "demo";
+  c.append(el("h2", "ld-h2", "Try the local side of the router"));
   c.append(
     el(
       "p",
       "ld-lead",
-      "This runs a small model on your device. No login, no API key, no prompt leaves the browser. The weights download from the CDN on click, so nothing loads until you ask for it.",
+      "This demo attempts a browser-side run only. In a real app, Ludion keeps your server endpoint configured as fallback for devices and requests that should not run locally.",
     ),
   );
 
@@ -276,15 +375,65 @@ function renderLedger(out: HTMLElement, ledger: LedgerLike): void {
   out.textContent = `this browser, this session: ${s.local_count} on-device · ${s.local_count} API calls avoided`;
 }
 
+// --- routing split ----------------------------------------------------------
+
+const BROWSER_TASKS = [
+  "rewrite",
+  "tag generation",
+  "intent classification",
+  "query rewrite",
+  "short summary",
+  "title generation",
+  "draft helper",
+];
+
+const SERVER_TASKS = [
+  "long documents",
+  "complex RAG",
+  "paid high-quality answers",
+  "regulated/high-risk tasks",
+  "unsupported browsers",
+  "unknown devices",
+  "failed local warmup",
+];
+
+function buildRoutedWork(): HTMLElement {
+  const s = el("section", "ld-section ld-routed-work");
+  s.id = "use-cases";
+  s.append(el("h2", "ld-h2", "Move the cheap calls first."));
+  s.append(
+    el(
+      "p",
+      "ld-lead",
+      "Ludion is not trying to move the whole AI app into the browser. It moves the cheap, low-risk calls first and leaves the rest on your server path.",
+    ),
+  );
+  const grid = el("div", "ld-split-grid");
+  grid.append(taskColumn("Browser", BROWSER_TASKS), taskColumn("Server", SERVER_TASKS));
+  s.append(grid);
+  return s;
+}
+
+function taskColumn(title: string, items: string[]): HTMLElement {
+  const col = el("section", "ld-task-col");
+  col.append(el("h3", "ld-h3", title));
+  const list = el("ul", "ld-task-list");
+  for (const item of items) list.append(el("li", undefined, item));
+  col.append(list);
+  return col;
+}
+
 // --- how it works -----------------------------------------------------------
 
 function buildHowItWorks(): HTMLElement {
   const s = el("section", "ld-section ld-how");
+  s.id = "how";
   s.append(el("h2", "ld-h2", "How it works"));
   const steps: Array<[string, Node]> = [
-    ["1", textWithCode("Swap your OpenAI import for Ludion's.", IMPORT_LINE)],
-    ["2", el("span", undefined, "Ludion probes the device and runs the model on-device when it can.")],
-    ["3", el("span", undefined, "When it can't, it falls back through your relay to your API.")],
+    ["1", textWithCode("Keep your existing server endpoint as fallback.", IMPORT_LINE)],
+    ["2", el("span", undefined, "Ludion checks the browser, prompt size, privacy hints, and policy before choosing a target.")],
+    ["3", el("span", undefined, "Known-good lightweight work can run in WebLLM. Unsupported, slow, long, or risky requests stay on server inference.")],
+    ["4", el("span", undefined, "Every request gets a decision log so you can measure local hit rate, fallback rate, failures, latency, and server calls avoided.")],
   ];
   const list = el("ol", "ld-steps");
   for (const [n, body] of steps) {
@@ -306,46 +455,133 @@ function textWithCode(text: string, code: string): Node {
   return wrap;
 }
 
-// --- savings (mechanism) ----------------------------------------------------
+// --- WebLLM value -----------------------------------------------------------
 
-function buildSavings(): HTMLElement {
-  const c = card({ kicker: "Savings" });
-  c.classList.add("ld-savings");
-  c.append(el("h2", "ld-h2", "Every on-device request is an API call you do not pay for"));
+function buildWhyNotWebLLM(): HTMLElement {
+  const c = card({ kicker: "Why Ludion" });
+  c.classList.add("ld-webllm");
+  c.append(el("h2", "ld-h2", "Why not just use WebLLM directly?"));
+  const list = el("ul", "ld-check-list");
+  for (const item of [
+    "WebGPU support is not the same as successful inference.",
+    "Some browsers report capability but still fail or stall.",
+    "Prompt length can turn a viable device into a bad local target.",
+    "You need fallback behavior when local inference is slow or unsupported.",
+    "You need logs to know whether local routing is actually saving server calls.",
+  ]) {
+    list.append(el("li", undefined, item));
+  }
+  c.append(list);
+  return c;
+}
+
+// --- integration ------------------------------------------------------------
+
+const INTEGRATION_SNIPPET = `import { Ludion } from "ludion-router";
+
+const ludion = await Ludion.create({
+  fallback: {
+    url: "/api/chat",
+    model: "your-server-model",
+  },
+});
+
+const stream = await ludion.chat.completions.create({
+  messages,
+  max_tokens: 256,
+  stream: true,
+});
+
+console.log(stream._ludion);
+// { target, rule_id, policy_version, ttft_ms, tps, ... }`;
+
+function buildIntegration(): HTMLElement {
+  const c = card({ kicker: "Integration" });
+  c.classList.add("ld-integration");
+  c.append(el("h2", "ld-h2", "One API, with your server path still there"));
   c.append(
     el(
       "p",
       "ld-lead",
-      "On-device inference is the cost-reduction engine: a request the device serves locally never reaches your provider, so it never bills. Run the demo above and the reading is this browser's own count — nothing aggregated, nothing invented.",
+      "Start by routing one lightweight call. Ludion can choose browser inference when policy says it is safe, while the app keeps the current server endpoint for everything else.",
+    ),
+  );
+  c.append(copyBlock(INTEGRATION_SNIPPET, { label: "server fallback snippet" }));
+  return c;
+}
+
+function buildDecisionLog(): HTMLElement {
+  const c = card({ kicker: "Decision log" });
+  c.classList.add("ld-decision-log");
+  c.append(el("h2", "ld-h2", "Know where each request ran"));
+  c.append(
+    el(
+      "p",
+      "ld-lead",
+      "Every response carries a local decision log, so you can measure local hit rate, fallback rate, latency, and server calls avoided without guessing.",
+    ),
+  );
+  c.append(
+    copyBlock(
+      `{
+  "target": "local",
+  "rule_id": "R4",
+  "policy_version": "v0-20260610",
+  "ttft_ms": 820,
+  "tps": 148
+}`,
+      { label: "example _ludion" },
     ),
   );
   return c;
 }
 
-// --- quickstart -------------------------------------------------------------
+// --- adoption ---------------------------------------------------------------
 
-const CONFIG_SHAPE = `{
-  "config_version": 1,
-  "fallback": {
-    "baseURL": "https://your-relay.your-workers.dev",
-    "model": "gpt-4o-mini",
-    "apiKey": "<your relay token>"
-  }
-}`;
+function buildStartSmall(): HTMLElement {
+  const s = el("section", "ld-section ld-start-small");
+  s.append(el("h2", "ld-h2", "Start with one low-risk call"));
+  s.append(el("p", "ld-lead", "You do not need to move your whole AI app to the browser."));
+  const grid = el("div", "ld-start-grid");
+  const calls = taskColumn("Good first calls", [
+    "rewrite",
+    "classify",
+    "tags",
+    "title generation",
+    "short summary",
+    "query rewrite",
+  ]);
+  const measure = taskColumn("Measure before claiming savings", [
+    "local hit rate",
+    "fallback rate",
+    "latency",
+    "local failures",
+    "server calls avoided",
+  ]);
+  grid.append(calls, measure);
+  s.append(grid);
+  s.append(
+    el(
+      "p",
+      "ld-lead",
+      "Keep your current server path as fallback, then measure what can safely move.",
+    ),
+  );
+  return s;
+}
 
-function buildQuickstart(): HTMLElement {
-  const c = card({ kicker: "Quickstart" });
-  c.classList.add("ld-quickstart");
-  c.append(el("h2", "ld-h2", "The copy-paste path"));
-  c.append(el("p", "ld-lead", "One import, plus a ludion.config.v1 with your relay as the fallback baseURL."));
-  c.append(copyBlock(IMPORT_LINE, { inline: true, label: "import line" }));
-  c.append(copyBlock(CONFIG_SHAPE, { label: "config" }));
-  const note = el("p", "ld-note");
-  note.append(document.createTextNode("the workspace generates this for you, relay included. "));
-  const a = el("a", "ld-inline-link", "Open workspace");
-  a.href = "/app";
-  note.append(a);
-  c.append(note);
+function buildSupportCta(): HTMLElement {
+  const c = card({ kicker: "First-adopter support" });
+  c.classList.add("ld-support-cta");
+  c.append(el("h2", "ld-h2", "Want to try it in a real app?"));
+  c.append(
+    el(
+      "p",
+      "ld-lead",
+      "Send a repo or product. I'll look for one lightweight LLM call that may not need to hit your server every time. If it makes sense, I'm happy to make the first integration pass myself and keep your existing server path as fallback.",
+    ),
+  );
+  c.append(ctaLink("Send a repo", CONTACT_URL, true));
   return c;
 }
 
@@ -356,11 +592,11 @@ function buildFooter(): HTMLElement {
   const brand = el("div", "ld-foot-brand");
   brand.append(hexMark(), el("span", "lx-brand-word", "Ludion"));
   f.append(brand);
-  f.append(el("p", "ld-foot-tag", "run language models in the browser. hit the API only when you have to."));
+  f.append(el("p", "ld-foot-tag", "Stop paying cloud prices for browser-sized AI tasks."));
   const links = el("nav", "ld-foot-links");
+  links.append(navLink("View GitHub", REPO, { external: true }));
+  links.append(navLink("Try the demo", "/demo"));
   links.append(navLink("Docs", DOCS_URL, { external: true }));
-  links.append(navLink("Blog", "/blog"));
-  links.append(navLink("GitHub", REPO, { external: true }));
   links.append(navLink("npm", NPM_URL, { external: true }));
   f.append(links);
   return f;
@@ -374,10 +610,15 @@ function mount(): void {
   root.append(buildNav());
   const main = el("main", "ld-main");
   main.append(buildHero());
-  main.append(buildDemo());
+  main.append(buildProblem());
+  main.append(buildRoutedWork());
   main.append(buildHowItWorks());
-  main.append(buildSavings());
-  main.append(buildQuickstart());
+  main.append(buildWhyNotWebLLM());
+  main.append(buildIntegration());
+  main.append(buildDecisionLog());
+  main.append(buildStartSmall());
+  main.append(buildSupportCta());
+  main.append(buildDemo());
   root.append(main);
   root.append(buildFooter());
 }
