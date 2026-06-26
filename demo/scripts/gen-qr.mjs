@@ -6,8 +6,11 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import QRCode from "qrcode";
 
-// The playground now lives at /demo (the root is the public landing).
-const DEMO_URL = "https://ludion-demo.pages.dev/demo";
+// The standalone /demo playground was removed (commit 8812dfc); the QR now
+// points at the on-page instrumented demo on the public landing (anchor id
+// "capability"). Canonical production origin matches PLAYGROUND_ORIGIN in
+// src/dashboard/setup.ts ("https://ludion.ai").
+const DEMO_URL = "https://ludion.ai/#capability";
 
 const outDir = join(dirname(fileURLToPath(import.meta.url)), "..", "public");
 mkdirSync(outDir, { recursive: true });

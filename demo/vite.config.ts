@@ -15,15 +15,14 @@ export default defineConfig({
     // only fetched after a local routing decision.
     chunkSizeWarningLimit: 6500,
     rollupOptions: {
-      // Multi-page (Gate 6-B): the chat demo + the /savings dashboard. The
-      // savings entry imports only `ludion-router/savings` (no engine), so its
-      // chunk stays tiny and pulls zero inference code.
+      // Multi-page (Gate 6-B): the public landing, the logged-in workspace, and
+      // the blog. The workspace imports only `ludion-router/savings` (no engine),
+      // so its chunk stays tiny and pulls zero inference code.
       input: {
         // Public, login-free landing at the root (the HN front door). Pulls no
         // engine code on load; the in-page demo lazy-imports ludion-router only
         // on the visitor's click.
         main: fileURLToPath(new URL("./index.html", import.meta.url)),
-        savings: fileURLToPath(new URL("./savings.html", import.meta.url)),
         // The logged-in workspace (Gate 2b), moved off the root to /app. Same-
         // origin so the 2a session cookie applies; its own dark+red stylesheet,
         // isolated from the public pages. Imports only ludion-router/savings +
