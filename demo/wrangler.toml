@@ -17,3 +17,12 @@ compatibility_date = "2026-05-03"
 binding = "WORKSPACE_KV"
 # PASTE-POINT: replace with the id from `wrangler kv namespace create WORKSPACE_KV`.
 id = "REPLACE_WITH_KV_NAMESPACE_ID"
+
+# Anonymous demo-execution instrumentation sink for functions/api/track.ts.
+# The dataset is created in the Cloudflare dashboard (OPERATOR'S GATE) — no id is
+# needed here; binding + dataset name are enough once the dataset exists.
+# Records only: event / device_class / browser / reason / in-memory session_id.
+# No PII, no IP, no prompt or output text (see functions/api/track.ts).
+[[analytics_engine_datasets]]
+binding = "DEMO_EVENTS"
+dataset = "ludion_demo_events"

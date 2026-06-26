@@ -6,6 +6,7 @@ import "./dashboard.css";
 import "./landing.css";
 import { card, copyBlock, el, hexMark } from "./dashboard/components";
 import { IMPORT_LINE } from "./dashboard/setup";
+import { track } from "./track";
 
 /*
  * The public, login-free landing (ludion.ai/). It makes NO auth call and sets
@@ -240,6 +241,9 @@ function buildCapabilityCheck(): HTMLElement {
 }
 
 async function runTinyModel(stage: HTMLElement, run: HTMLButtonElement): Promise<void> {
+  // Instrumentation: the click that begins loading the model. Sent via beacon
+  // so it survives an immediate tab-kill — the start half of tab-kill-by-absence.
+  track("demo_clicked");
   stage.replaceChildren();
   const status = el("p", "ld-demo-status lx-mono", "loading the router (model is fetched only on this click)\u2026");
   stage.append(status);
@@ -250,6 +254,8 @@ async function runTinyModel(stage: HTMLElement, run: HTMLButtonElement): Promise
   try {
     mod = await import("ludion-router");
   } catch (e) {
+    // The router module itself failed to load — terminal, never produced a model.
+    track("demo_failed", { reason: "load_failed" });
     status.textContent = `could not load the demo: ${e instanceof Error ? e.message : String(e)}`;
     run.disabled = false;
     return;
@@ -259,6 +265,9 @@ async function runTinyModel(stage: HTMLElement, run: HTMLButtonElement): Promise
   const out = el("p", "ld-cap-out");
   stage.append(progress, out);
 
+  // Tracks whether the model finished initializing, so the catch below can tell
+  // a load failure apart from a runtime (generation) failure.
+  let modelLoaded = false;
   try {
     // No config source installed (same as startDemo): a server-routed device
     // throws LudionNoFallbackConfigured — handled honestly below.
@@ -274,6 +283,10 @@ async function runTinyModel(stage: HTMLElement, run: HTMLButtonElement): Promise
         progress.append(bar);
       },
     });
+    // Instrumentation: the model finished downloading/initializing. Beacon, so
+    // it survives a tab-kill that happens once the heavy weights are resident.
+    modelLoaded = true;
+    track("demo_model_loaded");
     status.textContent = "running\u2026";
     const startedAt = performance.now();
     let ttftMs: number | null = null;
@@ -286,12 +299,18 @@ async function runTinyModel(stage: HTMLElement, run: HTMLButtonElement): Promise
     for await (const chunk of stream) {
       const delta = chunk.choices[0]?.delta?.content;
       if (delta) {
-        if (ttftMs === null) ttftMs = performance.now() - startedAt;
+        if (ttftMs === null) {
+          ttftMs = performance.now() - startedAt;
+          // Instrumentation: first output token produced (fires once per run).
+          track("demo_first_token");
+        }
         text += delta;
         out.textContent = text;
       }
     }
     progress.replaceChildren();
+    // Instrumentation: generation completed normally (terminal, keepalive fetch).
+    track("demo_finished");
     status.textContent =
       ttftMs === null
         ? "the model loaded but produced no tokens on your device."
@@ -299,9 +318,14 @@ async function runTinyModel(stage: HTMLElement, run: HTMLButtonElement): Promise
   } catch (e) {
     progress.replaceChildren();
     if (e instanceof mod.LudionNoFallbackConfigured) {
+      // A server-route is an expected outcome, not a crash, but is still "not run
+      // locally" — recorded as a terminal demo_failed with its own reason.
+      track("demo_failed", { reason: "routed_to_server" });
       status.textContent =
         "your browser reports WebGPU, but the router did not run this locally on your device \u2014 it would route to your server fallback. That gap is the point.";
     } else {
+      // Genuine failure: load vs runtime, disambiguated by modelLoaded.
+      track("demo_failed", { reason: modelLoaded ? "runtime_error" : "load_failed" });
       status.textContent = `stalled / failed on your device: ${
         e instanceof Error ? `${e.name}: ${e.message}` : String(e)
       }`;
