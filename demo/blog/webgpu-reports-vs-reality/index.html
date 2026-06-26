@@ -9,19 +9,11 @@
       name="description"
       content="Four browser environments that exposed WebGPU, and what the measurements say about whether a small LLM run completes."
     />
-    <link rel="stylesheet" href="/src/blog.css" />
   </head>
   <body>
-    <div class="wrap">
-      <header class="site">
-        <span class="wordmark">Ludion</span>
-        <nav>
-          <a href="/blog/">writing</a>
-          <a href="/#capability">demo</a>
-          <a href="https://github.com/Ludion-ai/Ludion" target="_blank" rel="noopener">GitHub</a>
-        </nav>
-      </header>
+    <div data-blog-header></div>
 
+    <div class="wrap">
       <article>
         <h1>WebGPU feature detection was not enough to run small LLMs on phones</h1>
         <p class="dek">Four test environments where the browser exposed WebGPU, and what the measurements say.</p>
@@ -127,14 +119,15 @@
           detection answered whether WebGPU could be requested, not whether inference
           would finish.
         </p>
-      </article>
 
-      <footer class="note">
-        The measurements are in
-        <a href="https://github.com/Ludion-ai/Ludion/tree/main/bench/results" target="_blank" rel="noopener">bench/results</a>,
-        released to the public domain. Each device file holds the adapter report and the
-        per-run timings quoted above.
-      </footer>
+        <p class="blog-backlink">
+          <a href="/#capability">Run it in your own browser &rarr;</a>
+        </p>
+      </article>
     </div>
+
+    <div data-blog-footer></div>
+
+    <script type="module" src="/src/blog.ts"></script>
   </body>
 </html>

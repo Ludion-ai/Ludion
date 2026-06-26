@@ -1,163 +1,404 @@
-/* Ludion blog — long-form reading surface. Same palette and law as the demo:
-   white base, near-monochrome, blue is the only link accent, measured numbers
-   in mono. No gradients, no blur, no colored fills, no emoji. */
+/* Ludion blog — Apple-grade long-form reading on the LP dark system.
+ *
+ * Colour and font come entirely from the LP's --lx-* tokens (dashboard.css,
+ * imported before this file by blog.ts). This file owns only layout: a single
+ * narrow reading column, strict type hierarchy, generous whitespace, and the
+ * sticky LP-matching header. Law: pure black flat background, monochrome,
+ * red (--lx-brand) appears only on link hover/focus — never as body text,
+ * never a colored fill. No glass, no colored gradients, no new colour tokens.
+ */
 
 :root {
-  --bg: #fafafa;
-  --surface: #ffffff;
-  --border: #e8e8ec;
-  --text: #0a0a0a;
-  --text-2: #71717a;
-  --accent: #1f6bff;
-  --monoface: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
-  --sans:
-    -apple-system, BlinkMacSystemFont, "SF Pro Text", Inter, "Segoe UI", Roboto,
-    "Helvetica Neue", Arial, sans-serif;
+  /* Layout-only scale (no colour). --blog-* never collides with --lx-*. */
+  --blog-measure: 68ch; /* reading column, 65–75 chars; hard cap */
+  --blog-shell: 1080px; /* full-width header/footer inner alignment */
+  --blog-fs-body: 19px; /* body — larger than the LP's 15px, this is for reading */
+  --blog-lh-body: 1.7;
+  --blog-fs-h1: clamp(32px, 5vw, 44px);
+  --blog-fs-h2: clamp(22px, 3.2vw, 27px);
+  --blog-fs-meta: 13px;
+  --blog-ease: cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-* {
-  box-sizing: border-box;
-}
-
-html,
+/* Flat pure-black reading surface: drop the LP's dot-grid texture so the long
+   read stays calm. Tokens (font stacks, colours) still come from dashboard.css. */
 body {
-  margin: 0;
-  padding: 0;
+  background-image: none;
+  background-color: var(--lx-bg);
+  color: var(--lx-text-2);
+  font-family: var(--lx-sans);
+  font-size: var(--blog-fs-body);
+  line-height: var(--blog-lh-body);
+  overflow-x: hidden;
 }
 
-body {
-  background: var(--bg);
-  color: var(--text);
-  font-family: var(--sans);
-  font-size: 17px;
-  line-height: 1.65;
-  -webkit-font-smoothing: antialiased;
+/* --- sticky header (matches LP .lx-topbar: 56px, solid bg, bottom hairline) -- */
+
+.blog-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--lx-bg);
+  border-bottom: 1px solid var(--lx-border);
 }
+
+.blog-topbar-inner {
+  width: 100%;
+  max-width: var(--blog-shell);
+  margin: 0 auto;
+  height: 56px;
+  padding: 0 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.blog-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+  text-decoration: none;
+  color: var(--lx-text);
+}
+
+.blog-brand .lx-brand-mark {
+  width: 22px;
+  height: 22px;
+  display: block;
+  color: var(--lx-brand);
+}
+
+.blog-brand-word {
+  font-weight: 700;
+  font-size: 18px;
+  letter-spacing: -0.01em;
+}
+
+.blog-nav {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.blog-nav-link {
+  color: var(--lx-text-2);
+  text-decoration: none;
+  font-size: 14px;
+  transition: color 0.15s var(--blog-ease);
+}
+
+.blog-nav-link:hover,
+.blog-nav-link:focus-visible {
+  color: var(--lx-text);
+}
+
+.blog-nav-link[aria-current="page"] {
+  color: var(--lx-text);
+}
+
+.blog-nav-icon {
+  display: inline-flex;
+  align-items: center;
+  color: var(--lx-text-2);
+  transition: color 0.15s var(--blog-ease);
+}
+
+.blog-nav-icon:hover,
+.blog-nav-icon:focus-visible {
+  color: var(--lx-text);
+}
+
+/* --- reading column -------------------------------------------------------- */
 
 .wrap {
-  max-width: 680px;
+  max-width: var(--blog-measure);
   margin: 0 auto;
-  padding: 24px 20px 64px;
+  padding: clamp(64px, 12vh, 140px) 20px 96px;
 }
 
-header.site {
-  display: flex;
-  align-items: baseline;
-  gap: 14px;
-  padding-bottom: 20px;
-  margin-bottom: 28px;
-  border-bottom: 1px solid var(--border);
+/* index list uses the same column but needs less top air than an article */
+.blog-index.wrap {
+  padding-top: clamp(48px, 8vh, 96px);
 }
 
-header.site .wordmark {
-  font-family: var(--monoface);
-  font-weight: 600;
-  letter-spacing: -0.02em;
-}
-
-header.site nav {
-  margin-left: auto;
-  display: flex;
-  gap: 16px;
-  font-size: 0.9rem;
-}
-
-a {
-  color: var(--accent);
-  text-decoration: none;
-}
-a:hover {
-  text-decoration: underline;
+article,
+main {
+  font-size: var(--blog-fs-body);
+  line-height: var(--blog-lh-body);
+  color: var(--lx-text-2);
 }
 
 h1 {
-  font-size: 1.7rem;
-  line-height: 1.2;
+  font-family: var(--lx-sans);
+  font-size: var(--blog-fs-h1);
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  color: var(--lx-text);
+  margin: 0 0 12px;
+}
+
+/* Asymmetric rhythm — large space above a section head, small below (Apple cue). */
+h2 {
+  font-family: var(--lx-sans);
+  font-size: var(--blog-fs-h2);
+  font-weight: 600;
+  line-height: 1.25;
   letter-spacing: -0.01em;
-  margin: 0 0 8px;
+  color: var(--lx-text);
+  margin: 2.4em 0 0.6em;
+}
+
+p {
+  margin: 0 0 1.6em;
 }
 
 .dek {
-  color: var(--text-2);
-  margin: 0 0 4px;
+  color: var(--lx-text-2);
+  font-size: 1.25em;
+  line-height: 1.5;
+  font-weight: 400;
+  margin: 0 0 1.4em;
 }
 
 .meta {
-  color: var(--text-2);
-  font-family: var(--monoface);
-  font-size: 0.82rem;
-  margin: 0 0 28px;
+  font-family: var(--lx-mono);
+  font-size: var(--blog-fs-meta);
+  letter-spacing: 0.02em;
+  color: var(--lx-text-3);
+  margin: 0 0 2.4em;
 }
 
-article p {
-  margin: 0 0 18px;
+/* --- links: red reveals on interaction, never a wall of red ---------------- */
+
+article a,
+main a {
+  color: var(--lx-text);
+  text-decoration: underline;
+  text-decoration-color: var(--lx-text-3);
+  text-underline-offset: 3px;
+  transition: color 0.15s var(--blog-ease), text-decoration-color 0.15s var(--blog-ease);
 }
 
-article h2 {
-  font-size: 1.15rem;
-  margin: 36px 0 12px;
+article a:hover,
+article a:focus-visible,
+main a:hover,
+main a:focus-visible {
+  color: var(--lx-brand);
+  text-decoration-color: var(--lx-brand);
 }
+
+:focus-visible {
+  outline: 2px solid var(--lx-brand);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+/* --- index post list ------------------------------------------------------- */
+
+.posts {
+  list-style: none;
+  padding: 0;
+  margin: 2.4em 0 0;
+}
+
+.posts li {
+  padding: 22px 0;
+  border-top: 1px solid var(--lx-border);
+}
+
+.posts li:last-child {
+  border-bottom: 1px solid var(--lx-border);
+}
+
+.posts a {
+  font-size: 1.2em;
+  font-weight: 600;
+  color: var(--lx-text);
+  text-decoration: none;
+}
+
+.posts a:hover,
+.posts a:focus-visible {
+  color: var(--lx-brand);
+}
+
+.posts .dek {
+  font-size: 1em;
+  margin: 0.4em 0 0.2em;
+}
+
+.posts .meta {
+  margin: 0;
+}
+
+/* --- code & the measured table (keep the instrument character) ------------- */
 
 code {
-  font-family: var(--monoface);
+  font-family: var(--lx-mono);
   font-size: 0.88em;
+  background: var(--lx-surface-2);
+  color: var(--lx-text);
+  padding: 0.1em 0.4em;
+  border-radius: 6px;
+}
+
+pre {
+  background: var(--lx-surface);
+  border: 1px solid var(--lx-border);
+  border-radius: var(--lx-radius-sm);
+  padding: 16px 18px;
+  overflow-x: auto;
+  font-family: var(--lx-mono);
+  line-height: 1.6;
+}
+
+pre code {
+  background: none;
+  padding: 0;
+  border-radius: 0;
+  font-size: 0.85em;
 }
 
 table.measured {
   width: 100%;
   border-collapse: collapse;
-  font-family: var(--monoface);
-  font-size: 0.86rem;
-  margin: 8px 0 22px;
+  font-family: var(--lx-mono);
+  font-size: 0.9em;
+  background: var(--lx-surface);
+  border: 1px solid var(--lx-border);
+  border-radius: var(--lx-radius-sm);
+  overflow: hidden;
+  margin: 1.2em 0 1.8em;
 }
 
 table.measured caption {
   text-align: left;
-  color: var(--text-2);
-  font-family: var(--sans);
-  font-size: 0.85rem;
-  margin-bottom: 8px;
+  font-family: var(--lx-sans);
+  font-size: 0.8em;
+  color: var(--lx-text-3);
+  margin-bottom: 10px;
 }
 
 table.measured th,
 table.measured td {
-  border: 1px solid var(--border);
-  padding: 7px 10px;
+  padding: 10px 14px;
   text-align: left;
+  border-bottom: 1px solid var(--lx-border);
 }
 
-table.measured th {
+table.measured thead th {
+  font-family: var(--lx-mono);
+  font-size: 0.82em;
   font-weight: 600;
-  background: var(--surface);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--lx-text-3);
 }
 
-table.measured td.num {
+table.measured tbody tr:last-child td {
+  border-bottom: none;
+}
+
+table.measured td {
+  color: var(--lx-text);
+}
+
+table.measured td.num,
+table.measured th.num {
   text-align: right;
 }
 
-.posts {
-  list-style: none;
-  padding: 0;
+/* --- end-of-article back-link (one restrained line) ------------------------ */
+
+.blog-backlink {
+  margin: 3em 0 0;
+  padding-top: 1.6em;
+  border-top: 1px solid var(--lx-border);
+  font-family: var(--lx-mono);
+  font-size: 0.9em;
+}
+
+.blog-backlink a {
+  color: var(--lx-text);
+  text-decoration: none;
+}
+
+.blog-backlink a:hover,
+.blog-backlink a:focus-visible {
+  color: var(--lx-brand);
+}
+
+/* --- footer ---------------------------------------------------------------- */
+
+.blog-footer {
+  border-top: 1px solid var(--lx-border);
+  margin-top: 64px;
+}
+
+.blog-footer-inner {
+  max-width: var(--blog-shell);
+  margin: 0 auto;
+  padding: 32px 20px 64px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.blog-foot-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+  color: var(--lx-text);
+}
+
+.blog-foot-brand .lx-brand-mark {
+  width: 20px;
+  height: 20px;
+  color: var(--lx-brand);
+}
+
+.blog-foot-note {
+  color: var(--lx-text-3);
+  font-size: 0.82em;
   margin: 0;
 }
 
-.posts li {
-  padding: 18px 0;
-  border-bottom: 1px solid var(--border);
+.blog-foot-link {
+  color: var(--lx-text-2);
+  text-decoration: underline;
+  text-decoration-color: var(--lx-text-3);
+  text-underline-offset: 3px;
+  transition: color 0.15s var(--blog-ease);
 }
 
-.posts a {
-  font-size: 1.15rem;
+.blog-foot-link:hover,
+.blog-foot-link:focus-visible {
+  color: var(--lx-brand);
 }
 
-.posts .dek {
-  margin-top: 4px;
+/* --- motion preference ----------------------------------------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+    animation: none !important;
+  }
 }
 
-footer.note {
-  margin-top: 40px;
-  padding-top: 18px;
-  border-top: 1px solid var(--border);
-  color: var(--text-2);
-  font-size: 0.85rem;
+/* --- small screens --------------------------------------------------------- */
+
+@media (max-width: 640px) {
+  .blog-nav {
+    gap: 12px;
+  }
+  .blog-nav-link:nth-of-type(1) {
+    display: none;
+  }
+  .wrap {
+    padding-top: clamp(48px, 9vh, 96px);
+  }
 }
