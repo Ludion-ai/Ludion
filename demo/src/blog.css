@@ -249,12 +249,14 @@ main a:focus-visible {
 }
 
 .posts li {
+  position: relative;
   counter-increment: post;
   padding: 24px 26px;
   background: var(--lx-card-grad);
   border: 1px solid var(--lx-border);
   box-shadow: var(--lx-card-edge); /* 1px inset white highlight — not a glow */
   border-radius: var(--lx-radius);
+  cursor: pointer;
   transition:
     border-color 0.15s var(--blog-ease),
     transform 0.15s var(--blog-ease);
@@ -270,6 +272,15 @@ main a:focus-visible {
   font-weight: 600;
   color: var(--lx-text);
   text-decoration: none;
+}
+
+/* Stretched link: the title anchor stays the single real link (a11y), but its
+   hit area expands to fill the whole card so the entire card is tappable. */
+.posts a::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: var(--lx-radius);
 }
 
 .posts a:hover,
