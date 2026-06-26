@@ -23,8 +23,6 @@ export default defineConfig({
         // engine code on load; the in-page demo lazy-imports ludion-router only
         // on the visitor's click.
         main: fileURLToPath(new URL("./index.html", import.meta.url)),
-        // The playground, moved off the root to /demo (clean URL via demo.html).
-        demo: fileURLToPath(new URL("./demo.html", import.meta.url)),
         savings: fileURLToPath(new URL("./savings.html", import.meta.url)),
         // The logged-in workspace (Gate 2b), moved off the root to /app. Same-
         // origin so the 2a session cookie applies; its own dark+red stylesheet,

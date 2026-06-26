@@ -68,8 +68,11 @@ function buildNav(): HTMLElement {
 
   const right = el("nav", "lx-topbar-right ld-nav-right");
   right.append(navLink("How it works", "#how"));
-  right.append(navLink("Use cases", "#use-cases"));
-  right.append(navLink("Demo", "/demo"));
+  right.append(navLink("Blog", "/blog"));
+  // "Demo" scrolls to the on-page, instrumented capability demo (id="capability"
+  // on buildCapabilityCheck) — an in-page anchor, matching the #how anchor nav.
+  // The standalone /demo playground page was removed.
+  right.append(navLink("Demo", "#capability"));
   const gh = el("a", "ld-nav-icon");
   (gh as HTMLAnchorElement).href = REPO;
   (gh as HTMLAnchorElement).target = "_blank";
@@ -541,12 +544,9 @@ function renderServerRoute(transcript: HTMLElement): void {
   const f = el("p", "ld-fact lx-mono");
   f.append(
     document.createTextNode(
-      "your device routes this request to server. the landing configures no fallback, so nothing was sent — 0 network calls. on a WebGPU-capable device this runs on-device. ",
+      "your device routes this request to server. the landing configures no fallback, so nothing was sent — 0 network calls. on a WebGPU-capable device this runs on-device.",
     ),
   );
-  const a = el("a", "ld-inline-link", "see the full playground");
-  a.href = "/demo";
-  f.append(a);
   transcript.append(f);
   f.scrollIntoView({ block: "end" });
 }
@@ -776,7 +776,7 @@ function buildFooter(): HTMLElement {
   f.append(el("p", "ld-foot-tag", "Stop paying cloud prices for browser-sized AI tasks."));
   const links = el("nav", "ld-foot-links");
   links.append(navLink("View GitHub", REPO, { external: true }));
-  links.append(navLink("Try the demo", "/demo"));
+  links.append(navLink("Try the demo", "#capability"));
   links.append(navLink("Docs", DOCS_URL, { external: true }));
   links.append(navLink("npm", NPM_URL, { external: true }));
   f.append(links);
