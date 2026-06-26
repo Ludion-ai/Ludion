@@ -16,7 +16,7 @@
   --blog-lh-body: 1.7;
   --blog-fs-h1: clamp(32px, 5vw, 44px);
   --blog-fs-h2: clamp(22px, 3.2vw, 27px);
-  --blog-fs-meta: 13px;
+  --blog-fs-meta: 12px;
   --blog-ease: cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -113,9 +113,50 @@ body {
 /* --- reading column -------------------------------------------------------- */
 
 .wrap {
+  position: relative;
+  isolation: isolate;
   max-width: var(--blog-measure);
   margin: 0 auto;
   padding: clamp(64px, 12vh, 140px) 20px 96px;
+}
+
+/* Hero-only "instrument graph paper": a barely-there 2.5% dot-grid in the top
+   band behind the title, dissolving to pure black before the body text. Sits
+   at z-index -1 within the .wrap stacking context (isolate), so it never falls
+   behind reading prose and never spans the full page. */
+.wrap::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 320px;
+  z-index: -1;
+  pointer-events: none;
+  background-image:
+    linear-gradient(180deg, transparent 0%, var(--lx-bg) 85%),
+    radial-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+  background-size: 100% 100%, 22px 22px;
+}
+
+/* The section kicker (index hero) — LP eyebrow look, with one flat red point. */
+.blog-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-family: var(--lx-mono);
+  text-transform: uppercase;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  color: var(--lx-text-3);
+  margin: 0 0 16px;
+}
+
+.blog-eyebrow::before {
+  content: "";
+  flex: 0 0 auto;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--lx-brand);
 }
 
 /* index list uses the same column but needs less top air than an article */
@@ -202,15 +243,26 @@ main a:focus-visible {
   list-style: none;
   padding: 0;
   margin: 2.4em 0 0;
+  display: grid;
+  gap: 16px;
+  counter-reset: post;
 }
 
 .posts li {
-  padding: 22px 0;
-  border-top: 1px solid var(--lx-border);
+  counter-increment: post;
+  padding: 24px 26px;
+  background: var(--lx-card-grad);
+  border: 1px solid var(--lx-border);
+  box-shadow: var(--lx-card-edge); /* 1px inset white highlight — not a glow */
+  border-radius: var(--lx-radius);
+  transition:
+    border-color 0.15s var(--blog-ease),
+    transform 0.15s var(--blog-ease);
 }
 
-.posts li:last-child {
-  border-bottom: 1px solid var(--lx-border);
+.posts li:hover {
+  border-color: var(--lx-border-2);
+  transform: translateY(-1px);
 }
 
 .posts a {
@@ -227,11 +279,31 @@ main a:focus-visible {
 
 .posts .dek {
   font-size: 1em;
-  margin: 0.4em 0 0.2em;
+  margin: 0.4em 0 0;
 }
 
+/* Mono instrument meta: flat red point · date · right-aligned channel numeral. */
 .posts .meta {
-  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin: 14px 0 0;
+}
+
+.posts .meta::before {
+  content: "";
+  flex: 0 0 auto;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--lx-brand);
+}
+
+.posts .meta::after {
+  content: counter(post, decimal-leading-zero);
+  margin-left: auto;
+  color: var(--lx-text-3);
+  letter-spacing: 0.08em;
 }
 
 /* --- code & the measured table (keep the instrument character) ------------- */
@@ -264,11 +336,13 @@ pre code {
 
 table.measured {
   width: 100%;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
   font-family: var(--lx-mono);
   font-size: 0.9em;
-  background: var(--lx-surface);
+  background: var(--lx-card-grad);
   border: 1px solid var(--lx-border);
+  box-shadow: var(--lx-card-edge); /* top inset highlight — instrument readout, no glow */
   border-radius: var(--lx-radius-sm);
   overflow: hidden;
   margin: 1.2em 0 1.8em;
@@ -386,6 +460,9 @@ table.measured th.num {
   * {
     transition: none !important;
     animation: none !important;
+  }
+  .posts li:hover {
+    transform: none;
   }
 }
 
