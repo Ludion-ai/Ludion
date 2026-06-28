@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <title>Why nobody ships in-browser LLMs: the capability flag lies — Ludion</title>
+    <meta
+      name="description"
+      content="Every device reported WebGPU support. The outcomes ran from a 44 ms first token to a dead tab."
+    />
+  </head>
+  <body>
+    <div data-blog-header></div>
+
+    <div class="wrap">
+      <article>
+        <h1>Why nobody ships in-browser LLMs: the capability flag lies</h1>
+        <p class="dek">Every device reported WebGPU support. The outcomes ran from a 44 ms first token to a dead tab.</p>
+        <p class="meta">2026-06-26</p>
+
+        <p>
+          WebLLM has been around long enough that you'd expect to see it in real products by now. Run a small model in the user's browser, skip the API bill, keep the data on the device — the pitch writes itself. And on my desktop it works exactly like the pitch: first token in about 44 milliseconds, fast enough that there's nothing to think about.
+        </p>
+
+        <p>
+          So why does almost nobody ship it?
+        </p>
+
+        <p>
+          I spent a while measuring small-model inference across the devices I actually had on hand — a couple of desktop sessions, a Pixel 8a, an iPhone 11 Pro Max — and the answer turned out to be more specific than "phones are slow." The problem isn't speed. It's that there is no way to know, before you run, what you're going to get.
+        </p>
+
+        <h2>The flag tells you nothing</h2>
+        <p>
+          Every single device I tested reported WebGPU as supported. <code>navigator.gpu</code> was present, the adapter was there, the limits looked fine. On paper, all of them could run a model.
+        </p>
+        <p>
+          Here is what actually happened when they tried to run the same model through the same code path:
+        </p>
+
+        <ul>
+          <li>Desktop (Chrome, AMD GPU): first token in ~44 ms, clean.</li>
+          <li>Pixel 8a (Chrome), short prompt: first token in ~3.8 s. Slow, but it finished cleanly.</li>
+          <li>Pixel 8a (Chrome), long prompt: first token after ~77 seconds. Also "finished" — more on that word later.</li>
+          <li>iPhone 11 Pro Max (Safari): the run never produced a token. The tab reloaded mid-generation — I didn't catch the exact instant it happened, but what the session shows is a generation that started and simply never came back, consistent with the tab being killed under memory pressure.</li>
+          <li>Pixel 8a inside the LINE in-app browser: <code>navigator.gpu</code> reported supported, the adapter reported its full limits — and the download stalled and the session never started a single run.</li>
+        </ul>
+
+        <p>
+          Same code. Same model. The capability flag said yes on all of them. The outcomes ran from 44 milliseconds to a dead tab.
+        </p>
+
+        <p>
+          That last one — the in-app browser — is the cleanest illustration. It reported full WebGPU adapter limits and then never ran anything. The flag answers "does the API exist," which is a different question from "will a model load, run, and finish here."
+        </p>
+
+        <h2>It's not random — it's just unknowable in advance</h2>
+        <p>
+          On any one device that produced a timing at all, the behavior is stable. The desktop's ~44 ms repeated across runs (41, 44, 45). The Pixel's ~77 s long-prompt result repeated too (77.2 s, 77.0 s, 76.4 s). Nothing is flickering randomly within a run. (The one device that didn't hold still was the iPhone — but even there the <em>outcome class</em> was constant: it never produced a token. What varied was only how it failed — a load error one session, a tab kill the next.)
+        </p>
+        <p>
+          The variance is <em>across</em> devices and environments, and the flag you'd use to predict it is uniformly true. So from inside your app — which is handed one unknown device at a time — the outcome is effectively a coin flip you can't see until it lands. A team shipping to real users can't accept "it'll either be instant or it'll kill the tab, and we'll find out in production."
+        </p>
+        <p>
+          That, more than model size or download weight, is what keeps this technology in demos. A demo runs on a machine you control. Production runs on whatever the user brought.
+        </p>
+
+        <h2>Your success metric is probably lying to you, too</h2>
+        <p>
+          There's a second trap, and I walked straight into it in my own measurement code.
+        </p>
+        <p>
+          When I scored a run as "success," my check was essentially: did it finish without throwing an error, and did it produce at least one real number — a token, a timing? There was no latency threshold anywhere. I didn't think I needed one. A run either errored or it didn't.
+        </p>
+        <p>
+          Which means the Pixel's 77-second run and the desktop's 44-millisecond run scored <em>identically</em>. Both <code>error: null</code>. Both "success." One is a product. The other is a user staring at a frozen screen for over a minute who will never come back.
+        </p>
+        <p>
+          If you build on WebLLM and your instrumentation only checks for errors, your dashboard will tell you everything is fine while a chunk of your users are having the 77-second experience. The failure that matters here isn't an exception. It's a completion that's so slow it's indistinguishable from broken — and a naive success check counts it as a win.
+        </p>
+
+        <h2>So what do you actually do</h2>
+        <p>
+          If there's no pre-flight signal, you can't decide up front. The only thing left is to measure the actual run — a fast, cheap probe of whether this specific device, right now, can do the thing — and fall back to a server when it can't. Not "detect capability." Measure behavior, then route.
+        </p>
+        <p>
+          That's the conclusion the data forced on me, and it's not a satisfying one — it means you can't get away with a feature check and a config flag. You have to treat every device as a question you answer by trying.
+        </p>
+
+        <h2>The honest limits of this</h2>
+        <p>
+          I measured a handful of devices, not a population: one iPhone model, one Pixel, a couple of desktop sessions. I can't tell you what percentage of the world's phones kill the tab. The numbers here are in-page harness timings, not externally instrumented (and WebLLM's download/init split is an estimate), and the "tab kill" is an inferred cause (the tab reloaded mid-run; OOM is the likely reason, not a captured signal). What I can say is narrower and, I think, more useful: across every device I tested, <code>navigator.gpu</code> was true, and it predicted nothing about whether the run would finish.
+        </p>
+        <p>
+          If you've shipped in-browser inference to real users: what did you end up trusting to decide when to run locally? A feature check, a benchmark, a warm-up run — or did you give up and route everything to a server? I'd genuinely like to know what worked, because the thing I'm sure of is that the capability flag isn't it.
+        </p>
+
+        <p class="blog-backlink">
+          <a href="/#capability">Run it in your own browser &rarr;</a>
+        </p>
+      </article>
+    </div>
+
+    <div data-blog-footer></div>
+
+    <script type="module" src="/src/blog.ts"></script>
+  </body>
+</html>

@@ -32,6 +32,9 @@ export default defineConfig({
         "blog-webgpu-reports-vs-reality": fileURLToPath(
           new URL("./blog/webgpu-reports-vs-reality/index.html", import.meta.url),
         ),
+        "blog-why-nobody-ships-in-browser-llms": fileURLToPath(
+          new URL("./blog/why-nobody-ships-in-browser-llms/index.html", import.meta.url),
+        ),
       },
     },
   },
