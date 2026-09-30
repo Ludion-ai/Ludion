@@ -68,6 +68,10 @@ test("mandate: a delegation the request was not given is SPOOFED; one that does 
     const r = await w.send(m);
     assert.equal(r.cls.class, "SPOOFED", what); assert.equal(r.cls.reason, "invalid_mandate", what);
     assert.equal(r.decision.error, "invalid_signature", what);
+    // Found by GATE-7's mandate-swap attacks: the Staple had been read before the Mandate failed,
+    // and the SPOOFED result still carried its standing.
+    assert.deepEqual({ depth: r.cls.depth, diverId: r.cls.diverId, staple: r.cls.staple, ballast: r.cls.ballast?.status },
+      { depth: 0, diverId: undefined, staple: null, ballast: "none" }, `${what}: a spoof carries no Staple standing`);
   }
   const absent = {
     audience: [await mandateOf(w.registry, { aud: "https://other.example" })],

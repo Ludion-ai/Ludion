@@ -1,0 +1,9 @@
+{
+  "id": "mandate-swap--uncovered-mandate",
+  "family": "mandate-swap",
+  "title": "Attach a Mandate the signature does not cover, so it could be swapped in transit",
+  "params": {
+    "variant": "uncovered-mandate"
+  },
+  "added": "2026-10-01"
+}

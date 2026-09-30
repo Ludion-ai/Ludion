@@ -5524,6 +5524,586 @@
    ]
   },
   {
+   "id": "mandate-swap--rewritten-limits",
+   "source": "GATE-7",
+   "family": "mandate-swap",
+   "title": "Raise the limits inside a genuine Mandate and keep the Registry's signature",
+   "params": {
+    "variant": "rewritten-limits"
+   },
+   "world": {
+    "registry": {
+     "issuer": "https://registry.ludion.ai",
+     "keys": [
+      {
+       "kty": "OKP",
+       "crv": "Ed25519",
+       "x": "1LRWAQJMY8s-pGrMEdLbVu4o2hvGZce4p0DkHHuuujw",
+       "kid": "cIrBe1Upeqce1RPl90grKtgKl02hxZTcEQ-zVNkLVjE"
+      }
+     ]
+    },
+    "documents": []
+   },
+   "gates": {
+    "main": {
+     "adapter": "core",
+     "authorities": [
+      "shop.example"
+     ],
+     "directories": [
+      {
+       "uri": "https://agent.example",
+       "keys": [
+        {
+         "kty": "OKP",
+         "crv": "Ed25519",
+         "x": "vtt7TXbqVtJx2lErtcrSIvxYkQgwym3sgP5Q8IbvwMU",
+         "kid": "KstF6PI0GrrDt1jm-QFcolWgnGsw-tXh1XDYgTGKAXg",
+         "use": "sig"
+        },
+        {
+         "kty": "OKP",
+         "crv": "Ed25519",
+         "x": "gHDe3nV4ybYSlm5vYXVJtO_56IzIcz02qJuHk9W5RD4",
+         "kid": "GPX0inNdqD4Ne3NnF8-9PS4n4mNq8Faoa8NmpQ1uKZs",
+         "use": "sig"
+        }
+       ]
+      },
+      {
+       "uri": "https://attacker.example",
+       "keys": [
+        {
+         "kty": "OKP",
+         "crv": "Ed25519",
+         "x": "b_E5U1WaLpJb2_Zfgq9F6CzW7Emno3c6GFAlF4m2vGU",
+         "kid": "EbQHZgAcPP6s-2nUXU83tqD_xmngQG-wXV36McHhbGc",
+         "use": "sig"
+        }
+       ]
+      }
+     ]
+    }
+   },
+   "steps": [
+    {
+     "gate": "main",
+     "atS": 0,
+     "expect": "verified",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "ludion-staple",
+        "value": "eyJhbGciOiJFZERTQSIsImtpZCI6ImNJckJlMVVwZXFjZTFSUGw5MGdyS3RnS2wwMmh4WlRjRVEtelZOa0xWakUiLCJ0eXAiOiJsdWRpb24tc3RhcGxlK2p3dCJ9.eyJpc3MiOiJodHRwczovL3JlZ2lzdHJ5Lmx1ZGlvbi5haSIsInN1YiI6ImR2ci1hdHRhY2tlcmF0dGFja2UyIiwiaWF0IjoxODAwMDAwMDAwLCJleHAiOjE4MDAwMDM2MDAsImRlcHRoIjoxLCJiYWxsYXN0Ijp7InN0YXR1cyI6ImFjdGl2ZSJ9LCJjbmYiOnsiamt0IjpbIkViUUhaZ0FjUFA2cy0yblVYVTgzdHFEX3htbmdRRy13WFYzNk1jSGhiR2MiXX19.DIJHL3vvh3XbIaY9EUC9w10J3rwBQhStZ2Z-GFxv6zc4peXcA435DfoXuzLtgBjPCLS85QcPyU6yDEoVvk7dBQ"
+       },
+       {
+        "name": "ludion-mandate",
+        "value": "eyJhbGciOiJFZERTQSIsImtpZCI6ImNJckJlMVVwZXFjZTFSUGw5MGdyS3RnS2wwMmh4WlRjRVEtelZOa0xWakUiLCJ0eXAiOiJsdWRpb24tbWFuZGF0ZStqd3QifQ.eyJpc3MiOiJodHRwczovL3JlZ2lzdHJ5Lmx1ZGlvbi5haSIsInN1YiI6ImR2ci1hdHRhY2tlcmF0dGFja2UyIiwicHJuIjoicHctY29uZm9ybWFuY2UiLCJhdWQiOiJodHRwczovL3Nob3AuZXhhbXBsZSIsInNjb3BlIjpbImNoZWNrb3V0Il0sImxpbWl0cyI6eyJjaGVja291dF9tYXgiOjUwMDAsImN1cnJlbmN5IjoiSlBZIiwicGVyX2RheSI6M30sImlhdCI6MTc5OTk5OTk0MCwiZXhwIjoxODAwMDg2NDAwLCJqdGkiOiJtZHQtYXR0YWNrZXJhdHRhY2tlMiJ9.Q50LAfHiceefw5_MoH7DLYPDM7cG0eITuwnMO-PfjIHh4XD-tfJ622ar7SNtHCE-1msb8FT1Dzvrx5uI-E6YCw"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://attacker.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\" \"ludion-staple\" \"ludion-mandate\");created=1800000000;keyid=\"EbQHZgAcPP6s-2nUXU83tqD_xmngQG-wXV36McHhbGc\";alg=\"ed25519\";expires=1800000060;nonce=\"TDCC1/Elsoee6KrPmVw3DwKrKteWbrq3aH7uR10huOfXD87srP+WE9TRwbhOTS1k/4Dm98mHnOz18/pvqDJ9oQ==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:uPQLTED2xAIZuIXjhtdvsmd7E4J0vin6vTuL808HJ85rSyooRt567c+BDC7NYoXHdheudfBzNpfEV50qZ0ohCw==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "VERIFIED",
+      "action": "allow"
+     }
+    },
+    {
+     "gate": "main",
+     "atS": 0,
+     "expect": "rejected",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "ludion-staple",
+        "value": "eyJhbGciOiJFZERTQSIsImtpZCI6ImNJckJlMVVwZXFjZTFSUGw5MGdyS3RnS2wwMmh4WlRjRVEtelZOa0xWakUiLCJ0eXAiOiJsdWRpb24tc3RhcGxlK2p3dCJ9.eyJpc3MiOiJodHRwczovL3JlZ2lzdHJ5Lmx1ZGlvbi5haSIsInN1YiI6ImR2ci1hdHRhY2tlcmF0dGFja2UyIiwiaWF0IjoxODAwMDAwMDAwLCJleHAiOjE4MDAwMDM2MDAsImRlcHRoIjoxLCJiYWxsYXN0Ijp7InN0YXR1cyI6ImFjdGl2ZSJ9LCJjbmYiOnsiamt0IjpbIkViUUhaZ0FjUFA2cy0yblVYVTgzdHFEX3htbmdRRy13WFYzNk1jSGhiR2MiXX19.DIJHL3vvh3XbIaY9EUC9w10J3rwBQhStZ2Z-GFxv6zc4peXcA435DfoXuzLtgBjPCLS85QcPyU6yDEoVvk7dBQ"
+       },
+       {
+        "name": "ludion-mandate",
+        "value": "eyJhbGciOiJFZERTQSIsImtpZCI6ImNJckJlMVVwZXFjZTFSUGw5MGdyS3RnS2wwMmh4WlRjRVEtelZOa0xWakUiLCJ0eXAiOiJsdWRpb24tbWFuZGF0ZStqd3QifQ.eyJpc3MiOiJodHRwczovL3JlZ2lzdHJ5Lmx1ZGlvbi5haSIsInN1YiI6ImR2ci1hdHRhY2tlcmF0dGFja2UyIiwicHJuIjoicHctY29uZm9ybWFuY2UiLCJhdWQiOiJodHRwczovL3Nob3AuZXhhbXBsZSIsInNjb3BlIjpbImNoZWNrb3V0Il0sImxpbWl0cyI6eyJjaGVja291dF9tYXgiOjUwMDAwMDAwLCJjdXJyZW5jeSI6IkpQWSJ9LCJpYXQiOjE3OTk5OTk5NDAsImV4cCI6MTgwMDA4NjQwMCwianRpIjoibWR0LWF0dGFja2VyYXR0YWNrZTIifQ.Q50LAfHiceefw5_MoH7DLYPDM7cG0eITuwnMO-PfjIHh4XD-tfJ622ar7SNtHCE-1msb8FT1Dzvrx5uI-E6YCw"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://attacker.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\" \"ludion-staple\" \"ludion-mandate\");created=1800000000;keyid=\"EbQHZgAcPP6s-2nUXU83tqD_xmngQG-wXV36McHhbGc\";alg=\"ed25519\";expires=1800000060;nonce=\"5uMlPxLnqkIntq2az+DCNxzCBw+92CO3Rot71vKP9XyG5V10AV2SzK7c/Enu+DL/Z8dz8qqSovEye8AvW4ZbCQ==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:YLlTOCVi1Y8jNzd6JKpBlDPlH93RPtwveXwzlEAvkUcspgS+hqAni7p7TXjWUO6yMm6VH6Ied3bGkBi05XgmBg==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "SPOOFED",
+      "action": "deny",
+      "error": "invalid_signature"
+     }
+    }
+   ]
+  },
+  {
+   "id": "mandate-swap--staple-as-mandate",
+   "source": "GATE-7",
+   "family": "mandate-swap",
+   "title": "Pass a Registry-signed Staple off as a Mandate",
+   "params": {
+    "variant": "staple-as-mandate"
+   },
+   "world": {
+    "registry": {
+     "issuer": "https://registry.ludion.ai",
+     "keys": [
+      {
+       "kty": "OKP",
+       "crv": "Ed25519",
+       "x": "EciKd5fVAAEciriwGFuhs-U8wGTsRKrVhWCX-GHh13U",
+       "kid": "Ku0-fAyzsaTJjBcVWr9SwUoVomhEyBvojd_DugePSB8"
+      }
+     ]
+    },
+    "documents": []
+   },
+   "gates": {
+    "main": {
+     "adapter": "core",
+     "authorities": [
+      "shop.example"
+     ],
+     "directories": [
+      {
+       "uri": "https://agent.example",
+       "keys": [
+        {
+         "kty": "OKP",
+         "crv": "Ed25519",
+         "x": "2vUjJi7rLdjDxo99rGEVP8y4EryOA8aC1MJtN3UB80w",
+         "kid": "LBooDRE0Kg_2SvgqovyGEiuJgZ5fSR0lvPXgxGST18E",
+         "use": "sig"
+        },
+        {
+         "kty": "OKP",
+         "crv": "Ed25519",
+         "x": "N04SkhzUm-SLtQlpz58LxtQbPvRf8Gcpy1P4s8jCzT4",
+         "kid": "A7yWFuSYWN9D5_oFakTyAN4-N-6qSSOf5TZX3OzPMS8",
+         "use": "sig"
+        }
+       ]
+      },
+      {
+       "uri": "https://attacker.example",
+       "keys": [
+        {
+         "kty": "OKP",
+         "crv": "Ed25519",
+         "x": "XuyKGM7vhRxwablVz8u4Ghh2xRhgFIymC_JAwMJixQE",
+         "kid": "WWlBzXmBv6qbukQMN7rmSbpWPPVYkQrCddUNEl37Z3c",
+         "use": "sig"
+        }
+       ]
+      }
+     ]
+    }
+   },
+   "steps": [
+    {
+     "gate": "main",
+     "atS": 0,
+     "expect": "verified",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "ludion-staple",
+        "value": "eyJhbGciOiJFZERTQSIsImtpZCI6Ikt1MC1mQXl6c2FUSmpCY1ZXcjlTd1VvVm9taEV5QnZvamRfRHVnZVBTQjgiLCJ0eXAiOiJsdWRpb24tc3RhcGxlK2p3dCJ9.eyJpc3MiOiJodHRwczovL3JlZ2lzdHJ5Lmx1ZGlvbi5haSIsInN1YiI6ImR2ci1hdHRhY2tlcmF0dGFja2UyIiwiaWF0IjoxODAwMDAwMDAwLCJleHAiOjE4MDAwMDM2MDAsImRlcHRoIjoxLCJiYWxsYXN0Ijp7InN0YXR1cyI6ImFjdGl2ZSJ9LCJjbmYiOnsiamt0IjpbIldXbEJ6WG1CdjZxYnVrUU1ON3JtU2JwV1BQVllrUXJDZGRVTkVsMzdaM2MiXX19.aKo1FX6C0_14mF6cMUQvlMhkJCQi5HkZesrDJNn8hVD8F-s33gQfErKBLoGlGwdAkqEVCmmEcI7igrZXlAg6Bw"
+       },
+       {
+        "name": "ludion-mandate",
+        "value": "eyJhbGciOiJFZERTQSIsImtpZCI6Ikt1MC1mQXl6c2FUSmpCY1ZXcjlTd1VvVm9taEV5QnZvamRfRHVnZVBTQjgiLCJ0eXAiOiJsdWRpb24tbWFuZGF0ZStqd3QifQ.eyJpc3MiOiJodHRwczovL3JlZ2lzdHJ5Lmx1ZGlvbi5haSIsInN1YiI6ImR2ci1hdHRhY2tlcmF0dGFja2UyIiwicHJuIjoicHctY29uZm9ybWFuY2UiLCJhdWQiOiJodHRwczovL3Nob3AuZXhhbXBsZSIsInNjb3BlIjpbImNoZWNrb3V0Il0sImxpbWl0cyI6eyJjaGVja291dF9tYXgiOjUwMDAsImN1cnJlbmN5IjoiSlBZIiwicGVyX2RheSI6M30sImlhdCI6MTc5OTk5OTk0MCwiZXhwIjoxODAwMDg2NDAwLCJqdGkiOiJtZHQtYXR0YWNrZXJhdHRhY2tlMiJ9.fwMzECkSiTyQT3_qHQQ_7Nt6fegNH1iF3Wt1lq2HTrBojZXvEJypn0r4QVQwHeDGwNJFDIggbkSz1CfA3G7SCQ"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://attacker.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\" \"ludion-staple\" \"ludion-mandate\");created=1800000000;keyid=\"WWlBzXmBv6qbukQMN7rmSbpWPPVYkQrCddUNEl37Z3c\";alg=\"ed25519\";expires=1800000060;nonce=\"JUod5PMpL3TTyD5rnlSwnPJsxaS+RB8KaioQ82ySGVwc3ikDd3knbMnlqcQU1lVhoOz9Km6TYvafZW6v5DVLIg==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:W9vOtegECm4Ijl9HNnPQFRQLtl2Wh7fNM7w35zsWfGbacViP62U4JkJHejESQmhIzklyt68bqGQWsCq7Q/OgDw==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "VERIFIED",
+      "action": "allow"
+     }
+    },
+    {
+     "gate": "main",
+     "atS": 0,
+     "expect": "rejected",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "ludion-staple",
+        "value": "eyJhbGciOiJFZERTQSIsImtpZCI6Ikt1MC1mQXl6c2FUSmpCY1ZXcjlTd1VvVm9taEV5QnZvamRfRHVnZVBTQjgiLCJ0eXAiOiJsdWRpb24tc3RhcGxlK2p3dCJ9.eyJpc3MiOiJodHRwczovL3JlZ2lzdHJ5Lmx1ZGlvbi5haSIsInN1YiI6ImR2ci1hdHRhY2tlcmF0dGFja2UyIiwiaWF0IjoxODAwMDAwMDAwLCJleHAiOjE4MDAwMDM2MDAsImRlcHRoIjoxLCJiYWxsYXN0Ijp7InN0YXR1cyI6ImFjdGl2ZSJ9LCJjbmYiOnsiamt0IjpbIldXbEJ6WG1CdjZxYnVrUU1ON3JtU2JwV1BQVllrUXJDZGRVTkVsMzdaM2MiXX19.aKo1FX6C0_14mF6cMUQvlMhkJCQi5HkZesrDJNn8hVD8F-s33gQfErKBLoGlGwdAkqEVCmmEcI7igrZXlAg6Bw"
+       },
+       {
+        "name": "ludion-mandate",
+        "value": "eyJhbGciOiJFZERTQSIsImtpZCI6Ikt1MC1mQXl6c2FUSmpCY1ZXcjlTd1VvVm9taEV5QnZvamRfRHVnZVBTQjgiLCJ0eXAiOiJsdWRpb24tc3RhcGxlK2p3dCJ9.eyJpc3MiOiJodHRwczovL3JlZ2lzdHJ5Lmx1ZGlvbi5haSIsInN1YiI6ImR2ci1hdHRhY2tlcmF0dGFja2UyIiwiaWF0IjoxODAwMDAwMDAwLCJleHAiOjE4MDAwMDM2MDAsImRlcHRoIjoxLCJiYWxsYXN0Ijp7InN0YXR1cyI6ImFjdGl2ZSJ9LCJjbmYiOnsiamt0IjpbIldXbEJ6WG1CdjZxYnVrUU1ON3JtU2JwV1BQVllrUXJDZGRVTkVsMzdaM2MiXX19.aKo1FX6C0_14mF6cMUQvlMhkJCQi5HkZesrDJNn8hVD8F-s33gQfErKBLoGlGwdAkqEVCmmEcI7igrZXlAg6Bw"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://attacker.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\" \"ludion-staple\" \"ludion-mandate\");created=1800000000;keyid=\"WWlBzXmBv6qbukQMN7rmSbpWPPVYkQrCddUNEl37Z3c\";alg=\"ed25519\";expires=1800000060;nonce=\"tnf1JSfCtniGMCRvx7OYTwE0YXwvA2KfMpgse7AJ/AZHSJsy6YnrVurIiVEaxZT1LsHUolWGUaMbp9lDeb03CQ==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:lqc8HOU1L2Se4T7wpc8f/fLHyqSZhdV7XujHo+8jZM+8UAXAnuwu2Z//xYdXeD1zrMDavba+ITlwX7sbQgh4AA==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "SPOOFED",
+      "action": "deny",
+      "error": "invalid_signature"
+     }
+    }
+   ]
+  },
+  {
+   "id": "mandate-swap--uncovered-mandate",
+   "source": "GATE-7",
+   "family": "mandate-swap",
+   "title": "Attach a Mandate the signature does not cover, so it could be swapped in transit",
+   "params": {
+    "variant": "uncovered-mandate"
+   },
+   "world": {
+    "registry": {
+     "issuer": "https://registry.ludion.ai",
+     "keys": [
+      {
+       "kty": "OKP",
+       "crv": "Ed25519",
+       "x": "TA8POsx-xnaqinigygJOuybwiimmQ4vQgu1MP5WbYKs",
+       "kid": "GdaQzlnlJZfJbZQ3f4_IypNr2B_HghbaRot8xQoRJ38"
+      }
+     ]
+    },
+    "documents": []
+   },
+   "gates": {
+    "main": {
+     "adapter": "core",
+     "authorities": [
+      "shop.example"
+     ],
+     "directories": [
+      {
+       "uri": "https://agent.example",
+       "keys": [
+        {
+         "kty": "OKP",
+         "crv": "Ed25519",
+         "x": "HN4i7cq0jhpJ-G7WQOIIybRhm1xXpFw4T6hfG2yvZFo",
+         "kid": "O3C8P1k5ed3-asr2Ut8SKCB7oYsabFHuvpjt-c2j2fA",
+         "use": "sig"
+        },
+        {
+         "kty": "OKP",
+         "crv": "Ed25519",
+         "x": "Nzq79hTP1Ja7S4mHdjA4Yrs5OkXDegI9V48PmMokpyM",
+         "kid": "la34AKsh8P9iQ-LvvT_vVMZtNXHYGzl8tlMcpnxHvFU",
+         "use": "sig"
+        }
+       ]
+      },
+      {
+       "uri": "https://attacker.example",
+       "keys": [
+        {
+         "kty": "OKP",
+         "crv": "Ed25519",
+         "x": "eZgFZnn0l8IH77d0Cv8SBpHQIA28NcFhM-xvgp7NTWw",
+         "kid": "4A7_yVU9ySNEf8tH57lScEy9_AiFwQK4xxt3I6UjttI",
+         "use": "sig"
+        }
+       ]
+      }
+     ]
+    }
+   },
+   "steps": [
+    {
+     "gate": "main",
+     "atS": 0,
+     "expect": "verified",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "ludion-staple",
+        "value": "eyJhbGciOiJFZERTQSIsImtpZCI6IkdkYVF6bG5sSlpmSmJaUTNmNF9JeXBOcjJCX0hnaGJhUm90OHhRb1JKMzgiLCJ0eXAiOiJsdWRpb24tc3RhcGxlK2p3dCJ9.eyJpc3MiOiJodHRwczovL3JlZ2lzdHJ5Lmx1ZGlvbi5haSIsInN1YiI6ImR2ci1hdHRhY2tlcmF0dGFja2UyIiwiaWF0IjoxODAwMDAwMDAwLCJleHAiOjE4MDAwMDM2MDAsImRlcHRoIjoxLCJiYWxsYXN0Ijp7InN0YXR1cyI6ImFjdGl2ZSJ9LCJjbmYiOnsiamt0IjpbIjRBN195VlU5eVNORWY4dEg1N2xTY0V5OV9BaUZ3UUs0eHh0M0k2VWp0dEkiXX19.0jVSNVjxj6csDgYXEkulzrRJ3Fnrkj9DdwB_yFjZjqAUsoQhcVGPcDZN9WtOdQ5L0jp4j5glLxWaJAjhIH-XBw"
+       },
+       {
+        "name": "ludion-mandate",
+        "value": "eyJhbGciOiJFZERTQSIsImtpZCI6IkdkYVF6bG5sSlpmSmJaUTNmNF9JeXBOcjJCX0hnaGJhUm90OHhRb1JKMzgiLCJ0eXAiOiJsdWRpb24tbWFuZGF0ZStqd3QifQ.eyJpc3MiOiJodHRwczovL3JlZ2lzdHJ5Lmx1ZGlvbi5haSIsInN1YiI6ImR2ci1hdHRhY2tlcmF0dGFja2UyIiwicHJuIjoicHctY29uZm9ybWFuY2UiLCJhdWQiOiJodHRwczovL3Nob3AuZXhhbXBsZSIsInNjb3BlIjpbImNoZWNrb3V0Il0sImxpbWl0cyI6eyJjaGVja291dF9tYXgiOjUwMDAsImN1cnJlbmN5IjoiSlBZIiwicGVyX2RheSI6M30sImlhdCI6MTc5OTk5OTk0MCwiZXhwIjoxODAwMDg2NDAwLCJqdGkiOiJtZHQtYXR0YWNrZXJhdHRhY2tlMiJ9.4pGDUfm32dPT-opKzhWky8MpOtOWeDAvNnR_wwIbxSYX5ZGIsIBaZZyYgf72cjbTzupSxS8GoM2I0dkZ3JgEAA"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://attacker.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\" \"ludion-staple\" \"ludion-mandate\");created=1800000000;keyid=\"4A7_yVU9ySNEf8tH57lScEy9_AiFwQK4xxt3I6UjttI\";alg=\"ed25519\";expires=1800000060;nonce=\"y4Kz3puuhhqwsP0m3ETk0KnKYzNEAwLGeoRiH+rwvLxi9oT30leyysgXK4O6T6hgf8BJY0+feqOpB2efg+h4bg==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:5ITGY/2OcakePgv8QPpaHy+7Rb4CS8k8AGoT/N9UYtTBLk5j+OmvcXzUngsD3ELZU+sVjdFxa1jfT5kUZTl7Bw==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "VERIFIED",
+      "action": "allow"
+     }
+    },
+    {
+     "gate": "main",
+     "atS": 0,
+     "expect": "rejected",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "ludion-staple",
+        "value": "eyJhbGciOiJFZERTQSIsImtpZCI6IkdkYVF6bG5sSlpmSmJaUTNmNF9JeXBOcjJCX0hnaGJhUm90OHhRb1JKMzgiLCJ0eXAiOiJsdWRpb24tc3RhcGxlK2p3dCJ9.eyJpc3MiOiJodHRwczovL3JlZ2lzdHJ5Lmx1ZGlvbi5haSIsInN1YiI6ImR2ci1hdHRhY2tlcmF0dGFja2UyIiwiaWF0IjoxODAwMDAwMDAwLCJleHAiOjE4MDAwMDM2MDAsImRlcHRoIjoxLCJiYWxsYXN0Ijp7InN0YXR1cyI6ImFjdGl2ZSJ9LCJjbmYiOnsiamt0IjpbIjRBN195VlU5eVNORWY4dEg1N2xTY0V5OV9BaUZ3UUs0eHh0M0k2VWp0dEkiXX19.0jVSNVjxj6csDgYXEkulzrRJ3Fnrkj9DdwB_yFjZjqAUsoQhcVGPcDZN9WtOdQ5L0jp4j5glLxWaJAjhIH-XBw"
+       },
+       {
+        "name": "ludion-mandate",
+        "value": "eyJhbGciOiJFZERTQSIsImtpZCI6IkdkYVF6bG5sSlpmSmJaUTNmNF9JeXBOcjJCX0hnaGJhUm90OHhRb1JKMzgiLCJ0eXAiOiJsdWRpb24tbWFuZGF0ZStqd3QifQ.eyJpc3MiOiJodHRwczovL3JlZ2lzdHJ5Lmx1ZGlvbi5haSIsInN1YiI6ImR2ci1hdHRhY2tlcmF0dGFja2UyIiwicHJuIjoicHctY29uZm9ybWFuY2UiLCJhdWQiOiJodHRwczovL3Nob3AuZXhhbXBsZSIsInNjb3BlIjpbImNoZWNrb3V0Il0sImxpbWl0cyI6eyJjaGVja291dF9tYXgiOjUwMDAsImN1cnJlbmN5IjoiSlBZIiwicGVyX2RheSI6M30sImlhdCI6MTc5OTk5OTk0MCwiZXhwIjoxODAwMDg2NDAwLCJqdGkiOiJtZHQtYXR0YWNrZXJhdHRhY2tlMiJ9.4pGDUfm32dPT-opKzhWky8MpOtOWeDAvNnR_wwIbxSYX5ZGIsIBaZZyYgf72cjbTzupSxS8GoM2I0dkZ3JgEAA"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://attacker.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\" \"ludion-staple\");created=1800000000;keyid=\"4A7_yVU9ySNEf8tH57lScEy9_AiFwQK4xxt3I6UjttI\";alg=\"ed25519\";expires=1800000060;nonce=\"P4tXQqWS6KLgSEmZy0HpBkQQA8UQBNFJckN/4Ii9hyLq7hKkJhniFzp0QbgxqFz1lqDsTwl14Ze0xUYLTW9DUg==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:p9KKGyxfIvkuBBPCzFOziG9pDcnRktQxNwCv5LJ6dThUyr8T+0U+GdxpTzWQ2NydQzMRhJDgRR3HykjInw1HAA==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "SPOOFED",
+      "action": "deny",
+      "error": "invalid_signature"
+     }
+    }
+   ]
+  },
+  {
+   "id": "mandate-swap--victims-mandate-under-my-staple",
+   "source": "GATE-7",
+   "family": "mandate-swap",
+   "title": "Carry the victim Diver's Mandate under my own signature and Staple",
+   "params": {
+    "variant": "victims-mandate-under-my-staple"
+   },
+   "world": {
+    "registry": {
+     "issuer": "https://registry.ludion.ai",
+     "keys": [
+      {
+       "kty": "OKP",
+       "crv": "Ed25519",
+       "x": "ZTITqzC7AzN7QyPczxur_hnPmug7mrHJL-izdA9XVwQ",
+       "kid": "mQrhcgIo3rjBvap2tJd1SFSxeNydq7jt5lKNacEnDNg"
+      }
+     ]
+    },
+    "documents": []
+   },
+   "gates": {
+    "main": {
+     "adapter": "core",
+     "authorities": [
+      "shop.example"
+     ],
+     "directories": [
+      {
+       "uri": "https://agent.example",
+       "keys": [
+        {
+         "kty": "OKP",
+         "crv": "Ed25519",
+         "x": "trosncRNhptkEcW_xw1fVfBmo9s574pOPHw-mpuAY6A",
+         "kid": "MhUjaI1Bab9tdtA6EAqNPKDZnRjpbkS47_ACuEGiuWU",
+         "use": "sig"
+        },
+        {
+         "kty": "OKP",
+         "crv": "Ed25519",
+         "x": "EbQVxx2OSSFHsnwg2grIzAqeWdsVSFTjE3RXuxOEPUM",
+         "kid": "PyfI9M74I5T72evwfmqlXRmVW5jCW-U7rtfmbEOh6Wk",
+         "use": "sig"
+        }
+       ]
+      },
+      {
+       "uri": "https://attacker.example",
+       "keys": [
+        {
+         "kty": "OKP",
+         "crv": "Ed25519",
+         "x": "yh1lCGtRAJPwzUnmvYrwDHSVZUF3mGwjUVqBHZ7b0aI",
+         "kid": "MNXzTrmvn7tbCLcdV8d8v57m1uNbPe3qItaC3yZ3vw0",
+         "use": "sig"
+        }
+       ]
+      }
+     ]
+    }
+   },
+   "steps": [
+    {
+     "gate": "main",
+     "atS": 0,
+     "expect": "verified",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "ludion-staple",
+        "value": "eyJhbGciOiJFZERTQSIsImtpZCI6Im1RcmhjZ0lvM3JqQnZhcDJ0SmQxU0ZTeGVOeWRxN2p0NWxLTmFjRW5ETmciLCJ0eXAiOiJsdWRpb24tc3RhcGxlK2p3dCJ9.eyJpc3MiOiJodHRwczovL3JlZ2lzdHJ5Lmx1ZGlvbi5haSIsInN1YiI6ImR2ci1hdHRhY2tlcmF0dGFja2UyIiwiaWF0IjoxODAwMDAwMDAwLCJleHAiOjE4MDAwMDM2MDAsImRlcHRoIjoxLCJiYWxsYXN0Ijp7InN0YXR1cyI6ImFjdGl2ZSJ9LCJjbmYiOnsiamt0IjpbIk1OWHpUcm12bjd0YkNMY2RWOGQ4djU3bTF1TmJQZTNxSXRhQzN5WjN2dzAiXX19.08qKw7f0Hx5nuW37usaerdmLwzrJK2wiFVNba7xZkJLggO0IQD3cF5eqk0jgN7D4x9Nhmo3mQ2-J2gssoC92Bg"
+       },
+       {
+        "name": "ludion-mandate",
+        "value": "eyJhbGciOiJFZERTQSIsImtpZCI6Im1RcmhjZ0lvM3JqQnZhcDJ0SmQxU0ZTeGVOeWRxN2p0NWxLTmFjRW5ETmciLCJ0eXAiOiJsdWRpb24tbWFuZGF0ZStqd3QifQ.eyJpc3MiOiJodHRwczovL3JlZ2lzdHJ5Lmx1ZGlvbi5haSIsInN1YiI6ImR2ci1hdHRhY2tlcmF0dGFja2UyIiwicHJuIjoicHctY29uZm9ybWFuY2UiLCJhdWQiOiJodHRwczovL3Nob3AuZXhhbXBsZSIsInNjb3BlIjpbImNoZWNrb3V0Il0sImxpbWl0cyI6eyJjaGVja291dF9tYXgiOjUwMDAsImN1cnJlbmN5IjoiSlBZIiwicGVyX2RheSI6M30sImlhdCI6MTc5OTk5OTk0MCwiZXhwIjoxODAwMDg2NDAwLCJqdGkiOiJtZHQtYXR0YWNrZXJhdHRhY2tlMiJ9.DREfURz7r6c6vMhwLyaYFS9Hm_s9rPpSq4sn_j86kovwvJwP4JDF0Na97OTXdlSB6Yi6kAiISO4ifl8jligtCQ"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://attacker.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\" \"ludion-staple\" \"ludion-mandate\");created=1800000000;keyid=\"MNXzTrmvn7tbCLcdV8d8v57m1uNbPe3qItaC3yZ3vw0\";alg=\"ed25519\";expires=1800000060;nonce=\"fr+1HBOWkiB6Cmt6R7aJb9k5h6QAoO+Ku3mPls5VIDYiSWukfpWsOuNlb2NyQgY9I92iCKMausodkAB1KtFMkw==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:IbJFRThozW4J9j19dnKkYZaxuLSGAV2bGzQAxCbRj3sccEplWcNbUn8P4Qhet6wMh2ObfCIi7NZPj2dC9syVDA==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "VERIFIED",
+      "action": "allow"
+     }
+    },
+    {
+     "gate": "main",
+     "atS": 0,
+     "expect": "rejected",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "ludion-staple",
+        "value": "eyJhbGciOiJFZERTQSIsImtpZCI6Im1RcmhjZ0lvM3JqQnZhcDJ0SmQxU0ZTeGVOeWRxN2p0NWxLTmFjRW5ETmciLCJ0eXAiOiJsdWRpb24tc3RhcGxlK2p3dCJ9.eyJpc3MiOiJodHRwczovL3JlZ2lzdHJ5Lmx1ZGlvbi5haSIsInN1YiI6ImR2ci1hdHRhY2tlcmF0dGFja2UyIiwiaWF0IjoxODAwMDAwMDAwLCJleHAiOjE4MDAwMDM2MDAsImRlcHRoIjoxLCJiYWxsYXN0Ijp7InN0YXR1cyI6ImFjdGl2ZSJ9LCJjbmYiOnsiamt0IjpbIk1OWHpUcm12bjd0YkNMY2RWOGQ4djU3bTF1TmJQZTNxSXRhQzN5WjN2dzAiXX19.08qKw7f0Hx5nuW37usaerdmLwzrJK2wiFVNba7xZkJLggO0IQD3cF5eqk0jgN7D4x9Nhmo3mQ2-J2gssoC92Bg"
+       },
+       {
+        "name": "ludion-mandate",
+        "value": "eyJhbGciOiJFZERTQSIsImtpZCI6Im1RcmhjZ0lvM3JqQnZhcDJ0SmQxU0ZTeGVOeWRxN2p0NWxLTmFjRW5ETmciLCJ0eXAiOiJsdWRpb24tbWFuZGF0ZStqd3QifQ.eyJpc3MiOiJodHRwczovL3JlZ2lzdHJ5Lmx1ZGlvbi5haSIsInN1YiI6ImR2ci12aWN0aW12aWN0aW12aWMyIiwicHJuIjoicHctY29uZm9ybWFuY2UiLCJhdWQiOiJodHRwczovL3Nob3AuZXhhbXBsZSIsInNjb3BlIjpbImNoZWNrb3V0Il0sImxpbWl0cyI6eyJjaGVja291dF9tYXgiOjUwMDAsImN1cnJlbmN5IjoiSlBZIiwicGVyX2RheSI6M30sImlhdCI6MTc5OTk5OTk0MCwiZXhwIjoxODAwMDg2NDAwLCJqdGkiOiJtZHQtdmljdGltdmljdGltdmljMiJ9.vsbS73_9CmBqC1OhZD8rnikIkecqYBWnozaksQ7ApyWs27epCrKYIVT8boIqy0ePW9epOw8s4OvcE8Ds2DMGBA"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://attacker.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\" \"ludion-staple\" \"ludion-mandate\");created=1800000000;keyid=\"MNXzTrmvn7tbCLcdV8d8v57m1uNbPe3qItaC3yZ3vw0\";alg=\"ed25519\";expires=1800000060;nonce=\"sENzcxKbYn0gpifIbi+XxPRiMLspav5SLKfOiOHUN+P4gxMC+RklMNBj+cUleHa4QDIQZOa4hVOvDHUbBNObnw==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:Pc0WXm0KfOdTFmMfTHqLwQXUCzGZqwg0Ey4C5BSfxnc1/+dHjxkPeoUCj3KCW6e7Fncl1WloHLkvR4vK2zKdDg==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "SPOOFED",
+      "action": "deny",
+      "error": "invalid_signature"
+     }
+    }
+   ]
+  },
+  {
    "id": "nonce-flood--many-directories",
    "source": "GATE-7",
    "family": "nonce-flood",

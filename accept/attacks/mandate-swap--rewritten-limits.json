@@ -1,0 +1,9 @@
+{
+  "id": "mandate-swap--rewritten-limits",
+  "family": "mandate-swap",
+  "title": "Raise the limits inside a genuine Mandate and keep the Registry's signature",
+  "params": {
+    "variant": "rewritten-limits"
+  },
+  "added": "2026-10-01"
+}

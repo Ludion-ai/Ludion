@@ -9,7 +9,8 @@
 // Gate or the real @ludion/gate-node adapter. Expectations: verified | rejected | human | denied | flood.
 import { component } from "http-message-sig";
 import { ludionGate } from "@ludion/gate-node";
-import { generateSiteKey, originForm } from "@ludion/gate-core";
+import { generateSiteKey, originForm, MANDATE_TYP } from "@ludion/gate-core";
+import { signJws } from "@ludion/gate-core/staple";
 import { keypair as supportKeypair, signed as supportSigned, harness as supportHarness, staple, withFields, fieldOf, retarget, AGENT, ATTACKER, SITE, NOW_MS, NOW_S, ROUTES, REGISTRY_ISS } from "../../packages/gate-core/test/support.mjs";
 
 /**
@@ -19,7 +20,7 @@ import { keypair as supportKeypair, signed as supportSigned, harness as supportH
  */
 export const deps = { harness: supportHarness, keypair: supportKeypair, signed: supportSigned };
 
-export const REQUIRED = ["replay", "staple-swap", "cnf-mismatch", "strip-signature", "key-confusion", "label-confusion", "omitted-components", "clock-skew", "route-evasion", "cross-site-replay", "nonce-flood"];
+export const REQUIRED = ["replay", "staple-swap", "cnf-mismatch", "strip-signature", "key-confusion", "label-confusion", "omitted-components", "clock-skew", "route-evasion", "cross-site-replay", "nonce-flood", "mandate-swap"];
 export const UAS = {
   human: "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_0) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15",
   suspected: "python-requests/2.32.3",
@@ -112,6 +113,27 @@ export const FAMILIES = {
       const reSigned = await stapled(w.agent, `${h}.${forged}.${s}`);
       return [ok(req), bad(reSigned)];
     }
+    throw new Error(`unknown variant ${variant}`);
+  },
+  // Carry a delegation one was never given (spec §10.6): a Mandate is the Registry's, for one
+  // Diver (read through the Staple bound to the request key), covered by the signature. Control:
+  // the attacker's own Mandate under its own Staple is VERIFIED with the Mandate read.
+  async "mandate-swap"({ variant }, w) {
+    const mandateOf = (sub, extra = {}) => signJws(w.registry.privateKey, w.registry.kid, MANDATE_TYP, {
+      iss: REGISTRY_ISS, sub, prn: "pw-conformance", aud: SITE, scope: ["checkout"], limits: { checkout_max: 5000, currency: "JPY", per_day: 3 },
+      iat: NOW_S - 60, exp: NOW_S + 86_400, jti: `mdt-${sub.slice(4)}`, ...extra });
+    const carrying = (mandate, { cover = true } = {}) => deps.signed({ key: w.attacker, agent: ATTACKER,
+      extraComponents: ["ludion-staple", ...(cover ? ["ludion-mandate"] : [])],
+      headers: { "ludion-staple": w.attackerStaple, "ludion-mandate": mandate } });
+    const control = ok(await carrying(await mandateOf(ATTACKER_DIVER)));
+    if (variant === "victims-mandate-under-my-staple") return [control, bad(await carrying(await mandateOf(VICTIM_DIVER)))];
+    if (variant === "uncovered-mandate") return [control, bad(await carrying(await mandateOf(ATTACKER_DIVER), { cover: false }))];
+    if (variant === "rewritten-limits") {
+      const [h, p, s] = (await mandateOf(ATTACKER_DIVER)).split(".");
+      const raised = Buffer.from(JSON.stringify({ ...JSON.parse(Buffer.from(p, "base64url")), limits: { checkout_max: 50_000_000, currency: "JPY" } })).toString("base64url");
+      return [control, bad(await carrying(`${h}.${raised}.${s}`))];
+    }
+    if (variant === "staple-as-mandate") return [control, bad(await carrying(w.attackerStaple))];
     throw new Error(`unknown variant ${variant}`);
   },
   // A Staple bound (cnf.jkt) to one key presented under a signature by another key.
