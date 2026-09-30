@@ -111,6 +111,12 @@
     - 偽の境目（無圧縮のデータの中のヘッダーのバイト列）もケースに入れた。
   - 突然変異で落ちることを確かめた。並べ替え、gzip の展開、見出しの数字、境目の検証。
   - scoreboard（ローカル）：PASS 32 → 33。ラチェットは WEB-4 を足した。
+  - #45 のマージ後、`loop-windows` で WEB-3 と WEB-4 が落ちた。`loop-windows` は必須チェックではないので、#45 は Linux が緑の時点で自動でマージされていた。
+    - 原因：Astro はビルドの途中の資産を `site/.astro` から出力先へ rename で移す。Windows のランナーでは、リポジトリが D:、一時ディレクトリが C: にあり、ドライブをまたぐ rename は失敗する（EXDEV）。
+    - 使い捨ての下書き PR（#46、マージしない）で、ランナー上のエラーを取った。
+    - 直し方：Astro には `site/.astro/out/` の中にだけビルドさせ、できたものを出力先へ移す。rename できなければコピーする。
+    - 速いテスト `site/test/build.test.mjs` に降ろし、`npm test` に入れた。
+    - 教訓：サイトの PR は `loop-windows` が緑になるまで auto-merge を付けない。
 
 - 2026-10-01（夜勤 1）：
   - GATE-9 と M7 Web（WEB-1〜8）を目録と registry に PENDING で登録した（#43）。ID の衝突はなし。LOOP-1 は PASS のまま、目録は 39 → 49 件。
