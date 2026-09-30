@@ -1,4 +1,4 @@
-// The egress watch for the site oracles (WEB-6; WEB-5 next). Chromium is launched with this proxy
+// The egress watch for the site oracles (WEB-6, WEB-5). Chromium is launched with this proxy
 // as its only way out, loopback included (Playwright adds `<-loopback>` to the bypass list): the
 // proxy serves the built site at its own origin and refuses everything else, recording every
 // attempt. So a page under test reaches nothing but the site, even when it misbehaves, and whatever

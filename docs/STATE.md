@@ -31,10 +31,14 @@
   - WEB-4：`/scan` と `/ja/scan` にログを落とすと、CLI と同じ数字が出る（docs/adr/2026-10-01-browser-scan-shares-the-cli-core.md）。
   - WEB-6：scan はログのバイトを外に出さない。測り方は `site/test/egress.mjs`（監視）と `site/test/web6.test.mjs`。
     - サイトの PR は、`loop-windows` が緑になってから auto-merge を付ける（#45 の教訓）。
-  - 次は NIGHT.md の優先順：WEB-5（リンク切れ、コンソールエラー、許可リスト外の通信）→ WEB-2 → WEB-8 → WEB-1 → 目録の残り → GATE-9（PHP と WordPress、Python）→ WEB-7 → LIVE-1。
-  - WEB-5 の入口：
-    - 許可リスト外への通信は、WEB-6 の監視（`startEgressProxy` と `judge`）をそのまま全ページに回せば測れる。
-    - リンク切れは、ビルドした dist の全ページの `href` を `resolveFile` で引けばよい。
+  - WEB-5：リンク切れ、コンソールエラー、許可リスト外の通信が 0（docs/adr/2026-10-01-site-links-own-origin-and-gate-page.md）。
+    - リンクの規則は `site/test/links.mjs`。ファイルにも、使ったあとの DOM にも同じ規則をかける。
+    - `/gate` と `/ja/gate`（Gate の入れ方）と、日本語の 404 を足した。
+  - 次は NIGHT.md の優先順：WEB-2 → WEB-8 → WEB-1 → 目録の残り → GATE-9（PHP と WordPress、Python）→ WEB-7 → LIVE-1。
+  - WEB-2 の入口：
+    - ページの本文は WEB-3 の `text()` と `main()` で取れる。全ページの一覧は `links.mjs` の `checkSite(...).pages`。
+    - 禁止語（保険を売る、支払いを保証、100% 安全の類）は英日の両方で。負のオラクルなので、仕込んだ禁止語を捕まえることも示す。
+    - 「数字は出所へのリンクを持つ」は、数字を含む文の近くにリンクがあるかで測れる。今のサイトの数字は `/scan` の結果（出所は利用者のログ）と `/e` の HTTP ステータスくらい。
   - プレビューのデプロイ（WEB-1）：今のトークンでは何も読めない（docs/DEPLOY.md 1.1）。人間待ちに書いた。
   - 新しい ADR には番号を付けない。`docs/adr/YYYY-MM-DD-<slug>.md` にする（NIGHT.md §8、両レーン共通）。
 
@@ -63,6 +67,10 @@
   - 失効と Depth の引き下げには理由を示し、異議を聞く（spec §8.12）。
   - Ballast v0 は保険ではない（spec §14）。
   - `rate_limited` は spec §10.11 にあるが、Gate v0 は返さない。ページにもそう書いた。
+  - `/gate` と `/ja/gate`（Gate の入れ方、`site/src/content/docs/gate.mdx`、`ja/gate.mdx`）も読む。
+    - 中身はアダプタの README の Install の写し。新しい約束は足していない。
+    - `npm install @ludion/gate-*` は、npm の `@ludion` を確保して publish するまで動かない。
+    - scan の CLI、日次レポート、Gate の User-Agent が、すでに `https://ludion.ai/gate` を配っている。
 
 ## BLOCKED
 
@@ -91,7 +99,10 @@
 - ブラウザ版 scan（WEB-4）で未カバーの部分：
   - 末尾をゼロで埋めた gzip は、CLI（zlib）は読めるが、ブラウザでは読めない。
   - 末尾にゴミのある gzip では、CLI もブラウザも止まる（`incorrect header check`）。
-  - 「テキストでコピー」は CLI の文面なので、`https://ludion.ai/gate` へのリンクを含む。そのページはまだない。WEB-5 で拾う。
+- WEB-5 で未カバーの部分：
+  - 見ているのは Chromium だけ。Firefox と Safari のコンソールエラーは見ていない。
+  - 外向きのリンクは、ネットワークがなければ「未確認」になり、落ちない。要約に数が出る。今は datatracker の 1 本だけ。
+  - 見ているのは静的ホストと同じ規則で配ったサイト（`serve.mjs`）。プレビューや本番のホストの設定（リダイレクト、ヘッダー）は WEB-1 で。
 - WEB-6 で未カバーの部分：
   - ヘッドレス Chromium（shell）は preconnect と dns-prefetch を実行しない。NetLog で確かめた。プロキシがあってもなくても、名前の解決が起きない。
     - そのため、リソースヒントはネットワークではなく DOM で見ている（MutationObserver）。HTTP の `Link:` ヘッダーで来るヒントは見ていない。今のサイトは出していない。
@@ -102,6 +113,23 @@
   - web-bot-auth@0.2.0 のパーサが registry-03 に準拠しているか
 
 ## 直近のセッション
+
+- 2026-10-01（夜勤 5）：
+  - WEB-5：リンク切れ 0、コンソールエラー 0、許可リスト外の通信 0（docs/adr/2026-10-01-site-links-own-origin-and-gate-page.md）。
+    - 許可リストはサイト自身のオリジンだけ。第三者は 0。
+    - 静的：ビルドした全ページ、CSS の `url()`、スクリプトに書かれたサイトの URL、サイトマップを `site/test/links.mjs` で引く。
+    - 実地：全ページをデスクトップとモバイルで、WEB-6 の監視の後ろの Chromium で開いて使う。
+      - 使うもの：テーマ、モバイルのメニューと目次、検索（英日）、言語の切り替え、scan とコピー、深い 404。
+      - 使ったあとの DOM のリンクも、同じ規則で引く。
+    - 外向きのリンクはネットワークで確かめる。404 と 410 だけが「切れている」。
+    - 仕込んだ 12 の壊れ方を、すべて狙いの規則で捕まえた。
+      - 仕込んだもの：死んだリンク、死んだフラグメント、他サイトのフォント、console.error、throw、ない画像、ないフォント、スクリプトが足す死んだリンク、外への fetch、死んだ言語の選択肢、コピーの死んだ URL、リポジトリにないパス。
+  - 最初の実行で、本物の切れたリンクを 3 つ捕まえた。
+    - 404 ページの `hreflang="ja"` と言語の切り替えが `/ja/404` を指していた。そのページはなかった。→ 日本語の 404 を足した。
+    - scan のコピー、日次レポート、Gate の User-Agent が `https://ludion.ai/gate` を配っていた。そのページはなかった。→ `/gate` と `/ja/gate` を足した。
+    - scan の「Gate の入れ方（GitHub）」は、README のないリポジトリのルートを指していた。→ `/gate` を指すようにした。
+    - 速いテスト `site/test/links.test.mjs` に降ろし、`npm test` に入れた。コードが配る `https://ludion.ai/` の URL に英日のページがあること、各言語に 404 があること。
+  - scoreboard（ローカル）：PASS 34 → 35、PENDING 15 → 14、FAIL 0。ラチェットは WEB-5 を足した。
 
 - 2026-10-01（夜勤 3、4）：
   - WEB-6：scan の間、ログのバイトは1つも外に出ない。

@@ -39,7 +39,8 @@ export const STRINGS = {
     signed: (n) => `${n} 件が Web Bot Auth の署名を持っていました。ログは署名を検証できません。Gate ならできます。`,
     nextTitle: "次の一手",
     next: "Gate を Pressure 0（観測だけ）で入れると、署名をその場で検証し、同じ数字を毎日出します。訪問者には何も変わりません。",
-    nextLink: "Gate の入れ方（GitHub）",
+    nextLink: "Gate の入れ方",
+    gate: "/ja/gate",
     cli: "ターミナルで同じ数字を出すには：",
     copy: "テキストでコピー",
     copied: "コピーしました",
@@ -84,7 +85,8 @@ export const STRINGS = {
     signed: (n) => `${n} requests carried a Web Bot Auth signature. A log cannot verify a signature; a Gate can.`,
     nextTitle: "Next",
     next: "Install the Gate at Pressure 0 (observe only). It verifies signatures as they arrive and gives you this number every day. Visitors see no difference.",
-    nextLink: "How to install the Gate (GitHub)",
+    nextLink: "How to install the Gate",
+    gate: "/gate",
     cli: "The same numbers in a terminal:",
     copy: "Copy as text",
     copied: "Copied",
@@ -93,5 +95,3 @@ export const STRINGS = {
     again: "Read another log",
   },
 };
-
-export const GATE_URL = "https://github.com/Ludion-ai/Ludion#readme";

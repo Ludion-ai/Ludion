@@ -202,7 +202,12 @@ export const ORACLES = [
   { id: "WEB-4", m: "M7", kind: "+", level: 1, pair: "WEB-6", title: "in-browser scan at /scan equals the CLI on SCAN fixtures; 200 MB in ≤30s (headless Chromium)",
     timeoutMs: 900_000, run: nodeTest(["site/test/web4.test.mjs"], "^WEB-4:", { timeoutMs: 880_000,
       metric: (out) => (/^# WEB-4: (.+)$/m.exec(out) ?? [])[1] }) },
-  { id: "WEB-5", m: "M7", kind: "-", level: 1, title: "0 broken links, 0 console errors, 0 requests outside the allowlist" },
+  // The allowlist is the site's own origin. Every page of the real build, desktop and mobile, is used
+  // in Chromium behind the egress watch; links are checked in the files and in the live DOM
+  // (site/test/links.mjs); links out are asked on the network, and breakage planted must be caught.
+  { id: "WEB-5", m: "M7", kind: "-", level: 1, title: "0 broken links, 0 console errors, 0 requests outside the allowlist",
+    timeoutMs: 900_000, run: nodeTest(["site/test/web5.test.mjs"], "^WEB-5:", { timeoutMs: 880_000,
+      metric: (out) => (/^# WEB-5: (.+)$/m.exec(out) ?? [])[1] }) },
   // Chromium's only way out is a proxy in the test (site/test/egress.mjs), loopback included; the
   // test also plants leaks in the page and the worker and must catch each one.
   { id: "WEB-6", m: "M7", kind: "-", level: 1, title: "scan leaks no log byte: canary log → 0 external requests after page load (every request watched)",

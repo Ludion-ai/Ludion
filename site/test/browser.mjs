@@ -1,4 +1,4 @@
-// Headless Chromium for the site oracles (WEB-4, WEB-6; WEB-5 next). playwright-core comes
+// Headless Chromium for the site oracles (WEB-4, WEB-5, WEB-6). playwright-core comes
 // from the site's lockfile; the browser build that version pins is installed on first use into
 // Playwright's shared cache (PLAYWRIGHT_BROWSERS_PATH, else the OS default), then reused.
 import path from "node:path";
