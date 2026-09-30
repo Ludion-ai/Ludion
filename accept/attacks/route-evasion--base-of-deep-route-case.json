@@ -1,0 +1,11 @@
+{
+  "id": "route-evasion--base-of-deep-route-case",
+  "family": "route-evasion",
+  "title": "POST /CHECKOUT: base path in another case",
+  "params": {
+    "method": "POST",
+    "target": "/CHECKOUT",
+    "canonical": "/checkout/1"
+  },
+  "added": "2026-09-30"
+}

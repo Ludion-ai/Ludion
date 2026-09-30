@@ -1,0 +1,11 @@
+{
+  "id": "route-evasion--case-upper",
+  "family": "route-evasion",
+  "title": "Express routes are case-insensitive: /CHECKOUT/1 reaches /checkout/:id",
+  "params": {
+    "method": "GET",
+    "target": "/CHECKOUT/1",
+    "canonical": "/checkout/1"
+  },
+  "added": "2026-09-30"
+}

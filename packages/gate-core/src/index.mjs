@@ -12,13 +12,13 @@ import { classify, createPolicy, createNonceCache, decide, ERROR_HELP, AUTOMATIO
 import { createReceipts, importSiteKey, generateSiteKey, metadataEvent, countryCode, templatePath, hashIp } from "./receipt.mjs";
 import { KNOWN_AGENT_TOKENS, AUTOMATION_SIGNALS, matchKnownAgent, matchAutomationSignal } from "./agents.mjs";
 import { GateFault, within, clock } from "./budget.mjs";
-import { routeKind, isCritical, pathOf, queryKeys, templateSegment, publicTemplateSegment, publicTemplatePath, isRouteWord, ROUTE_KINDS, CRITICAL_KINDS, WRITE_METHODS } from "./route.mjs";
+import { routeKind, isCritical, pathOf, originForm, routeCandidates, queryKeys, templateSegment, publicTemplateSegment, publicTemplatePath, isRouteWord, ROUTE_KINDS, CRITICAL_KINDS, WRITE_METHODS } from "./route.mjs";
 
 export {
   createResolver, createStapleVerifier, issueStaple, classify, createPolicy, createNonceCache, decide, compileRoute, CLASSES,
   ERROR_HELP, AUTOMATION, createReceipts, importSiteKey, generateSiteKey, metadataEvent, countryCode, templatePath, hashIp,
   KNOWN_AGENT_TOKENS, AUTOMATION_SIGNALS, matchKnownAgent, matchAutomationSignal, GateFault,
-  routeKind, isCritical, pathOf, queryKeys, templateSegment, publicTemplateSegment, publicTemplatePath, isRouteWord, ROUTE_KINDS, CRITICAL_KINDS, WRITE_METHODS,
+  routeKind, isCritical, pathOf, originForm, routeCandidates, queryKeys, templateSegment, publicTemplateSegment, publicTemplatePath, isRouteWord, ROUTE_KINDS, CRITICAL_KINDS, WRITE_METHODS,
 };
 
 export const LUDION_VERSION = "0";

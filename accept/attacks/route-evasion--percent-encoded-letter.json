@@ -1,0 +1,11 @@
+{
+  "id": "route-evasion--percent-encoded-letter",
+  "family": "route-evasion",
+  "title": "An encoded unreserved letter, decoded by the app before routing",
+  "params": {
+    "method": "GET",
+    "target": "/%63heckout/1",
+    "canonical": "/checkout/1"
+  },
+  "added": "2026-09-30"
+}

@@ -1,0 +1,11 @@
+{
+  "id": "route-evasion--dot-segment-current",
+  "family": "route-evasion",
+  "title": "A ./ segment before /checkout",
+  "params": {
+    "method": "GET",
+    "target": "/./checkout/1",
+    "canonical": "/checkout/1"
+  },
+  "added": "2026-09-30"
+}

@@ -89,7 +89,7 @@ export const ORACLES = [
     run: nodeTest(["packages/gate-node/test/gate5.test.mjs"], "^GATE-5:") },
   { id: "GATE-6", m: "M1", kind: "-", level: 1, title: "SSRF sandbox: internal service receives 0 requests (incl. redirects, rebinding, bombs)" },
   { id: "GATE-7", m: "M1", kind: "-", level: 1, title: "attack corpus accept/attacks/ 100% rejected; corpus only grows",
-    run: allOf(nodeScript("accept/attacks/run.mjs"), nodeTest(["packages/gate-core/test/hardening.test.mjs"], "^GATE-7:")) },
+    run: allOf(nodeScript("accept/attacks/run.mjs"), nodeTest(["packages/gate-core/test/hardening.test.mjs", "packages/gate-node/test/route-evasion.test.mjs"], "^GATE-7:")) },
   { id: "GATE-8", m: "M1", kind: "+", level: 1, pair: "GATE-7", title: "a real third-party signed request (fixture with provenance) is VERIFIED" },
 
   // ── M1 privacy ─────────────────────────────────────────────────────────────────

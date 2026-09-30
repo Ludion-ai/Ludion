@@ -1,0 +1,11 @@
+{
+  "id": "route-evasion--case-login",
+  "family": "route-evasion",
+  "title": "Upper-case /LOGIN reaches the login handler",
+  "params": {
+    "method": "GET",
+    "target": "/LOGIN",
+    "canonical": "/login"
+  },
+  "added": "2026-09-30"
+}

@@ -67,6 +67,56 @@ export function pathOf(target) {
   return cut >= 0 ? t.slice(0, cut) : t;
 }
 
+/**
+ * The origin-form (path + query, no fragment) of any request target. An absolute-form target
+ * (`GET http://host/checkout HTTP/1.1`) is routed by frameworks on its path, so the Gate must
+ * route it on that path too, not on `<Host><target>` glued together. Other forms pass through.
+ * @param {string} target
+ */
+export function originForm(target) {
+  if (typeof target !== "string" || !target || target.startsWith("/")) return target;
+  const m = /^[A-Za-z][A-Za-z0-9+.-]*:\/\/[^/?#]*([^#]*)/.exec(target);
+  if (!m) return target;
+  const rest = m[1] || "/";
+  return rest.startsWith("/") ? rest : `/${rest}`;
+}
+
+/** Decode %XX once, as an app does before routing; malformed UTF-8 decodes ASCII only. */
+function decodeOnce(p) {
+  if (!p.includes("%")) return p;
+  try { return decodeURIComponent(p); } catch { return p.replace(/%([0-7][0-9A-Fa-f])/g, (_, h) => String.fromCharCode(parseInt(h, 16))); }
+}
+
+/**
+ * Every path an app could plausibly route this request path to (spec §11.3: Pressure 2 must
+ * hold on the route the app actually serves). The first entry is the path itself; then the path
+ * decoded once (incl. %2F), with `\` as `/`, `;params` dropped, repeated slashes merged, dot
+ * segments resolved and the trailing slash dropped; then that path without a format suffix or a
+ * trailing dot on its last segment (`/login.json`, `/login.`). Case is left alone: routes are
+ * matched case-insensitively. Used only to decide which route protects a request; it never
+ * changes the request.
+ * @param {string} path
+ * @returns {string[]}
+ */
+export function routeCandidates(path) {
+  const out = [path];
+  let p = decodeOnce(String(path ?? "")).replace(/\\/g, "/").replace(/;[^/]*/g, "");
+  const segs = [];
+  for (const s of p.split("/")) {
+    if (s === "" || s === ".") continue;
+    if (s === "..") segs.pop(); else segs.push(s);
+  }
+  p = `/${segs.join("/")}`;
+  if (!out.includes(p)) out.push(p);
+  const last = segs.length ? segs[segs.length - 1] : "";
+  const bare = last.replace(/\.[A-Za-z0-9]{1,8}$/, "").replace(/[. ]+$/, "");
+  if (bare && bare !== last) {
+    const q = `/${[...segs.slice(0, -1), bare].join("/")}`;
+    if (!out.includes(q)) out.push(q);
+  }
+  return out;
+}
+
 /** Query parameter names of a target (never values). */
 export function queryKeys(target) {
   if (typeof target !== "string") return [];

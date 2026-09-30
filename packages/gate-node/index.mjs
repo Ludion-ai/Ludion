@@ -7,7 +7,7 @@
 // the decision. Humans are never affected: decisions apply only to requests the
 // Gate classified as automation, and Pressure 0 (default) only observes.
 
-import { createGate } from "@ludion/gate-core";
+import { createGate, originForm } from "@ludion/gate-core";
 
 /**
  * @param {import("@ludion/gate-core").GateConfig & { trustProxy?: boolean, onFriction?: (req,res,next,result)=>void }} config
@@ -23,7 +23,9 @@ export async function ludionGate(config) {
       : (req.socket?.encrypted ? "https" : "http");
     const host = trustProxy && req.headers["x-forwarded-host"] ? String(req.headers["x-forwarded-host"]).split(",")[0].trim()
       : (req.headers.host ?? req.headers[":authority"] ?? "localhost");
-    return { kind: "request", method: req.method, targetUri: `${proto}://${host}${req.url}`, fields };
+    // An absolute-form target is routed by the app on its path (RFC 9112 §3.2.2), so it is
+    // described on that path; gluing it after the Host would move it off its Pressure 2 route.
+    return { kind: "request", method: req.method, targetUri: `${proto}://${host}${originForm(req.url)}`, fields };
   }
 
   function clientIp(req) {

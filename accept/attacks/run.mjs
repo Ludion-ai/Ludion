@@ -4,18 +4,29 @@
 // Staple, an attacker with their own directory and Staple, a pinned Registry, a Gate at P0 with
 // Pressure-2 routes). A family yields steps: `verified` steps are controls proving the setup is
 // honest; `rejected` steps are the attack and must be refused (not VERIFIED, no Staple standing,
-// denied on the P2 route). Exit 1 if any attack gets through, the corpus is empty, a required
-// family is missing, or an attack that exists on the base branch was deleted (the corpus only grows).
+// denied on the P2 route). Families that attack how a raw request reaches the app (route-evasion)
+// run their steps through the real @ludion/gate-node adapter, where `rejected` also means the
+// request never reached the app; `human` steps must reach it untouched, and `denied` controls
+// prove the route is protected when spelled plainly. Exit 1 if any attack gets through, the
+// corpus is empty, a required family is missing, or an attack that exists on the base branch was
+// deleted (the corpus only grows).
 import fs from "node:fs";
 import path from "node:path";
 import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { component } from "http-message-sig";
-import { keypair, signed, harness, staple, withFields, fieldOf, retarget, rejected, AGENT, ATTACKER, SITE, NOW_MS, NOW_S } from "../../packages/gate-core/test/support.mjs";
+import { ludionGate } from "@ludion/gate-node";
+import { generateSiteKey, originForm } from "@ludion/gate-core";
+import { keypair, signed, harness, staple, withFields, fieldOf, retarget, rejected, AGENT, ATTACKER, SITE, NOW_MS, NOW_S, ROUTES, REGISTRY_ISS } from "../../packages/gate-core/test/support.mjs";
 
 const DIR = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(DIR, "../..");
-const REQUIRED = ["replay", "staple-swap", "cnf-mismatch", "strip-signature", "key-confusion", "label-confusion", "omitted-components", "clock-skew"];
+const REQUIRED = ["replay", "staple-swap", "cnf-mismatch", "strip-signature", "key-confusion", "label-confusion", "omitted-components", "clock-skew", "route-evasion"];
+const UAS = {
+  human: "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_0) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15",
+  suspected: "python-requests/2.32.3",
+  declared: "Mozilla/5.0 (compatible; GPTBot/1.2; +https://openai.com/gptbot)",
+};
 const VICTIM_DIVER = "dvr-victimvictimvic2", ATTACKER_DIVER = "dvr-attackerattacke2";
 
 async function world() {
@@ -25,10 +36,39 @@ async function world() {
     const doc = w.docs.get(String(url));
     return doc ? new Response(JSON.stringify(doc.body), { status: 200, headers: { "content-type": doc.type ?? "application/json" } }) : new Response("", { status: 404 });
   };
+  w.fetch = fetch;
   w.gate = await harness({ agentKeys: [agent, sibling], attackerKeys: [attacker], registry, now: () => w.t, resolver: { fetch } });
   w.victimStaple = await staple(registry, { sub: VICTIM_DIVER, jkt: agent.kid, depth: 2 });
   w.attackerStaple = await staple(registry, { sub: ATTACKER_DIVER, jkt: attacker.kid, depth: 1 });
   return w;
+}
+
+/** The same world behind the real Node adapter (same routes, keys and Registry), built on first use. */
+async function nodeGate(w) {
+  if (w.node) return w.node;
+  const siteKey = await generateSiteKey();
+  const mw = await ludionGate({ siteId: "site-test", siteKey: siteKey.privateJwk, pressure: 0, now: () => w.t, routes: ROUTES,
+    registryKeys: { keys: [w.registry.publicJwk] }, registryIssuer: REGISTRY_ISS, resolver: { fetch: w.fetch } });
+  await mw.gate.resolver.prime({ type: "directory", uri: AGENT }, { keys: [w.agent, w.sibling].map((k) => ({ ...k.publicJwk, use: "sig" })) });
+  await mw.gate.resolver.prime({ type: "directory", uri: ATTACKER }, { keys: [{ ...w.attacker.publicJwk, use: "sig" }] });
+  return (w.node = mw);
+}
+
+/** An IncomingMessage as Node hands it to the app: the raw request-target, raw headers, a TLS socket. */
+function incoming(desc, target) {
+  const fields = desc.fields.some((f) => f.name.toLowerCase() === "host") ? desc.fields : [{ name: "host", value: new URL(SITE).host }, ...desc.fields];
+  const headers = {};
+  for (const f of fields) { const k = f.name.toLowerCase(); headers[k] = k in headers ? `${headers[k]}, ${f.value}` : f.value; }
+  return { method: desc.method, url: target, rawHeaders: fields.flatMap((f) => [f.name, f.value]), headers, socket: { encrypted: true, remoteAddress: "203.0.113.7" } };
+}
+
+/** Run one request through the adapter: did it reach the app, and what did the Gate decide? */
+function throughNode(mw, req) {
+  return new Promise((resolve, reject) => {
+    const res = { statusCode: 200, h: {}, setHeader(k, v) { this.h[k.toLowerCase()] = v; },
+      end() { resolve({ reachedApp: false, status: this.statusCode, headers: this.h, result: req.ludion }); } };
+    Promise.resolve(mw(req, res, () => resolve({ reachedApp: true, status: 200, headers: res.h, result: req.ludion }))).catch(reject);
+  });
 }
 
 const url = (p) => `${SITE}${p ?? "/checkout/1"}`;
@@ -144,6 +184,23 @@ const FAMILIES = {
     const control = await signed({ key: w.agent, method, body: '{"sku":1}' });
     return [ok(control), bad(await signed({ key: w.agent, method, body, headers, components: cover ? covered(cover) : undefined }))];
   },
+  // Reach a Pressure-2 route through a spelling of its path that an app routes to the same
+  // handler (Express: any case, a trailing slash, absolute-form; servlet containers: ;params;
+  // proxies: merged slashes, decoded %XX; IIS: backslashes and trailing dots; format suffixes).
+  // Controls: an honest agent on the same raw target is VERIFIED, a browser on it reaches the app
+  // untouched, and the same automation on the plain spelling is denied. The attack: the
+  // automation on the raw target must be denied too.
+  async "route-evasion"({ method = "GET", target, canonical, ua = "suspected" }, w) {
+    const mw = await nodeGate(w);
+    const plain = (t, agentUa) => incoming({ kind: "request", method, targetUri: url(originForm(t)), fields: [{ name: "user-agent", value: agentUa }] }, t);
+    const honest = incoming(await signed({ key: w.agent, method, url: url(originForm(target)) }), target);
+    return [
+      { node: mw, req: honest, atS: 0, expect: "verified" },
+      { node: mw, req: plain(target, UAS.human), atS: 0, expect: "human" },
+      { node: mw, req: plain(canonical, UAS[ua]), atS: 0, expect: "denied" },
+      { node: mw, req: plain(target, UAS[ua]), atS: 0, expect: "rejected" },
+    ];
+  },
   // Abuse the ±30s clock-skew allowance or the lifetime rules.
   async "clock-skew"({ variant }, w) {
     if (variant === "replay-in-skew-tail") {
@@ -187,10 +244,17 @@ for (const f of files) {
     const seen = [];
     for (const [i, s] of steps.entries()) {
       w.t = NOW_MS + s.atS * 1000;
-      const r = await w.gate.inspect(s.req);
+      const out = s.node ? await throughNode(s.node, s.req) : null;
+      const r = out ? out.result : await w.gate.inspect(s.req);
       seen.push(r.cls.class);
       if (s.expect === "verified" && r.cls.class !== "VERIFIED") throw new Error(`control step ${i} not VERIFIED (${r.cls.class} ${r.cls.reason ?? ""} ${r.cls.detail ?? ""}) — the attack proves nothing`);
-      if (s.expect === "rejected") { const p = rejected(r, { victim: AGENT }); if (p.length) throw new Error(`GOT THROUGH at step ${i}: ${p.join("; ")}`); }
+      if (s.expect === "human" && (!out?.reachedApp || out.headers["ludion-error"])) throw new Error(`human step ${i} was touched (${out?.status} ${out?.headers["ludion-error"] ?? ""})`);
+      if (s.expect === "denied" && (!out || out.reachedApp || ![401, 403].includes(out.status))) throw new Error(`control step ${i}: the plainly spelled route is not protected — the attack proves nothing`);
+      if (s.expect === "rejected") {
+        const p = rejected(r, { victim: AGENT });
+        if (out && (out.reachedApp || !out.headers["ludion-error"])) p.push(`reached the app (route ${r.route?.template ?? "none"}, Pressure ${r.route?.pressure})`);
+        if (p.length) throw new Error(`GOT THROUGH at step ${i}: ${p.join("; ")}`);
+      }
     }
     console.log(`ok   ${id}  ${seen.join(" → ")}`);
   } catch (e) { problems.push(`${id}: ${e.message}`); }

@@ -1,0 +1,11 @@
+{
+  "id": "route-evasion--duplicate-slashes",
+  "family": "route-evasion",
+  "title": "Merged slashes (nginx merge_slashes, many routers)",
+  "params": {
+    "method": "GET",
+    "target": "//checkout/1",
+    "canonical": "/checkout/1"
+  },
+  "added": "2026-09-30"
+}

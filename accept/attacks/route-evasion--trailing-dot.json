@@ -1,0 +1,11 @@
+{
+  "id": "route-evasion--trailing-dot",
+  "family": "route-evasion",
+  "title": "A trailing dot dropped by Windows/IIS",
+  "params": {
+    "method": "GET",
+    "target": "/login.",
+    "canonical": "/login"
+  },
+  "added": "2026-09-30"
+}
