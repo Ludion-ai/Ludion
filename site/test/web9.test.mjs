@@ -40,5 +40,5 @@ test("WEB-9: Lighthouse mobile ≥95 in all four categories, one page per templa
   }
   assert.deepEqual(failing, [], `below ${MIN_SCORE}`);
   const min = Math.min(...rows.flatMap((r) => r.split(" ")[1].split("/").map(Number)));
-  console.log(`# WEB-9: ${rows.length} pages (${rows.length / 2} templates × en, ja), lowest score ${min}`);
+  console.log(`WEB-9: ${rows.length} pages (${rows.length / 2} templates × en, ja), lowest score ${min}`);
 });

@@ -70,5 +70,5 @@ test("PUB-1: my agent → my Gate → VERIFIED, through gate-node, gate-workers 
   const out = execFileSync(process.execPath, ["flow.mjs"], { cwd: app, encoding: "utf8", timeout: 120_000 });
   const oks = out.split("\n").filter((l) => l.startsWith("ok "));
   assert.ok(out.includes("ok flow complete"), out);
-  console.log(`# PUB-1: ${SET.length} packages from tarballs; ${oks.length} flow checks`);
+  console.log(`PUB-1: ${SET.length} packages from tarballs; ${oks.length} flow checks`);
 });

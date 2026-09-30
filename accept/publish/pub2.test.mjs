@@ -82,5 +82,5 @@ test("PUB-2: every package of the publish set ships only what it declares, and i
     report.push(`${m.name}@${m.version}: ${files.length} files`);
     assert.deepEqual(p, [], `${m.name}: ${p.join("; ")}`);
   }
-  console.log(`# PUB-2: ${report.join(", ")}`);
+  console.log(`PUB-2: ${report.join(", ")}`);
 });

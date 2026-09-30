@@ -51,5 +51,5 @@ test("WEB-1: Lighthouse mobile ≥95 in all four categories on every page of the
     for (const x of r.failing) failing.push(`${urlOf(f)}: ${x}`);
   }
   assert.deepEqual(failing, [], `below ${MIN_SCORE}`);
-  console.log(`# WEB-1: ${preview.url}; ${low.length} pages (en + ja), lowest score ${Math.min(...low)}`);
+  console.log(`WEB-1: ${preview.url}; ${low.length} pages (en + ja), lowest score ${Math.min(...low)}`);
 });
