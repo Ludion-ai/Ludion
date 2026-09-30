@@ -2,6 +2,8 @@ import { Steps } from "@astrojs/starlight/components";
 
 Ludion does not replace Web Bot Auth: any agent that signs requests with [Web Bot Auth](https://datatracker.ietf.org/doc/draft-ietf-webbotauth-httpsig-protocol/) (RFC 9421) and publishes its key directory is already VERIFIED by Ludion Gates, at depth 0. If you have not signed anything yet, the free Ludion CLI gets you there.
 
+Three minutes is our target for this path, written down as the check [DIV-1](https://github.com/Ludion-ai/Ludion/blob/main/docs/MISSION.md#m2-diver): in a clean container, from `init` to VERIFIED within 180 seconds.
+
 <Steps>
 
 1. Create your agent identity (a *Diver*). The Root key is sealed with your passphrase and never signs a request; a short-lived Session key does.
@@ -10,9 +12,9 @@ Ludion does not replace Web Bot Auth: any agent that signs requests with [Web Bo
    npx ludion init --name "My Agent" --contact mailto:you@example.com
    ```
 
-2. Publish the two public files it wrote at your `Signature-Agent` origin over HTTPS: `.well-known/http-message-signatures-directory` (your keys, served as `application/http-message-signatures-directory+json`) and `card` (who you are). Your own domain works; so will `dvr-….agents.ludion.ai` once registration opens.
+2. Publish the public files it wrote at your `Signature-Agent` origin over HTTPS: `.well-known/http-message-signatures-directory` (your keys, served as `application/http-message-signatures-directory+json`) and `card` (who you are). Your own domain works; so will `dvr-….agents.ludion.ai` once registration opens.
 
-3. Sign each request. This prints a ready-to-run `curl` with the `Signature-Agent`, `Signature-Input` and `Signature` headers; a signature lives 60 seconds, so make a new one per request.
+3. Sign each request. This prints a ready-to-run `curl` with the `Signature-Agent`, `Signature-Input` and `Signature` headers; a signature lives 60 seconds ([spec §10.4](https://github.com/Ludion-ai/Ludion/blob/main/docs/ludion-spec.md#104-リクエストの署名)), so make a new one per request.
 
    ```sh
    npx ludion sign GET https://shop.example/checkout --curl

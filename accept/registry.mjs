@@ -191,7 +191,12 @@ export const ORACLES = [
 
   // ── M7 web: the site, the /e/<code> help pages, the in-browser scan ──────────────
   { id: "WEB-1", m: "M7", kind: "+", level: 1, pair: "WEB-5", title: "static site deployed to preview; every page in ja + en; Lighthouse mobile P/A/BP/SEO all ≥95" },
-  { id: "WEB-2", m: "M7", kind: "-", level: 1, title: "copy check: 0 insurance / guarantee / 100%-safe claims (spec §14); every number links to its source" },
+  // The copy check (site/test/copy.mjs) on the real build: the legal line of spec §14 in English and
+  // Japanese, and every figure linked to the repository document that states it; claims and
+  // unsourced figures planted in built pages must be caught.
+  { id: "WEB-2", m: "M7", kind: "-", level: 1, title: "copy check: 0 insurance / guarantee / 100%-safe claims (spec §14); every number links to its source",
+    timeoutMs: 900_000, run: nodeTest(["site/test/web2.test.mjs"], "^WEB-2:", { timeoutMs: 880_000,
+      metric: (out) => (/^# WEB-2: (.+)$/m.exec(out) ?? [])[1] }) },
   // The site is its own npm project (ADR-040), installed from site/package-lock.json and built
   // once per content hash into the OS temp dir by site/build.mjs; the codes come from the Gate.
   { id: "WEB-3", m: "M7", kind: "+", level: 1, pair: "WEB-5", title: "every Gate error code has /e/<code> in ja + en (what happened, 3-minute path to VERIFIED); 0 missing",
