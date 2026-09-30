@@ -20,6 +20,19 @@ export {
 
 export const LUDION_VERSION = "0";
 
+/** RFC 9421 §5.1 Accept-Signature sent with signature_required (draft §5.3). */
+export const ACCEPT_SIGNATURE = 'sig1=("@authority" "signature-agent";key="sig1" "@method" "@path");tag="web-bot-auth"';
+
+/** Headers every rejection carries (spec §10.11): the error, a help link, and how to sign. */
+export function denialHeaders(decision) {
+  if (decision.action !== "deny") return {};
+  return {
+    "Ludion-Error": decision.error,
+    "Link": ERROR_HELP(decision.error),
+    ...(decision.error === "signature_required" ? { "Accept-Signature": ACCEPT_SIGNATURE } : {}),
+  };
+}
+
 /**
  * @typedef {object} GateConfig
  * @property {string} siteId
@@ -71,12 +84,7 @@ export async function createGate(config) {
     const sigField = req.fields.find((f) => f.name.toLowerCase() === "signature")?.value;
     const receipt = await receipts.issue({ method: req.method, path: url.pathname, cls, decision, pressure: route.pressure, signature: sigField });
 
-    const headers = { "Ludion-Version": LUDION_VERSION, "Ludion-Receipt": receipts.toHeader(receipt) };
-    if (decision.action === "deny") {
-      headers["Ludion-Error"] = decision.error;
-      headers["Link"] = ERROR_HELP(decision.error);
-      if (decision.error === "signature_required") headers["Accept-Signature"] = 'sig1=("@authority" "signature-agent";key="sig1" "@method" "@path");tag="web-bot-auth"';
-    }
+    const headers = { "Ludion-Version": LUDION_VERSION, "Ludion-Receipt": receipts.toHeader(receipt), ...denialHeaders(decision) };
     if (config.sink && AUTOMATION.has(cls.class)) {
       try { await config.sink(metadataEvent({ receipt, ip: meta.ip, ipSalt, country: meta.country })); } catch { /* never block the request */ }
     }
