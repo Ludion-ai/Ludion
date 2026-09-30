@@ -29,13 +29,14 @@
   - GATE-9 と M7 Web（WEB-1〜8）を PENDING で登録した（#43）。
   - WEB-3：`site/` を Astro と Starlight にした（ADR-040）。`/e/<code>` と `/ja/e/<code>` が 9 コード × 2 言語ある。
   - WEB-4：`/scan` と `/ja/scan` にログを落とすと、CLI と同じ数字が出る（docs/adr/2026-10-01-browser-scan-shares-the-cli-core.md）。
-  - 次は NIGHT.md の優先順：WEB-6（scan の漏れ）→ WEB-1/2/5/8 → 目録の残り → GATE-9（PHP と WordPress、Python）→ WEB-7 → LIVE-1。
-  - WEB-6 の入口：
-    - ヘッドレス Chromium は `site/test/browser.mjs` の `launchChromium()` で起動できる。
-    - `/scan` の `.ludion-scan` の `data-state` が `idle` → `reading` → `done` と進む。
-    - Worker のスクリプトは、ログを落とした時に同じオリジンから取る。
+  - WEB-6：scan はログのバイトを外に出さない。測り方は `site/test/egress.mjs`（監視）と `site/test/web6.test.mjs`。
+    - サイトの PR は、`loop-windows` が緑になってから auto-merge を付ける（#45 の教訓）。
+  - 次は NIGHT.md の優先順：WEB-5（リンク切れ、コンソールエラー、許可リスト外の通信）→ WEB-2 → WEB-8 → WEB-1 → 目録の残り → GATE-9（PHP と WordPress、Python）→ WEB-7 → LIVE-1。
+  - WEB-5 の入口：
+    - 許可リスト外への通信は、WEB-6 の監視（`startEgressProxy` と `judge`）をそのまま全ページに回せば測れる。
+    - リンク切れは、ビルドした dist の全ページの `href` を `resolveFile` で引けばよい。
   - プレビューのデプロイ（WEB-1）：今のトークンでは何も読めない（docs/DEPLOY.md 1.1）。人間待ちに書いた。
-  - 夜勤レーンの ADR は 040〜049 を使う（昼のレーンの 030〜 と衝突させないため）。
+  - 新しい ADR には番号を付けない。`docs/adr/YYYY-MM-DD-<slug>.md` にする（NIGHT.md §8、両レーン共通）。
 
 ## 人間待ち
 
@@ -91,11 +92,31 @@
   - 末尾をゼロで埋めた gzip は、CLI（zlib）は読めるが、ブラウザでは読めない。
   - 末尾にゴミのある gzip では、CLI もブラウザも止まる（`incorrect header check`）。
   - 「テキストでコピー」は CLI の文面なので、`https://ludion.ai/gate` へのリンクを含む。そのページはまだない。WEB-5 で拾う。
+- WEB-6 で未カバーの部分：
+  - ヘッドレス Chromium（shell）は preconnect と dns-prefetch を実行しない。NetLog で確かめた。プロキシがあってもなくても、名前の解決が起きない。
+    - そのため、リソースヒントはネットワークではなく DOM で見ている（MutationObserver）。HTTP の `Link:` ヘッダーで来るヒントは見ていない。今のサイトは出していない。
+  - WebRTC と WebTransport（UDP）は、プロキシもリクエストイベントも見えない。配信したコードがその名前を含まないことで縛っている。名前を隠したコードはすり抜ける。
+  - 見ているのは Chromium だけ。Firefox と Safari では回していない。
 - DIV-2 で未カバーの部分：
   - TLS は通していない（Host ヘッダーを保ってローカルに転送）
   - web-bot-auth@0.2.0 のパーサが registry-03 に準拠しているか
 
 ## 直近のセッション
+
+- 2026-10-01（夜勤 3、4）：
+  - WEB-6：scan の間、ログのバイトは1つも外に出ない。
+    - 監視 `site/test/egress.mjs`：
+      - Chromium の唯一の出口をプロキシにした（ループバックも含む）。プロキシはビルドしたサイトを自分のオリジンで配り、他はすべて断って記録する。
+      - `judge` は記録だけを読む。通してよいのは、サイトのオリジンにある出荷済みのファイルへの GET か HEAD だけ。クエリ、ボディ、カナリアのどれもあってはいけない。
+      - カナリアは、そのまま、hex、base64 と base64url（3つのずれ）、gzip の中まで探す。
+    - ログは2つ使った。どの行にもカナリアを入れたログ（経路、クエリ、UA、Referer）と、ファイル名に入れたログ。
+      - `/scan` と `/ja/scan` に、平文と gzip で落とす。
+      - 見るのは送信だけではない。ページ、コピーしたテキスト、保存した JSON、Cookie、すべてのストレージにも、ログが残ってはいけない。
+    - 監視が噛むことを確かめた。ページと Worker に仕込んだ 14 の漏れを、すべて狙いの規則で捕まえた。
+      - 仕込んだ漏れ：fetch、画像、beacon、WebSocket、同じオリジンのクエリ、ファイル名に化けた GET、localStorage、pagehide、DOM、コピー、ダウンロード、WebTransport、WebRTC、preconnect。
+    - 速いテスト `site/test/egress.test.mjs` に規則を降ろし、`npm test` に入れた。
+  - 夜勤 3 は PR の前で止まっていた。夜勤 4 は、作業ツリーに残っていた差分を拾って出した。
+  - scoreboard（ローカル）：PASS 33 → 34、FAIL 1 → 0。ラチェットは WEB-6 を足した。
 
 - 2026-10-01（夜勤 2）：
   - 旧 Ludion の棚卸し（NIGHT.md §7）：渡されたトークンでは、アカウントの資源が1つも読めなかった。

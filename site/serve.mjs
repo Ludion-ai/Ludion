@@ -7,7 +7,7 @@ import path from "node:path";
 import http from "node:http";
 import { fileURLToPath } from "node:url";
 
-const TYPES = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=utf-8", ".js": "text/javascript; charset=utf-8",
+export const TYPES = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=utf-8", ".js": "text/javascript; charset=utf-8",
   ".json": "application/json", ".svg": "image/svg+xml", ".png": "image/png", ".jpg": "image/jpeg", ".webp": "image/webp",
   ".woff2": "font/woff2", ".xml": "application/xml", ".txt": "text/plain; charset=utf-8", ".wasm": "application/wasm",
   ".pf_meta": "application/octet-stream", ".pf_fragment": "application/octet-stream", ".pf_index": "application/octet-stream", ".pagefind": "application/octet-stream" };

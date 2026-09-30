@@ -203,7 +203,11 @@ export const ORACLES = [
     timeoutMs: 900_000, run: nodeTest(["site/test/web4.test.mjs"], "^WEB-4:", { timeoutMs: 880_000,
       metric: (out) => (/^# WEB-4: (.+)$/m.exec(out) ?? [])[1] }) },
   { id: "WEB-5", m: "M7", kind: "-", level: 1, title: "0 broken links, 0 console errors, 0 requests outside the allowlist" },
-  { id: "WEB-6", m: "M7", kind: "-", level: 1, title: "scan leaks no log byte: canary log → 0 external requests after page load (every request watched)" },
+  // Chromium's only way out is a proxy in the test (site/test/egress.mjs), loopback included; the
+  // test also plants leaks in the page and the worker and must catch each one.
+  { id: "WEB-6", m: "M7", kind: "-", level: 1, title: "scan leaks no log byte: canary log → 0 external requests after page load (every request watched)",
+    timeoutMs: 900_000, run: nodeTest(["site/test/web6.test.mjs"], "^WEB-6:", { timeoutMs: 880_000,
+      metric: (out) => (/^# WEB-6: (.+)$/m.exec(out) ?? [])[1] }) },
   { id: "WEB-7", m: "M7", kind: "+", level: 1, pair: "WEB-2", title: "docs are tests: quickstart code blocks run in a clean env and do what they say (VERIFIED, first event)" },
   { id: "WEB-8", m: "M7", kind: "±", level: 1, title: "signup form: a preview submission reaches the notifier (stub ok); honeypot and rate limit drop bots" },
 ];
