@@ -1,0 +1,147 @@
+{
+ "case": "d-no-previous",
+ "events_file": "events/gate-events.ndjson",
+ "site": "site-7f3a9c2e",
+ "date": "2026-10-30",
+ "tz": "UTC",
+ "window": {
+  "start": "2026-10-30T00:00:00.000Z",
+  "end": "2026-10-31T00:00:00.000Z"
+ },
+ "expect": {
+  "events": 247,
+  "classes": {
+   "VERIFIED": 47,
+   "UNVERIFIED": 18,
+   "SPOOFED": 21,
+   "REVOKED": 7,
+   "DECLARED": 91,
+   "SUSPECTED": 63
+  },
+  "decisions": {
+   "allow": 175,
+   "friction": 20,
+   "deny": 52
+  },
+  "verified_actions": 47,
+  "verified_agents": 6,
+  "critical": {
+   "unverified": 62,
+   "allowed": 6,
+   "friction": 4,
+   "denied": 52
+  },
+  "kinds": {
+   "checkout": {
+    "automation": 33,
+    "verified": 0,
+    "denied": 33
+   },
+   "login": {
+    "automation": 22,
+    "verified": 4,
+    "denied": 18
+   },
+   "signup": {
+    "automation": 6,
+    "verified": 2,
+    "denied": 0
+   },
+   "account": {
+    "automation": 2,
+    "verified": 1,
+    "denied": 1
+   },
+   "form": {
+    "automation": 14,
+    "verified": 2,
+    "denied": 0
+   },
+   "search": {
+    "automation": 18,
+    "verified": 2,
+    "denied": 0
+   },
+   "api": {
+    "automation": 16,
+    "verified": 3,
+    "denied": 0
+   },
+   "asset": {
+    "automation": 10,
+    "verified": 2,
+    "denied": 0
+   },
+   "browse": {
+    "automation": 126,
+    "verified": 31,
+    "denied": 0
+   }
+  },
+  "top_agents": [
+   {
+    "agent": "shopper.agents.example",
+    "actions": 16
+   },
+   {
+    "agent": "dvr-k7q2m6x4pcab3cde",
+    "actions": 13
+   },
+   {
+    "agent": "assist.kumo.example",
+    "actions": 8
+   },
+   {
+    "agent": "crawler.bluefin.example",
+    "actions": 7
+   },
+   {
+    "agent": "dvr-m3n8p2q5r7s9t4vw",
+    "actions": 2
+   }
+  ],
+  "top_critical_routes": [
+   {
+    "route": "/login",
+    "count": 18
+   },
+   {
+    "route": "/checkout",
+    "count": 13
+   },
+   {
+    "route": "/cart",
+    "count": 12
+   },
+   {
+    "route": "/api/v1/cart",
+    "count": 4
+   },
+   {
+    "route": "/checkout/:id",
+    "count": 4
+   },
+   {
+    "route": "/products/:id/reviews",
+    "count": 4
+   },
+   {
+    "route": "/signup",
+    "count": 4
+   },
+   {
+    "route": "/contact",
+    "count": 2
+   }
+  ],
+  "pressure1": {
+   "friction": 128,
+   "exempt": 38,
+   "applies": true
+  },
+  "previous": null,
+  "delta": null,
+  "skipped": 7
+ },
+ "canaries": "truth/canaries.json"
+}

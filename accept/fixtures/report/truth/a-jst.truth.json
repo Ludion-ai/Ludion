@@ -1,0 +1,157 @@
+{
+ "case": "a-jst",
+ "events_file": "events/gate-events.ndjson",
+ "site": "site-7f3a9c2e",
+ "date": "2026-09-29",
+ "tz": "Asia/Tokyo",
+ "window": {
+  "start": "2026-09-28T15:00:00.000Z",
+  "end": "2026-09-29T15:00:00.000Z"
+ },
+ "expect": {
+  "events": 647,
+  "classes": {
+   "VERIFIED": 127,
+   "UNVERIFIED": 69,
+   "SPOOFED": 103,
+   "REVOKED": 9,
+   "DECLARED": 182,
+   "SUSPECTED": 157
+  },
+  "decisions": {
+   "allow": 521,
+   "friction": 41,
+   "deny": 85
+  },
+  "verified_actions": 127,
+  "verified_agents": 7,
+  "critical": {
+   "unverified": 267,
+   "allowed": 174,
+   "friction": 9,
+   "denied": 84
+  },
+  "kinds": {
+   "checkout": {
+    "automation": 134,
+    "verified": 16,
+    "denied": 59
+   },
+   "login": {
+    "automation": 82,
+    "verified": 9,
+    "denied": 18
+   },
+   "signup": {
+    "automation": 15,
+    "verified": 6,
+    "denied": 0
+   },
+   "account": {
+    "automation": 62,
+    "verified": 4,
+    "denied": 8
+   },
+   "form": {
+    "automation": 28,
+    "verified": 7,
+    "denied": 0
+   },
+   "search": {
+    "automation": 44,
+    "verified": 12,
+    "denied": 0
+   },
+   "api": {
+    "automation": 38,
+    "verified": 7,
+    "denied": 0
+   },
+   "asset": {
+    "automation": 15,
+    "verified": 2,
+    "denied": 0
+   },
+   "browse": {
+    "automation": 229,
+    "verified": 64,
+    "denied": 0
+   }
+  },
+  "top_agents": [
+   {
+    "agent": "leaky.agent.example",
+    "actions": 50
+   },
+   {
+    "agent": "dvr-k7q2m6x4pcab3cde",
+    "actions": 20
+   },
+   {
+    "agent": "shopper.agents.example",
+    "actions": 18
+   },
+   {
+    "agent": "(unnamed)",
+    "actions": 12
+   },
+   {
+    "agent": "crawler.bluefin.example",
+    "actions": 12
+   }
+  ],
+  "top_critical_routes": [
+   {
+    "route": "/checkout/:token",
+    "count": 60
+   },
+   {
+    "route": "/:param/login",
+    "count": 55
+   },
+   {
+    "route": "/users/:param/settings",
+    "count": 50
+   },
+   {
+    "route": "/cart",
+    "count": 21
+   },
+   {
+    "route": "/login",
+    "count": 18
+   },
+   {
+    "route": "/checkout/:id",
+    "count": 15
+   },
+   {
+    "route": "/checkout",
+    "count": 13
+   },
+   {
+    "route": "/api/v1/cart",
+    "count": 9
+   }
+  ],
+  "pressure1": {
+   "friction": 395,
+   "exempt": 80,
+   "applies": true
+  },
+  "previous": {
+   "events": 300,
+   "verified_actions": 49,
+   "critical_unverified": 68,
+   "spoofed": 23
+  },
+  "delta": {
+   "events": 347,
+   "verified_actions": 78,
+   "critical_unverified": 199,
+   "spoofed": 80
+  },
+  "skipped": 7
+ },
+ "canaries": "truth/canaries.json"
+}

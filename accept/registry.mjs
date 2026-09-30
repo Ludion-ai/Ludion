@@ -143,7 +143,8 @@ export const ORACLES = [
     return { pass: r.code === 0 && res.pass === true, metric: `${res.seconds}s for 1 GiB, ${res.mbps} MB/s`,
       detail: res.problems?.length ? res.problems.join("; ").slice(0, 300) : undefined };
   } },
-  { id: "RPT-1", m: "M4", kind: "+", level: 1, pair: "PRIV-1", title: "daily report equals ground truth; ja + en, HTML + text" },
+  { id: "RPT-1", m: "M4", kind: "+", level: 1, pair: "PRIV-1", title: "daily report equals ground truth; ja + en, HTML + text",
+    run: nodeTest(["packages/report/test/rpt1.test.mjs"], "^RPT-1:") },
 
   // ── M5 pressure, neutrality, crypto ────────────────────────────────────────────
   { id: "PRS-1", m: "M5", kind: "±", level: 1, title: "100k random cases: UNKNOWN always passes; denials only at P≥2 on matching routes" },
