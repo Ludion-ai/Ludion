@@ -16,6 +16,7 @@ import { fileURLToPath } from "node:url";
 export const REF = path.dirname(fileURLToPath(import.meta.url));
 export const ROOT = path.resolve(REF, "..");
 const CACHE = path.join(os.tmpdir(), "ludion-reference");
+const STALE_MS = 6 * 3600_000;
 
 /** The npm CLI as a JS file, so no .cmd shim or shell is needed on Windows. */
 export function npmCli() {
@@ -95,8 +96,15 @@ export function prepare(app) {
   const out = { A: path.join(base, "A"), B: path.join(base, "B"), key };
   if (fs.existsSync(path.join(base, ".ready"))) { fs.rmSync(tmpPack, { recursive: true, force: true }); return out; }
 
-  // One cache per app: an older key is a previous version of the inputs.
-  if (fs.existsSync(CACHE)) for (const d of fs.readdirSync(CACHE)) if (d.startsWith(`${app}-`)) fs.rmSync(path.join(CACHE, d), { recursive: true, force: true });
+  // Prune other keys only once they are stale: a key that is not ours may belong to another
+  // worktree's scoreboard running right now (or still building, with no .ready yet).
+  if (fs.existsSync(CACHE)) for (const d of fs.readdirSync(CACHE)) {
+    if (!d.startsWith(`${app}-`) || path.join(CACHE, d) === base) continue;
+    const marker = path.join(CACHE, d, ".ready");
+    const age = Date.now() - (fs.existsSync(marker) ? fs.statSync(marker).mtimeMs : fs.statSync(path.join(CACHE, d)).mtimeMs);
+    if (age > STALE_MS) fs.rmSync(path.join(CACHE, d), { recursive: true, force: true });
+  }
+  fs.rmSync(base, { recursive: true, force: true }); // our own key without .ready: a half-built leftover
   copyTree(path.join(REF, app, "site"), out.A);
   npm(["ci", "--no-audit", "--no-fund"], out.A);
   copyTree(path.join(REF, app, "site"), out.B);
