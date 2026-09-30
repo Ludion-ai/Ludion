@@ -114,7 +114,7 @@ export const ORACLES = [
   // The suite as data (accept/conformance/vectors.json, written by export.mjs from the GATE-7 families
   // and the WG vectors); the TypeScript Gate runs it from the file (portable/conformance.mjs), which
   // NEUT-1 also runs on Deno and workerd. Other languages read the same file (GATE-9).
-  { id: "GATE-10", m: "M1", kind: "+", level: 1, pair: "GATE-7", title: "the conformance suite is data: WG vectors + every GATE-7 attack as requests, one for one with the corpus; the TS Gate passes it from the file",
+  { id: "GATE-10", m: "M1", kind: "+", level: 1, pair: "GATE-7", title: "the conformance suite is data: WG vectors, STD-2 and every GATE-7 attack as requests, one for one with their sources; the TS Gate passes it from the file",
     run: nodeTest(["accept/conformance/gate10.test.mjs"], "^GATE-10:", {
       metric: (out) => (/^# GATE-10: (.+)$/m.exec(out) ?? [])[1] }) },
 
