@@ -1,0 +1,20 @@
+name: debug-win-site
+on:
+  pull_request:
+    branches: [main]
+jobs:
+  site-windows:
+    if: github.head_ref == 'night/debug-win-site'
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 24, cache: npm }
+      - run: npm ci
+      - name: build the site directly
+        shell: bash
+        run: node site/build.mjs 2>&1 | tail -80
+      - name: WEB-3 test output
+        if: always()
+        shell: bash
+        run: node --test --test-reporter=spec site/test/web3.test.mjs 2>&1 | tail -80
