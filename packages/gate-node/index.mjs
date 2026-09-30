@@ -48,6 +48,9 @@ export async function ludionGate(config) {
       result = gate.failSafe(req.url, e); // inspect never throws; this is the last line, and it still honours fail_mode
     }
     req.ludion = result;
+    // Where the handler knows the amount: const v = req.ludion.charge({ amount, currency });
+    // if (!v.ok) answer v.status with v.headers (spec §10.6 limits; never enforced on humans).
+    result.charge = (c) => gate.charge(result, c);
     try {
       for (const [k, v] of Object.entries(result.headers)) res.setHeader(k, v);
     } catch { /* a header we cannot set must not take the site down */ }

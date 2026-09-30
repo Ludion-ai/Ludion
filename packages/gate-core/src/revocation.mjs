@@ -18,31 +18,42 @@ export const REVOCATION_TYP = "ludion-revocation+jwt";
 /**
  * The revoked identities a Gate knows. An entry revokes a whole Diver (`sub`), the Signature-Agent
  * origin it registered (`agent`), and the session keys the Registry had approved (`jkt`); an entry
- * with `scope: "keys"` revokes only its `jkt`.
+ * with `scope: "keys"` revokes only its `jkt`, and one with `scope: "mandate"` only the Mandates
+ * its Principal withdrew (`mdt`, spec §10.6). A scope this Gate does not know revokes nothing: a
+ * newer Registry must never take a whole Diver down at an older Gate.
  */
 export function createRevocationList() {
-  const subs = new Map(), jkts = new Map(), agents = new Map();
+  const subs = new Map(), jkts = new Map(), agents = new Map(), mandates = new Map();
   let lastSeq = 0, count = 0;
   return {
-    /** @param {{ seq: number, sub: string, jkt?: string[], agent?: string, scope?: string, reason?: string, iat?: number }} e */
+    /** @param {{ seq: number, sub: string, jkt?: string[], mdt?: string[], agent?: string, scope?: string, reason?: string, iat?: number }} e */
     add(e) {
       if (!e || typeof e.sub !== "string") return false;
-      const entry = { seq: e.seq, sub: e.sub, reason: e.reason ?? "revoked", iat: e.iat, scope: e.scope === "keys" ? "keys" : "diver" };
-      if (entry.scope === "diver") {
+      if (Number.isInteger(e.seq) && e.seq > lastSeq) lastSeq = e.seq;
+      const scope = e.scope ?? "diver";
+      if (!["diver", "keys", "mandate"].includes(scope)) return false;
+      const entry = { seq: e.seq, sub: e.sub, reason: e.reason ?? "revoked", iat: e.iat, scope };
+      if (scope === "mandate") {
+        for (const j of Array.isArray(e.mdt) ? e.mdt : []) if (typeof j === "string") mandates.set(j, entry);
+        count++;
+        return true;
+      }
+      if (scope === "diver") {
         subs.set(e.sub, entry);
         if (typeof e.agent === "string") { try { agents.set(new URL(e.agent).origin, entry); } catch { /* not a URL: ignore */ } }
       }
       for (const k of Array.isArray(e.jkt) ? e.jkt : []) if (typeof k === "string") jkts.set(k, entry);
-      if (Number.isInteger(e.seq) && e.seq > lastSeq) lastSeq = e.seq;
       count++;
       return true;
     },
     /**
-     * @param {{ sub?: string, jkt?: string, identifier?: string }} who
-     *   sub: the Staple's subject; jkt: the request's keyid; identifier: the resolved key-set URL
+     * @param {{ sub?: string, jkt?: string, identifier?: string, mandate?: string }} who
+     *   sub: the Staple's subject; jkt: the request's keyid; identifier: the resolved key-set URL;
+     *   mandate: a Mandate's jti (matched only when asked for)
      * @returns {object|undefined} the matching entry
      */
-    match({ sub, jkt, identifier } = {}) {
+    match({ sub, jkt, identifier, mandate } = {}) {
+      if (mandate) return mandates.get(mandate);
       if (sub && subs.has(sub)) return subs.get(sub);
       if (jkt && jkts.has(jkt)) return jkts.get(jkt);
       if (identifier) { try { const o = new URL(identifier).origin; if (agents.has(o)) return agents.get(o); } catch { /* ignore */ } }

@@ -7,7 +7,9 @@
 // signed the HTTP request (RFC 7800-style confirmation), so a stolen Staple is
 // useless with another key (spec §15.2).
 //
-// Crypto: WebCrypto Ed25519 only. No custom primitives (invariant 11).
+// Crypto: WebCrypto only. No custom primitives (invariant 11). This is one of the modules CRY-1
+// allows to hold primitives: Staples, the Registry's other statements (revocations, Mandates), and
+// the passkey checks and pseudonyms behind Mandate v0 (below).
 
 import { thumbprint } from "./thumbprint.mjs";
 
@@ -183,4 +185,81 @@ export async function signJws(privateKey, kid, typ, payload) {
  */
 export async function issueStaple(privateKey, kid, payload) {
   return signJws(privateKey, kid, STAPLE_TYP, payload);
+}
+
+// ── Passkeys and pseudonyms (Mandate v0, spec §10.6, §10.2) ─────────────────────────────────
+// The Registry issues a Mandate only on a Principal's passkey consent, and names the Principal to
+// each site by a pairwise pseudonym. Both need primitives, and primitives live in this module
+// (CRY-1): WebCrypto ECDSA P-256 (COSE -7) and Ed25519 (COSE -8), and HMAC-SHA-256.
+
+const PASSKEY_ALGS = { [-7]: { name: "ECDSA", namedCurve: "P-256" }, [-8]: { name: "Ed25519" } };
+
+/**
+ * A passkey's public key as the browser hands it over at registration
+ * (AuthenticatorAttestationResponse.getPublicKey(): SubjectPublicKeyInfo DER) → a public JWK.
+ * @param {Uint8Array} spki @param {number} coseAlg  -7 (ES256) or -8 (EdDSA)
+ */
+export async function passkeyPublicJwk(spki, coseAlg) {
+  const algorithm = PASSKEY_ALGS[coseAlg];
+  if (!algorithm) throw new StapleError(`unsupported passkey algorithm ${coseAlg}`, "alg");
+  let key;
+  try { key = await crypto.subtle.importKey("spki", spki, algorithm, true, ["verify"]); }
+  catch { throw new StapleError("not a public key for that algorithm", "kid"); }
+  const jwk = await crypto.subtle.exportKey("jwk", key);
+  return coseAlg === -7 ? { kty: "EC", crv: "P-256", x: jwk.x, y: jwk.y } : { kty: "OKP", crv: "Ed25519", x: jwk.x };
+}
+
+/**
+ * ASN.1 DER ECDSA-Sig-Value (SEQUENCE { INTEGER r, INTEGER s }), as WebAuthn carries ES256
+ * signatures (WebAuthn §6.5.6), → the fixed-width r‖s WebCrypto verifies. Strict DER only.
+ * @param {Uint8Array} der @param {number} size  bytes per integer (32 for P-256)
+ */
+export function derToRawEcdsa(der, size) {
+  const bad = () => { throw new StapleError("not a DER ECDSA signature", "sig"); };
+  if (!(der instanceof Uint8Array) || der.length < 8 || der[0] !== 0x30 || der[1] !== der.length - 2 || der[1] > 0x7f) bad();
+  let i = 2;
+  const out = new Uint8Array(size * 2);
+  for (const at of [0, size]) {
+    if (der[i] !== 0x02) bad();
+    const len = der[i + 1];
+    if (len < 1 || len > size + 1 || i + 2 + len > der.length) bad();
+    let v = der.subarray(i + 2, i + 2 + len);
+    if (v[0] & 0x80) bad(); // negative
+    if (v.length > 1 && v[0] === 0 && !(v[1] & 0x80)) bad(); // non-minimal
+    if (v[0] === 0) v = v.subarray(1);
+    if (v.length > size) bad();
+    out.set(v, at + size - v.length);
+    i += 2 + len;
+  }
+  if (i !== der.length) bad();
+  return out;
+}
+
+/**
+ * Verify a WebAuthn assertion signature (over authenticatorData ‖ SHA-256(clientDataJSON))
+ * under a passkey's public JWK (from passkeyPublicJwk). ES256 signatures are DER.
+ * @param {JsonWebKey} publicJwk @param {Uint8Array} signature @param {Uint8Array} signedData
+ * @returns {Promise<boolean>}
+ */
+export async function verifyPasskeySignature(publicJwk, signature, signedData) {
+  if (publicJwk?.kty === "EC" && publicJwk.crv === "P-256") {
+    const key = await crypto.subtle.importKey("jwk", { kty: "EC", crv: "P-256", x: publicJwk.x, y: publicJwk.y }, PASSKEY_ALGS[-7], false, ["verify"]);
+    let raw;
+    try { raw = derToRawEcdsa(signature, 32); } catch { return false; }
+    return crypto.subtle.verify({ name: "ECDSA", hash: "SHA-256" }, key, raw, signedData);
+  }
+  if (publicJwk?.kty === "OKP" && publicJwk.crv === "Ed25519") {
+    const key = await crypto.subtle.importKey("jwk", { kty: "OKP", crv: "Ed25519", x: publicJwk.x }, PASSKEY_ALGS[-8], false, ["verify"]);
+    return crypto.subtle.verify({ name: "Ed25519" }, key, signature, signedData);
+  }
+  throw new StapleError("unsupported passkey key", "kid");
+}
+
+/**
+ * HMAC-SHA-256 (RFC 2104): the pairwise Principal pseudonym, prn = "pw-" + base32(HMAC(k, aud)).
+ * @param {Uint8Array} keyBytes @param {Uint8Array} data @returns {Promise<Uint8Array>}
+ */
+export async function hmacSha256(keyBytes, data) {
+  const key = await crypto.subtle.importKey("raw", keyBytes, { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  return new Uint8Array(await crypto.subtle.sign("HMAC", key, data));
 }

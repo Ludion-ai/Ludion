@@ -16,6 +16,7 @@ import { isPublicAddress, isIpLiteral } from "./address.mjs";
 import { createAuthorities, requestAuthority } from "./authority.mjs";
 import { createRevocationList, subscribeRevocations, REVOCATION_TYP } from "./revocation.mjs";
 import { routeKind, isCritical, pathOf, originForm, routeCandidates, queryKeys, templateSegment, publicTemplateSegment, publicTemplatePath, isRouteWord, ROUTE_KINDS, CRITICAL_KINDS, WRITE_METHODS } from "./route.mjs";
+import { verifyMandate, createMandateLedger, MandateError, MANDATE_TYP, SCOPES, CHARGE_SCOPE, DEFAULT_MANDATE_LIFETIME_S, MAX_MANDATE_LIFETIME_S } from "./mandate.mjs";
 
 export {
   createResolver, createStapleVerifier, issueStaple, classify, createPolicy, createNonceCache, decide, compileRoute, CLASSES,
@@ -23,6 +24,7 @@ export {
   KNOWN_AGENT_TOKENS, AUTOMATION_SIGNALS, matchKnownAgent, matchAutomationSignal, GateFault, isPublicAddress, isIpLiteral,
   createAuthorities, requestAuthority, createRevocationList, subscribeRevocations, REVOCATION_TYP,
   routeKind, isCritical, pathOf, originForm, routeCandidates, queryKeys, templateSegment, publicTemplateSegment, publicTemplatePath, isRouteWord, ROUTE_KINDS, CRITICAL_KINDS, WRITE_METHODS,
+  verifyMandate, createMandateLedger, MandateError, MANDATE_TYP, SCOPES, CHARGE_SCOPE, DEFAULT_MANDATE_LIFETIME_S, MAX_MANDATE_LIFETIME_S,
 };
 
 export const LUDION_VERSION = "0";
@@ -59,6 +61,9 @@ export function denialHeaders(decision) {
  *           the Registry's revocation stream (…/v0/revocations/stream). Entries are verified with
  *           `registryKeys`; revoked keys, agents and Divers become REVOKED within seconds (spec §10.10).
  *           Off the hot path: a dead Registry never touches a request (REG-1).
+ * @property {string[]} [categories]              Mandate categories the site belongs to ("ecommerce"): a Mandate
+ *           for "cat:ecommerce" then holds here as well as one for the site itself (spec §10.6)
+ * @property {{ maxMandates?: number }} [mandateLedger]  bounds of the per-Mandate charge count (default 100,000)
  * @property {number} [timeoutMs]                 the most the Gate may add to one request; default 3000
  * @property {object} [resolver]                  options for createResolver
  * @property {(event: object) => void|Promise<void>} [sink]  metadata sink; never awaited, never blocks
@@ -72,8 +77,8 @@ export function denialHeaders(decision) {
 
 export const DEFAULT_TIMEOUT_MS = 3000;
 
-/** Standing a Staple would prove. Unprovable for lack of Registry keys is the Gate's fault. */
-const STANDING_ERRORS = new Set(["depth_insufficient", "ballast_required"]);
+/** Standing a Staple (or a Mandate) would prove. Unprovable for lack of Registry keys is the Gate's fault. */
+const STANDING_ERRORS = new Set(["depth_insufficient", "ballast_required", "mandate_required"]);
 
 /** spec §11.4 fail_mode → the mode for Pressure 2–3 routes. Pressure 0–1 is always open. */
 export function parseFailMode(fm) {
@@ -148,6 +153,11 @@ export async function createGate(config) {
 
   const policy = createPolicy({ pressure: config.pressure, routes: config.routes });
   const nonceCache = createNonceCache({ now, ...(config.nonceCache ?? {}) });
+  const categories = config.categories == null ? [] : config.categories;
+  if (!Array.isArray(categories) || !categories.every((c) => typeof c === "string" && /^[a-z0-9-]{1,32}$/.test(c))) {
+    throw new TypeError('categories must be an array of lowercase category names, e.g. ["ecommerce"]');
+  }
+  const ledger = createMandateLedger({ now, ...(config.mandateLedger ?? {}) });
   const siteKey = await importSiteKey(config.siteKey);
   const receipts = createReceipts({ siteId: config.siteId, siteKey, now });
   const ipSalt = config.ipSalt ?? config.siteId;
@@ -187,7 +197,7 @@ export async function createGate(config) {
     let cls, gateError;
     try {
       cls = await within(
-        classify(req, { resolver, stapleVerifier, nonceCache, now, requireNonce: config.requireNonce, authorities, revocations, discoveryDeadline: started + discoveryMs }),
+        classify(req, { resolver, stapleVerifier, nonceCache, now, requireNonce: config.requireNonce, authorities, revocations, categories, discoveryDeadline: started + discoveryMs }),
         timeoutMs - (clock() - started),
         () => new GateFault(`classification exceeded timeoutMs (${timeoutMs}ms)`, "timeout"));
       // Unpinned (no `authorities`), a valid signature may have been made for another site and
@@ -201,7 +211,9 @@ export async function createGate(config) {
       cls = faultClass(route, e);
     }
     let decision = decide(cls, route);
-    if (decision.action === "deny" && cls.stapleError === "no_registry_keys" && STANDING_ERRORS.has(decision.error) && !failClosed) {
+    const unprovable = (cls.stapleError === "no_registry_keys" && STANDING_ERRORS.has(decision.error))
+      || (cls.mandateError === "no_registry_keys" && decision.error === "mandate_required");
+    if (decision.action === "deny" && unprovable && !failClosed) {
       decision = { action: "allow", failOpen: "no_registry_keys" };
     }
     const headers = { "Ludion-Version": LUDION_VERSION, ...denialHeaders(decision) };
@@ -223,8 +235,42 @@ export async function createGate(config) {
     catch (e) { return failSafe(req?.targetUri, e); }
   }
 
+  const refuse = (error, reason) => {
+    const decision = { action: "deny", status: ERRORS[error], error };
+    return { ok: false, enforced: true, status: decision.status, error, reason, headers: { "Ludion-Version": LUDION_VERSION, ...denialHeaders(decision) } };
+  };
+
+  /**
+   * A payment on a request the Gate inspected (spec §10.6 limits). The site calls this where it
+   * knows the amount — the Gate never reads a body — and answers with the refusal if not ok.
+   * Enforced exactly where decide() holds a route to a Mandate: automation, on a route at
+   * Pressure ≥ 2 whose `require` names a scope. Everywhere else (humans above all) it is
+   * `{ ok: true, enforced: false }`: it never changes the human path. Never throws.
+   * @param {Awaited<ReturnType<typeof inspect>>} result
+   * @param {{ amount: number, currency: string }} charge  integer amount in the currency's minor unit
+   * @returns {{ ok: boolean, enforced: boolean, status?: number, error?: string, reason?: string,
+   *             headers?: Record<string,string>, remaining?: { per_day: number|null } }}
+   */
+  function charge(result, c) {
+    try {
+      const cls = result?.cls, route = result?.route, decision = result?.decision;
+      if (!cls || !route || !AUTOMATION.has(cls.class) || !(route.pressure >= 2) || !route.require?.scope) return { ok: true, enforced: false };
+      if (decision?.failOpen) return { ok: true, enforced: false, failOpen: decision.failOpen };
+      if (decision?.action === "deny") return refuse(decision.error, "denied");
+      const m = cls.mandate;
+      if (!m) return refuse("mandate_required", cls.mandateError ?? "none");
+      if (m.exp * 1000 < now() - 30_000) return refuse("mandate_required", "expired"); // it lapsed while the site worked
+      const r = ledger.charge(m, { amount: c?.amount, currency: c?.currency });
+      // Out of scope or over a limit is outside the delegation (mandate_scope). So is a charge the
+      // Gate cannot count (ledger_full): like the nonce cache, it errs toward protection.
+      return r.ok ? { ok: true, enforced: true, remaining: r.remaining } : refuse("mandate_scope", r.reason);
+    } catch (e) {
+      return failClosed ? { ...refuse("mandate_required", "gate_error"), gateError: String(e?.message ?? e).slice(0, 200) } : { ok: true, enforced: false, gateError: String(e?.message ?? e).slice(0, 200) };
+    }
+  }
+
   return {
-    inspect, failSafe, resolver, receipts, policy, health, timeoutMs, revocations, siteKey: { kid: siteKey.kid, publicKey: siteKey.publicKey },
+    inspect, failSafe, charge, resolver, receipts, policy, health, timeoutMs, revocations, siteKey: { kid: siteKey.kid, publicKey: siteKey.publicKey },
     /** Stop background work (the revocation subscription). The Gate keeps classifying from what it holds. */
     close() { revocationFeed?.stop(); },
   };

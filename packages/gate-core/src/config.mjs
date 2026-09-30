@@ -11,6 +11,7 @@
 // Unknown keys are an error: a typo such as "presure": 2 must not silently mean Pressure 0.
 
 import { generateSiteKey } from "./receipt.mjs";
+import { SCOPES } from "./mandate.mjs";
 
 const TOP = new Set(["$schema", "site_id", "pressure", "routes", "report", "fail_mode", "timeout_ms", "friction_hook", "trust_proxy", "authorities"]);
 const REPORT = new Set(["email", "endpoint", "send_metadata"]);
@@ -69,7 +70,8 @@ export async function gateConfig(spec, { siteKey, fetch, onEphemeralKey } = {}) 
         onlyKeys(r.require, REQUIRE, `routes[${i}].require`);
         const { depth, scope, ballast } = r.require;
         if (depth != null && (!Number.isInteger(depth) || depth < 0)) fail(`routes[${i}].require.depth must be a non-negative integer`);
-        if (scope != null && typeof scope !== "string") fail(`routes[${i}].require.scope must be a string`);
+        // A misspelt scope would hold the route to a delegation no Mandate can carry.
+        if (scope != null && !SCOPES.includes(scope)) fail(`routes[${i}].require.scope must be one of ${SCOPES.join(", ")} (got ${JSON.stringify(scope)})`);
         if (ballast != null && ballast !== "active") fail(`routes[${i}].require.ballast must be "active"`);
         route.require = { ...r.require };
       }

@@ -8,7 +8,7 @@
   - M1：残りは STD-3、STD-4、GATE-8、PRIV-3。
   - M2：DIV-2/3/4 まで。
   - M3：REG-2/4 まで。
-  - M5：PRS-1、CRY-1 まで。
+  - M5：PRS-1、PRS-2、CRY-1 まで。
 - ループの仕組みは Linux/Node 22 と Windows/Node 24 の両方で回る。
 - リポジトリは https://github.com/Ludion-ai/Ludion （public）。main は保護されている：PR 必須、`loop` チェック必須、strict、enforce_admins、auto-merge 可。
   - strict なので、main が先に進んだ PR は `gh pr update-branch` しないとマージされない。
@@ -21,7 +21,7 @@
    - `registry/v0`：Registry v0（`services/registry`）と REG-1、REG-3、PRIV-3
    - `neutral/runtimes`：NEUT-1、NEUT-2
    - `interop/std3-div1`：STD-3（相互運用）と DIV-1（TS と Python の Diver をクリーンなコンテナで）
-2. PRS-2（Mandate v0）。
+2. ~~PRS-2（Mandate v0）~~：夜勤レーンで済ませた（docs/adr/2026-10-01-mandate-v0-passkey-consent-and-site-charge.md）。
 3. STD-4（datatracker の版の追随。L2）。
 4. PRIV-1/2 の強化：ワークロードを既定の `createSafeFetch` 経由でも回す。ワイヤは `dial` フックで捕まえる。
 - ADR の次の番号：025〜029 は上の 3 本が予約済み。その次は 030。
@@ -40,7 +40,9 @@
   - WEB-8：トップ（`/` と `/ja`）に登録フォーム。受け口は `site/edge/`（静的ファイルと同じ Worker の `POST /api/signup`）（docs/adr/2026-10-01-signup-endpoint-on-the-site-worker.md）。
     - `site/edge` はプレビューに出す成果物そのもの（`wrangler.json`、`worker.mjs`）。WEB-1 はこれを `*.workers.dev` に出せばよい。
     - WEB-8 はそれを `wrangler dev`（workerd）で動かして測る。ヘルパーは `site/test/edge.mjs`。
-  - 次は NIGHT.md の優先順：WEB-1（トークン待ち）→ 目録の残り → GATE-9（PHP と WordPress、Python）→ WEB-7 → LIVE-1。
+  - PRS-2（Mandate v0）：Principal のパスキーの同意で Registry が Mandate を出し、Gate が読み、支払いの上限はサイトが `req.ludion.charge()` で当てる（docs/adr/2026-10-01-mandate-v0-passkey-consent-and-site-charge.md）。
+    - 目録の残りで、元のレーンの「次の一手」にあったもの。元のレーンは #42 のあと動いていなかったので、夜勤で取った。
+  - 次は NIGHT.md の優先順：WEB-1（トークン待ち）→ 目録の残り（STD-4、GATE-8 は本物の署名待ち、STD-3/DIV-1/LOOP-2 は元のレーンが持つ）→ GATE-9（PHP と WordPress、Python）→ WEB-7 → LIVE-1。
   - プレビューのデプロイ（WEB-1）：今のトークンでは何も読めない（docs/DEPLOY.md 1.1）。人間待ちに書いた。
   - 新しい ADR には番号を付けない。`docs/adr/YYYY-MM-DD-<slug>.md` にする（NIGHT.md §8、両レーン共通）。
 
@@ -72,6 +74,10 @@
 - [ ] 判断：GATE-1 は Next.js のビルド成果物の名前の変化を「一貫した改名」に限って許している（`reference/test/gate1.test.mjs` の `NORMALISATIONS`）。原因は proxy.js を足すとクライアントのチャンク名が 2 つ変わること。これを「バイト単位で一致」と読んでよいか（#25）。
 - [ ] 判断：日次レポートの metadata event に `operator` を足すか。足せば DECLARED の運営者別の上位を出せる。ただし spec §11.7 の送信項目が変わる（#28）。
 - [ ] 日次レポートの送信基盤：送信サービス、送信ドメイン、SPF/DKIM/DMARC、配信停止。`ludion report` は中身を作るだけで、送信はしない。
+- [ ] 判断（Mandate v0、docs/adr/2026-10-01-mandate-v0-passkey-consent-and-site-charge.md）：
+  - 上限超え（金額、通貨、日ごとの回数）は、新しいコードを足さずに `mandate_scope`（spec §10.11「委任の範囲外」）で返し、理由は `reason` に入れた。専用のコード（例：`mandate_limit`）が要るなら spec §10.11 の変更になる。
+  - 同意のときだけ、Registry は Principal からサイト（`aud`）を聞く。持つのはハッシュ、発行者、Diver、期限だけ。不変条件8「Registry は行き先を知らない」の読みとして、これでよいか。
+  - カテゴリの Mandate（`cat:ecommerce`）は、サイトの自己申告で効き、同じ仮名がそのカテゴリのサイトすべてに見える。v0 に残すか、サイト限定にするか。
 - [ ] 判断：nonce なしの同一署名を、同じメソッドと URL へ再送したら SPOOFED にしている（GATE-7、PR #4）。正規のリトライも弾く。これを受け入れるか、`requireNonce` を既定にするか。
 - [ ] 本番公開の前に：`/e/<code>` の文面（`site/src/content/docs/e/`、`ja/e/`）を読む。会社としての約束が 2 つ入っている。
   - 失効と Depth の引き下げには理由を示し、異議を聞く（spec §8.12）。
@@ -127,11 +133,38 @@
   - 語の一覧と単位の一覧は有限。一覧にない言い換え（「万一のときは全額お支払い」）や、一覧にない名詞を数える数（「3 regions」）はすり抜ける。
   - 出所として認めるのはリポジトリの文書だけ。外部の文書（datatracker など）は、中身をオフラインで確かめられないので認めていない。
   - 日次レポートのメール（`ludion report`）の文面は見ていない。
+- Mandate v0（PRS-2）で未カバーの部分：
+  - 同意ページ（ludion.ai）はまだない。PRS-2 のパスキーはソフトウェアの認証器（WebAuthn と同じバイト列を作る）。本物のブラウザ（Chromium の仮想認証器）では、まだ通していない。
+  - 発行した Mandate をエージェントに渡す道は決めていない。
+  - `charge()` を呼べるのは Node のアダプタ（`req.ludion.charge`）だけ。Workers と Next.js にはまだ道がない。
+  - `per_day` は Gate のプロセスごとに数える。複数のインスタンスや拠点では、それぞれの枠になる。
+  - 購読していない Gate への取り消しは、Staple の `mrev`（最大 32 件）で届く。それより多く取り消した Diver では、古いものが Staple から落ちる（その分は Mandate の期限まで）。
+  - Principal の仮名の鍵は Registry の状態ファイルに平文。パスキーの attestation は見ていない。
 - DIV-2 で未カバーの部分：
   - TLS は通していない（Host ヘッダーを保ってローカルに転送）
   - web-bot-auth@0.2.0 のパーサが registry-03 に準拠しているか
 
 ## 直近のセッション
+
+- 2026-10-01（夜勤 8）：
+  - PRS-2：Mandate v0（docs/adr/2026-10-01-mandate-v0-passkey-consent-and-site-charge.md）。
+    - Registry：`POST /v0/principals`（パスキーの公開鍵）、`POST /v0/mandates`（同意）、`POST /v0/mandates/{jti}/revoke`（取り消し）。
+      - 同意は「要求の JSON 文字列」への WebAuthn のアサーション。challenge はその SHA-256。origin、rpId、UP と UV、signCount、±5分、一度きりを見る。
+      - ES256（DER）と EdDSA。暗号は `@ludion/gate-core/staple` に足した（CRY-1 の許可リストは広げていない）。
+      - Principal の仮名はサイトごと（HMAC）。Mandate はハッシュだけを持つ。
+    - Gate：`Ludion-Mandate` を読む（`@ludion/gate-core/mandate`）。
+      - 持っていない委任（偽造、別の Diver のもの）は SPOOFED。
+      - 別のサイト、期限切れ、取り消し済み、Staple なしは「Mandate なし」で `mandate_required`。
+    - 支払い：サイトが金額を知った場所で `req.ludion.charge({ amount, currency })`。上限、通貨、24 時間の回数。人間には効かない。
+    - 取り消しは、放送（購読している Gate、数十ミリ秒）と、Staple の `mrev`（それ以外の Gate、Staple の寿命以内）で届く。
+    - 失効リストは、知らない `scope` の項目で Diver を落とさなくなった。
+  - PRS-2 の中身：本物の Node Gate を3つ（購読する、しない、別サイト）と、ソフトウェアのパスキーを2つ（ES256 で数える、EdDSA で数えない）。
+    - 通るもの：14 件。拒否するもの：18 件。同意の攻撃 13 種類は何も発行しない。
+    - 仕込んだ 22 の故障（上限、通貨、日ごとの回数、aud、sub、期限、取り消し、mrev、Staple なし、偽造、人間への適用、署名、challenge、origin、rpId、UV、一度きり、他人の取り消し、鍵の差し替え、放送、limits の省略）を、22 とも捕まえた。
+  - 速いテスト `packages/gate-core/test/mandate.test.mjs`（9 件）を `npm test` に入れた。
+  - `/e/mandate_required` と `/e/mandate_scope`（英日）に、Mandate が効かない場合と上限の場合を書き足した。
+  - gate-core の設定は、`require.scope` を v0 の語彙に限った（打ち間違いで経路が閉じない）。
+  - scoreboard（ローカル）：PASS 37 → 38、PENDING 12 → 11、FAIL 0。ラチェットは PRS-2 を足した。
 
 - 2026-10-01（夜勤 7）：
   - WEB-8：登録フォーム。人の送信は通知まで届き、ボットは落ちる（docs/adr/2026-10-01-signup-endpoint-on-the-site-worker.md）。

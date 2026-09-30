@@ -157,7 +157,12 @@ export const ORACLES = [
   // ── M5 pressure, neutrality, crypto ────────────────────────────────────────────
   { id: "PRS-1", m: "M5", kind: "±", level: 1, title: "100k random cases: UNKNOWN always passes; denials only at P≥2 on matching routes",
     run: nodeTest(["packages/gate-core/test/prs1.test.mjs"], "^PRS-1:") },
-  { id: "PRS-2", m: "M5", kind: "±", level: 1, title: "Mandate v0: in scope/limit passes; out of scope/over limit/expired/revoked denied" },
+  // The Registry in process, real Node Gates over HTTP (one subscribed to the revocation stream, one
+  // not, one at another site), and a software passkey producing real WebAuthn assertions (ES256 in
+  // DER, EdDSA) for the Principal's consent (services/registry/test/passkey.mjs).
+  { id: "PRS-2", m: "M5", kind: "±", level: 1, title: "Mandate v0: in scope/limit passes; out of scope/over limit/expired/revoked denied",
+    run: nodeTest(["services/registry/test/prs2.test.mjs"], "^PRS-2:", {
+      metric: (out) => (/^# PRS-2: (.+)$/m.exec(out) ?? [])[1] }) },
   // The same portable suite on Node, Deno (no permissions) and workerd, against the npm-packed
   // packages; pinned runtimes in accept/neutral/runtime, installed in the OS temp dir (ADR-027).
   { id: "NEUT-1", m: "M5", kind: "+", level: 1, pair: "NEUT-2", title: "gate-core and Card Host pass the same suite on ≥2 independent runtimes",
