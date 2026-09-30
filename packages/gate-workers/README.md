@@ -36,6 +36,16 @@ Pressure 0 only observes. Nothing changes for anyone until you raise it. `nodejs
 - **Other handlers are kept.** `scheduled`, `queue` and any other members of your default export keep working.
 - **Events outlive the response.** Classified events are handed to `ctx.waitUntil`, so they are delivered after the response is returned.
 - **Immutable headers.** A response with immutable headers, such as one passed through from `fetch()`, is copied with its body stream intact. Only `Ludion-*` headers are added.
+- **Payments on someone's behalf.** Where a route asks for a Mandate (`"require": { "scope": "checkout" }`), your handler holds the payment to its limits once it knows the total:
+
+  ```js
+  import { withLudion, ludion } from "@ludion/gate-workers";
+  // inside fetch(request, env, ctx), with the total in the currency's minor unit:
+  const v = ludion(request)?.charge({ amount: total, currency: "JPY" });
+  if (v && !v.ok) return new Response(JSON.stringify({ error: v.error }), { status: v.status, headers: v.headers });
+  ```
+
+  Pass the very `Request` your handler received. Humans are never held: for them `charge` returns `{ ok: true, enforced: false }`. The count behind `per_day` is kept per isolate.
 
 ## Configuration
 

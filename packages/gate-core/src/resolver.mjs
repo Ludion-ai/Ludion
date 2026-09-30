@@ -30,7 +30,8 @@ const DEFAULTS = {
   minTtlMs: 60e3,
   insecureAllowHttp: false,   // tests only. Never in production.
   allowPrivateNetwork: false, // tests only.
-  fetch: globalThis.fetch,
+  // Looked up at call time, not at import: a runtime or test that installs fetch later is honoured.
+  fetch: (input, init) => globalThis.fetch(input, init),
   now: () => Date.now(),
   userAgent: "LudionGate/0.0.1 (+https://ludion.ai/gate)",
 };

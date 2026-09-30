@@ -53,6 +53,8 @@ Pressure 0 only observes. Nothing changes for anyone until you raise it.
 - **`fail_mode`**: what a fault inside the Gate does. Pressure 0–1 always stays open. Pressure 2–3 follows `pressure_2_3`.
 - **`authorities`**: your site's own hosts (`host`, `host:port`, `*.subdomain`, or an origin). A signature made for any other site is refused, so it can't be replayed here. Needed before Pressure 2–3 routes let verified agents through; without it, those routes treat a verified request as a Gate fault and follow `fail_mode` (ADR-023).
 - **`trust_proxy`**: read the client IP and host from `X-Forwarded-*`. Enable it only behind your own proxy.
+- **`registry`**: the Ludion Registry's public keys, pinned, as served at its `/.well-known/ludion-keys`: `{ "keys": [...], "issuer": "https://registry.ludion.ai", "revocations": "<stream URL>" }`. Without them the Gate can't read Staples (Depth, Ballast) or Mandates. Public keys only: a private key here is refused. `revocations` subscribes a long-running server to the revocation stream.
+- **`categories`**: Mandate categories your site belongs to (for example `["ecommerce"]`). A Mandate for `cat:ecommerce` then holds here too.
 
 **Environment variables**
 
