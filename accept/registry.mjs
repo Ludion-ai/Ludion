@@ -84,7 +84,14 @@ export const ORACLES = [
   { id: "GATE-2", m: "M1", kind: "-", level: 1, title: "pressure bites: 100% of denials carry Ludion-Error + help Link (+Accept-Signature)",
     run: nodeTest(["packages/gate-node/test/gate2.test.mjs"], "^GATE-2:") },
   { id: "GATE-3", m: "M1", kind: "+", level: 1, pair: "GATE-5", title: "install ≤3 app lines, ≤1 config file, first classified event ≤60s (3 reference apps)" },
-  { id: "GATE-4", m: "M1", kind: "+", level: 1, pair: "GATE-6", title: "added latency p99 ≤2ms warm (10k mixed requests)" },
+  { id: "GATE-4", m: "M1", kind: "+", level: 1, pair: "GATE-6", title: "added latency p99 ≤2ms warm (10k mixed requests)", timeoutMs: 180_000, run: async () => {
+    // The real gate-node middleware timed per request, keys cached, every class in the mix; see the script.
+    const r = sh(process.execPath, ["packages/gate-node/bench/gate4.mjs"], 170_000);
+    let res;
+    try { res = JSON.parse(r.out.trim().split("\n").pop()); } catch { return { pass: false, detail: r.out.trim().slice(-300) || "no result" }; }
+    return { pass: r.code === 0 && res.pass === true, metric: `p50 ${res.p50}ms, p99 ${res.p99}ms (n=${res.n})`,
+      detail: res.problems?.length ? res.problems.join("; ").slice(0, 300) : undefined };
+  } },
   { id: "GATE-5", m: "M1", kind: "-", level: 1, title: "fail-open under fault injection at P0–1; fail_mode honoured at P2–3",
     run: nodeTest(["packages/gate-node/test/gate5.test.mjs"], "^GATE-5:") },
   { id: "GATE-6", m: "M1", kind: "-", level: 1, title: "SSRF sandbox: internal service receives 0 requests (incl. redirects, rebinding, bombs)",

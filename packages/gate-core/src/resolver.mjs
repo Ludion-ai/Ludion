@@ -215,7 +215,10 @@ export function createResolver(options = {}) {
       const t = Math.floor(opts.now() / 1000);
       if (jwk.nbf && t < jwk.nbf) throw new DiscoveryError("key not yet valid", "key-time");
       if (jwk.exp && t > jwk.exp) throw new DiscoveryError("key expired", "key-time");
-      const v = await verifierFromJWK(jwk); // frozen; wrap so we can attach attribution
+      // Imported once per key per cached key set (GATE-4): importing is most of the cost of a warm verify.
+      rec.verifiers ??= new Map();
+      let v = rec.verifiers.get(candidate.keyid);
+      if (!v) { v = await verifierFromJWK(jwk); rec.verifiers.set(candidate.keyid, v); } // frozen; wrapped below to attach attribution
       return { algorithm: v.algorithm, keyid: v.keyid, verify: (data, sig) => v.verify(data, sig), identifier: rec.identifier, card: rec.card };
     },
     /** Pin a key set for an identifier without fetching (offline / pinned). */
