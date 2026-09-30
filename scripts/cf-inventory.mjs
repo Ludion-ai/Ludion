@@ -7,6 +7,7 @@
 // The token needs read permissions only: Account → Workers Scripts, Cloudflare Pages,
 // Workers KV Storage, D1, Workers R2 Storage (Read); Zone (ludion.ai) → Workers Routes, DNS (Read).
 // A section the token cannot read is printed as such, not skipped silently.
+import { classifiedTables } from "./cf-classify.mjs";
 const token = process.env.CLOUDFLARE_API_TOKEN, account = process.env.CLOUDFLARE_ACCOUNT_ID;
 const zi = process.argv.indexOf("--zone");
 const zoneName = zi > 0 ? process.argv[zi + 1] : "ludion.ai";
@@ -63,5 +64,7 @@ section("KV namespaces", kv, ["title", "id"], (n) => [n.title, n.id]);
 section("D1 databases", d1, ["name", "created", "size (bytes)", "tables"], (d) => [d.name, day(d.created_at), d.file_size, d.num_tables]);
 section("R2 buckets", r2, ["name", "created"], (b) => [b.name, day(b.creation_date)]);
 section(`DNS records on ${zoneName}`, dns, ["type", "name", "content", "proxied"], (r) => [r.type, r.name, r.content, r.proxied]);
+// Only Ludion's resources may become deletion candidates; the others are listed apart (cf-classify.mjs).
+lines.push(...classifiedTables({ scripts, domains, routes, pages, kv, d1, r2, zoneName }));
 
 console.log(lines.join("\n"));
