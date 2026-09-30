@@ -13,6 +13,7 @@
     "astro": "7.3.5"
   },
   "devDependencies": {
+    "lighthouse": "13.5.0",
     "playwright-core": "1.63.0"
   }
 }

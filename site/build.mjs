@@ -114,6 +114,8 @@ export function buildSite({ out } = {}) {
     fs.rmSync(stage, { recursive: true, force: true });
     try {
       run([path.join(SITE, "node_modules", "astro", "bin", "astro.mjs"), "build", "--outDir", stage]);
+      // The build's identity, served as a static file: WEB-1 compares the preview's with this checkout's.
+      fs.writeFileSync(path.join(stage, "_build.json"), JSON.stringify({ site: siteHash() }) + "\n");
       fs.writeFileSync(path.join(stage, ".ludion-built"), new Date().toISOString());
       moveDir(stage, dist);
     } finally { fs.rmSync(stage, { recursive: true, force: true }); }

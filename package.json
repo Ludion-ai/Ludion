@@ -17,7 +17,8 @@
     "e2e": "node examples/e2e.mjs",
     "scoreboard": "node scripts/scoreboard.mjs",
     "ratchet": "node scripts/scoreboard.mjs --update-ratchet",
-    "loop": "bash scripts/loop.sh"
+    "loop": "bash scripts/loop.sh",
+    "deploy:preview": "node site/deploy.mjs"
   },
   "devDependencies": {
     "express": "5.2.1",
