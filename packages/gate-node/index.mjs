@@ -35,11 +35,13 @@ export async function ludionGate(config) {
     let result;
     try {
       result = await gate.inspect(describe(req), { ip: clientIp(req), country: req.headers["cf-ipcountry"] ?? req.headers["x-vercel-ip-country"] });
-    } catch {
-      return next(); // never take the site down
+    } catch (e) {
+      result = gate.failSafe(req.url, e); // inspect never throws; this is the last line, and it still honours fail_mode
     }
     req.ludion = result;
-    for (const [k, v] of Object.entries(result.headers)) res.setHeader(k, v);
+    try {
+      for (const [k, v] of Object.entries(result.headers)) res.setHeader(k, v);
+    } catch { /* a header we cannot set must not take the site down */ }
     if (result.decision.action === "deny") {
       res.statusCode = result.decision.status;
       res.setHeader("Content-Type", "application/json");
