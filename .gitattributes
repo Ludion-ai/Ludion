@@ -1,0 +1,4 @@
+# Byte-exact fixtures (vectors, logs, reference responses) must not be CRLF-converted on Windows.
+* text=auto eol=lf
+*.zip binary
+*.gz binary
