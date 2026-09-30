@@ -134,7 +134,15 @@ export const ORACLES = [
   { id: "NEUT-2", m: "M5", kind: "-", level: 1, title: "no CDN/cloud vendor SDK in gate-core's dependency tree" },
   { id: "CRY-1", m: "M5", kind: "-", level: 0, title: "no home-made crypto: primitives only inside allowlisted modules", run: async () => {
     const allow = new Set(["packages/gate-core/src/staple.mjs", "packages/gate-core/src/receipt.mjs", "packages/diver/src/keys.mjs"]);
-    const banned = /\bcrypto\.subtle\.(sign|verify|importKey|generateKey|deriveKey|deriveBits|encrypt|decrypt)\b|from\s+["'](tweetnacl|elliptic|node-forge|crypto-js)["']/;
+    // WebCrypto (also via a destructured `subtle`), node:crypto's cipher / KDF / signing / key
+    // construction calls, and third-party primitive libraries. Hashing and randomness are fine.
+    const banned = new RegExp([
+      String.raw`\bsubtle\.(sign|verify|importKey|generateKey|deriveKey|deriveBits|encrypt|decrypt|wrapKey|unwrapKey)\b`,
+      String.raw`\b(createCipheriv|createDecipheriv|scrypt|scryptSync|pbkdf2|pbkdf2Sync|hkdf|hkdfSync|createSign|createVerify|createPrivateKey|createPublicKey|createSecretKey|generateKeyPair|generateKeyPairSync|generateKeySync|diffieHellman|createDiffieHellman|createECDH|publicEncrypt|privateDecrypt|privateEncrypt|publicDecrypt)\s*\(`,
+      String.raw`\bcrypto\.(sign|verify)\s*\(`,
+      String.raw`import\s*\{[^}]*\b(sign|verify)\b[^}]*\}\s*from\s*["'](node:)?crypto["']`,
+      String.raw`(from\s+|import\s*\(\s*|require\s*\(\s*)["'](tweetnacl|tweetnacl-util|elliptic|node-forge|crypto-js|@noble\/[\w-]+|libsodium[\w-]*|sodium-native|jsrsasign|node-rsa|sjcl)(\/[\w./-]*)?["']`,
+    ].join("|"));
     const hits = [...walk(path.join(ROOT, "packages")), ...walk(path.join(ROOT, "services"))]
       .map((f) => path.relative(ROOT, f).split(path.sep).join("/")).filter((f) => !/(^|\/)test\//.test(f) && !allow.has(f))
       .filter((f) => banned.test(fs.readFileSync(path.join(ROOT, f), "utf8")));
