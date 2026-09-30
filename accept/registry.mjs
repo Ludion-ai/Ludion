@@ -109,7 +109,9 @@ export const ORACLES = [
     run: nodeTest(["packages/gate-node/test/priv.test.mjs"], "^PRIV-1:") },
   { id: "PRIV-2", m: "M1", kind: "-", level: 1, title: "send_metadata=false → only key-directory fetches leave the process",
     run: nodeTest(["packages/gate-node/test/priv.test.mjs"], "^PRIV-2:") },
-  { id: "PRIV-3", m: "M1", kind: "-", level: 1, title: "Registry receives no site origin/URL/path across the Diver lifecycle" },
+  { id: "PRIV-3", m: "M1", kind: "-", level: 1, title: "Registry receives no site origin/URL/path across the Diver lifecycle",
+    run: nodeTest(["services/registry/test/priv3.test.mjs"], "^PRIV-3:", {
+      metric: (out) => (/^# PRIV-3: (.+)$/m.exec(out) ?? [])[1] }) },
 
   // ── M2 diver ───────────────────────────────────────────────────────────────────
   { id: "DIV-1", m: "M2", kind: "+", level: 1, pair: "DIV-3", title: "clean container → init → VERIFIED ≤180s (TS and Python)" },
