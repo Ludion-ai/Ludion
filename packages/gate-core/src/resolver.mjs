@@ -14,6 +14,7 @@
 import { verifierFromJWK } from "web-bot-auth/crypto";
 import { parseSignatureAgentCard, HTTP_MESSAGE_SIGNATURES_DIRECTORY } from "web-bot-auth";
 import { thumbprint } from "./thumbprint.mjs";
+import { isPublicAddress, isIpLiteral } from "./address.mjs";
 
 export class DiscoveryError extends Error {
   /** @param {string} message @param {string} code */
@@ -34,31 +35,28 @@ const DEFAULTS = {
   userAgent: "LudionGate/0.0.1 (+https://ludion.ai/gate)",
 };
 
-const PRIVATE_V4 = [
-  /^10\./, /^127\./, /^0\./, /^169\.254\./, /^192\.168\./, /^100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\./,
-  /^172\.(1[6-9]|2\d|3[01])\./, /^22[4-9]\./, /^2[3-5]\d\./,
-];
+/** Names that only ever mean the local host or network. */
+const LOCAL_NAME = /(^|\.)(localhost|local|internal|localdomain|home\.arpa|lan|intranet)$/;
 
-/** Reject URLs that must not be fetched. Hostname-based only: DNS rebinding is
- *  out of scope for v0 and is called out in docs/THREATS.md. */
+/**
+ * Reject URLs that must not be fetched, before any connection: scheme, credentials, IP literals
+ * that are not public (every form the URL parser normalises to, e.g. 2130706433, 0x7f.1, [::ffff:7f00:1]),
+ * and names that are local by construction (single-label names such as `metadata`, `.internal`, …).
+ * A name that resolves to a non-public address is caught at connect time by the runtime's fetch
+ * (gate-node: safe-fetch.mjs, which checks and pins every resolved address — DNS rebinding).
+ */
 export function assertFetchable(url, opts) {
   if (url.protocol !== "https:" && !(opts.insecureAllowHttp && url.protocol === "http:")) {
     throw new DiscoveryError(`refusing non-https discovery URL: ${url.protocol}`, "scheme");
   }
   if (url.username || url.password) throw new DiscoveryError("credentials in discovery URL", "url");
-  const host = url.hostname.replace(/^\[|\]$/g, "").toLowerCase();
+  const host = url.hostname.replace(/^\[|\]$/g, "").toLowerCase().replace(/\.$/, "");
   if (opts.allowPrivateNetwork) return;
-  if (host === "localhost" || host.endsWith(".localhost") || host.endsWith(".local") || host.endsWith(".internal")) {
-    throw new DiscoveryError("refusing local hostname", "private");
+  if (isIpLiteral(host)) {
+    if (!isPublicAddress(host)) throw new DiscoveryError("refusing non-public IP address", "private");
+    return;
   }
-  if (/^\d+\.\d+\.\d+\.\d+$/.test(host) && PRIVATE_V4.some((re) => re.test(host))) {
-    throw new DiscoveryError("refusing private IPv4 literal", "private");
-  }
-  if (host.includes(":")) { // IPv6 literal
-    if (host === "::1" || host === "::" || /^f[cd]/.test(host) || /^fe[89ab]/.test(host) || host.startsWith("::ffff:")) {
-      throw new DiscoveryError("refusing private IPv6 literal", "private");
-    }
-  }
+  if (!host.includes(".") || LOCAL_NAME.test(host)) throw new DiscoveryError("refusing local hostname", "private");
 }
 
 /** Parse max-age from Cache-Control, bounded. */
@@ -95,6 +93,7 @@ async function boundedFetch(url, opts, accept) {
     return { json, ttlMs: ttlFromHeaders(res.headers, opts) };
   } catch (e) {
     if (e instanceof DiscoveryError) throw e;
+    if (e?.code === "ERR_LUDION_NON_PUBLIC_ADDRESS") throw new DiscoveryError(e.message, "private");
     throw new DiscoveryError(`discovery fetch failed: ${e?.name === "AbortError" ? "timeout" : e?.message}`, "network");
   } finally { clearTimeout(t); }
 }

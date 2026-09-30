@@ -30,6 +30,10 @@ const mw = await ludionGate({
   siteId: "site-priv", siteKey: siteKey.privateJwk, pressure: 0, now: () => NOW_MS, trustProxy: TRUST_PROXY,
   routes: [{ match: "/checkout/**", pressure: 2 }, { match: "/login", pressure: 2, require: { depth: 1 } }, { match: "/search", pressure: 1 }],
   registryKeys: { keys: [registry.publicJwk] }, registryIssuer: REGISTRY_ISS,
+  // Key discovery through the trap's recorded fetch: every URL, header and body the Gate asks for
+  // is seen here. (gate-node's default transport, createSafeFetch, is pinned byte for byte on the
+  // wire by the GATE-6 suite: request line, headers, no body.)
+  resolver: { fetch: globalThis.fetch },
   ...(process.env.PRIV_SINK === "0" ? {} : { sink: (e) => egress.record({ ch: "sink", data: e }) }),
   ...(SEND === undefined ? {} : { sendMetadata: SEND }),
 });

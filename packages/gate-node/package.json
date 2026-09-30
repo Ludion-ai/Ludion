@@ -5,6 +5,6 @@
   "license": "Apache-2.0",
   "type": "module",
   "main": "index.mjs",
-  "exports": { ".": "./index.mjs" },
+  "exports": { ".": "./index.mjs", "./safe-fetch": "./safe-fetch.mjs" },
   "dependencies": { "@ludion/gate-core": "0.0.1" }
 }

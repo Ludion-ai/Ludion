@@ -8,12 +8,19 @@
 // Gate classified as automation, and Pressure 0 (default) only observes.
 
 import { createGate, originForm } from "@ludion/gate-core";
+import { createSafeFetch } from "./safe-fetch.mjs";
+
+export { createSafeFetch };
 
 /**
+ * Key discovery on Node goes through createSafeFetch unless `resolver.fetch` is given: every
+ * resolved address is checked and pinned (GATE-6). `resolver.lookup` replaces name resolution.
  * @param {import("@ludion/gate-core").GateConfig & { trustProxy?: boolean, onFriction?: (req,res,next,result)=>void }} config
  */
 export async function ludionGate(config) {
-  const gate = await createGate(config);
+  const r = config.resolver ?? {};
+  const fetch = r.fetch ?? createSafeFetch({ lookup: r.lookup, maxBytes: r.maxBytes, allowPrivateNetwork: r.allowPrivateNetwork, dial: r.dial });
+  const gate = await createGate({ ...config, resolver: { ...r, fetch } });
   const trustProxy = !!config.trustProxy;
 
   function describe(req) {
