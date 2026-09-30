@@ -1,0 +1,18 @@
+{
+  "name": "@ludion/scan",
+  "version": "0.0.1",
+  "description": "Ludion scan: the log-first Gate. Reads access logs (nine formats, gzip ok), counts what automation touched, prints the unverified-automation-on-critical-routes number. Zero network.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "main": "src/index.mjs",
+  "exports": {
+    ".": "./src/index.mjs",
+    "./cli": "./src/cli.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@ludion/gate-core": "0.0.1"
+  }
+}

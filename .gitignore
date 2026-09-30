@@ -1,5 +1,6 @@
 node_modules/
 *.log
+!accept/fixtures/logs/corpus/*.log
 .DS_Store
 .vercel/
 # Diver CLI output when run inside the repo
