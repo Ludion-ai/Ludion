@@ -1,0 +1,8 @@
+{
+  "note": "The Internet-Drafts Ludion implements, at the revision it implements. STD-4 compares each with the IETF datatracker and with every reference in the code, the spec and MISSION.md. Move a pin only together with the code, the spec and the tests that follow the new revision.",
+  "graceDays": 7,
+  "drafts": [
+    { "name": "draft-ietf-webbotauth-httpsig-protocol", "rev": "00", "what": "Signature-Agent, key directory, Web Bot Auth profile of RFC 9421 (gate-core, diver, STD-1)" },
+    { "name": "draft-meunier-webbotauth-registry", "rev": "03", "what": "Signature Agent Card, CIMD form (card-host, diver, DIV-2)" }
+  ]
+}
