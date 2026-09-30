@@ -66,7 +66,8 @@ export const ORACLES = [
   // ── M1 standards ───────────────────────────────────────────────────────────────
   { id: "STD-1", m: "M1", kind: "+", level: 0, pair: "STD-2", title: "WG -00 App. E.2 Ed25519 vectors verify through the Gate path",
     run: nodeTest(["packages/gate-core/test/core.test.mjs"], "E\\.2\\.1|thumbprint matches") },
-  { id: "STD-2", m: "M1", kind: "-", level: 1, title: "tamper / wrong key / wrong authority / expired / future / >60s / wrong tag all rejected" },
+  { id: "STD-2", m: "M1", kind: "-", level: 1, title: "tamper / wrong key / wrong authority / expired / future / >60s / wrong tag all rejected",
+    run: nodeTest(["packages/gate-core/test/std2.test.mjs"], "^STD-2:") },
   { id: "STD-3", m: "M1", kind: "+", level: 1, pair: "STD-2", title: "interop both ways with ≥2 independent implementations (one non-JS)" },
   { id: "STD-4", m: "M1", kind: "~", level: 2, title: "pinned draft revisions == latest on datatracker (else issue; FAIL after 7 days)" },
 
