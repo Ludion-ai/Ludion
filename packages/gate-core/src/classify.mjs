@@ -14,6 +14,7 @@
 // requests classified as automation, and a rejection always carries a help link.
 
 import { verify } from "web-bot-auth";
+import { isSignatureError } from "http-message-sig";
 import { DiscoveryError } from "./resolver.mjs";
 import { StapleError } from "./staple.mjs";
 import { matchKnownAgent, matchAutomationSignal } from "./agents.mjs";
@@ -99,6 +100,12 @@ export async function classify(req, ctx) {
     const cause = e?.code === "ResolverFailed" ? e.cause : null;
     if (cause instanceof DiscoveryError) {
       return { class: "UNVERIFIED", reason: cause.code, detail: cause.message, signatureAgent: field(req, "signature-agent") };
+    }
+    // web-bot-auth runs its profile checks (tag, bare @authority, exactly one covered
+    // Signature-Agent member, nonce shape) inside the resolver hook, so they arrive wrapped as
+    // ResolverFailed. They are invalid signatures, not discovery failures (spec §10.8).
+    if (isSignatureError(cause)) {
+      return { class: "SPOOFED", reason: "invalid_signature", code: cause.code, detail: cause.message, signatureAgent: field(req, "signature-agent") };
     }
     if (e?.code === "ResolverFailed") {
       return { class: "UNVERIFIED", reason: "resolver", detail: String(cause?.message ?? e.message), signatureAgent: field(req, "signature-agent") };
