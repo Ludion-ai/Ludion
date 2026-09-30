@@ -2,6 +2,7 @@
   "note": "Append-only. Written by `npm run ratchet`. CI enforces it from the base branch.",
   "passed": [
     "CRY-1",
+    "DIV-2",
     "GATE-2",
     "GATE-7",
     "LOOP-1",
