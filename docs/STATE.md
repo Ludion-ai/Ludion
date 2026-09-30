@@ -148,7 +148,7 @@
 - Mandate v0（PRS-2）で未カバーの部分：
   - 同意ページ（ludion.ai）はまだない。PRS-2 のパスキーはソフトウェアの認証器（WebAuthn と同じバイト列を作る）。本物のブラウザ（Chromium の仮想認証器）では、まだ通していない。
   - 発行した Mandate をエージェントに渡す道は決めていない。
-  - `charge()` を呼べるのは Node のアダプタ（`req.ludion.charge`）だけ。Workers と Next.js にはまだ道がない。
+  - `charge()` を呼べるのは Node（`req.ludion.charge`）と Workers（`ludion(request).charge`）。Next.js にはまだ道がない（proxy とルートのハンドラが別の場所で動く）。
   - `per_day` は Gate のプロセスごとに数える。複数のインスタンスや拠点では、それぞれの枠になる。
   - 購読していない Gate への取り消しは、Staple の `mrev`（最大 32 件）で届く。それより多く取り消した Diver では、古いものが Staple から落ちる（その分は Mandate の期限まで）。
   - Principal の仮名の鍵は Registry の状態ファイルに平文。パスキーの attestation は見ていない。
@@ -157,6 +157,15 @@
   - web-bot-auth@0.2.0 のパーサが registry-03 に準拠しているか
 
 ## 直近のセッション
+
+- 2026-10-01（夜勤 8、5 周目）：
+  - 設定ファイル（`ludion.config.json`、Workers の `LUDION`）に `registry` を足した。Registry の公開鍵、issuer、失効のストリーム。あわせて `categories` も足した。
+    - これまで、ファイルで設定した Gate（Node の `ludion()`、Workers、Next.js）は Registry の鍵を持てず、Staple も Mandate も読めなかった。
+    - 秘密鍵を書くと、はっきり拒否する。
+  - Workers：`ludion(request)` で、その要求の Gate の結果が取れる。`charge()` もここから呼ぶ。
+  - gate-core の resolver の既定の fetch を、読み込み時ではなく呼ぶときに引くようにした。後から入れた fetch（テストや polyfill）が効く。
+  - PRS-2 を強くした：同じ Mandate を、ファイルの設定だけの Workers のサイト（本物の `withLudion`）でも試す。上限内は通り、上限超え、Mandate なし、別の Diver のものは拒否。15 件通り、21 件拒否。
+  - 教訓：ブランチを切る前に `git fetch` する。この周は一度、#56 の前の main から切っていた（コミット前に気づいて rebase した）。
 
 - 2026-10-01（夜勤 8、4 周目）：
   - GATE-10 を強くした：STD-2 の否定のテスト 12 件を vectors.json に足した。

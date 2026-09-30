@@ -17,6 +17,23 @@
 import { createGate } from "@ludion/gate-core";
 import { gateConfig } from "@ludion/gate-core/config";
 
+/** The Gate's result for each request the wrapped handler is serving. */
+const results = new WeakMap();
+
+/**
+ * The Gate's result for the request your handler received (null if the Gate did not see it, or is
+ * disabled). Where the handler knows the total of a payment made on someone's behalf:
+ *
+ *   const v = ludion(request)?.charge({ amount, currency });   // integer, the currency's minor unit
+ *   if (v && !v.ok) return new Response(JSON.stringify({ error: v.error }), { status: v.status, headers: v.headers });
+ *
+ * charge() holds it to the agent's Mandate (spec §10.6) where the route asks for one; never on humans.
+ * @param {Request} request the very Request object the handler was given
+ */
+export function ludion(request) {
+  return results.get(request) ?? null;
+}
+
 /** Web Request → RFC 9421 RequestDescriptor. */
 function describe(request) {
   const fields = [];
@@ -58,6 +75,8 @@ export function withLudion(handler, { configVar = "LUDION", onError = defaultOnE
       try { gate = await (ready ??= init(env)); }
       catch (e) { ready = Promise.reject(e); ready.catch(() => {}); onError(e); return handler.fetch.call(this ?? handler, request, env, ctx); } // never take the site down
       const result = await gate.inspect(describe(request), { ip: request.headers.get("cf-connecting-ip") ?? undefined, country: request.cf?.country });
+      result.charge = (c) => gate.charge(result, c);
+      results.set(request, result);
       if (pending.length) ctx?.waitUntil?.(Promise.allSettled(pending.splice(0)));
       if (result.decision.action === "deny") {
         return new Response(JSON.stringify({ error: result.decision.error, help: `https://ludion.ai/e/${result.decision.error}` }),

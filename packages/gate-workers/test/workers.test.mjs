@@ -2,7 +2,7 @@
 // in GATE-1 and GATE-3).
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { withLudion } from "@ludion/gate-workers";
+import { withLudion, ludion } from "@ludion/gate-workers";
 
 const HUMAN = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:143.0) Gecko/20100101 Firefox/143.0";
 const ctx = () => { const waits = []; return { waits, waitUntil: (p) => waits.push(p), passThroughOnException() {} }; };
@@ -60,4 +60,19 @@ test("gate-workers: a missing or broken config passes every request through", as
   assert.equal(await res.text(), "app");
   assert.equal(res.headers.get("ludion-version"), null);
   assert.match(errors[0], /must be a JSON object/);
+});
+
+test("gate-workers: ludion(request) is the Gate's result for the request the handler got; charge() never holds a human", async () => {
+  let seen, other;
+  const app = { async fetch(request) {
+    seen = ludion(request);
+    other = ludion(new Request(request.url));
+    return Response.json(seen.charge({ amount: 10 ** 9, currency: "XXX" }));
+  } };
+  const res = await withLudion(app).fetch(new Request("https://shop.example/checkout/1", { method: "POST", headers: { "user-agent": HUMAN } }),
+    { LUDION: { site_id: "s", routes: [{ match: "/checkout/**", pressure: 2, require: { scope: "checkout" } }] } }, ctx());
+  assert.equal(seen.cls.class, "UNKNOWN");
+  assert.equal(other, null, "another Request object has no result");
+  assert.deepEqual(await res.json(), { ok: true, enforced: false });
+  assert.equal(ludion(new Request("https://shop.example/")), null, "outside the wrapper: null");
 });

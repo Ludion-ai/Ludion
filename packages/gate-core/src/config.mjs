@@ -6,14 +6,16 @@
 //     "routes": [{ "match": "/checkout/**", "pressure": 2, "require": { "depth": 2 } }],
 //     "report": { "endpoint": "https://…/events", "send_metadata": true },
 //     "fail_mode": { "pressure_0_1": "open", "pressure_2_3": "closed" },
-//     "authorities": ["shop.example"] }
+//     "authorities": ["shop.example"],
+//     "registry": { "keys": [/* the Registry's public JWKs */], "issuer": "https://registry.ludion.ai" } }
 //
 // Unknown keys are an error: a typo such as "presure": 2 must not silently mean Pressure 0.
 
 import { generateSiteKey } from "./receipt.mjs";
 import { SCOPES } from "./mandate.mjs";
 
-const TOP = new Set(["$schema", "site_id", "pressure", "routes", "report", "fail_mode", "timeout_ms", "friction_hook", "trust_proxy", "authorities"]);
+const TOP = new Set(["$schema", "site_id", "pressure", "routes", "report", "fail_mode", "timeout_ms", "friction_hook", "trust_proxy", "authorities", "registry", "categories"]);
+const REGISTRY = new Set(["keys", "issuer", "revocations"]);
 const REPORT = new Set(["email", "endpoint", "send_metadata"]);
 const ROUTE = new Set(["match", "pressure", "require"]);
 const REQUIRE = new Set(["depth", "scope", "ballast"]);
@@ -101,6 +103,31 @@ export async function gateConfig(spec, { siteKey, fetch, onEphemeralKey } = {}) 
     if (!Array.isArray(spec.authorities) || !spec.authorities.length || !spec.authorities.every((a) => typeof a === "string" && a.length))
       fail('authorities must be a non-empty array of host names, e.g. ["shop.example", "*.shop.example"]');
     out.authorities = [...spec.authorities];
+  }
+  if (spec.registry != null) {
+    // The Registry's public keys, pinned (spec §10.5): without them no Staple or Mandate can be read.
+    if (!isObject(spec.registry)) fail("registry must be an object: { keys, issuer?, revocations? }");
+    onlyKeys(spec.registry, REGISTRY, "registry");
+    const { keys, issuer, revocations } = spec.registry;
+    if (Array.isArray(keys) && keys.some((k) => isObject(k) && "d" in k)) fail("registry.keys holds a private key: a site pins the Registry's PUBLIC keys only (served at /.well-known/ludion-keys)");
+    if (!Array.isArray(keys) || !keys.length || !keys.every((k) => isObject(k) && k.kty === "OKP" && k.crv === "Ed25519" && typeof k.x === "string")) {
+      fail("registry.keys must be the Registry's public keys: Ed25519 JWKs, as served at /.well-known/ludion-keys");
+    }
+    out.registryKeys = { keys: keys.map((k) => ({ ...k })) };
+    if (issuer != null) {
+      if (typeof issuer !== "string" || !/^https:\/\//.test(issuer)) fail("registry.issuer must be an https URL");
+      out.registryIssuer = issuer;
+    }
+    if (revocations != null) {
+      if (typeof revocations !== "string") fail("registry.revocations must be the URL of the Registry's revocation stream");
+      try { new URL(revocations); } catch { fail(`registry.revocations is not a URL: ${JSON.stringify(revocations)}`); }
+      out.revocations = revocations;
+    }
+  }
+  if (spec.categories != null) {
+    // Mandate categories the site belongs to (spec §10.6: a Mandate for "cat:ecommerce").
+    if (!Array.isArray(spec.categories) || !spec.categories.every((c) => typeof c === "string" && /^[a-z0-9-]{1,32}$/.test(c))) fail('categories must be lowercase names, e.g. ["ecommerce"]');
+    out.categories = [...spec.categories];
   }
   if (spec.trust_proxy != null) {
     if (typeof spec.trust_proxy !== "boolean") fail("trust_proxy must be true or false");

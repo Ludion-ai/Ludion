@@ -3,6 +3,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { gateConfig, httpSink } from "@ludion/gate-core/config";
 import { createGate, generateSiteKey } from "@ludion/gate-core";
+import { keypair, signed, staple, AGENT, SITE, NOW_MS, REGISTRY_ISS } from "./support.mjs";
 
 test("config: the spec's shape maps onto GateConfig and builds a Gate", async () => {
   const sent = [];
@@ -86,4 +87,44 @@ test("config: authorities (ADR-023) map through, and a malformed list is an erro
   }
   const gate = await createGate(out);
   assert.equal(gate.health.authorities, "pinned");
+});
+
+test("config: `registry` pins the Registry's public keys, so a file-configured Gate reads Staples and Mandates", async () => {
+  const agent = await keypair(), registry = await keypair();
+  const cfg = await gateConfig({ site_id: "s", authorities: ["shop.example"], routes: [{ match: "/checkout/**", pressure: 2, require: { depth: 2 } }],
+    registry: { keys: [registry.publicJwk], issuer: REGISTRY_ISS, revocations: "https://registry.example/v0/revocations/stream" }, categories: ["ecommerce"] });
+  assert.deepEqual(cfg.registryKeys, { keys: [registry.publicJwk] });
+  assert.equal(cfg.registryIssuer, REGISTRY_ISS);
+  assert.equal(cfg.revocations, "https://registry.example/v0/revocations/stream");
+  assert.deepEqual(cfg.categories, ["ecommerce"]);
+  const gate = await createGate({ ...cfg, revocations: undefined, now: () => NOW_MS });
+  assert.equal(gate.health.registryKeys, "ok");
+  await gate.resolver.prime({ type: "directory", uri: AGENT }, { keys: [{ ...agent.publicJwk, use: "sig" }] });
+  const st = await staple(registry, { jkt: agent.kid, depth: 2 });
+  const r = await gate.inspect(await signed({ key: agent, headers: { "ludion-staple": st }, extraComponents: ["ludion-staple"] }));
+  assert.equal(r.cls.depth, 2, "the Staple is read");
+  assert.equal(r.decision.action, "allow");
+
+  for (const [registry2, re] of [
+    [{ keys: [registry.privateJwk] }, /PUBLIC keys only/],
+    [{ keys: [] }, /public keys/],
+    [{ keys: [{ kty: "RSA", n: "x", e: "AQAB" }] }, /Ed25519/],
+    [{ keys: [registry.publicJwk], issuer: "http://registry.example" }, /https URL/],
+    [{ keys: [registry.publicJwk], revocations: "not a url" }, /not a URL/],
+    [{ keys: [registry.publicJwk], kes: 1 }, /unknown key "kes"/],
+    ["keys", /must be an object/],
+  ]) await assert.rejects(gateConfig({ site_id: "s", registry: registry2 }), re, JSON.stringify(registry2));
+  await assert.rejects(gateConfig({ site_id: "s", categories: ["E-Commerce"] }), /lowercase/);
+});
+
+test("config: key discovery uses the fetch in place when it runs, not the one at import", async () => {
+  const agent = await keypair();
+  const gate = await createGate({ ...(await gateConfig({ site_id: "s", authorities: ["shop.example"] })), now: () => NOW_MS });
+  const real = globalThis.fetch, asked = [];
+  globalThis.fetch = async (url) => { asked.push(String(url)); return new Response(JSON.stringify({ keys: [{ ...agent.publicJwk, use: "sig" }] }), { status: 200, headers: { "content-type": "application/http-message-signatures-directory+json" } }); };
+  try {
+    const r = await gate.inspect(await signed({ key: agent, url: `${SITE}/products` }));
+    assert.equal(r.cls.class, "VERIFIED");
+    assert.deepEqual(asked, [`${AGENT}/.well-known/http-message-signatures-directory`]);
+  } finally { globalThis.fetch = real; }
 });
