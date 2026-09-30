@@ -65,10 +65,12 @@ test("DIV-3: without dev mode, init refuses to write anything when the Root cann
 test("DIV-3: outside dev mode the Root private key never lands on disk in plaintext, in any encoding", async () => {
   const { b, store, card, root } = await sealedIdentity();
   // Every command that touches the identity, then every byte they left anywhere.
-  for (const args of [["sign", "GET", "https://shop.example/"], ["sign", "POST", "https://shop.example/checkout/1", "--body", '{"a":1}'], ["sign", "GET", "https://shop.example/", "--curl"]]) {
+  for (const args of [["sign", "GET", "https://shop.example/"], ["sign", "POST", "https://shop.example/checkout/1", "--body", '{"a":1}'], ["sign", "GET", "https://shop.example/", "--curl"],
+    ["rotate"], ["rotate", "--force"], ["sign", "GET", "https://shop.example/"]]) {
     const r = b.run(args);
-    assert.equal(r.status, 0, r.stderr);
+    assert.equal(r.status, 0, `${args.join(" ")}: ${r.stderr}`);
   }
+  assert.deepEqual(b.read("ludion.json").root, store.root, "rotation leaves the sealed Root untouched");
 
   // The opened key really is this identity's Root, so the search below is for the right bytes.
   assert.ok(isSealedRoot(store.root), "the stored Root is sealed");
@@ -134,10 +136,17 @@ test("DIV-3: dev mode is explicit and loud", () => {
 });
 
 test("DIV-3: the Root key is never in the directory the CLI writes or the Card Host serves", async () => {
-  const { store, card, directory } = await sealedIdentity();
+  const { b, store, card, directory } = await sealedIdentity();
   const rootKid = store.root.kid;
   assert.deepEqual(directory.keys.map((k) => thumbprint(k)), [store.session.kid], "the written directory holds the session key only");
   assert.ok(!JSON.stringify(directory).includes(store.root.x), "Root public key bytes not in the directory");
+  for (const step of [["rotate"], ["rotate", "--force"]]) {
+    assert.equal(b.run(step).status, 0);
+    const d = b.read(DIRECTORY_FILE), s = b.read("ludion.json");
+    const expected = [s.session.kid, ...(s.next ? [s.next.kid] : [])].sort();
+    assert.deepEqual(d.keys.map((k) => thumbprint(k)).sort(), expected, `after ${step.join(" ")}: session keys only`);
+    assert.ok(!JSON.stringify(d).includes(store.root.x), `after ${step.join(" ")}: no Root`);
+  }
 
   const host = new URL(store.signature_agent).hostname;
   const rootPub = { kty: "OKP", crv: "Ed25519", x: store.root.x };
