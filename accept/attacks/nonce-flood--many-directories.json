@@ -1,0 +1,9 @@
+{
+  "id": "nonce-flood--many-directories",
+  "family": "nonce-flood",
+  "title": "Flood from twelve directories (independent identifiers) until the cache is full, then replay the victim",
+  "params": {
+    "variant": "many-directories"
+  },
+  "added": "2026-09-30"
+}

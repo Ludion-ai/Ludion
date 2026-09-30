@@ -29,24 +29,46 @@ const MAX_SIG_AGE_S = 60;       // spec §10.4: expires - created ≤ 60s
 const CLOCK_SKEW_S = 30;        // spec §10.4: ±30s
 const STATE_CHANGING = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 
-/** Bounded in-memory nonce cache: rejects reuse within the signature lifetime. */
-export function createNonceCache({ maxEntries = 100_000, now = () => Date.now() } = {}) {
-  const seen = new Map(); // nonce -> expiresAt
-  let sweeps = 0;
+/**
+ * Bounded in-memory replay cache (spec §11.6: a nonce is held for the signature's validity).
+ * An entry still inside its validity is never evicted: evicting it would let anyone with a valid
+ * key of their own flood the cache and then replay someone else's captured request. Memory stays
+ * bounded instead by refusing to record: once half full, an owner (the signer's identifier)
+ * already holding `perOwnerMax` live entries is refused ("quota"), so a flooder is stopped before
+ * others are; when full of live entries, everyone new is refused ("full"). A refused signature
+ * cannot be shown not to be a replay, so it is not attributable (UNVERIFIED), never VERIFIED.
+ */
+export function createNonceCache({ maxEntries = 100_000, perOwnerMax, now = () => Date.now() } = {}) {
+  if (!Number.isInteger(maxEntries) || maxEntries < 2) throw new TypeError("nonceCache.maxEntries must be an integer ≥ 2");
+  const ownerMax = perOwnerMax ?? Math.max(1, Math.floor(maxEntries / 4));
+  const seen = new Map(); // key -> { exp, owner }, in insertion order
+  const owners = new Map(); // owner -> live entries
+  let calls = 0, lastFullSweep = -Infinity;
+  const drop = (k, e) => {
+    seen.delete(k);
+    const n = (owners.get(e.owner) ?? 1) - 1;
+    if (n > 0) owners.set(e.owner, n); else owners.delete(e.owner);
+  };
+  const sweep = (t, all) => { for (const [k, e] of seen) { if (e.exp <= t) drop(k, e); else if (!all) break; } };
+  function record(key, expiresAtMs, owner = "") {
+    const t = now();
+    if (++calls % 1000 === 0) sweep(t, true);
+    const prev = seen.get(key);
+    if (prev) { if (prev.exp > t) return "replay"; drop(key, prev); }
+    if (seen.size >= maxEntries) {
+      sweep(t, false); // the oldest entries usually expire first
+      if (seen.size >= maxEntries && t - lastFullSweep >= 1000) { lastFullSweep = t; sweep(t, true); } // at most once a second under load
+      if (seen.size >= maxEntries) return "full";
+    }
+    if (seen.size * 2 >= maxEntries && (owners.get(owner) ?? 0) >= ownerMax) return "quota";
+    seen.set(key, { exp: expiresAtMs, owner });
+    owners.set(owner, (owners.get(owner) ?? 0) + 1);
+    return "fresh";
+  }
   return {
+    record,
     /** @returns {boolean} true if fresh (and now recorded) */
-    check(nonce, expiresAtMs) {
-      const t = now();
-      if (++sweeps % 1000 === 0) for (const [k, exp] of seen) if (exp <= t) seen.delete(k);
-      if (seen.size >= maxEntries) { // degrade safely: drop oldest entries
-        let n = Math.ceil(maxEntries / 10);
-        for (const k of seen.keys()) { seen.delete(k); if (--n <= 0) break; }
-      }
-      const prev = seen.get(nonce);
-      if (prev && prev > t) return false;
-      seen.set(nonce, expiresAtMs);
-      return true;
-    },
+    check(key, expiresAtMs, owner) { return record(key, expiresAtMs, owner) === "fresh"; },
     size() { return seen.size; },
   };
 }
@@ -172,8 +194,12 @@ export async function classify(req, ctx) {
   // the same signature on another path is what a signer that binds no nonce and no @path chose.
   if (ctx.nonceCache) {
     const key = sig.nonce ? `n ${sig.keyid} ${sig.nonce}` : `s ${method} ${req.targetUri} ${b64(sig.signature)}`;
-    if (!ctx.nonceCache.check(key, sig.expires.getTime() + CLOCK_SKEW_S * 1000)) {
-      return { class: "SPOOFED", reason: "replay", identifier: sig.verifier.identifier };
+    const exp = sig.expires.getTime() + CLOCK_SKEW_S * 1000;
+    const seen = ctx.nonceCache.record ? ctx.nonceCache.record(key, exp, sig.verifier.identifier) : (ctx.nonceCache.check(key, exp) ? "fresh" : "replay");
+    if (seen === "replay") return { class: "SPOOFED", reason: "replay", identifier: sig.verifier.identifier };
+    if (seen !== "fresh") {
+      // Not recorded, so not provably fresh: not attributable (the flooder hits "quota" first).
+      return { class: "UNVERIFIED", reason: seen === "quota" ? "replay_quota" : "replay_cache_full", signatureAgent: field(req, "signature-agent") };
     }
   }
 

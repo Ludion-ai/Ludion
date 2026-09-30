@@ -1,0 +1,9 @@
+{
+  "id": "nonce-flood--single-key",
+  "family": "nonce-flood",
+  "title": "Flood the replay cache with the attacker's own valid signatures, then replay the victim's captured request",
+  "params": {
+    "variant": "single-key"
+  },
+  "added": "2026-09-30"
+}

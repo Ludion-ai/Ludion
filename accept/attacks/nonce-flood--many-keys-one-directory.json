@@ -1,0 +1,9 @@
+{
+  "id": "nonce-flood--many-keys-one-directory",
+  "family": "nonce-flood",
+  "title": "Flood from twelve keys published in one directory (one identifier), then replay the victim",
+  "params": {
+    "variant": "many-keys-one-directory"
+  },
+  "added": "2026-09-30"
+}

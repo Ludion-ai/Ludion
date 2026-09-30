@@ -1,0 +1,9 @@
+{
+  "id": "nonce-flood--nonce-less-victim",
+  "family": "nonce-flood",
+  "title": "The victim signed without a nonce: flood, then resend the identical request",
+  "params": {
+    "variant": "nonce-less-victim"
+  },
+  "added": "2026-09-30"
+}
