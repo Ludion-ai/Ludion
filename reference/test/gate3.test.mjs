@@ -7,13 +7,15 @@
 //   - from process start (for Next.js: from `next build`) to the first classified event arriving
 //     at the site's report endpoint takes at most 60 s. Dependency download is excluded: the
 //     install happens in prepare(), before the clock starts.
-import { test } from "node:test";
+import { test, after } from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import http from "node:http";
 import path from "node:path";
 import { execFileSync } from "node:child_process";
-import { REF, ROOT, prepare, start, freePort, raw, node, BUILD_MTIME } from "../harness.mjs";
+import { REF, ROOT, prepare, start, freePort, stopAll, raw, node, BUILD_MTIME } from "../harness.mjs";
+
+after(stopAll); // a timed-out test skips its finally; no server may outlive the file
 import { automationRequest } from "../requests.mjs";
 
 const LIMIT_S = 60, MAX_CODE_LINES = 3, MAX_CONFIG_FILES = 1;

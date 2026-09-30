@@ -118,17 +118,49 @@ export function prepare(app) {
   return out;
 }
 
-export async function freePort() {
-  return new Promise((resolve, reject) => {
-    const s = net.createServer();
-    s.unref();
-    s.on("error", reject);
-    s.listen(0, "127.0.0.1", () => { const { port } = s.address(); s.close(() => resolve(port)); });
-  });
+// Ports handed out by this process. listen(0)-then-close can return the same port to two callers
+// racing in one Promise.all; two servers told the same port was one way GATE-1 hung (#41).
+const handedOut = new Set();
+
+/** n distinct free ports: all n sockets are held open at once, then released. */
+export async function freePorts(n) {
+  const held = [];
+  try {
+    while (held.length < n) {
+      const s = net.createServer();
+      await new Promise((resolve, reject) => { s.once("error", reject); s.listen(0, "127.0.0.1", resolve); });
+      if (handedOut.has(s.address().port)) { s.close(); continue; }
+      held.push(s);
+    }
+    const ports = held.map((s) => s.address().port);
+    for (const p of ports) handedOut.add(p);
+    return ports;
+  } finally {
+    await Promise.all(held.map((s) => new Promise((r) => s.close(r))));
+  }
 }
 
+export async function freePort() { return (await freePorts(1))[0]; }
+
 const running = new Set();
+const STOP_WAIT_MS = 15_000;
+/** Children this process started and has not stopped (harness self-test). */
+export const liveChildren = () => [...running].filter((c) => c.exitCode == null && c.signalCode == null).length;
 process.on("exit", () => { for (const p of running) try { p.kill("SIGKILL"); } catch {} });
+
+/**
+ * Stop every server this process started. Test files call it from after(): node:test does not run a
+ * timed-out test's finally, and a leftover child (with its pipes) keeps `node --test` alive until
+ * the scoreboard kills it, which then reads as "no test matched".
+ */
+export async function stopAll() {
+  await Promise.all([...running].map(async (child) => {
+    killTree(child);
+    if (child.exitCode == null && child.signalCode == null) await new Promise((r) => { const t = setTimeout(r, STOP_WAIT_MS); child.once("exit", () => { clearTimeout(t); r(); }); });
+    child.stdout?.destroy(); child.stderr?.destroy();
+    running.delete(child);
+  }));
+}
 
 /** Kill a child and everything it spawned (next start and wrangler dev fork workers). */
 function killTree(child) {
@@ -142,9 +174,10 @@ function killTree(child) {
  * @param {keyof APPS} app
  * @param {{ env?: Record<string,string>, ready?: boolean, extraArgs?: string[] }} [opts]
  */
-export async function start(app, dir, port, { env = {}, ready = true } = {}) {
+export async function start(app, dir, port, { env = {}, ready = true, readyTimeoutMs } = {}) {
   let args, state;
-  if (app === "express") args = ["server.mjs"];
+  if (app === "stub") args = ["-e", env.LUDION_STUB_SCRIPT ?? ""]; // harness self-test only
+  else if (app === "express") args = ["server.mjs"];
   else if (app === "next") args = ["node_modules/next/dist/bin/next", "start", "-p", String(port), "-H", "127.0.0.1"];
   else if (app === "workers") {
     const inspector = await freePort();
@@ -159,8 +192,20 @@ export async function start(app, dir, port, { env = {}, ready = true } = {}) {
   running.add(child);
   let log = "";
   child.stdout.on("data", (d) => { log += d; }); child.stderr.on("data", (d) => { log += d; });
-  const server = { port, child, get log() { return log; }, stop: async () => { killTree(child); running.delete(child); await new Promise((r) => (child.exitCode != null || child.signalCode != null) ? r() : child.once("exit", r)); if (state) fs.rmSync(state, { recursive: true, force: true }); } };
-  if (ready) await waitReady(server);
+  const server = { port, child, get log() { return log; }, stop: async () => {
+    killTree(child);
+    // Bounded: a child that never reports exit must not hang the suite (it did, twice: #32, #41).
+    const exited = () => child.exitCode != null || child.signalCode != null;
+    if (!exited()) await new Promise((r) => { const t = setTimeout(r, STOP_WAIT_MS); child.once("exit", () => { clearTimeout(t); r(); }); });
+    if (!exited()) { try { child.kill("SIGKILL"); } catch {} }
+    child.stdout.destroy(); child.stderr.destroy(); // our end of the pipes never keeps the test process alive
+    running.delete(child);
+    if (state) fs.rmSync(state, { recursive: true, force: true });
+  } };
+  if (ready) {
+    try { await waitReady(server, readyTimeoutMs ? { timeoutMs: readyTimeoutMs } : {}); }
+    catch (e) { await server.stop(); throw e; } // never leave a half-started server behind
+  }
   return server;
 }
 
