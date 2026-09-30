@@ -110,7 +110,8 @@ export const ORACLES = [
   { id: "REG-2", m: "M3", kind: "-", level: 0, title: "Staple attacks rejected (unknown kid, >1h, expired, iss, cnf, sub)",
     run: nodeTest(["packages/gate-core/test/core.test.mjs"], "^Staple:") },
   { id: "REG-3", m: "M3", kind: "±", level: 1, title: "revocation reaches subscribed Gates ≤60s, others ≤ Staple TTL" },
-  { id: "REG-4", m: "M3", kind: "-", level: 1, title: "no private key material in git history, logs, or build artifacts" },
+  { id: "REG-4", m: "M3", kind: "-", level: 1, title: "no private key material in git history, logs, or build artifacts",
+    run: nodeScript("accept/keyscan/run.mjs") },
 
   // ── M4 fear → number ───────────────────────────────────────────────────────────
   { id: "SCAN-1", m: "M4", kind: "+", level: 1, pair: "SCAN-3", title: "scan parse rate ≥99% across the log-format corpus",
