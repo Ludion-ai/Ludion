@@ -38,11 +38,16 @@ export async function createStapleVerifier(registryJwks, options = {}) {
   const skew = options.clockSkewS ?? 30;
   /** @type {Map<string, CryptoKey>} */
   const keys = new Map();
-  for (const jwk of registryJwks.keys ?? []) {
-    if (jwk.kty !== "OKP" || jwk.crv !== "Ed25519") continue;
-    const kid = jwk.kid ?? thumbprint({ kty: "OKP", crv: "Ed25519", x: jwk.x });
-    const key = await crypto.subtle.importKey("jwk", { kty: "OKP", crv: "Ed25519", x: jwk.x }, { name: "Ed25519" }, true, ["verify"]);
-    keys.set(kid, key);
+  // A broken pinned key is skipped, not fatal: a Gate that cannot read one Registry key must still
+  // serve the site (GATE-5). Staples under a skipped key then fail as "unknown registry kid".
+  let skipped = 0;
+  for (const jwk of Array.isArray(registryJwks?.keys) ? registryJwks.keys : []) {
+    if (!jwk || typeof jwk !== "object" || jwk.kty !== "OKP" || jwk.crv !== "Ed25519" || typeof jwk.x !== "string") { skipped++; continue; }
+    try {
+      const kid = jwk.kid ?? thumbprint({ kty: "OKP", crv: "Ed25519", x: jwk.x });
+      const key = await crypto.subtle.importKey("jwk", { kty: "OKP", crv: "Ed25519", x: jwk.x }, { name: "Ed25519" }, true, ["verify"]);
+      keys.set(kid, key);
+    } catch { skipped++; }
   }
 
   /**
@@ -81,7 +86,7 @@ export async function createStapleVerifier(registryJwks, options = {}) {
     return payload;
   }
 
-  return { verify, kids: [...keys.keys()] };
+  return { verify, kids: [...keys.keys()], skipped };
 }
 
 /**

@@ -18,6 +18,7 @@ import { isSignatureError } from "http-message-sig";
 import { DiscoveryError } from "./resolver.mjs";
 import { StapleError } from "./staple.mjs";
 import { matchKnownAgent, matchAutomationSignal } from "./agents.mjs";
+import { GateFault, within, clock } from "./budget.mjs";
 
 export const CLASSES = ["VERIFIED", "UNVERIFIED", "SPOOFED", "REVOKED", "DECLARED", "SUSPECTED", "UNKNOWN"];
 export const AUTOMATION = new Set(["VERIFIED", "UNVERIFIED", "SPOOFED", "REVOKED", "DECLARED", "SUSPECTED"]);
@@ -65,12 +66,30 @@ function announcesBody(req) {
 const b64 = (bytes) => btoa(String.fromCharCode(...bytes));
 
 /**
- * Classify one request.
+ * Key discovery for one signature, bounded by the Gate's discovery deadline. Whatever goes wrong
+ * here (the directory, the network, the resolver itself, the budget) is a discovery failure and
+ * so UNVERIFIED (spec §10.8), never a Gate fault: the requester chose the Signature-Agent, and a
+ * discovery outcome that could fail open would let a tarpit bypass Pressure 2 (ADR-020).
+ */
+async function discover(ctx, candidate) {
+  const pending = Promise.resolve().then(() => ctx.resolver.resolve(candidate));
+  const v = ctx.discoveryDeadline === undefined ? await pending
+    : await within(pending, ctx.discoveryDeadline - clock(), () => new DiscoveryError("key discovery exceeded the Gate's time budget", "timeout"));
+  if (!v || typeof v !== "object" || typeof v.verify !== "function" || typeof v.algorithm !== "string") {
+    throw new DiscoveryError("resolver returned no usable verifier", "resolver");
+  }
+  const check = v.verify;
+  return { ...v, verify: async (data, signature) => (await check.call(v, data, signature)) === true }; // only a real `true` verifies
+}
+
+/**
+ * Classify one request. Throws only on a fault inside the Gate (clock, bug); everything the
+ * request can influence becomes a class.
  * @param {import("http-message-sig").RequestDescriptor} req
  * @param {{ resolver: ReturnType<import("./resolver.mjs").createResolver>,
  *           stapleVerifier?: Awaited<ReturnType<import("./staple.mjs").createStapleVerifier>>,
  *           nonceCache?: ReturnType<typeof createNonceCache>, now?: () => number,
- *           requireNonce?: boolean }} ctx
+ *           requireNonce?: boolean, discoveryDeadline?: number }} ctx
  */
 export async function classify(req, ctx) {
   const ua = field(req, "user-agent");
@@ -89,14 +108,22 @@ export async function classify(req, ctx) {
     return { class: "UNKNOWN" };
   }
 
+  // The clock is the Gate's own: if it fails, that is a Gate fault (fail_mode), not a bad signature.
+  let now;
+  if (ctx.now) {
+    const t = ctx.now();
+    if (!Number.isFinite(t)) throw new GateFault("clock returned a non-finite time", "clock");
+    now = new Date(t);
+  }
+
   let sig;
   try {
     sig = await verify(req, {
-      resolver: (c) => ctx.resolver.resolve(c),
+      resolver: (c) => discover(ctx, c),
       algorithms: ["ed25519"],
       maxAge: MAX_SIG_AGE_S + CLOCK_SKEW_S,
       clockSkew: CLOCK_SKEW_S,
-      now: ctx.now ? new Date(ctx.now()) : undefined,
+      now,
       validate: (s) => {
         if (s.expires.getTime() - s.created.getTime() > MAX_SIG_AGE_S * 1000) return false; // spec §10.4
         if (ctx.requireNonce && !s.nonce) return false;

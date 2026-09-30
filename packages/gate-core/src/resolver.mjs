@@ -73,16 +73,21 @@ function ttlFromHeaders(headers, opts) {
 async function boundedFetch(url, opts, accept) {
   assertFetchable(url, opts);
   const ac = new AbortController();
-  const t = setTimeout(() => ac.abort(), opts.timeoutMs);
+  // The wall clock holds even when a fetch implementation ignores the abort signal (GATE-5).
+  let t;
+  const expired = new Promise((_, reject) => {
+    t = setTimeout(() => { ac.abort(); reject(new DiscoveryError("discovery fetch failed: timeout", "network")); }, opts.timeoutMs);
+  });
+  expired.catch(() => {});
   try {
-    const res = await opts.fetch(url, {
+    const res = await Promise.race([opts.fetch(url, {
       method: "GET", redirect: "manual", signal: ac.signal,
       headers: { accept, "user-agent": opts.userAgent },
-    });
+    }), expired]);
     if (res.status !== 200) throw new DiscoveryError(`discovery returned ${res.status}`, "status");
     const len = Number(res.headers.get("content-length") || 0);
     if (len > opts.maxBytes) throw new DiscoveryError("directory too large", "size");
-    const buf = new Uint8Array(await res.arrayBuffer());
+    const buf = new Uint8Array(await Promise.race([res.arrayBuffer(), expired]));
     if (buf.byteLength > opts.maxBytes) throw new DiscoveryError("directory too large", "size");
     let json;
     try { json = JSON.parse(new TextDecoder().decode(buf)); }
