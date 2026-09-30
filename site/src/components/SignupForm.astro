@@ -1,0 +1,86 @@
+---
+// The early-access form (WEB-8). It posts to the site's own endpoint, site/edge/signup.mjs, and
+// says what the answer means. The button waits for the script: without it there is nothing to post with.
+import { HONEYPOT, ROLES } from "../../edge/form.mjs";
+import { STRINGS } from "../signup/strings.mjs";
+const { lang = "en" } = Astro.props;
+const t = STRINGS[lang] ?? STRINGS.en;
+---
+
+<form class="ludion-signup not-content" method="post" data-lang={lang} data-state="loading">
+  <div class="signup-fields">
+    <div>
+      <label for={`signup-email-${lang}`}>{t.email}</label>
+      <input id={`signup-email-${lang}`} name="email" type="email" required maxlength="254" autocomplete="email" />
+    </div>
+    <div>
+      <label for={`signup-role-${lang}`}>{t.role}</label>
+      <select id={`signup-role-${lang}`} name="role">
+        {ROLES.map((r) => <option value={r}>{t.roles[r]}</option>)}
+      </select>
+    </div>
+    <div class="signup-wide">
+      <label for={`signup-site-${lang}`}>{t.site}</label>
+      <input id={`signup-site-${lang}`} name="site" type="url" maxlength="200" autocomplete="url" placeholder="https://" />
+    </div>
+  </div>
+  <div class="signup-hp" hidden><input name={HONEYPOT} type="text" tabindex="-1" autocomplete="off" /></div>
+  <input type="hidden" name="lang" value={lang} />
+  <button type="submit" disabled>{t.submit}</button>
+  <p class="signup-status" role="status" aria-live="polite"></p>
+  <p class="signup-note">{t.note}</p>
+</form>
+
+<script>
+  import { ENDPOINT } from "../../edge/form.mjs";
+  import { STRINGS } from "../signup/strings.mjs";
+
+  for (const form of document.querySelectorAll("form.ludion-signup")) {
+    if (!(form instanceof HTMLFormElement)) continue;
+    const t = STRINGS[form.dataset.lang] ?? STRINGS.en;
+    const status = form.querySelector(".signup-status");
+    const button = form.querySelector("button[type=submit]");
+    const set = (state) => {
+      form.dataset.state = state;
+      if (status) status.textContent = t.states[state] ?? "";
+      if (button instanceof HTMLButtonElement) button.disabled = state === "sending";
+    };
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      if (form.dataset.state === "sending") return;
+      const body = JSON.stringify(Object.fromEntries(new FormData(form)));
+      set("sending");
+      let state = "error";
+      try {
+        const r = await fetch(ENDPOINT, { method: "POST", headers: { "content-type": "application/json" }, body });
+        state = r.ok ? "done" : r.status === 429 ? "limited" : r.status === 400 ? "invalid" : "error";
+      } catch { /* the network: "error" */ }
+      if (state === "done") form.reset();
+      set(state);
+    });
+    form.dataset.state = "idle";
+    if (button instanceof HTMLButtonElement) button.disabled = false;
+  }
+</script>
+
+<style>
+  .ludion-signup { margin-block: 1.5rem; max-width: 40rem; }
+  .signup-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem; }
+  .signup-wide { grid-column: 1 / -1; }
+  @media (max-width: 40rem) { .signup-fields { grid-template-columns: 1fr; } }
+  .ludion-signup label { display: block; margin-bottom: 0.25rem; font-size: var(--sl-text-sm); color: var(--sl-color-gray-2); }
+  .ludion-signup input, .ludion-signup select {
+    width: 100%; padding: 0.55rem 0.75rem; border: 1px solid var(--sl-color-gray-4); border-radius: 0.5rem;
+    background: var(--sl-color-black); color: var(--sl-color-white); font: inherit;
+  }
+  .ludion-signup input:focus-visible, .ludion-signup select:focus-visible, .ludion-signup button:focus-visible {
+    outline: 2px solid var(--sl-color-accent); outline-offset: 2px;
+  }
+  .ludion-signup button {
+    padding: 0.6rem 1.25rem; border: 0; border-radius: 999px; font: inherit; font-weight: 600; cursor: pointer;
+    background: var(--sl-color-accent-high); color: var(--sl-color-black);
+  }
+  .ludion-signup button:disabled { opacity: 0.6; cursor: progress; }
+  .signup-status { min-height: 1.5em; margin-top: 0.75rem; }
+  .signup-note { font-size: var(--sl-text-sm); color: var(--sl-color-gray-2); }
+</style>

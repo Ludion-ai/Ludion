@@ -219,5 +219,10 @@ export const ORACLES = [
     timeoutMs: 900_000, run: nodeTest(["site/test/web6.test.mjs"], "^WEB-6:", { timeoutMs: 880_000,
       metric: (out) => (/^# WEB-6: (.+)$/m.exec(out) ?? [])[1] }) },
   { id: "WEB-7", m: "M7", kind: "+", level: 1, pair: "WEB-2", title: "docs are tests: quickstart code blocks run in a clean env and do what they say (VERIFIED, first event)" },
-  { id: "WEB-8", m: "M7", kind: "±", level: 1, title: "signup form: a preview submission reaches the notifier (stub ok); honeypot and rate limit drop bots" },
+  // The site as it deploys to Workers (site/edge: the build's static files and POST /api/signup), run
+  // by wrangler dev in workerd with a webhook stub as the notifier (site/test/edge.mjs); the form is
+  // used in Chromium, and faults planted in the endpoint must be caught. The deployed preview is WEB-1's.
+  { id: "WEB-8", m: "M7", kind: "±", level: 1, title: "signup form: a preview submission reaches the notifier (stub ok); honeypot and rate limit drop bots",
+    timeoutMs: 900_000, run: nodeTest(["site/test/web8.test.mjs"], "^WEB-8:", { timeoutMs: 880_000,
+      metric: (out) => (/^# WEB-8: (.+)$/m.exec(out) ?? [])[1] }) },
 ];
