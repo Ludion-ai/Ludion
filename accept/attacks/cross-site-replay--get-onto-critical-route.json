@@ -1,0 +1,9 @@
+{
+  "id": "cross-site-replay--get-onto-critical-route",
+  "family": "cross-site-replay",
+  "title": "A GET the agent signed for /products at another site (no @path covered) lands on /checkout here with that site's Host",
+  "params": {
+    "variant": "get-onto-critical-route"
+  },
+  "added": "2026-09-30"
+}

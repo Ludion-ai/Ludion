@@ -26,15 +26,17 @@ const ROUTES = [
 
 async function site({ pressure = 0, routes = ROUTES } = {}) {
   const siteKey = await generateSiteKey();
+  let self; // the site's own authority (ADR-023), known once it listens
   const mw = await ludionGate({
-    siteId: "site-gate2", siteKey: siteKey.privateJwk, pressure, routes, now: () => NOW_MS,
+    siteId: "site-gate2", siteKey: siteKey.privateJwk, pressure, routes, now: () => NOW_MS, authorities: (a) => a === self,
     registryKeys: { keys: [registry.publicJwk] }, registryIssuer: REGISTRY_ISS, resolver: { fetch: noNetwork },
   });
   await mw.gate.resolver.prime({ type: "directory", uri: AGENT }, { keys: [{ ...agent.publicJwk, use: "sig" }] });
   const srv = http.createServer((req, res) => mw(req, res, () => { res.writeHead(200, { "content-type": "text/plain" }); res.end("app"); }));
   await new Promise((r) => srv.listen(0, "127.0.0.1", r));
   after(() => srv.close());
-  return { origin: `http://127.0.0.1:${srv.address().port}`, gate: mw.gate };
+  self = `127.0.0.1:${srv.address().port}`;
+  return { origin: `http://${self}`, gate: mw.gate };
 }
 
 const headersOf = (desc) => Object.fromEntries(desc.fields.map((f) => [f.name, f.value]));

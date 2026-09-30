@@ -133,7 +133,7 @@ function lookup(host, options, cb) {
 // ── gates ──────────────────────────────────────────────────────────────────────────────────
 const siteKey = (await generateSiteKey()).privateJwk;
 const routes = [{ match: "/checkout/**", pressure: 2 }];
-const base = { siteId: "site-gate6", siteKey, now: () => t, timeoutMs: 800, routes };
+const base = { siteId: "site-gate6", siteKey, now: () => t, timeoutMs: 800, routes, authorities: ["shop.example"] };
 const strict = await ludionGate({ ...base, resolver: { lookup, dial } });                              // https only
 const lab = await ludionGate({ ...base, resolver: { lookup, dial, insecureAllowHttp: true } });        // the simulator speaks http
 const zero = await ludionGate({ siteId: "site-gate6-zero", siteKey, now: () => t });                     // zero network config: real DNS, real connect

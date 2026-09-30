@@ -42,8 +42,9 @@ const staple = await issueStaple(registryPriv, registry.kid, {
 // 4. The site, with a Gate: observe everywhere, gate /checkout
 const siteKey = await generateSiteKey();
 const events = [];
+let siteAuthority; // the site's own host:port (ADR-023), known once it listens
 const gate = await ludionGate({
-  siteId: "site-e2e", siteKey: siteKey.privateJwk, pressure: 0,
+  siteId: "site-e2e", siteKey: siteKey.privateJwk, pressure: 0, authorities: (a) => a === siteAuthority,
   routes: [{ match: "/checkout/**", pressure: 2, require: { depth: 1, ballast: "active" } }],
   registryKeys: { keys: [registry.publicJwk] },
   resolver: { insecureAllowHttp: true, allowPrivateNetwork: true },
@@ -54,7 +55,8 @@ const site = http.createServer((req, res) => gate(req, res, () => {
   res.end(JSON.stringify({ class: req.ludion.cls.class, depth: req.ludion.cls.depth ?? null, diver: req.ludion.cls.diverId ?? null }));
 }));
 const sitePort = await listen(site);
-const siteUrl = `http://127.0.0.1:${sitePort}`;
+siteAuthority = `127.0.0.1:${sitePort}`;
+const siteUrl = `http://${siteAuthority}`;
 
 // 5. Requests
 let r = await fetch(`${siteUrl}/`, { headers: { "user-agent": "Mozilla/5.0 (human)" } });

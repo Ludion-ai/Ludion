@@ -1,0 +1,9 @@
+{
+  "id": "cross-site-replay--sibling-subdomain",
+  "family": "cross-site-replay",
+  "title": "Replay a signature made for a sibling subdomain (api.shop.example)",
+  "params": {
+    "variant": "sibling-subdomain"
+  },
+  "added": "2026-09-30"
+}

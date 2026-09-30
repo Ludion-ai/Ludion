@@ -74,12 +74,13 @@ export const ROUTES = [{ match: "/checkout/**", pressure: 2 }, { match: "/login"
 
 /**
  * A Gate at Pressure 0 with critical routes at Pressure 2, directories pinned for the
- * honest agent (and optionally an attacker), and a pinned Registry for Staples.
+ * honest agent (and optionally an attacker), and a pinned Registry for Staples. The site knows
+ * its own authority (SITE's host, ADR-023); pass `authorities: null` for an unpinned Gate.
  */
-export async function harness({ agentKeys, attackerKeys = [], registry, routes, now = () => NOW_MS, ...rest } = {}) {
+export async function harness({ agentKeys, attackerKeys = [], registry, routes, now = () => NOW_MS, authorities = [new URL(SITE).host], ...rest } = {}) {
   const siteKey = await generateSiteKey();
   const gate = await createGate({
-    siteId: "site-test", siteKey: siteKey.privateJwk, pressure: 0, now,
+    siteId: "site-test", siteKey: siteKey.privateJwk, pressure: 0, now, authorities,
     routes: routes ?? ROUTES,
     ...(registry ? { registryKeys: { keys: [registry.publicJwk] }, registryIssuer: REGISTRY_ISS } : {}),
     ...rest,
