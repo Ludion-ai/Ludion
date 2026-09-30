@@ -14,13 +14,14 @@ import { KNOWN_AGENT_TOKENS, AUTOMATION_SIGNALS, matchKnownAgent, matchAutomatio
 import { GateFault, within, clock } from "./budget.mjs";
 import { isPublicAddress, isIpLiteral } from "./address.mjs";
 import { createAuthorities, requestAuthority } from "./authority.mjs";
+import { createRevocationList, subscribeRevocations, REVOCATION_TYP } from "./revocation.mjs";
 import { routeKind, isCritical, pathOf, originForm, routeCandidates, queryKeys, templateSegment, publicTemplateSegment, publicTemplatePath, isRouteWord, ROUTE_KINDS, CRITICAL_KINDS, WRITE_METHODS } from "./route.mjs";
 
 export {
   createResolver, createStapleVerifier, issueStaple, classify, createPolicy, createNonceCache, decide, compileRoute, CLASSES,
   ERROR_HELP, AUTOMATION, createReceipts, importSiteKey, generateSiteKey, metadataEvent, countryCode, templatePath, hashIp,
   KNOWN_AGENT_TOKENS, AUTOMATION_SIGNALS, matchKnownAgent, matchAutomationSignal, GateFault, isPublicAddress, isIpLiteral,
-  createAuthorities, requestAuthority,
+  createAuthorities, requestAuthority, createRevocationList, subscribeRevocations, REVOCATION_TYP,
   routeKind, isCritical, pathOf, originForm, routeCandidates, queryKeys, templateSegment, publicTemplateSegment, publicTemplatePath, isRouteWord, ROUTE_KINDS, CRITICAL_KINDS, WRITE_METHODS,
 };
 
@@ -54,6 +55,10 @@ export function denialHeaders(decision) {
  *           "shop.example:8443", "*.shop.example", "https://shop.example") or a predicate. A signature
  *           for any other authority is SPOOFED. Unset = unpinned: verification still works at
  *           Pressure 0–1, but a VERIFIED request on a Pressure 2–3 route is a Gate fault (ADR-023).
+ * @property {string|{url:string, fetch?:typeof fetch, retryMs?:number, maxRetryMs?:number}} [revocations]
+ *           the Registry's revocation stream (…/v0/revocations/stream). Entries are verified with
+ *           `registryKeys`; revoked keys, agents and Divers become REVOKED within seconds (spec §10.10).
+ *           Off the hot path: a dead Registry never touches a request (REG-1).
  * @property {number} [timeoutMs]                 the most the Gate may add to one request; default 3000
  * @property {object} [resolver]                  options for createResolver
  * @property {(event: object) => void|Promise<void>} [sink]  metadata sink; never awaited, never blocks
@@ -123,6 +128,24 @@ export async function createGate(config) {
   const authorities = createAuthorities(config.authorities);
   health.authorities = authorities.pinned ? "pinned" : "unpinned";
 
+  // Revocation (spec §10.10). The subscription is one GET carrying nothing about any visitor; entries
+  // are Registry-signed and verified here. Whatever the stream does, requests only read the list.
+  let revocations, revocationFeed;
+  if (config.revocations != null) {
+    const rc = typeof config.revocations === "string" ? { url: config.revocations } : config.revocations;
+    if (!rc || typeof rc.url !== "string") throw new TypeError("revocations must be the Registry's revocation stream URL, or { url, fetch?, retryMs? }");
+    new URL(rc.url); // a malformed URL is a startup error, like any other config typo
+    revocations = createRevocationList();
+    if (!stapleVerifier) health.revocations = { state: "no_registry_keys" };
+    else {
+      revocationFeed = subscribeRevocations({
+        url: rc.url, fetch: rc.fetch, retryMs: rc.retryMs, maxRetryMs: rc.maxRetryMs, list: revocations,
+        verify: (compact) => stapleVerifier.verifyStatement(compact, { typ: REVOCATION_TYP }),
+      });
+      health.revocations = revocationFeed.status;
+    }
+  }
+
   const policy = createPolicy({ pressure: config.pressure, routes: config.routes });
   const nonceCache = createNonceCache({ now, ...(config.nonceCache ?? {}) });
   const siteKey = await importSiteKey(config.siteKey);
@@ -164,7 +187,7 @@ export async function createGate(config) {
     let cls, gateError;
     try {
       cls = await within(
-        classify(req, { resolver, stapleVerifier, nonceCache, now, requireNonce: config.requireNonce, authorities, discoveryDeadline: started + discoveryMs }),
+        classify(req, { resolver, stapleVerifier, nonceCache, now, requireNonce: config.requireNonce, authorities, revocations, discoveryDeadline: started + discoveryMs }),
         timeoutMs - (clock() - started),
         () => new GateFault(`classification exceeded timeoutMs (${timeoutMs}ms)`, "timeout"));
       // Unpinned (no `authorities`), a valid signature may have been made for another site and
@@ -200,5 +223,9 @@ export async function createGate(config) {
     catch (e) { return failSafe(req?.targetUri, e); }
   }
 
-  return { inspect, failSafe, resolver, receipts, policy, health, timeoutMs, siteKey: { kid: siteKey.kid, publicKey: siteKey.publicKey } };
+  return {
+    inspect, failSafe, resolver, receipts, policy, health, timeoutMs, revocations, siteKey: { kid: siteKey.kid, publicKey: siteKey.publicKey },
+    /** Stop background work (the revocation subscription). The Gate keeps classifying from what it holds. */
+    close() { revocationFeed?.stop(); },
+  };
 }

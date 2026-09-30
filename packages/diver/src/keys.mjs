@@ -7,7 +7,7 @@
 
 import { HTTP_MESSAGE_SIGNATURES_DIRECTORY } from "web-bot-auth";
 import { thumbprint } from "./thumbprint.mjs";
-import { createHash, randomBytes, scrypt, createCipheriv, createDecipheriv, createPrivateKey, createPublicKey } from "node:crypto";
+import { createHash, randomBytes, scrypt, createCipheriv, createDecipheriv, createPrivateKey, createPublicKey, sign as edSign } from "node:crypto";
 
 const ALPHABET = "abcdefghijklmnopqrstuvwxyz234567";
 
@@ -115,6 +115,22 @@ export async function openRootKey(root, passphrase) {
     if (seed.length !== 32 || publicXFromSeed(seed) !== root.x) throw new Error("Root keystore holds a key that is not this Root");
     return { kty: "OKP", crv: "Ed25519", x: root.x, d: seed.toString("base64url"), kid: root.kid };
   } finally { seed.fill(0); }
+}
+
+/**
+ * A statement signed by the Root: compact JWS, EdDSA (RFC 8037), header { alg, kid, typ }. This is
+ * what the Root is for (spec §10.3): registering the Diver, approving session keys, revoking. It
+ * never signs an HTTP request. The private JWK comes from openRootKey (or a dev store) and stays in
+ * memory; OpenSSL signs, via node:crypto.
+ * @param {JsonWebKey} rootPrivateJwk @param {string} typ @param {object} payload
+ */
+export function signRootStatement(rootPrivateJwk, typ, payload) {
+  if (rootPrivateJwk?.kty !== "OKP" || rootPrivateJwk.crv !== "Ed25519" || typeof rootPrivateJwk.d !== "string") throw new Error("the Root must be an opened Ed25519 private JWK");
+  const kid = rootPrivateJwk.kid ?? thumbprint({ kty: "OKP", crv: "Ed25519", x: rootPrivateJwk.x });
+  const b = (o) => Buffer.from(JSON.stringify(o)).toString("base64url");
+  const input = `${b({ alg: "EdDSA", kid, typ })}.${b(payload)}`;
+  const key = createPrivateKey({ key: { kty: "OKP", crv: "Ed25519", x: rootPrivateJwk.x, d: rootPrivateJwk.d }, format: "jwk" });
+  return `${input}.${edSign(null, Buffer.from(input), key).toString("base64url")}`;
 }
 
 /** diver_id = "dvr-" + base32(first 80 bits of SHA-256 JWK thumbprint of the Root public key) (spec §10.2). */

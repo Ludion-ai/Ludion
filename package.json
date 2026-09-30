@@ -6,13 +6,14 @@
   "license": "Apache-2.0",
   "type": "module",
   "workspaces": [
-    "packages/*"
+    "packages/*",
+    "services/*"
   ],
   "engines": {
     "node": ">=20"
   },
   "scripts": {
-    "test": "node --test packages/*/test/*.test.mjs",
+    "test": "node --test packages/*/test/*.test.mjs services/*/test/*.test.mjs",
     "e2e": "node examples/e2e.mjs",
     "scoreboard": "node scripts/scoreboard.mjs",
     "ratchet": "node scripts/scoreboard.mjs --update-ratchet",
