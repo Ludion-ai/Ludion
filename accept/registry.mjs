@@ -113,7 +113,8 @@ export const ORACLES = [
   // ── M4 fear → number ───────────────────────────────────────────────────────────
   { id: "SCAN-1", m: "M4", kind: "+", level: 1, pair: "SCAN-3", title: "scan parse rate ≥99% across the log-format corpus",
     run: nodeTest(["packages/scan/test/scan1.test.mjs"], "^SCAN-1:") },
-  { id: "SCAN-2", m: "M4", kind: "+", level: 1, pair: "SCAN-3", title: "scan counts equal ground truth on labelled fixtures (incl. the critical-route number)" },
+  { id: "SCAN-2", m: "M4", kind: "+", level: 1, pair: "SCAN-3", title: "scan counts equal ground truth on labelled fixtures (incl. the critical-route number)",
+    run: nodeTest(["packages/scan/test/scan2.test.mjs"], "^SCAN-2:") },
   { id: "SCAN-3", m: "M4", kind: "-", level: 1, title: "scan output has no raw IP / query value / untemplated path; zero network",
     run: nodeTest(["packages/scan/test/scan3.test.mjs"], "^SCAN-3:") },
   { id: "SCAN-4", m: "M4", kind: "+", level: 1, pair: "SCAN-3", title: "1 GB of logs in ≤60s" },
