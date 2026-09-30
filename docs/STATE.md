@@ -158,6 +158,16 @@
 
 ## 直近のセッション
 
+- 2026-10-01（夜勤 8、6 周目）：
+  - GATE-7 のコーパスに Mandate の攻撃の族 `mandate-swap` を足した（4 件。必須の族にも入れた）。
+    - 被害者の Diver の Mandate を、自分の署名と Staple の下で運ぶ。
+    - 署名が覆っていない Mandate を付ける。
+    - 本物の Mandate の上限を書き換える。
+    - Staple を Mandate として渡す。
+  - 最初の実行で、今夜の PRS-2（#52）のバグを捕まえた：Mandate が不正で SPOOFED になっても、先に読んだ Staple の立場（Diver、Depth）を結果が持ったままだった。
+    - 速いテスト（`mandate.test.mjs`）に降ろしてから直した。SPOOFED は Staple の何も持たない。
+  - GATE-10 の vectors.json を書き出し直した。4 ケースが増えただけ（差分は追加のみ）：95 ケース、555 ステップ。
+
 - 2026-10-01（夜勤 8、5 周目）：
   - 設定ファイル（`ludion.config.json`、Workers の `LUDION`）に `registry` を足した。Registry の公開鍵、issuer、失効のストリーム。あわせて `categories` も足した。
     - これまで、ファイルで設定した Gate（Node の `ludion()`、Workers、Next.js）は Registry の鍵を持てず、Staple も Mandate も読めなかった。

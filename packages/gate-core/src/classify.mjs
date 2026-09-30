@@ -250,7 +250,10 @@ export async function classify(req, ctx) {
       });
     } catch (e) {
       if (!(e instanceof MandateError)) throw e; // not the request's doing: a Gate fault
-      if (e.code === "invalid" || e.code === "subject") return { ...out, class: "SPOOFED", reason: "invalid_mandate", detail: e.message };
+      // A spoof keeps nothing the Staple granted: no Diver, no Depth, no Ballast (GATE-7 mandate-swap).
+      if (e.code === "invalid" || e.code === "subject") {
+        return { ...out, class: "SPOOFED", reason: "invalid_mandate", detail: e.message, staple: null, diverId: undefined, depth: 0, ballast: { status: "none" } };
+      }
       out.mandateError = e.code;
     }
   }

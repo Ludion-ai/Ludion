@@ -1,0 +1,9 @@
+{
+  "id": "mandate-swap--staple-as-mandate",
+  "family": "mandate-swap",
+  "title": "Pass a Registry-signed Staple off as a Mandate",
+  "params": {
+    "variant": "staple-as-mandate"
+  },
+  "added": "2026-10-01"
+}
