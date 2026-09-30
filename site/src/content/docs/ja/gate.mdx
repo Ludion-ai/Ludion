@@ -1,0 +1,83 @@
+---
+title: Gate を入れる
+description: Ludion Gate を Pressure 0（観測だけ）で入れる。Express、Next.js、Cloudflare Workers。
+---
+
+Gate は、あなたのサイトの中で動く関所です。届いたリクエストの Web Bot Auth（RFC 9421）の署名を検証し、自動化を分類し、あなたが決めた Pressure を適用します。人間の訪問者には何も変わりません。
+
+最初は Pressure 0 で入れてください。Pressure 0 は観測だけです。上げるまで、誰に対しても何も変わりません。[スキャン](/ja/scan)でログから数えた数字を、署名を検証したうえで毎日出せるようになります。
+
+## Express と Node.js のサーバ
+
+```sh
+npm install @ludion/gate-node
+```
+
+サーバに2行を足します。
+
+```js
+import { ludion } from "@ludion/gate-node";
+app.use(await ludion());
+```
+
+`package.json` の隣に `ludion.config.json` を置きます。
+
+```json
+{
+  "site_id": "site-your-shop",
+  "pressure": 0
+}
+```
+
+`(req, res, next)` の形のミドルウェアを受け付けるもの（Connect など）なら、同じように入ります。
+
+## Next.js 16 以降
+
+```sh
+npm install @ludion/gate-next
+```
+
+プロジェクトの直下に `proxy.js` を作ります。1行です。
+
+```js
+export { proxy } from "@ludion/gate-next";
+```
+
+`ludion.config.json` は Express と同じです。あとはいつもどおり `next build && next start`。
+
+`next.config.js` の `redirects()` は proxy より前に走るので、そこで答えたリクエストを Gate は見ません。
+
+## Cloudflare Workers
+
+```sh
+npm install @ludion/gate-workers
+```
+
+default export を包みます。
+
+```js
+import { withLudion } from "@ludion/gate-workers";
+export default withLudion({
+  async fetch(request, env, ctx) {
+    // あなたの Worker はそのまま
+  },
+});
+```
+
+`wrangler.toml` にサイトの設定を足します。
+
+```toml
+compatibility_flags = ["nodejs_compat"]
+
+[vars.LUDION]
+site_id = "site-your-shop"
+pressure = 0
+```
+
+Gate は、あなたの Cloudflare アカウントの中で動きます。
+
+## Pressure を上げたら
+
+Pressure を上げた経路では、Gate は検証できないエージェントを拒否できます。拒否には必ず、[何が起きたかと直し方を書いたページ](/ja/e)へのリンクが付きます。エージェントの運営者は、そこから3分で検証済みになれます。
+
+設定の項目（経路ごとの Pressure、`fail_mode`、`authorities`、レポートの送り先）は、[`@ludion/gate-node` の README](https://github.com/Ludion-ai/Ludion/blob/main/packages/gate-node/README.md#configuration) にあります（英語）。ソースは [GitHub](https://github.com/Ludion-ai/Ludion) にあります。

@@ -35,6 +35,7 @@ export default defineConfig({
       favicon: "/favicon.svg",
       social: [{ icon: "github", label: "GitHub", href: "https://github.com/Ludion-ai/Ludion" }],
       sidebar: [
+        { slug: "gate" },
         { label: "Gate errors", translations: { ja: "Gate のエラー" }, items: [{ autogenerate: { directory: "e" } }] },
       ],
       routeMiddleware: "./src/route-data.mjs",

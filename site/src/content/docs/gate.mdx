@@ -1,0 +1,83 @@
+---
+title: Install the Gate
+description: Install the Ludion Gate at Pressure 0 (observe only). Express, Next.js, Cloudflare Workers.
+---
+
+The Gate is a checkpoint that runs inside your site. It verifies the Web Bot Auth (RFC 9421) signatures on the requests that arrive, classifies automated traffic, and applies the Pressure you set. Humans see no difference.
+
+Start at Pressure 0. Pressure 0 only observes: nothing changes for anyone until you raise it. The number [the scan](/scan) counts from a log, you then get every day, with the signatures verified.
+
+## Express and other Node.js servers
+
+```sh
+npm install @ludion/gate-node
+```
+
+Add two lines to your server:
+
+```js
+import { ludion } from "@ludion/gate-node";
+app.use(await ludion());
+```
+
+Put `ludion.config.json` next to your `package.json`:
+
+```json
+{
+  "site_id": "site-your-shop",
+  "pressure": 0
+}
+```
+
+Anything that takes `(req, res, next)` middleware, such as Connect, works the same way.
+
+## Next.js 16+
+
+```sh
+npm install @ludion/gate-next
+```
+
+Create `proxy.js` in the project root. It is one line:
+
+```js
+export { proxy } from "@ludion/gate-next";
+```
+
+`ludion.config.json` is the same as for Express. Then `next build && next start` as usual.
+
+Redirects declared in `next.config.js` (`redirects()`) run before the proxy, so the Gate never sees the requests they answer.
+
+## Cloudflare Workers
+
+```sh
+npm install @ludion/gate-workers
+```
+
+Wrap your default export:
+
+```js
+import { withLudion } from "@ludion/gate-workers";
+export default withLudion({
+  async fetch(request, env, ctx) {
+    // your Worker, unchanged
+  },
+});
+```
+
+Add the site config to `wrangler.toml`:
+
+```toml
+compatibility_flags = ["nodejs_compat"]
+
+[vars.LUDION]
+site_id = "site-your-shop"
+pressure = 0
+```
+
+The Gate runs in your own Cloudflare account.
+
+## When you raise the Pressure
+
+On a route where you raise the Pressure, the Gate can refuse agents it cannot verify. Every refusal links to [a page that says what happened and how to fix it](/e), and from there an agent's operator can be verified in three minutes.
+
+The settings (per-route Pressure, `fail_mode`, `authorities`, where reports go) are in [the `@ludion/gate-node` README](https://github.com/Ludion-ai/Ludion/blob/main/packages/gate-node/README.md#configuration). The source is on [GitHub](https://github.com/Ludion-ai/Ludion).

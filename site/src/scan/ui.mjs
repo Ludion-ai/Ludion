@@ -2,7 +2,7 @@
 // Every value is written with textContent, never as HTML. The report is exactly the CLI's
 // (`ludion scan --json`), and it is shown verbatim in #scan-json.
 import { renderText } from "@ludion/scan/web";
-import { STRINGS, GATE_URL } from "./strings.mjs";
+import { STRINGS } from "./strings.mjs";
 
 function el(tag, attrs = {}, ...kids) {
   const e = document.createElement(tag);
@@ -57,7 +57,7 @@ function draw(out, r, t, fmt) {
       ...r.unrecognized.map((f) => [f.name, t.unrecognized, "", ""]),
     ], (i) => i > 1));
 
-  out.append(el("h3", {}, t.nextTitle), el("p", {}, t.next, " ", el("a", { href: GATE_URL }, t.nextLink)),
+  out.append(el("h3", {}, t.nextTitle), el("p", {}, t.next, " ", el("a", { href: t.gate }, t.nextLink)),
     el("p", {}, t.cli, " ", el("code", {}, "npx ludion scan access.log")));
 
   const text = renderText(r), json = JSON.stringify(r, null, 2);
