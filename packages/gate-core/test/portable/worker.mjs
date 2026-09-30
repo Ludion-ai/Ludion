@@ -1,6 +1,11 @@
-// Host for workerd (wrangler dev): GET /run runs the portable suite and answers its JSON result.
-import { run } from "./shim.mjs";
+// Host for workerd (wrangler dev): GET /run runs the portable suite and the conformance vectors and
+// answers the JSON result.
+import { run, test } from "./shim.mjs";
 import "./suite.mjs";
+import { registerConformance } from "./conformance.mjs";
+import vectors from "./vectors.json" with { type: "json" };
+
+registerConformance(vectors, { test });
 
 export default {
   async fetch(request) {

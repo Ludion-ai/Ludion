@@ -43,7 +43,11 @@
   - PRS-2（Mandate v0）：Principal のパスキーの同意で Registry が Mandate を出し、Gate が読み、支払いの上限はサイトが `req.ludion.charge()` で当てる（docs/adr/2026-10-01-mandate-v0-passkey-consent-and-site-charge.md）。
     - 目録の残りで、元のレーンの「次の一手」にあったもの。元のレーンは #42 のあと動いていなかったので、夜勤で取った。
   - STD-4：実装しているドラフトの版を `accept/std4/pins.json` に留め、datatracker（7 日の猶予、置き換えの追跡）とリポジトリの全参照に当てる（docs/adr/2026-10-01-draft-pins-tracked-against-datatracker.md）。
-  - 次は NIGHT.md の優先順：WEB-1（トークン待ち）→ 目録の残り（GATE-8 は本物の署名待ち、STD-3/DIV-1/LOOP-2 は元のレーンが持つ）→ GATE-9（PHP と WordPress、Python。今夜は道具が入らず止まっている。人間待ちを見よ）→ WEB-7 → LIVE-1。
+  - GATE-10（新設、GATE-9 の土台）：適合スイートをデータにした。`accept/conformance/vectors.json` に WG のベクタと GATE-7 の全攻撃を具体的なリクエストとして書き出し、TypeScript の Gate がファイルだけで Node、Deno、workerd で通る（docs/adr/2026-10-01-conformance-suite-as-data.md）。
+    - 形式は `accept/conformance/README.md`（他の言語の実装者向け、英語）。
+    - GATE-7 に攻撃を足したら `node accept/conformance/export.mjs` を回す。回さないと GATE-10 が落ちる。
+  - 次は NIGHT.md の優先順：WEB-1（トークン待ち）→ 目録の残り（GATE-8 は本物の署名待ち、STD-3/DIV-1/LOOP-2 は元のレーンが持つ）→ GATE-9（PHP と WordPress、Python。今夜は道具が入らず止まっている。人間待ちを見よ。道具が来たら、PHP の Gate を vectors.json に当てる）→ WEB-7 → LIVE-1。
+    - 次の周の候補：STD-2 の否定のテストを families の形にして vectors.json に足す。
   - プレビューのデプロイ（WEB-1）：今のトークンでは何も読めない（docs/DEPLOY.md 1.1）。人間待ちに書いた。
   - 新しい ADR には番号を付けない。`docs/adr/YYYY-MM-DD-<slug>.md` にする（NIGHT.md §8、両レーン共通）。
 
@@ -153,6 +157,16 @@
   - web-bot-auth@0.2.0 のパーサが registry-03 に準拠しているか
 
 ## 直近のセッション
+
+- 2026-10-01（夜勤 8、3 周目）：
+  - GATE-10 を目録に足し、PASS にした：適合スイートがデータになっている（docs/adr/2026-10-01-conformance-suite-as-data.md）。
+    - GATE-7 の攻撃の生成器を `accept/attacks/families.mjs` に切り出した。`run.mjs` は今までどおり（76 件、0 問題）。
+    - `accept/conformance/export.mjs` が、全攻撃と WG のベクタを `vectors.json` に書き出す：79 ケース、508 ステップ、約 600 KiB。鍵と nonce はケースの id から決まり、書き出しはバイト単位で再現する。
+    - リクエストは3種類：`core`（RFC 9421 のメッセージ）、`raw`（Node が受け取る生のリクエスト。アダプタの規則ごと）、`signature`（署名だけ）。
+    - TypeScript の Gate は、ファイルだけを読んで全件に通り、参照の答えと完全に一致する：Node（GATE-10）、Deno と workerd（NEUT-1。14 → 93 件）。
+    - 検査が噛むこと：攻撃を control にする、参照を変える、文書やディレクトリを消す、攻撃を守られていない経路へ動かす、WG のベクタを1バイト変える、改ざんしていない双子、別の識別子。すべて落ちる。
+  - WG のベクタは、Gate を通すと寿命（数十年）で SPOOFED になる（spec §10.4）。署名だけの段と、Gate の段に分けた。
+  - scoreboard（ローカル、コミットしてから）：PASS 39 → 40、目録 49 → 50、PENDING 10、FAIL 0。ラチェットは GATE-10 を足した。NEUT-1 は 14 → 93 件。
 
 - 2026-10-01（夜勤 8、2 周目）：
   - STD-4：ドラフトの版の追随（docs/adr/2026-10-01-draft-pins-tracked-against-datatracker.md）。
