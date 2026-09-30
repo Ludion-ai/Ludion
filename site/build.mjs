@@ -78,6 +78,28 @@ export function ensureDeps() {
   });
 }
 
+// Astro renames files from site/.astro into its output directory, which fails across devices
+// (EXDEV: the Windows runner has the checkout on D: and the temp dir on C:). So Astro writes only
+// inside site/, and the finished output is moved out: a rename, or a copy when that cannot cross.
+
+/** Where Astro builds for a given destination: inside site/, on its device. */
+export function stageDir(dist) {
+  const tag = createHash("sha256").update(path.resolve(dist)).digest("hex").slice(0, 12);
+  return path.join(SITE, ".astro", "out", `${tag}-${process.pid}`);
+}
+
+/** Move a directory tree to `to` (replacing it); copy and delete when a rename cannot cross devices. */
+export function moveDir(from, to, { rename = fs.renameSync } = {}) {
+  fs.rmSync(to, { recursive: true, force: true });
+  fs.mkdirSync(path.dirname(to), { recursive: true });
+  try { rename(from, to); }
+  catch (e) {
+    if (e.code !== "EXDEV") throw e;
+    fs.cpSync(from, to, { recursive: true });
+    fs.rmSync(from, { recursive: true, force: true });
+  }
+}
+
 /** Build (or reuse) the static site; returns the dist directory. */
 export function buildSite({ out } = {}) {
   ensureDeps();
@@ -87,9 +109,13 @@ export function buildSite({ out } = {}) {
   fs.mkdirSync(path.dirname(dist), { recursive: true });
   return withLock(dist, () => {
     if (!out && fs.existsSync(done)) return dist;
-    fs.rmSync(dist, { recursive: true, force: true });
-    run([path.join(SITE, "node_modules", "astro", "bin", "astro.mjs"), "build", "--outDir", dist]);
-    fs.writeFileSync(done, new Date().toISOString());
+    const stage = stageDir(dist);
+    fs.rmSync(stage, { recursive: true, force: true });
+    try {
+      run([path.join(SITE, "node_modules", "astro", "bin", "astro.mjs"), "build", "--outDir", stage]);
+      fs.writeFileSync(path.join(stage, ".ludion-built"), new Date().toISOString());
+      moveDir(stage, dist);
+    } finally { fs.rmSync(stage, { recursive: true, force: true }); }
     return dist;
   });
 }
