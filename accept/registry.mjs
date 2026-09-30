@@ -79,7 +79,12 @@ export const ORACLES = [
   { id: "STD-2", m: "M1", kind: "-", level: 1, title: "tamper / wrong key / wrong authority / expired / future / >60s / wrong tag all rejected",
     run: nodeTest(["packages/gate-core/test/std2.test.mjs"], "^STD-2:") },
   { id: "STD-3", m: "M1", kind: "+", level: 1, pair: "STD-2", title: "interop both ways with ≥2 independent implementations (one non-JS)" },
-  { id: "STD-4", m: "M1", kind: "~", level: 2, title: "pinned draft revisions == latest on datatracker (else issue; FAIL after 7 days)" },
+  // The pins (accept/std4/pins.json) against the live datatracker, following replacements, with 7 days'
+  // grace and the issue text for a draft that moved; and against every reference in the repository.
+  // A datatracker that cannot be read is a FAIL. The checker's own failure paths run offline too.
+  { id: "STD-4", m: "M1", kind: "~", level: 2, title: "pinned draft revisions == latest on datatracker (else issue; FAIL after 7 days)",
+    run: allOf(nodeScript("accept/std4/run.mjs", [], { timeoutMs: 240_000, metric: (out) => (/^STD-4: (.+)$/m.exec(out) ?? [])[1] }),
+      nodeTest(["accept/std4/drafts.test.mjs"], "^STD-4:")) },
 
   // ── M1 gate ────────────────────────────────────────────────────────────────────
   // Reference apps (Express, Next.js, Workers) are real installs in the OS temp dir, cached by content hash.

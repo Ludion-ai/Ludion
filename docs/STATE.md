@@ -5,7 +5,7 @@
 ## 現在地
 
 - 段：M0（ループ）と M4（SCAN-1〜4、RPT-1）は完了。
-  - M1：残りは STD-3、STD-4、GATE-8、PRIV-3。
+  - M1：残りは STD-3、GATE-8、GATE-9。
   - M2：DIV-2/3/4 まで。
   - M3：REG-2/4 まで。
   - M5：PRS-1、PRS-2、CRY-1 まで。
@@ -22,7 +22,7 @@
    - `neutral/runtimes`：NEUT-1、NEUT-2
    - `interop/std3-div1`：STD-3（相互運用）と DIV-1（TS と Python の Diver をクリーンなコンテナで）
 2. ~~PRS-2（Mandate v0）~~：夜勤レーンで済ませた（docs/adr/2026-10-01-mandate-v0-passkey-consent-and-site-charge.md）。
-3. STD-4（datatracker の版の追随。L2）。
+3. ~~STD-4（datatracker の版の追随。L2）~~：夜勤レーンで済ませた（docs/adr/2026-10-01-draft-pins-tracked-against-datatracker.md）。
 4. PRIV-1/2 の強化：ワークロードを既定の `createSafeFetch` 経由でも回す。ワイヤは `dial` フックで捕まえる。
 - ADR の次の番号：025〜029 は上の 3 本が予約済み。その次は 030。
 - 夜勤レーン（2026-10-01、`.loop/NIGHT.md`。別の作業ツリーで並走）：
@@ -42,7 +42,8 @@
     - WEB-8 はそれを `wrangler dev`（workerd）で動かして測る。ヘルパーは `site/test/edge.mjs`。
   - PRS-2（Mandate v0）：Principal のパスキーの同意で Registry が Mandate を出し、Gate が読み、支払いの上限はサイトが `req.ludion.charge()` で当てる（docs/adr/2026-10-01-mandate-v0-passkey-consent-and-site-charge.md）。
     - 目録の残りで、元のレーンの「次の一手」にあったもの。元のレーンは #42 のあと動いていなかったので、夜勤で取った。
-  - 次は NIGHT.md の優先順：WEB-1（トークン待ち）→ 目録の残り（STD-4、GATE-8 は本物の署名待ち、STD-3/DIV-1/LOOP-2 は元のレーンが持つ）→ GATE-9（PHP と WordPress、Python）→ WEB-7 → LIVE-1。
+  - STD-4：実装しているドラフトの版を `accept/std4/pins.json` に留め、datatracker（7 日の猶予、置き換えの追跡）とリポジトリの全参照に当てる（docs/adr/2026-10-01-draft-pins-tracked-against-datatracker.md）。
+  - 次は NIGHT.md の優先順：WEB-1（トークン待ち）→ 目録の残り（GATE-8 は本物の署名待ち、STD-3/DIV-1/LOOP-2 は元のレーンが持つ）→ GATE-9（PHP と WordPress、Python。今夜は道具が入らず止まっている。人間待ちを見よ）→ WEB-7 → LIVE-1。
   - プレビューのデプロイ（WEB-1）：今のトークンでは何も読めない（docs/DEPLOY.md 1.1）。人間待ちに書いた。
   - 新しい ADR には番号を付けない。`docs/adr/YYYY-MM-DD-<slug>.md` にする（NIGHT.md §8、両レーン共通）。
 
@@ -74,6 +75,11 @@
 - [ ] 判断：GATE-1 は Next.js のビルド成果物の名前の変化を「一貫した改名」に限って許している（`reference/test/gate1.test.mjs` の `NORMALISATIONS`）。原因は proxy.js を足すとクライアントのチャンク名が 2 つ変わること。これを「バイト単位で一致」と読んでよいか（#25）。
 - [ ] 判断：日次レポートの metadata event に `operator` を足すか。足せば DECLARED の運営者別の上位を出せる。ただし spec §11.7 の送信項目が変わる（#28）。
 - [ ] 日次レポートの送信基盤：送信サービス、送信ドメイン、SPF/DKIM/DMARC、配信停止。`ludion report` は中身を作るだけで、送信はしない。
+- [ ] GATE-9 の PHP と WordPress を進めるための道具（どちらか）：
+  - この機械に PHP（ext-sodium 付き）を入れる。夜勤の権限では `php` を実行できなかった。
+  - あるいは、テストだけで使う依存として `@php-wasm/node`（WordPress Playground の PHP を WebAssembly にしたもの。GPL-2.0-or-later、Automattic）を足してよいか。夜勤の権限では新しいパッケージの `npm install` ができなかった。これがあれば、Linux と Windows の CI で同じ PHP と本物の WordPress を回せる。
+  - GATE-9 はさらに STD-3 の相互運用表を要る（元のレーンの `interop/std3-div1` が人間の了承待ち）。
+- [ ] 判断：STD-4 は、新しい版が出たら issue の文面を出力に載せるだけで、GitHub に issue は立てない（公開リポジトリへの書き込みなので）。CI から自動で立ててよいか。
 - [ ] 判断（Mandate v0、docs/adr/2026-10-01-mandate-v0-passkey-consent-and-site-charge.md）：
   - 上限超え（金額、通貨、日ごとの回数）は、新しいコードを足さずに `mandate_scope`（spec §10.11「委任の範囲外」）で返し、理由は `reason` に入れた。専用のコード（例：`mandate_limit`）が要るなら spec §10.11 の変更になる。
   - 同意のときだけ、Registry は Principal からサイト（`aud`）を聞く。持つのはハッシュ、発行者、Diver、期限だけ。不変条件8「Registry は行き先を知らない」の読みとして、これでよいか。
@@ -133,6 +139,8 @@
   - 語の一覧と単位の一覧は有限。一覧にない言い換え（「万一のときは全額お支払い」）や、一覧にない名詞を数える数（「3 regions」）はすり抜ける。
   - 出所として認めるのはリポジトリの文書だけ。外部の文書（datatracker など）は、中身をオフラインで確かめられないので認めていない。
   - 日次レポートのメール（`ludion report`）の文面は見ていない。
+- `loop-windows` で GATE-3 が一度、29 分の上限まで固まって落ちた（#52 の初回、2026-10-01）。再実行では数秒で通った。変更とは無関係のフレーク。原因は未調査（ログは「no test matched」だけ）。また起きたら、参照アプリのどのプロセスが残っているかを取る。
+- STD-4 は、datatracker が読めないと落ちる（3 回まで試す）。CI の再実行で済む。
 - Mandate v0（PRS-2）で未カバーの部分：
   - 同意ページ（ludion.ai）はまだない。PRS-2 のパスキーはソフトウェアの認証器（WebAuthn と同じバイト列を作る）。本物のブラウザ（Chromium の仮想認証器）では、まだ通していない。
   - 発行した Mandate をエージェントに渡す道は決めていない。
@@ -145,6 +153,16 @@
   - web-bot-auth@0.2.0 のパーサが registry-03 に準拠しているか
 
 ## 直近のセッション
+
+- 2026-10-01（夜勤 8、2 周目）：
+  - STD-4：ドラフトの版の追随（docs/adr/2026-10-01-draft-pins-tracked-against-datatracker.md）。
+    - 版は `accept/std4/pins.json` の1か所：httpsig-protocol -00、registry -03。
+    - datatracker：最新なら通る。新しい版や後継（`Replaced` をたどる）が出たら 7 日は通り、issue の文面（変更、iddiff、期限）を出力する。過ぎたら落ちる。読めなければ落ちる。
+    - リポジトリ：Web Bot Auth のドラフトの版つきの参照 12 件が、すべて留めた版と一致する。
+    - 検査器の失敗の道は、偽の datatracker でオフラインに確かめる（`accept/std4/drafts.test.mjs`、`npm test` に入れた）。仕込んだ 6 つの故障をすべて捕まえた。
+  - GATE-9（PHP と WordPress）は、夜勤の権限で道具が入らず着手できなかった（`php` の実行も、新しいパッケージの `npm install` も不可）。人間待ちに書いた。
+  - #52 の `loop-windows` の初回で GATE-3 が固まった。再実行で通った（既知の問題に書いた）。
+  - scoreboard（ローカル）：PASS 38 → 39、PENDING 11 → 10、FAIL 0。ラチェットは STD-4 を足した。
 
 - 2026-10-01（夜勤 8）：
   - PRS-2：Mandate v0（docs/adr/2026-10-01-mandate-v0-passkey-consent-and-site-charge.md）。
