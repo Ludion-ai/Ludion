@@ -5,13 +5,14 @@
 //   { "site_id": "site-7f3a", "pressure": 0,
 //     "routes": [{ "match": "/checkout/**", "pressure": 2, "require": { "depth": 2 } }],
 //     "report": { "endpoint": "https://…/events", "send_metadata": true },
-//     "fail_mode": { "pressure_0_1": "open", "pressure_2_3": "closed" } }
+//     "fail_mode": { "pressure_0_1": "open", "pressure_2_3": "closed" },
+//     "authorities": ["shop.example"] }
 //
 // Unknown keys are an error: a typo such as "presure": 2 must not silently mean Pressure 0.
 
 import { generateSiteKey } from "./receipt.mjs";
 
-const TOP = new Set(["$schema", "site_id", "pressure", "routes", "report", "fail_mode", "timeout_ms", "friction_hook", "trust_proxy"]);
+const TOP = new Set(["$schema", "site_id", "pressure", "routes", "report", "fail_mode", "timeout_ms", "friction_hook", "trust_proxy", "authorities"]);
 const REPORT = new Set(["email", "endpoint", "send_metadata"]);
 const ROUTE = new Set(["match", "pressure", "require"]);
 const REQUIRE = new Set(["depth", "scope", "ballast"]);
@@ -92,6 +93,12 @@ export async function gateConfig(spec, { siteKey, fetch, onEphemeralKey } = {}) 
   if (spec.timeout_ms != null) {
     if (!Number.isFinite(spec.timeout_ms) || spec.timeout_ms <= 0) fail("timeout_ms must be a positive number");
     out.timeoutMs = spec.timeout_ms;
+  }
+  if (spec.authorities != null) {
+    // The site's own hosts (ADR-023). Strings only in a file; createGate validates each entry.
+    if (!Array.isArray(spec.authorities) || !spec.authorities.length || !spec.authorities.every((a) => typeof a === "string" && a.length))
+      fail('authorities must be a non-empty array of host names, e.g. ["shop.example", "*.shop.example"]');
+    out.authorities = [...spec.authorities];
   }
   if (spec.trust_proxy != null) {
     if (typeof spec.trust_proxy !== "boolean") fail("trust_proxy must be true or false");

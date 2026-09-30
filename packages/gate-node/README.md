@@ -40,6 +40,7 @@ Pressure 0 only observes. Nothing changes for anyone until you raise it.
   ],
   "report": { "endpoint": "https://collector.example/events", "send_metadata": true },
   "fail_mode": { "pressure_0_1": "open", "pressure_2_3": "closed" },
+  "authorities": ["your-shop.example", "*.your-shop.example"],
   "trust_proxy": false
 }
 ```
@@ -50,6 +51,7 @@ Pressure 0 only observes. Nothing changes for anyone until you raise it.
 - **`report.endpoint`**: where the classified events are POSTed. They carry metadata only (spec §11.7): no bodies, no cookies, no query values, and no raw IPs.
 - **`report.send_metadata`**: `false` keeps everything on the site.
 - **`fail_mode`**: what a fault inside the Gate does. Pressure 0–1 always stays open. Pressure 2–3 follows `pressure_2_3`.
+- **`authorities`**: your site's own hosts (`host`, `host:port`, `*.subdomain`, or an origin). A signature made for any other site is refused, so it can't be replayed here. Needed before Pressure 2–3 routes let verified agents through; without it, those routes treat a verified request as a Gate fault and follow `fail_mode` (ADR-023).
 - **`trust_proxy`**: read the client IP and host from `X-Forwarded-*`. Enable it only behind your own proxy.
 
 **Environment variables**

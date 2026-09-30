@@ -77,3 +77,13 @@ test("config: httpSink POSTs the event as JSON and nothing else", async () => {
   await sink({ v: 0, class: "DECLARED" });
   assert.deepEqual(calls, [["https://collector.example/e", { method: "POST", headers: { "content-type": "application/json" }, body: '{"v":0,"class":"DECLARED"}' }]]);
 });
+
+test("config: authorities (ADR-023) map through, and a malformed list is an error", async () => {
+  const out = await gateConfig({ site_id: "site-a", authorities: ["shop.example", "*.shop.example"] });
+  assert.deepEqual(out.authorities, ["shop.example", "*.shop.example"]);
+  for (const bad of ["shop.example", [], [""], [42], {}]) {
+    await assert.rejects(gateConfig({ site_id: "site-a", authorities: bad }), TypeError, JSON.stringify(bad));
+  }
+  const gate = await createGate(out);
+  assert.equal(gate.health.authorities, "pinned");
+});
