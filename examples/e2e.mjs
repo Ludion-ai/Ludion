@@ -92,7 +92,8 @@ check((await r.json()).class === "UNVERIFIED", "key not in the agent's directory
 
 // Swap the staple out from under a valid signature → invalid (staple is covered)
 const good = await stapled.headersFor({ method: "GET", url: `${siteUrl}/api/search`, headers: {} });
-r = await fetch(`${siteUrl}/api/search`, { headers: { ...good, "ludion-staple": staple.slice(0, -2) + "AA" } });
+// Always a real change: a fixed "AA" was a no-op whenever the Staple already ended in "AA" (1 in 256).
+r = await fetch(`${siteUrl}/api/search`, { headers: { ...good, "ludion-staple": staple.slice(0, -2) + (staple.endsWith("AA") ? "QA" : "AA") } });
 check((await r.json()).class === "SPOOFED", "swapped Staple under a valid signature: SPOOFED");
 
 check(events.length >= 6 && events.every((e) => !("body" in e) && !("cookie" in e) && e.route && !/\d{3}/.test(e.route)),
