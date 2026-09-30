@@ -1,0 +1,8 @@
+name = "ludion-reference-workers"
+main = "src/index.js"
+compatibility_date = "2026-09-01"
+compatibility_flags = ["nodejs_compat"]
+
+[vars.LUDION]
+site_id = "site-reference-workers"
+pressure = 0

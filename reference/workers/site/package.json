@@ -1,0 +1,11 @@
+{
+  "name": "ludion-reference-workers",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev"
+  },
+  "devDependencies": {
+    "wrangler": "4.144.0"
+  }
+}

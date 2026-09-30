@@ -21,13 +21,13 @@ function sh(file, args, timeout = 180_000) {
 }
 
 /** node:test files, optionally filtered by name. Zero matched tests is a FAIL, never a PASS. */
-export const nodeTest = (files, pattern) => async () => {
+export const nodeTest = (files, pattern, { timeoutMs, metric } = {}) => async () => {
   // Pin the TAP reporter: Node ≥23 prints spec (no "# pass N") even when piped.
-  const r = sh(process.execPath, ["--test", "--test-reporter=tap", ...(pattern ? [`--test-name-pattern=${pattern}`] : []), ...files]);
+  const r = sh(process.execPath, ["--test", "--test-reporter=tap", ...(pattern ? [`--test-name-pattern=${pattern}`] : []), ...files], timeoutMs);
   const n = (k) => Number((new RegExp(`^# ${k} (\\d+)`, "m").exec(r.out) ?? [])[1] ?? 0);
   const pass = n("pass"), fail = n("fail");
   if (pass + fail === 0) return { pass: false, detail: "no test matched" };
-  return { pass: r.code === 0 && fail === 0, metric: `${pass} tests`, detail: fail ? `${fail} failing` : undefined };
+  return { pass: r.code === 0 && fail === 0, metric: [`${pass} tests`, metric?.(r.out)].filter(Boolean).join("; "), detail: fail ? `${fail} failing` : undefined };
 };
 
 /** A node script; exit 0 is PASS. */
@@ -80,7 +80,9 @@ export const ORACLES = [
   { id: "STD-4", m: "M1", kind: "~", level: 2, title: "pinned draft revisions == latest on datatracker (else issue; FAIL after 7 days)" },
 
   // ── M1 gate ────────────────────────────────────────────────────────────────────
-  { id: "GATE-1", m: "M1", kind: "+", level: 1, pair: "GATE-2", title: "humans untouched: responses byte-identical with/without Gate at P0–3 (reference apps)" },
+  // Reference apps (Express, Next.js, Workers) are real installs in the OS temp dir, cached by content hash.
+  { id: "GATE-1", m: "M1", kind: "+", level: 1, pair: "GATE-2", title: "humans untouched: responses byte-identical with/without Gate at P0–3 (reference apps)",
+    timeoutMs: 1_800_000, run: nodeTest(["reference/test/gate1.test.mjs"], "^GATE-1:", { timeoutMs: 1_750_000 }) },
   { id: "GATE-2", m: "M1", kind: "-", level: 1, title: "pressure bites: 100% of denials carry Ludion-Error + help Link (+Accept-Signature)",
     run: nodeTest(["packages/gate-node/test/gate2.test.mjs"], "^GATE-2:") },
   { id: "GATE-3", m: "M1", kind: "+", level: 1, pair: "GATE-5", title: "install ≤3 app lines, ≤1 config file, first classified event ≤60s (3 reference apps)" },
