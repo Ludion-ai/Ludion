@@ -25,6 +25,10 @@
 3. STD-4（datatracker の版の追随。L2）。
 4. PRIV-1/2 の強化：ワークロードを既定の `createSafeFetch` 経由でも回す。ワイヤは `dial` フックで捕まえる。
 - ADR の次の番号：025〜029 は上の 3 本が予約済み。その次は 030。
+- 夜勤レーン（2026-10-01、`.loop/NIGHT.md`。別の作業ツリーで並走）：
+  - GATE-9 と M7 Web（WEB-1〜8）を PENDING で登録した（#43）。
+  - 次は NIGHT.md の優先順：WEB-3（`/e/<code>`）→ WEB-4 と WEB-6（ブラウザ版 scan）→ WEB-1/2/5/8 → 目録の残り → GATE-9（PHP と WordPress、Python）→ WEB-7 → LIVE-1。
+  - 夜勤レーンの ADR は 040〜049 を使う（昼のレーンの 030〜 と衝突させないため）。
 
 ## 人間待ち
 
@@ -70,6 +74,8 @@
   - web-bot-auth@0.2.0 のパーサが registry-03 に準拠しているか
 
 ## 直近のセッション
+
+- 2026-10-01（夜勤 1）：GATE-9 と M7 Web（WEB-1〜8）を目録と registry に PENDING で登録した（#43）。ID の衝突はなし。LOOP-1 は PASS のまま、目録は 39 → 49 件。
 
 - 2026-09-30（Claude Code 1）：
   - **Windows/Node 24 の修正（#1）**：ラチェット済みの 4 件が落ちていた。原因は Node ≥23 の test reporter と、パスの区切り文字。検証器を移植可能に直し、`loop-windows` CI と `.gitattributes`（eol=lf）を追加した。
