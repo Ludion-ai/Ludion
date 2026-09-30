@@ -150,10 +150,44 @@ function wgVectors() {
   ];
 }
 
+/** STD-2's groups (accept/conformance/std2.mjs): one case per STD-2 test, answered by a real Gate. */
+async function std2Vectors(original) {
+  const { std2Groups } = await import("./std2.mjs");
+  const { agent, attacker, groups } = await std2Groups(seededDeps("std2", original));
+  const directories = [
+    { uri: AGENT, keys: [{ ...publicOf(agent.publicJwk), use: "sig" }] },
+    { uri: ATTACKER, keys: [{ ...publicOf(attacker.publicJwk), use: "sig" }] },
+  ];
+  const cases = [];
+  for (const [i, g] of groups.entries()) {
+    const now = g.now ?? NOW_MS;
+    const gate = await original.harness({ agentKeys: [agent], attackerKeys: [attacker], now: () => now });
+    const steps = [];
+    for (const s of g.steps) {
+      const r = await gate.inspect(s.req);
+      steps.push({
+        gate: "main", atS: 0, expect: s.expect, ...(s.classes ? { classes: s.classes } : {}), ...(s.expect === "verified" ? { identifier: s.identifier } : {}), note: s.note,
+        core: { method: s.req.method, targetUri: s.req.targetUri, fields: s.req.fields.map((f) => ({ name: f.name, value: f.value })) },
+        reference: { class: r.cls.class, action: r.decision.action, ...(r.decision.error ? { error: r.decision.error } : {}) },
+      });
+    }
+    const slug = g.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 48).replace(/-$/, "");
+    cases.push({
+      id: `std2--${String(i + 1).padStart(2, "0")}-${slug}`, source: "STD-2", group: g.title, title: `STD-2: ${g.title}`,
+      ...(g.now ? { now: g.now } : {}),
+      world: { registry: { issuer: REGISTRY_ISS, keys: [] }, documents: [] },
+      gates: { main: { adapter: "core", authorities: [new URL(SITE).host], directories } },
+      steps,
+    });
+  }
+  return cases;
+}
+
 export async function exportAll() {
   const files = fs.readdirSync(ATTACKS).filter((f) => f.endsWith(".json")).sort();
   const cases = [];
   const original = { ...deps };
+  let std2;
   try {
     deps.harness = recordingHarness(original.harness);
     for (const f of files) {
@@ -161,12 +195,13 @@ export async function exportAll() {
       Object.assign(deps, seededDeps(spec.id, original));
       cases.push(await exportAttack(spec));
     }
+    std2 = await std2Vectors(original);
   } finally { Object.assign(deps, original); }
   return {
-    note: "Ludion Gate conformance vectors: GATE-7's attack corpus and the WG test vectors as concrete requests. Written by accept/conformance/export.mjs; checked by GATE-10; read by every Gate implementation (GATE-9). See accept/conformance/README.md.",
+    note: "Ludion Gate conformance vectors: the WG test vectors, STD-2's negative cases and GATE-7's attack corpus as concrete requests. Written by accept/conformance/export.mjs; checked by GATE-10; read by every Gate implementation (GATE-9). See accept/conformance/README.md.",
     version: 1,
     defaults: { now: NOW_MS, siteId: "site-test", pressure: 0, routes: ROUTES, site: SITE },
-    cases: [...wgVectors(), ...cases],
+    cases: [...wgVectors(), ...std2, ...cases],
   };
 }
 

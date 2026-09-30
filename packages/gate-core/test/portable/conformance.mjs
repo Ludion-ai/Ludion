@@ -76,6 +76,8 @@ export async function runCase(c, d) {
     const got = `${r.cls.class} ${r.decision.action}${r.decision.error ? ` ${r.decision.error}` : ""}${s.raw ? (reachedApp ? " reached" : " stopped") : ""}`;
     const at = `step ${i} (${s.expect}): got ${got}`;
     if (s.expect === "verified" && r.cls.class !== "VERIFIED") throw new Error(`${at}, expected VERIFIED`);
+    if (s.expect === "verified" && s.identifier && r.cls.identifier !== s.identifier) throw new Error(`${at}, attributed to ${r.cls.identifier}, expected ${s.identifier}`);
+    if (s.classes && !s.classes.includes(r.cls.class)) throw new Error(`${at}, expected class ${s.classes.join(" or ")} (spec §10.8)`);
     if (s.expect === "human" && (!reachedApp || r.headers["Ludion-Error"])) throw new Error(`${at}, expected to reach the app untouched`);
     if (s.expect === "denied" && (reachedApp !== false || ![401, 403].includes(r.decision.status))) throw new Error(`${at}, expected 401/403 before the app`);
     if (s.expect === "rejected") {

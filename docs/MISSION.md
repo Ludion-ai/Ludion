@@ -78,7 +78,7 @@
 | GATE-7 | − | 1 | 攻撃コーパス `accept/attacks/` が100%拒否される。最低限：リプレイ、Staple 差し替え、cnf 不一致、署名剥がしによる格下げ、別 URL の鍵による key confusion、ラベル混同、POST での成分の省略、時計ずれの悪用。コーパスは増える一方。攻撃者役のサブエージェントに偽造を試みさせて育てるとよい。通った攻撃は直してからコーパスに残す | |
 | GATE-8 | + | 1 | 本物。第三者の実運用エージェントが送った本物の Web Bot Auth 署名リクエスト（出所と取得時刻、当時の鍵ディレクトリを記録したフィクスチャ）が、正しい識別子で VERIFIED になる | GATE-7 |
 | GATE-9 | + | 1 | Gate が6つのエコシステム（Node、Workers、Deno か Bun、PHP と WordPress、Python、Go）で、同じ適合スイート（STD の全ベクタ、GATE-7 の攻撃コーパス、STD-3 の相互運用表）に通る | GATE-7 |
-| GATE-10 | + | 1 | 適合スイートがデータになっている（GATE-9 の土台）。WG のテストベクタと GATE-7 のコーパスの全件を、具体的なリクエストと期待値として `accept/conformance/vectors.json` に書き出し、コーパスと1件ずつ一致する（欠け、余り、古い params が0件、秘密鍵の成分が0件）。TypeScript の Gate が、そのファイルだけを読んで全件に通る（Node。Deno と workerd は NEUT-1 が同じファイルで回す） | GATE-7 |
+| GATE-10 | + | 1 | 適合スイートがデータになっている（GATE-9 の土台）。WG のテストベクタ、STD-2 の全テスト（spec §10.8 の分類つき）、GATE-7 のコーパスの全件を、具体的なリクエストと期待値として `accept/conformance/vectors.json` に書き出し、コーパスと STD-2 のテストに1件ずつ一致し、書き出し直しとバイト単位で等しく、秘密鍵の成分が0件。TypeScript の Gate が、そのファイルだけを読んで全件に通る（Node。Deno と workerd は NEUT-1 が同じファイルで回す） | GATE-7 |
 
 ### M1 プライバシー
 

@@ -47,7 +47,7 @@
     - 形式は `accept/conformance/README.md`（他の言語の実装者向け、英語）。
     - GATE-7 に攻撃を足したら `node accept/conformance/export.mjs` を回す。回さないと GATE-10 が落ちる。
   - 次は NIGHT.md の優先順：WEB-1（トークン待ち）→ 目録の残り（GATE-8 は本物の署名待ち、STD-3/DIV-1/LOOP-2 は元のレーンが持つ）→ GATE-9（PHP と WordPress、Python。今夜は道具が入らず止まっている。人間待ちを見よ。道具が来たら、PHP の Gate を vectors.json に当てる）→ WEB-7 → LIVE-1。
-    - 次の周の候補：STD-2 の否定のテストを families の形にして vectors.json に足す。
+    - STD-2 の全テスト（12）も、spec §10.8 の分類つきで vectors.json に入れた（`accept/conformance/std2.mjs`）。STD-2 にテストを足したら、書き出し直す。
   - プレビューのデプロイ（WEB-1）：今のトークンでは何も読めない（docs/DEPLOY.md 1.1）。人間待ちに書いた。
   - 新しい ADR には番号を付けない。`docs/adr/YYYY-MM-DD-<slug>.md` にする（NIGHT.md §8、両レーン共通）。
 
@@ -157,6 +157,15 @@
   - web-bot-auth@0.2.0 のパーサが registry-03 に準拠しているか
 
 ## 直近のセッション
+
+- 2026-10-01（夜勤 8、4 周目）：
+  - GATE-10 を強くした：STD-2 の否定のテスト 12 件を vectors.json に足した。
+    - `accept/conformance/std2.mjs` が STD-2 の各テストを、題をそのまま名前にして写す。`std2.test.mjs` は変えていない。
+    - 拒否のステップには、spec §10.8 の分類（`classes`）を付けた。鍵ディレクトリにない keyid は UNVERIFIED、検証に失敗したものは SPOOFED。他の言語の Gate にも課す。
+    - GATE-10 は、STD-2 のテストの題とケースが1対1であることを求める。
+    - 91 ケース、547 ステップ。TypeScript の Gate は全件に通る（Node、Deno、workerd）。
+    - 検査が噛むこと：分類を違えた拒否、別のメンバーに帰属した control を、どちらも落とす。
+  - scoreboard（ローカル、コミットしてから）：PASS 40 / FAIL 0 / PENDING 10 のまま（強化なので行は増えない）。NEUT-1 は 93 → 105 件。
 
 - 2026-10-01（夜勤 8、3 周目）：
   - GATE-10 を目録に足し、PASS にした：適合スイートがデータになっている（docs/adr/2026-10-01-conformance-suite-as-data.md）。

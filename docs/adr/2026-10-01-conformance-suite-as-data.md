@@ -4,7 +4,7 @@
 
 ## 決定
 
-- GATE-7 の攻撃コーパスと WG のテストベクタを、具体的なリクエストと期待値の JSON にする：`accept/conformance/vectors.json`。
+- GATE-7 の攻撃コーパス、STD-2 の否定のテスト、WG のテストベクタを、具体的なリクエストと期待値の JSON にする：`accept/conformance/vectors.json`。
   - 書き出すのは `accept/conformance/export.mjs`。GATE-7 の攻撃の生成器（`accept/attacks/families.mjs`、`run.mjs` から切り出した）を、そのまま使う。
   - 各ケース：世界（Registry の公開鍵と issuer、URL で配る文書）、Gate ごとの設定（アダプタ、authorities、trust_proxy、nonce キャッシュの大きさ、知っている鍵ディレクトリ）、順番に送るステップ。
   - 各ステップ：リクエスト、届く時刻、期待（verified / rejected / human / denied / flood / valid / invalid）、参照実装の答え。
@@ -26,6 +26,10 @@
   - Gate を通すと拒否されること。
 - GATE-10 を新しいオラクルとして目録に足した。GATE-9 は6つのエコシステムと STD-3 の相互運用表を要り、今夜は届かない。その手前で、確かに回る土台を固定するため。
 
+- STD-2 は、テストの題ごとに1ケースにした（`accept/conformance/std2.mjs`）。STD-2 の手続き（`std2.test.mjs`）は変えていない。
+  - GATE-10 は、STD-2 のテストの題の一覧と、ケースの一覧が一致することを求める。STD-2 にテストが増えたら、書き出し直すまで GATE-10 が落ちる。
+  - STD-2 の分類（鍵ディレクトリにない keyid は UNVERIFIED、検証に失敗したものは SPOOFED、spec §10.8）は、`classes` として全実装に課す。
+
 ## 理由
 
 - 攻撃のコーパスは、JS の生成器（family と params）の形で書かれていた。PHP や Python からは読めない。GATE-9 の「同じ適合スイート」の前提は、言語に依らないデータがあること。
@@ -36,10 +40,9 @@
 
 - **各言語で攻撃の生成器を書き直す。** 攻撃の意味が言語ごとにずれる。署名も各言語の実装で作ることになり、「同じ」スイートではなくなる。
 - **書き出しを毎回ランダムにして、ファイルは写しとして置く。** 生成器が変わっても気づけない。差分も毎回全体になる。
-- **STD-2 の否定のテストもいま入れる。** `std2.test.mjs` は、JS のテストの中で組み立てている。同じ形（families 化）にしてから足す。次の周。
 
 ## 見直す条件
 
 - PHP の Gate を作るとき（GATE-9）。`raw` の形で WordPress の入口が足りるかを確かめる。
-- STD-2 の否定のテストと、STD-3 の相互運用表を、同じファイルに足すとき。
+- STD-3 の相互運用表を、同じファイルに足すとき。
 - ファイルが 1 MiB を超えたら、ケースごとのファイルに分ける。

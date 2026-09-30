@@ -1,5 +1,5 @@
 {
- "note": "Ludion Gate conformance vectors: GATE-7's attack corpus and the WG test vectors as concrete requests. Written by accept/conformance/export.mjs; checked by GATE-10; read by every Gate implementation (GATE-9). See accept/conformance/README.md.",
+ "note": "Ludion Gate conformance vectors: the WG test vectors, STD-2's negative cases and GATE-7's attack corpus as concrete requests. Written by accept/conformance/export.mjs; checked by GATE-10; read by every Gate implementation (GATE-9). See accept/conformance/README.md.",
  "version": 1,
  "defaults": {
   "now": 1800000000000,
@@ -190,6 +190,1995 @@
      "reference": {
       "class": "SPOOFED",
       "action": "allow"
+     }
+    }
+   ]
+  },
+  {
+   "id": "std2--01-baseline-an-honest-signature-is-verified-on-the",
+   "source": "STD-2",
+   "group": "baseline — an honest signature is VERIFIED on the Pressure-2 route (the control for every case)",
+   "title": "STD-2: baseline — an honest signature is VERIFIED on the Pressure-2 route (the control for every case)",
+   "world": {
+    "registry": {
+     "issuer": "https://registry.ludion.ai",
+     "keys": []
+    },
+    "documents": []
+   },
+   "gates": {
+    "main": {
+     "adapter": "core",
+     "authorities": [
+      "shop.example"
+     ],
+     "directories": [
+      {
+       "uri": "https://agent.example",
+       "keys": [
+        {
+         "kty": "OKP",
+         "crv": "Ed25519",
+         "x": "5Wgxzq86jvztABMKZ-MTfIM4SoJYOGSylWJdJy2II6Q",
+         "kid": "G_4IaFY5mSuMJF85eLXzeTjdcRqPTsKraSMcSDEP51M",
+         "use": "sig"
+        }
+       ]
+      },
+      {
+       "uri": "https://attacker.example",
+       "keys": [
+        {
+         "kty": "OKP",
+         "crv": "Ed25519",
+         "x": "2bvcbSlD8cljWDoCUBMWWJWtD7RM6WOiw2vQXWwpSws",
+         "kid": "7bExIkU988yU65n_x3mctB6TBAH913suxO2RE7dd8e4",
+         "use": "sig"
+        }
+       ]
+      }
+     ]
+    }
+   },
+   "steps": [
+    {
+     "gate": "main",
+     "atS": 0,
+     "expect": "verified",
+     "identifier": "https://agent.example",
+     "note": "GET",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://agent.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"G_4IaFY5mSuMJF85eLXzeTjdcRqPTsKraSMcSDEP51M\";alg=\"ed25519\";expires=1800000060;nonce=\"Bs79cGHLnkLeZjk91z52ISsy3X6owXi8FnAj9m7EcL3+xsTdW7Sd/+U9LKoMDDs8H40cFTwm3xAKPzOLG2JPxg==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:XCQ0eJQL2C9lcAlMOV/ehibnIe88BcttG0hLrEIo3tApnXMnTEyhUVfgLi2nmcqSzjCty5qRLzOE3TBuXzo1Ag==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "VERIFIED",
+      "action": "allow"
+     }
+    },
+    {
+     "gate": "main",
+     "atS": 0,
+     "expect": "verified",
+     "identifier": "https://agent.example",
+     "note": "POST with content-digest",
+     "core": {
+      "method": "POST",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://agent.example\""
+       },
+       {
+        "name": "content-digest",
+        "value": "sha-256=:u46zwi09Eg7ltvB3aJFRNYrhNMmfaBr5NwAjdyEIZH0=:"
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\" \"@method\" \"@path\" \"content-digest\");created=1800000000;keyid=\"G_4IaFY5mSuMJF85eLXzeTjdcRqPTsKraSMcSDEP51M\";alg=\"ed25519\";expires=1800000060;nonce=\"BAuy39DXaGvNYdQJYeJ/G0GRxeTdSs9UItKluKuaJib3lTKfMK1lK5tVanZjUirbuL8IO2jyxUolZSDvfic/9g==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:nhs7EitGN26sqwby2mSVW+i33Qxjej3mwI4PjhgGHKxSP2u2CbE/pzqNjrQQ7CgIScO5rY2PMQs33/v34oF2Dw==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "VERIFIED",
+      "action": "allow"
+     }
+    },
+    {
+     "gate": "main",
+     "atS": 0,
+     "expect": "verified",
+     "identifier": "https://agent.example",
+     "note": "dictionary key differs from the label (App. E.2.1 shape)",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "agent2=\"https://agent.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig2=(\"@authority\" \"signature-agent\";key=\"agent2\");created=1800000000;keyid=\"G_4IaFY5mSuMJF85eLXzeTjdcRqPTsKraSMcSDEP51M\";alg=\"ed25519\";expires=1800000060;nonce=\"ETtCs6ZhsQA7YlxE2K9MbDaoqrqB1sO9XiFZWZlaJW4yqQaaEd7KQ+32Kx00fqnEe5xRg9Hnqut4nMheVEfd2g==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig2=:RMSw8qZtzGorAeJlOFcd/R9qyBk8FQwn+cmEOkc1ik87u7fpImFTEsfh0JXkuheMTj8WKi0QzoLUyb85egm/Dg==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "VERIFIED",
+      "action": "allow"
+     }
+    }
+   ]
+  },
+  {
+   "id": "std2--02-tampered-signature-bytes-spoofed",
+   "source": "STD-2",
+   "group": "tampered signature bytes → SPOOFED",
+   "title": "STD-2: tampered signature bytes → SPOOFED",
+   "world": {
+    "registry": {
+     "issuer": "https://registry.ludion.ai",
+     "keys": []
+    },
+    "documents": []
+   },
+   "gates": {
+    "main": {
+     "adapter": "core",
+     "authorities": [
+      "shop.example"
+     ],
+     "directories": [
+      {
+       "uri": "https://agent.example",
+       "keys": [
+        {
+         "kty": "OKP",
+         "crv": "Ed25519",
+         "x": "5Wgxzq86jvztABMKZ-MTfIM4SoJYOGSylWJdJy2II6Q",
+         "kid": "G_4IaFY5mSuMJF85eLXzeTjdcRqPTsKraSMcSDEP51M",
+         "use": "sig"
+        }
+       ]
+      },
+      {
+       "uri": "https://attacker.example",
+       "keys": [
+        {
+         "kty": "OKP",
+         "crv": "Ed25519",
+         "x": "2bvcbSlD8cljWDoCUBMWWJWtD7RM6WOiw2vQXWwpSws",
+         "kid": "7bExIkU988yU65n_x3mctB6TBAH913suxO2RE7dd8e4",
+         "use": "sig"
+        }
+       ]
+      }
+     ]
+    }
+   },
+   "steps": [
+    {
+     "gate": "main",
+     "atS": 0,
+     "expect": "rejected",
+     "classes": [
+      "SPOOFED"
+     ],
+     "note": "one flipped bit",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://agent.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"G_4IaFY5mSuMJF85eLXzeTjdcRqPTsKraSMcSDEP51M\";alg=\"ed25519\";expires=1800000060;nonce=\"UNvcOPvmrwsWT1BdSv9+zvuIPyYToJhsv+PomcrOgYBx+5b3xG7yUBAikLkf5PfLGkcJD0uI3unfehFE1W1VmQ==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:upOOeyovj/nszDMaf9t4dN+gCbVH7lCq9kus2iHgeE+/4Q9XjPRveI68aO4bEYHmwzCMHxBoqn4sEfMK1ikpBw==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "SPOOFED",
+      "action": "deny",
+      "error": "invalid_signature"
+     }
+    }
+   ]
+  },
+  {
+   "id": "std2--03-tampered-covered-components-and-parameters-spoof",
+   "source": "STD-2",
+   "group": "tampered covered components and parameters → SPOOFED",
+   "title": "STD-2: tampered covered components and parameters → SPOOFED",
+   "world": {
+    "registry": {
+     "issuer": "https://registry.ludion.ai",
+     "keys": []
+    },
+    "documents": []
+   },
+   "gates": {
+    "main": {
+     "adapter": "core",
+     "authorities": [
+      "shop.example"
+     ],
+     "directories": [
+      {
+       "uri": "https://agent.example",
+       "keys": [
+        {
+         "kty": "OKP",
+         "crv": "Ed25519",
+         "x": "5Wgxzq86jvztABMKZ-MTfIM4SoJYOGSylWJdJy2II6Q",
+         "kid": "G_4IaFY5mSuMJF85eLXzeTjdcRqPTsKraSMcSDEP51M",
+         "use": "sig"
+        }
+       ]
+      },
+      {
+       "uri": "https://attacker.example",
+       "keys": [
+        {
+         "kty": "OKP",
+         "crv": "Ed25519",
+         "x": "2bvcbSlD8cljWDoCUBMWWJWtD7RM6WOiw2vQXWwpSws",
+         "kid": "7bExIkU988yU65n_x3mctB6TBAH913suxO2RE7dd8e4",
+         "use": "sig"
+        }
+       ]
+      }
+     ]
+    }
+   },
+   "steps": [
+    {
+     "gate": "main",
+     "atS": 0,
+     "expect": "rejected",
+     "classes": [
+      "SPOOFED"
+     ],
+     "note": "content-digest swapped",
+     "core": {
+      "method": "POST",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://agent.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\" \"@method\" \"@path\" \"content-digest\");created=1800000000;keyid=\"G_4IaFY5mSuMJF85eLXzeTjdcRqPTsKraSMcSDEP51M\";alg=\"ed25519\";expires=1800000060;nonce=\"RzUN2tmSdO7IeAck9WlvDpUrmQa2teayUYRolrKvEFnjwfgw5VgvM6NPuJH1llOqp126nAAPyru/XPsVFDzanQ==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:vlr2k+pJucpFH8qU4slNf0mNlopliQU5ToNvWAUEoM4t30Zmixx3RpH+ppcWXTznsN0jI0ECrYwgDej29JDnBQ==:"
+       },
+       {
+        "name": "content-digest",
+        "value": "sha-256=:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "SPOOFED",
+      "action": "deny",
+      "error": "invalid_signature"
+     }
+    },
+    {
+     "gate": "main",
+     "atS": 0,
+     "expect": "rejected",
+     "classes": [
+      "SPOOFED"
+     ],
+     "note": "@method changed",
+     "core": {
+      "method": "PUT",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://agent.example\""
+       },
+       {
+        "name": "content-digest",
+        "value": "sha-256=:u46zwi09Eg7ltvB3aJFRNYrhNMmfaBr5NwAjdyEIZH0=:"
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\" \"@method\" \"@path\" \"content-digest\");created=1800000000;keyid=\"G_4IaFY5mSuMJF85eLXzeTjdcRqPTsKraSMcSDEP51M\";alg=\"ed25519\";expires=1800000060;nonce=\"RzUN2tmSdO7IeAck9WlvDpUrmQa2teayUYRolrKvEFnjwfgw5VgvM6NPuJH1llOqp126nAAPyru/XPsVFDzanQ==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:vlr2k+pJucpFH8qU4slNf0mNlopliQU5ToNvWAUEoM4t30Zmixx3RpH+ppcWXTznsN0jI0ECrYwgDej29JDnBQ==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "SPOOFED",
+      "action": "deny",
+      "error": "invalid_signature"
+     }
+    },
+    {
+     "gate": "main",
+     "atS": 0,
+     "expect": "rejected",
+     "classes": [
+      "SPOOFED"
+     ],
+     "note": "@path changed",
+     "core": {
+      "method": "POST",
+      "targetUri": "https://shop.example/checkout/2",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://agent.example\""
+       },
+       {
+        "name": "content-digest",
+        "value": "sha-256=:u46zwi09Eg7ltvB3aJFRNYrhNMmfaBr5NwAjdyEIZH0=:"
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\" \"@method\" \"@path\" \"content-digest\");created=1800000000;keyid=\"G_4IaFY5mSuMJF85eLXzeTjdcRqPTsKraSMcSDEP51M\";alg=\"ed25519\";expires=1800000060;nonce=\"RzUN2tmSdO7IeAck9WlvDpUrmQa2teayUYRolrKvEFnjwfgw5VgvM6NPuJH1llOqp126nAAPyru/XPsVFDzanQ==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:vlr2k+pJucpFH8qU4slNf0mNlopliQU5ToNvWAUEoM4t30Zmixx3RpH+ppcWXTznsN0jI0ECrYwgDej29JDnBQ==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "SPOOFED",
+      "action": "deny",
+      "error": "invalid_signature"
+     }
+    },
+    {
+     "gate": "main",
+     "atS": 0,
+     "expect": "rejected",
+     "classes": [
+      "SPOOFED"
+     ],
+     "note": "expires rewritten",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://agent.example\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:FIUHPcQcuUB5m7ykcZ8lHye9BvwgV8kVKMWfNidRs3dZAv9xgVB4vh7FTKRPuttHxSJOxfohJAMMxnoHFkgWBg==:"
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"G_4IaFY5mSuMJF85eLXzeTjdcRqPTsKraSMcSDEP51M\";alg=\"ed25519\";expires=1800000030;nonce=\"yj1m9QTafZIgYaItGm+FnXmJD7wOFm6Wt2TdVHGPjbFFCLSUHd05jcog5obEZUpiSEg+REhNbZBTjzuXzZ6jHA==\";tag=\"web-bot-auth\""
+       }
+      ]
+     },
+     "reference": {
+      "class": "SPOOFED",
+      "action": "deny",
+      "error": "invalid_signature"
+     }
+    },
+    {
+     "gate": "main",
+     "atS": 0,
+     "expect": "rejected",
+     "classes": [
+      "SPOOFED"
+     ],
+     "note": "nonce rewritten",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://agent.example\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:FIUHPcQcuUB5m7ykcZ8lHye9BvwgV8kVKMWfNidRs3dZAv9xgVB4vh7FTKRPuttHxSJOxfohJAMMxnoHFkgWBg==:"
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"G_4IaFY5mSuMJF85eLXzeTjdcRqPTsKraSMcSDEP51M\";alg=\"ed25519\";expires=1800000060;nonce=\"BwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBw==\";tag=\"web-bot-auth\""
+       }
+      ]
+     },
+     "reference": {
+      "class": "SPOOFED",
+      "action": "deny",
+      "error": "invalid_signature"
+     }
+    },
+    {
+     "gate": "main",
+     "atS": 0,
+     "expect": "rejected",
+     "classes": [
+      "SPOOFED",
+      "UNVERIFIED"
+     ],
+     "note": "Signature-Agent redirected to another directory",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"G_4IaFY5mSuMJF85eLXzeTjdcRqPTsKraSMcSDEP51M\";alg=\"ed25519\";expires=1800000060;nonce=\"yj1m9QTafZIgYaItGm+FnXmJD7wOFm6Wt2TdVHGPjbFFCLSUHd05jcog5obEZUpiSEg+REhNbZBTjzuXzZ6jHA==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:FIUHPcQcuUB5m7ykcZ8lHye9BvwgV8kVKMWfNidRs3dZAv9xgVB4vh7FTKRPuttHxSJOxfohJAMMxnoHFkgWBg==:"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://attacker.example\""
+       }
+      ]
+     },
+     "reference": {
+      "class": "UNVERIFIED",
+      "action": "deny",
+      "error": "signature_required"
+     }
+    }
+   ]
+  },
+  {
+   "id": "std2--04-another-key-never-verified-as-the-agent",
+   "source": "STD-2",
+   "group": "another key → never VERIFIED as the agent",
+   "title": "STD-2: another key → never VERIFIED as the agent",
+   "world": {
+    "registry": {
+     "issuer": "https://registry.ludion.ai",
+     "keys": []
+    },
+    "documents": []
+   },
+   "gates": {
+    "main": {
+     "adapter": "core",
+     "authorities": [
+      "shop.example"
+     ],
+     "directories": [
+      {
+       "uri": "https://agent.example",
+       "keys": [
+        {
+         "kty": "OKP",
+         "crv": "Ed25519",
+         "x": "5Wgxzq86jvztABMKZ-MTfIM4SoJYOGSylWJdJy2II6Q",
+         "kid": "G_4IaFY5mSuMJF85eLXzeTjdcRqPTsKraSMcSDEP51M",
+         "use": "sig"
+        }
+       ]
+      },
+      {
+       "uri": "https://attacker.example",
+       "keys": [
+        {
+         "kty": "OKP",
+         "crv": "Ed25519",
+         "x": "2bvcbSlD8cljWDoCUBMWWJWtD7RM6WOiw2vQXWwpSws",
+         "kid": "7bExIkU988yU65n_x3mctB6TBAH913suxO2RE7dd8e4",
+         "use": "sig"
+        }
+       ]
+      }
+     ]
+    }
+   },
+   "steps": [
+    {
+     "gate": "main",
+     "atS": 0,
+     "expect": "rejected",
+     "classes": [
+      "SPOOFED"
+     ],
+     "note": "claims the agent's keyid",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://agent.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"G_4IaFY5mSuMJF85eLXzeTjdcRqPTsKraSMcSDEP51M\";alg=\"ed25519\";expires=1800000060;nonce=\"sP008UjrRlTQGX3T39clZPreyaMD5Za2ix8e7zRFkz7TZmhgozlLVMvbLY7HyfCeGjARRzYz24wKv9yIvUqAhA==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:RadrKQjboG7Hjjtz/0W0vXmSnkxHVvrrxwApkR81TnnUsqtU4vx0ygfTyG6+bQV8iz6T8+BtdebcxoZSOrHVAQ==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "SPOOFED",
+      "action": "deny",
+      "error": "invalid_signature"
+     }
+    },
+    {
+     "gate": "main",
+     "atS": 0,
+     "expect": "rejected",
+     "classes": [
+      "UNVERIFIED"
+     ],
+     "note": "keyid absent from the agent's directory",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://agent.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"7bExIkU988yU65n_x3mctB6TBAH913suxO2RE7dd8e4\";alg=\"ed25519\";expires=1800000060;nonce=\"C2eiX4Q2CaAytM/IEz5aKXW+fmR+cBSoB6pqfFv6PXLZWVQGQHh1iAQccLPI+dlWBqdUUixiLxV9IPd1jKdzfg==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:mc50RlE+oeMJd0pG0fki/FC3Tz5B54UHJ+kUE3SaoHA86G+rXsGTkAjzO/OGAdW1HV8GjcFG7L2YVFuFm3iqCA==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "UNVERIFIED",
+      "action": "deny",
+      "error": "signature_required"
+     }
+    }
+   ]
+  },
+  {
+   "id": "std2--05-another-authority-spoofed",
+   "source": "STD-2",
+   "group": "another authority → SPOOFED",
+   "title": "STD-2: another authority → SPOOFED",
+   "world": {
+    "registry": {
+     "issuer": "https://registry.ludion.ai",
+     "keys": []
+    },
+    "documents": []
+   },
+   "gates": {
+    "main": {
+     "adapter": "core",
+     "authorities": [
+      "shop.example"
+     ],
+     "directories": [
+      {
+       "uri": "https://agent.example",
+       "keys": [
+        {
+         "kty": "OKP",
+         "crv": "Ed25519",
+         "x": "5Wgxzq86jvztABMKZ-MTfIM4SoJYOGSylWJdJy2II6Q",
+         "kid": "G_4IaFY5mSuMJF85eLXzeTjdcRqPTsKraSMcSDEP51M",
+         "use": "sig"
+        }
+       ]
+      },
+      {
+       "uri": "https://attacker.example",
+       "keys": [
+        {
+         "kty": "OKP",
+         "crv": "Ed25519",
+         "x": "2bvcbSlD8cljWDoCUBMWWJWtD7RM6WOiw2vQXWwpSws",
+         "kid": "7bExIkU988yU65n_x3mctB6TBAH913suxO2RE7dd8e4",
+         "use": "sig"
+        }
+       ]
+      }
+     ]
+    }
+   },
+   "steps": [
+    {
+     "gate": "main",
+     "atS": 0,
+     "expect": "rejected",
+     "classes": [
+      "SPOOFED"
+     ],
+     "note": "signed for shop.example, sent to other-shop.example",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://other-shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://agent.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"G_4IaFY5mSuMJF85eLXzeTjdcRqPTsKraSMcSDEP51M\";alg=\"ed25519\";expires=1800000060;nonce=\"7fEHqAwCcYaUCZszMSg8yIxf0wHi4JS6CvxEff58MzCr4T3vEgXQ6DQoKVUtEaWq+dMLHYIR2VKO8tiepgDYUw==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:W4cXAFUd0ZQbZERXxJndUiCZvHg/JOjT9o4NFGvzU+7lqQoU2x9k1wimaF+DytoBwwLHKdturOxv1FBtg2I+Bw==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "SPOOFED",
+      "action": "deny",
+      "error": "invalid_signature"
+     }
+    },
+    {
+     "gate": "main",
+     "atS": 0,
+     "expect": "rejected",
+     "classes": [
+      "SPOOFED"
+     ],
+     "note": "same host, other port",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example:8443/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://agent.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"G_4IaFY5mSuMJF85eLXzeTjdcRqPTsKraSMcSDEP51M\";alg=\"ed25519\";expires=1800000060;nonce=\"7fEHqAwCcYaUCZszMSg8yIxf0wHi4JS6CvxEff58MzCr4T3vEgXQ6DQoKVUtEaWq+dMLHYIR2VKO8tiepgDYUw==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:W4cXAFUd0ZQbZERXxJndUiCZvHg/JOjT9o4NFGvzU+7lqQoU2x9k1wimaF+DytoBwwLHKdturOxv1FBtg2I+Bw==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "SPOOFED",
+      "action": "deny",
+      "error": "invalid_signature"
+     }
+    },
+    {
+     "gate": "main",
+     "atS": 0,
+     "expect": "rejected",
+     "classes": [
+      "SPOOFED"
+     ],
+     "note": "@authority not covered",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://agent.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"G_4IaFY5mSuMJF85eLXzeTjdcRqPTsKraSMcSDEP51M\";alg=\"ed25519\";expires=1800000060;nonce=\"h8rDsEOL1yzws1I976m2axYnBL2CRNEsnhi+r9qiTJDy5G11Vfa67yTKGPUYBnwa+Ntj+6CHZ8xN7T53L1tYog==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:xDl4HYhiebTNXpauRTEyWvCtHm/wXDb3SNuBA3poVS/0a2E6IhCFhgTAm/Z/xcw4dOlzkFcva56l9PhItffFCg==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "SPOOFED",
+      "action": "deny",
+      "error": "invalid_signature"
+     }
+    }
+   ]
+  },
+  {
+   "id": "std2--06-expired-spoofed-30s-skew-is-the-only-grace",
+   "source": "STD-2",
+   "group": "expired → SPOOFED (±30s skew is the only grace)",
+   "title": "STD-2: expired → SPOOFED (±30s skew is the only grace)",
+   "world": {
+    "registry": {
+     "issuer": "https://registry.ludion.ai",
+     "keys": []
+    },
+    "documents": []
+   },
+   "gates": {
+    "main": {
+     "adapter": "core",
+     "authorities": [
+      "shop.example"
+     ],
+     "directories": [
+      {
+       "uri": "https://agent.example",
+       "keys": [
+        {
+         "kty": "OKP",
+         "crv": "Ed25519",
+         "x": "5Wgxzq86jvztABMKZ-MTfIM4SoJYOGSylWJdJy2II6Q",
+         "kid": "G_4IaFY5mSuMJF85eLXzeTjdcRqPTsKraSMcSDEP51M",
+         "use": "sig"
+        }
+       ]
+      },
+      {
+       "uri": "https://attacker.example",
+       "keys": [
+        {
+         "kty": "OKP",
+         "crv": "Ed25519",
+         "x": "2bvcbSlD8cljWDoCUBMWWJWtD7RM6WOiw2vQXWwpSws",
+         "kid": "7bExIkU988yU65n_x3mctB6TBAH913suxO2RE7dd8e4",
+         "use": "sig"
+        }
+       ]
+      }
+     ]
+    }
+   },
+   "steps": [
+    {
+     "gate": "main",
+     "atS": 0,
+     "expect": "rejected",
+     "classes": [
+      "SPOOFED"
+     ],
+     "note": "expired 40s ago",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://agent.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1799999900;keyid=\"G_4IaFY5mSuMJF85eLXzeTjdcRqPTsKraSMcSDEP51M\";alg=\"ed25519\";expires=1799999960;nonce=\"T/LmgJECnJqOvLWi1T0WMecoDTD7Ml3jewBnDbMPR0mqNP30TRskvmVTX0likr3wE72eR/yU1DoBvX9BdJDpOw==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:k0eiPDOOecd1sc6jLrW9j6LXI+1lswOMOidg46TpW08+1CbRflmMCuvlOAO2Jrf3WsfKqcYpUrfIKCreU4i1Dg==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "SPOOFED",
+      "action": "deny",
+      "error": "invalid_signature"
+     }
+    },
+    {
+     "gate": "main",
+     "atS": 0,
+     "expect": "rejected",
+     "classes": [
+      "SPOOFED"
+     ],
+     "note": "expired 31s ago",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://agent.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1799999909;keyid=\"G_4IaFY5mSuMJF85eLXzeTjdcRqPTsKraSMcSDEP51M\";alg=\"ed25519\";expires=1799999969;nonce=\"rO3+0kCfYg+e1DihyGxSJZDJTNj/DUS2iJr3Bkd6twMUKnrvSiNt+u+9K+9pRt0jdAbWuK2+QTqQxkjcl6E/bA==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:BYwH+X+RMTsCyBhvath3+bJElbkbLbw+DrYA9fu2tcQmaEOFvP9U79Edvq15UlNwJ/lPw662GuTo8Bvwa0FTBw==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "SPOOFED",
+      "action": "deny",
+      "error": "invalid_signature"
+     }
+    },
+    {
+     "gate": "main",
+     "atS": 0,
+     "expect": "verified",
+     "identifier": "https://agent.example",
+     "note": "expired 29s ago is inside the skew",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://agent.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1799999911;keyid=\"G_4IaFY5mSuMJF85eLXzeTjdcRqPTsKraSMcSDEP51M\";alg=\"ed25519\";expires=1799999971;nonce=\"TUH4w/5f7f4JGsJl8uzgH3yPFuSOT44KdealltzqhuQRwTS/KdnjjCGZdF9D1hpOhvAS2Hx2t+OhO4/kZYAP0g==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:n9WeSUVBRabdJsyfiPUUqSjcfhWSTM30V6vNIEcM9BXAQcAdezncJLJ2GtIi8BuiiYAE1RH/lvzHCJqFs+HBAA==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "VERIFIED",
+      "action": "allow"
+     }
+    },
+    {
+     "gate": "main",
+     "atS": 0,
+     "expect": "rejected",
+     "classes": [
+      "SPOOFED"
+     ],
+     "note": "an hour old",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://agent.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1799996400;keyid=\"G_4IaFY5mSuMJF85eLXzeTjdcRqPTsKraSMcSDEP51M\";alg=\"ed25519\";expires=1799996460;nonce=\"6Rf9Sat64YHt5FaBFjEXZ8J1o6jGvv1DNdxmh5Zku+Dz13LwHXLjCDFuZxZV6KbrMEU9Kw2zvq4wTykWhWXVqQ==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:XCeQI7SGl+E8EtL+sjt0Va/LaTGrpYlV5CH+oF9YlmrdIFcCriULm99nmzlAGg9CkFA61yIjO1IC6X26WGjfAQ==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "SPOOFED",
+      "action": "deny",
+      "error": "invalid_signature"
+     }
+    }
+   ]
+  },
+  {
+   "id": "std2--07-future-created-spoofed-30s-skew-is-the-only-grac",
+   "source": "STD-2",
+   "group": "future created → SPOOFED (±30s skew is the only grace)",
+   "title": "STD-2: future created → SPOOFED (±30s skew is the only grace)",
+   "world": {
+    "registry": {
+     "issuer": "https://registry.ludion.ai",
+     "keys": []
+    },
+    "documents": []
+   },
+   "gates": {
+    "main": {
+     "adapter": "core",
+     "authorities": [
+      "shop.example"
+     ],
+     "directories": [
+      {
+       "uri": "https://agent.example",
+       "keys": [
+        {
+         "kty": "OKP",
+         "crv": "Ed25519",
+         "x": "5Wgxzq86jvztABMKZ-MTfIM4SoJYOGSylWJdJy2II6Q",
+         "kid": "G_4IaFY5mSuMJF85eLXzeTjdcRqPTsKraSMcSDEP51M",
+         "use": "sig"
+        }
+       ]
+      },
+      {
+       "uri": "https://attacker.example",
+       "keys": [
+        {
+         "kty": "OKP",
+         "crv": "Ed25519",
+         "x": "2bvcbSlD8cljWDoCUBMWWJWtD7RM6WOiw2vQXWwpSws",
+         "kid": "7bExIkU988yU65n_x3mctB6TBAH913suxO2RE7dd8e4",
+         "use": "sig"
+        }
+       ]
+      }
+     ]
+    }
+   },
+   "steps": [
+    {
+     "gate": "main",
+     "atS": 0,
+     "expect": "rejected",
+     "classes": [
+      "SPOOFED"
+     ],
+     "note": "created 31s ahead",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://agent.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000031;keyid=\"G_4IaFY5mSuMJF85eLXzeTjdcRqPTsKraSMcSDEP51M\";alg=\"ed25519\";expires=1800000091;nonce=\"MZ7MGxt2Vfa7VgusnfMibFZbOz+fycQw6rhQK9c2vcr/6AFXsfmiy9auwIkJAMtjv90XzsfCTPDfJJDof5oz1w==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:8M51wy4NHxerCxQ0epgAUR1D2nrcXZIgeXzOcCzH1IjfTqwAFHRbJNG+UkTgHFbx4GfnpXOgpFo2T8MwMmTpDg==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "SPOOFED",
+      "action": "deny",
+      "error": "invalid_signature"
+     }
+    },
+    {
+     "gate": "main",
+     "atS": 0,
+     "expect": "rejected",
+     "classes": [
+      "SPOOFED"
+     ],
+     "note": "created an hour ahead",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://agent.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800003600;keyid=\"G_4IaFY5mSuMJF85eLXzeTjdcRqPTsKraSMcSDEP51M\";alg=\"ed25519\";expires=1800003660;nonce=\"XWGP4DHjaXFHGpXG0S4UaYZyKJF3zoX2JigHT6FjbcfqN5D5So+L2Sd8KLitl2qYpEdnxpjVK8QwBu6m3H03/Q==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:mYqhCZnUDxtL5JXqe0V2TbzCH2gdJgzkR+1mU7ra1XAyPAwmOnatyvyLA+EdKw6MfR0GBvUnkht7lMJqJL5uDw==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "SPOOFED",
+      "action": "deny",
+      "error": "invalid_signature"
+     }
+    },
+    {
+     "gate": "main",
+     "atS": 0,
+     "expect": "verified",
+     "identifier": "https://agent.example",
+     "note": "created 29s ahead is inside the skew",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://agent.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000029;keyid=\"G_4IaFY5mSuMJF85eLXzeTjdcRqPTsKraSMcSDEP51M\";alg=\"ed25519\";expires=1800000089;nonce=\"dZLf450G8iUTwmOIhcjkNoZ2BOX7Z+GLqEEo33wbzQWrbJrlztLI1WHyO1evAXF4xeasbhpVFfTTwVAzycSNeA==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:6QArvqlYT6XhSrBDsQiBY+YtXe8gp5zqji1hAJQtPM3wuF47RU55SHsQ6Y3lCIlw93zM/ZO1/jbuygBdwemFCw==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "VERIFIED",
+      "action": "allow"
+     }
+    }
+   ]
+  },
+  {
+   "id": "std2--08-lifetime-over-60s-spoofed",
+   "source": "STD-2",
+   "group": "lifetime over 60s → SPOOFED",
+   "title": "STD-2: lifetime over 60s → SPOOFED",
+   "world": {
+    "registry": {
+     "issuer": "https://registry.ludion.ai",
+     "keys": []
+    },
+    "documents": []
+   },
+   "gates": {
+    "main": {
+     "adapter": "core",
+     "authorities": [
+      "shop.example"
+     ],
+     "directories": [
+      {
+       "uri": "https://agent.example",
+       "keys": [
+        {
+         "kty": "OKP",
+         "crv": "Ed25519",
+         "x": "5Wgxzq86jvztABMKZ-MTfIM4SoJYOGSylWJdJy2II6Q",
+         "kid": "G_4IaFY5mSuMJF85eLXzeTjdcRqPTsKraSMcSDEP51M",
+         "use": "sig"
+        }
+       ]
+      },
+      {
+       "uri": "https://attacker.example",
+       "keys": [
+        {
+         "kty": "OKP",
+         "crv": "Ed25519",
+         "x": "2bvcbSlD8cljWDoCUBMWWJWtD7RM6WOiw2vQXWwpSws",
+         "kid": "7bExIkU988yU65n_x3mctB6TBAH913suxO2RE7dd8e4",
+         "use": "sig"
+        }
+       ]
+      }
+     ]
+    }
+   },
+   "steps": [
+    {
+     "gate": "main",
+     "atS": 0,
+     "expect": "rejected",
+     "classes": [
+      "SPOOFED"
+     ],
+     "note": "61s",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://agent.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"G_4IaFY5mSuMJF85eLXzeTjdcRqPTsKraSMcSDEP51M\";alg=\"ed25519\";expires=1800000061;nonce=\"0mY0GipOuNiq3dwEmrwD0xj1+xqfHLadh8+qQZrWB6ozDQXIC8YRZD5I7pBwv1KkNKzjux56AnxtU4WTOiC7SA==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:eyqWBan9+n123Hg7oj14g0hTV4pFufZF9wNJJjAgdF1jm0R5BXRLucRoasSu/hCZ7/sNFUWDFBx1aYBW/TXhCQ==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "SPOOFED",
+      "action": "deny",
+      "error": "invalid_signature"
+     }
+    },
+    {
+     "gate": "main",
+     "atS": 0,
+     "expect": "rejected",
+     "classes": [
+      "SPOOFED"
+     ],
+     "note": "one day",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://agent.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"G_4IaFY5mSuMJF85eLXzeTjdcRqPTsKraSMcSDEP51M\";alg=\"ed25519\";expires=1800086400;nonce=\"Fywb9EGm6bLGYL3wrEFF++f2zFIbX+NgtVpK1yQ68TkvEgOztHwcv6FWLVB+EneV/viSPEPIAh+pZpkP6VTZfA==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:7+wAq4qyZ4cHCTaeCK5Cz7IQhhyISTQbIbxjEPJus4PDEX2z55K6BFjYZcThIqCzFXi/nkZJWIRBpTA+0jpJDA==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "SPOOFED",
+      "action": "deny",
+      "error": "invalid_signature"
+     }
+    },
+    {
+     "gate": "main",
+     "atS": 0,
+     "expect": "verified",
+     "identifier": "https://agent.example",
+     "note": "60s is the limit",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://agent.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"G_4IaFY5mSuMJF85eLXzeTjdcRqPTsKraSMcSDEP51M\";alg=\"ed25519\";expires=1800000060;nonce=\"Qmt6YDqy4nXpkt4ptc+qYuECJtxTr1c/TWXwNhSMTruuSv8uLgwkmKml/7lk+Br7uQIasgZ48sGiF/ndJbP9cQ==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:gJbohzN3JlhgoY2W1Da1DZQmvhGC0HGolCFNB5WrncctTc29gwAZt3JU1IWVjrdb62ww3fjhSVSlvDUelKDjDg==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "VERIFIED",
+      "action": "allow"
+     }
+    }
+   ]
+  },
+  {
+   "id": "std2--09-missing-expires-created-tag-spoofed",
+   "source": "STD-2",
+   "group": "missing expires / created / tag → SPOOFED",
+   "title": "STD-2: missing expires / created / tag → SPOOFED",
+   "world": {
+    "registry": {
+     "issuer": "https://registry.ludion.ai",
+     "keys": []
+    },
+    "documents": []
+   },
+   "gates": {
+    "main": {
+     "adapter": "core",
+     "authorities": [
+      "shop.example"
+     ],
+     "directories": [
+      {
+       "uri": "https://agent.example",
+       "keys": [
+        {
+         "kty": "OKP",
+         "crv": "Ed25519",
+         "x": "5Wgxzq86jvztABMKZ-MTfIM4SoJYOGSylWJdJy2II6Q",
+         "kid": "G_4IaFY5mSuMJF85eLXzeTjdcRqPTsKraSMcSDEP51M",
+         "use": "sig"
+        }
+       ]
+      },
+      {
+       "uri": "https://attacker.example",
+       "keys": [
+        {
+         "kty": "OKP",
+         "crv": "Ed25519",
+         "x": "2bvcbSlD8cljWDoCUBMWWJWtD7RM6WOiw2vQXWwpSws",
+         "kid": "7bExIkU988yU65n_x3mctB6TBAH913suxO2RE7dd8e4",
+         "use": "sig"
+        }
+       ]
+      }
+     ]
+    }
+   },
+   "steps": [
+    {
+     "gate": "main",
+     "atS": 0,
+     "expect": "rejected",
+     "classes": [
+      "SPOOFED"
+     ],
+     "note": "expires removed",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://agent.example\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:pYvsJ4iwd383nw5gpQ3fb9rM+pMEp3crVrfos5oNswHpD9eD4cCWQX2nDtWWHR8Et2vtjATqX+Ilgl9hURV7Cw==:"
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"G_4IaFY5mSuMJF85eLXzeTjdcRqPTsKraSMcSDEP51M\";alg=\"ed25519\";nonce=\"t8vpP3OHOTjwBvPdmVpXGtyDTqQ+JbzryE5cb9BmF0ojKIEhHKTtm3qd2wSSNcdEi3U35mVpHwheRj30K5hx1g==\";tag=\"web-bot-auth\""
+       }
+      ]
+     },
+     "reference": {
+      "class": "SPOOFED",
+      "action": "deny",
+      "error": "invalid_signature"
+     }
+    },
+    {
+     "gate": "main",
+     "atS": 0,
+     "expect": "rejected",
+     "classes": [
+      "SPOOFED"
+     ],
+     "note": "created removed",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://agent.example\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:pYvsJ4iwd383nw5gpQ3fb9rM+pMEp3crVrfos5oNswHpD9eD4cCWQX2nDtWWHR8Et2vtjATqX+Ilgl9hURV7Cw==:"
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");keyid=\"G_4IaFY5mSuMJF85eLXzeTjdcRqPTsKraSMcSDEP51M\";alg=\"ed25519\";expires=1800000060;nonce=\"t8vpP3OHOTjwBvPdmVpXGtyDTqQ+JbzryE5cb9BmF0ojKIEhHKTtm3qd2wSSNcdEi3U35mVpHwheRj30K5hx1g==\";tag=\"web-bot-auth\""
+       }
+      ]
+     },
+     "reference": {
+      "class": "SPOOFED",
+      "action": "deny",
+      "error": "invalid_signature"
+     }
+    },
+    {
+     "gate": "main",
+     "atS": 0,
+     "expect": "rejected",
+     "classes": [
+      "SPOOFED"
+     ],
+     "note": "signed without a tag",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://agent.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"G_4IaFY5mSuMJF85eLXzeTjdcRqPTsKraSMcSDEP51M\";alg=\"ed25519\";expires=1800000060;nonce=\"VaO+fMETAtdfWzbQqQl2a4lXh1F8XaiXhZwCk6skd2UUI2eYY6yJZV5W7w0FimFrgZGww0L/ASjv/d8pF/7nAQ==\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:akMR0/WgzLQx0ToH1hLvrgFCv6L8RBbGaQ4wK277lYYoSguZuTLLYfZ5MK+RHMDhQ9a2oJ8cJo5NrsqA9NlkAw==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "SPOOFED",
+      "action": "deny",
+      "error": "invalid_signature"
+     }
+    },
+    {
+     "gate": "main",
+     "atS": 0,
+     "expect": "rejected",
+     "classes": [
+      "SPOOFED"
+     ],
+     "note": "signed without expires",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://agent.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"G_4IaFY5mSuMJF85eLXzeTjdcRqPTsKraSMcSDEP51M\";alg=\"ed25519\";nonce=\"OWOOQbp7JoQMEY5+BHOcgYcrn6TUf6HaHEfZwCGhTKNqBUolFSIluWQN3a48KrdZlRFhto2wjATguYtw4llnKw==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:qj6MFMveZ5CuQ9kKCSnPqedC7pp22lfWN0nNbNTuJ+btbTstUVjn6awZ0WKMDQHpAdYdDk2TcFZxb8cGqQKiBw==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "SPOOFED",
+      "action": "deny",
+      "error": "invalid_signature"
+     }
+    }
+   ]
+  },
+  {
+   "id": "std2--10-wrong-tag-spoofed-a-validly-signed-non-web-bot-a",
+   "source": "STD-2",
+   "group": "wrong tag → SPOOFED (a validly signed, non-web-bot-auth signature is not a Web Bot Auth verification)",
+   "title": "STD-2: wrong tag → SPOOFED (a validly signed, non-web-bot-auth signature is not a Web Bot Auth verification)",
+   "world": {
+    "registry": {
+     "issuer": "https://registry.ludion.ai",
+     "keys": []
+    },
+    "documents": []
+   },
+   "gates": {
+    "main": {
+     "adapter": "core",
+     "authorities": [
+      "shop.example"
+     ],
+     "directories": [
+      {
+       "uri": "https://agent.example",
+       "keys": [
+        {
+         "kty": "OKP",
+         "crv": "Ed25519",
+         "x": "5Wgxzq86jvztABMKZ-MTfIM4SoJYOGSylWJdJy2II6Q",
+         "kid": "G_4IaFY5mSuMJF85eLXzeTjdcRqPTsKraSMcSDEP51M",
+         "use": "sig"
+        }
+       ]
+      },
+      {
+       "uri": "https://attacker.example",
+       "keys": [
+        {
+         "kty": "OKP",
+         "crv": "Ed25519",
+         "x": "2bvcbSlD8cljWDoCUBMWWJWtD7RM6WOiw2vQXWwpSws",
+         "kid": "7bExIkU988yU65n_x3mctB6TBAH913suxO2RE7dd8e4",
+         "use": "sig"
+        }
+       ]
+      }
+     ]
+    }
+   },
+   "steps": [
+    {
+     "gate": "main",
+     "atS": 0,
+     "expect": "rejected",
+     "classes": [
+      "SPOOFED"
+     ],
+     "note": "tag not-web-bot-auth",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://agent.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"G_4IaFY5mSuMJF85eLXzeTjdcRqPTsKraSMcSDEP51M\";alg=\"ed25519\";expires=1800000060;nonce=\"gfqV8htXOncgXvRHHi3euFEQMuf5PJW6sy6Ka9mA8JGTCl3VvkwBXsL6Vmp4TSMxQqBnxhHRPCNpyXnFer+vnA==\";tag=\"not-web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:1WT5qJmM1ZY01pwGTAh/PmPNhwS4+KSAzqW8Uzk8zjtPt+4WMpMsfT1dJKvE7WMG037Y8HebKHsG2W/a0QrnAg==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "SPOOFED",
+      "action": "deny",
+      "error": "invalid_signature"
+     }
+    },
+    {
+     "gate": "main",
+     "atS": 0,
+     "expect": "rejected",
+     "classes": [
+      "SPOOFED"
+     ],
+     "note": "tag differs only in case",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://agent.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"G_4IaFY5mSuMJF85eLXzeTjdcRqPTsKraSMcSDEP51M\";alg=\"ed25519\";expires=1800000060;nonce=\"F/1dUqlm0XAOKDi2KE2usGvcr/yhgjmN4+STjLv6s11qbwrRboAhN643Z9XNoqcW1Ak3TBUct7IQKywaYdY2dA==\";tag=\"Web-Bot-Auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:UvJBKPP+lNlKo3KzLMNcI+yiqfC6ZZxn9zFf8R8BooK82JZpJjxTG/IVQPV5OaOCf2XbFgovSVrKZGln2MqpBA==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "SPOOFED",
+      "action": "deny",
+      "error": "invalid_signature"
+     }
+    }
+   ]
+  },
+  {
+   "id": "std2--11-signature-agent-dictionary-key-vs-the-signature",
+   "source": "STD-2",
+   "group": "Signature-Agent dictionary key vs the signature's covered member and label",
+   "title": "STD-2: Signature-Agent dictionary key vs the signature's covered member and label",
+   "world": {
+    "registry": {
+     "issuer": "https://registry.ludion.ai",
+     "keys": []
+    },
+    "documents": []
+   },
+   "gates": {
+    "main": {
+     "adapter": "core",
+     "authorities": [
+      "shop.example"
+     ],
+     "directories": [
+      {
+       "uri": "https://agent.example",
+       "keys": [
+        {
+         "kty": "OKP",
+         "crv": "Ed25519",
+         "x": "5Wgxzq86jvztABMKZ-MTfIM4SoJYOGSylWJdJy2II6Q",
+         "kid": "G_4IaFY5mSuMJF85eLXzeTjdcRqPTsKraSMcSDEP51M",
+         "use": "sig"
+        }
+       ]
+      },
+      {
+       "uri": "https://attacker.example",
+       "keys": [
+        {
+         "kty": "OKP",
+         "crv": "Ed25519",
+         "x": "2bvcbSlD8cljWDoCUBMWWJWtD7RM6WOiw2vQXWwpSws",
+         "kid": "7bExIkU988yU65n_x3mctB6TBAH913suxO2RE7dd8e4",
+         "use": "sig"
+        }
+       ]
+      }
+     ]
+    }
+   },
+   "steps": [
+    {
+     "gate": "main",
+     "atS": 0,
+     "expect": "rejected",
+     "classes": [
+      "SPOOFED"
+     ],
+     "note": "covers key=sig1, dictionary has only agent1",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"G_4IaFY5mSuMJF85eLXzeTjdcRqPTsKraSMcSDEP51M\";alg=\"ed25519\";expires=1800000060;nonce=\"hy9HxmD2KFGeuVM1Cu6AcqXcoXWpd21/X3N6xC92aSYGUfx9mQlmYrwxUQ7nhElDpotkg+ZMApPhLk4v0g6wjw==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:BKyHTfnlee56Z2Oxh1T0W+7q/hsbmBjZJvH/XCdri0E4LqEICzKSMIt39O+kXR3GZBydsoH+Bwq7yCFItI2mDA==:"
+       },
+       {
+        "name": "signature-agent",
+        "value": "agent1=\"https://agent.example\""
+       }
+      ]
+     },
+     "reference": {
+      "class": "SPOOFED",
+      "action": "deny",
+      "error": "invalid_signature"
+     }
+    },
+    {
+     "gate": "main",
+     "atS": 0,
+     "expect": "rejected",
+     "classes": [
+      "SPOOFED"
+     ],
+     "note": "member renamed after signing",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"agent1\");created=1800000000;keyid=\"G_4IaFY5mSuMJF85eLXzeTjdcRqPTsKraSMcSDEP51M\";alg=\"ed25519\";expires=1800000060;nonce=\"P5KZ7brezGr5aF+/EZ8TwQaZRQ9FvisiZkPAFNLGgO2eQc2BjKok/2kjvTfFzZfphqBWnvLsw0LBZeb+U2apng==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:e5tyAsVcHjzOFEURW0Vu9vfWocun1aSjw3caXKN23pHVJu6tPZ3SF/23CF3Kl2Nxoe/FY7IZQurELFo1JCa2AA==:"
+       },
+       {
+        "name": "signature-agent",
+        "value": "agent2=\"https://agent.example\""
+       }
+      ]
+     },
+     "reference": {
+      "class": "SPOOFED",
+      "action": "deny",
+      "error": "invalid_signature"
+     }
+    },
+    {
+     "gate": "main",
+     "atS": 0,
+     "expect": "rejected",
+     "classes": [
+      "SPOOFED"
+     ],
+     "note": "dictionary header, bare component",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://agent.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\");created=1800000000;keyid=\"G_4IaFY5mSuMJF85eLXzeTjdcRqPTsKraSMcSDEP51M\";alg=\"ed25519\";expires=1800000060;nonce=\"Jy3BmnN3VbahMdy5mJjUG4GqgT6n8iSRBw7ZKQf5ISAf7+vOvCMZSPwd9VkvYUvhx4bAXGQ+fmpuN7+gVVHvzw==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:lrdnrjJk8rtWXqwzn14iO/tgdrU2DFoMeVw2rVV8uHmZFRDOUfltDjia24nyLBpuyaF/zUEYAL2AAog3WjtyDA==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "SPOOFED",
+      "action": "deny",
+      "error": "invalid_signature"
+     }
+    },
+    {
+     "gate": "main",
+     "atS": 0,
+     "expect": "rejected",
+     "classes": [
+      "SPOOFED"
+     ],
+     "note": "two members covered",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://agent.example\", agent2=\"https://attacker.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\" \"signature-agent\";key=\"agent2\");created=1800000000;keyid=\"G_4IaFY5mSuMJF85eLXzeTjdcRqPTsKraSMcSDEP51M\";alg=\"ed25519\";expires=1800000060;nonce=\"HT4w8Mrnzzthh1ZoNbZPuPdHz99HTQsP2S/jKRFNXKoHjBjO9A81KlSS06vgp+508v+cJqdetm/+XFPC28JxWw==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:mDTxCf3QbGdQlhy3AqzvVQPJO9YT6N3YOqg1n4dr6kIzgjYwYMxdJBgw/UtsfpSLhwKcCItPDW5mPddmsjESDQ==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "SPOOFED",
+      "action": "deny",
+      "error": "invalid_signature"
+     }
+    },
+    {
+     "gate": "main",
+     "atS": 0,
+     "expect": "rejected",
+     "classes": [
+      "SPOOFED"
+     ],
+     "note": "Signature label sig2 vs Signature-Input label sig1",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://agent.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"G_4IaFY5mSuMJF85eLXzeTjdcRqPTsKraSMcSDEP51M\";alg=\"ed25519\";expires=1800000060;nonce=\"/K02Rr/fSd6KYYB6GMY0Re5BvP7h544Tm3XEV1NbGraKUv39DdePB4HerwWN9ZDOat4W2cnFPNdoJJ31u1VaGA==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig2=:yGiCi2No2YWt6RkU65RHUf2buRIXAELo7woeCvjN9HBuKGxIGMxJ/1uZZv7pWoyWvDaX+lPza/mfNRIXrkfFAQ==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "SPOOFED",
+      "action": "deny",
+      "error": "invalid_signature"
+     }
+    },
+    {
+     "gate": "main",
+     "atS": 0,
+     "expect": "verified",
+     "identifier": "https://attacker.example",
+     "note": "multi-member dictionary: attributed to the covered member",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "a=\"https://agent.example\", b=\"https://attacker.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"b\");created=1800000000;keyid=\"7bExIkU988yU65n_x3mctB6TBAH913suxO2RE7dd8e4\";alg=\"ed25519\";expires=1800000060;nonce=\"WwtppHIHN4hgz007My+W81QH+wC+81CJOKxqQHXyjS7r1GjEfkNdmLcSjngCVNKJQQWCDglqq7GXea3wRsO8TQ==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:TEGP8iYWGzPqc/GhFjLTznB4emJOtjbaZaQpMzIds2e5at9A/uGfdqtkh/mgavJCr4JiHCNV2c6qeBMjjcOWBA==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "VERIFIED",
+      "action": "allow"
+     }
+    },
+    {
+     "gate": "main",
+     "atS": 0,
+     "expect": "rejected",
+     "classes": [
+      "UNVERIFIED"
+     ],
+     "note": "attacker key under the agent's member",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "a=\"https://agent.example\", b=\"https://attacker.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"a\");created=1800000000;keyid=\"7bExIkU988yU65n_x3mctB6TBAH913suxO2RE7dd8e4\";alg=\"ed25519\";expires=1800000060;nonce=\"0guNxhnXBfCmUIB3KLFUKqgNOUB02J7Sm76bQHelUn5Vk+95pD9Nf9Mqx6ZXBBPBF70uPAAiM8t21CCaxySfIg==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:ZCxFsI8jcE7WvOmhjkCUs+7VzKSxZk6YUFdlmW5/4rLtcFy517rMhkWTCv+sO8/n29AASNEdSuqvYYMVhZseCA==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "UNVERIFIED",
+      "action": "deny",
+      "error": "signature_required"
+     }
+    }
+   ]
+  },
+  {
+   "id": "std2--12-gate-clock-drives-the-checks-no-wall-clock-leak",
+   "source": "STD-2",
+   "group": "Gate clock drives the checks (no wall-clock leak)",
+   "title": "STD-2: Gate clock drives the checks (no wall-clock leak)",
+   "now": 1800000120000,
+   "world": {
+    "registry": {
+     "issuer": "https://registry.ludion.ai",
+     "keys": []
+    },
+    "documents": []
+   },
+   "gates": {
+    "main": {
+     "adapter": "core",
+     "authorities": [
+      "shop.example"
+     ],
+     "directories": [
+      {
+       "uri": "https://agent.example",
+       "keys": [
+        {
+         "kty": "OKP",
+         "crv": "Ed25519",
+         "x": "5Wgxzq86jvztABMKZ-MTfIM4SoJYOGSylWJdJy2II6Q",
+         "kid": "G_4IaFY5mSuMJF85eLXzeTjdcRqPTsKraSMcSDEP51M",
+         "use": "sig"
+        }
+       ]
+      },
+      {
+       "uri": "https://attacker.example",
+       "keys": [
+        {
+         "kty": "OKP",
+         "crv": "Ed25519",
+         "x": "2bvcbSlD8cljWDoCUBMWWJWtD7RM6WOiw2vQXWwpSws",
+         "kid": "7bExIkU988yU65n_x3mctB6TBAH913suxO2RE7dd8e4",
+         "use": "sig"
+        }
+       ]
+      }
+     ]
+    }
+   },
+   "steps": [
+    {
+     "gate": "main",
+     "atS": 0,
+     "expect": "rejected",
+     "classes": [
+      "SPOOFED"
+     ],
+     "note": "a signature valid at NOW is expired two minutes later",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://agent.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"G_4IaFY5mSuMJF85eLXzeTjdcRqPTsKraSMcSDEP51M\";alg=\"ed25519\";expires=1800000060;nonce=\"rbW49TffEbjt6lynWBU9sybg/yifADJlNkYqgQR6fC5yAYlDrcJT/VuKaT8gkOMPkE9EoiLiGc7e/p4JmvPW3A==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:Z6O04J3zKt6SMYTTD8YnXY7g3HTSp/UTvz8byvZiXdIcAq9IQmvArCg9aa5KiNd2aVe3grkMyJitLiO/47gwCw==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "SPOOFED",
+      "action": "deny",
+      "error": "invalid_signature"
      }
     }
    ]
