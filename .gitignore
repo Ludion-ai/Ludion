@@ -3,6 +3,9 @@ node_modules/
 !accept/fixtures/logs/corpus/*.log
 .DS_Store
 .vercel/
+# reference apps run in place
+.next/
+.wrangler/
 # Diver CLI output when run inside the repo
 ludion.json
 .well-known/

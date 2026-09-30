@@ -8,6 +8,7 @@
   "exports": {
     ".": "./src/index.mjs",
     "./agents": "./src/agents.mjs",
+    "./config": "./src/config.mjs",
     "./route": "./src/route.mjs"
   },
   "engines": {
