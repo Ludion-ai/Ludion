@@ -9,16 +9,16 @@
 import { createResolver } from "./resolver.mjs";
 import { createStapleVerifier, issueStaple } from "./staple.mjs";
 import { classify, createPolicy, createNonceCache, decide, ERROR_HELP, AUTOMATION, compileRoute, CLASSES } from "./classify.mjs";
-import { createReceipts, importSiteKey, generateSiteKey, metadataEvent, templatePath, hashIp } from "./receipt.mjs";
+import { createReceipts, importSiteKey, generateSiteKey, metadataEvent, countryCode, templatePath, hashIp } from "./receipt.mjs";
 import { KNOWN_AGENT_TOKENS, AUTOMATION_SIGNALS, matchKnownAgent, matchAutomationSignal } from "./agents.mjs";
 import { GateFault, within, clock } from "./budget.mjs";
-import { routeKind, isCritical, pathOf, queryKeys, templateSegment, publicTemplateSegment, isRouteWord, ROUTE_KINDS, CRITICAL_KINDS, WRITE_METHODS } from "./route.mjs";
+import { routeKind, isCritical, pathOf, queryKeys, templateSegment, publicTemplateSegment, publicTemplatePath, isRouteWord, ROUTE_KINDS, CRITICAL_KINDS, WRITE_METHODS } from "./route.mjs";
 
 export {
   createResolver, createStapleVerifier, issueStaple, classify, createPolicy, createNonceCache, decide, compileRoute, CLASSES,
-  ERROR_HELP, AUTOMATION, createReceipts, importSiteKey, generateSiteKey, metadataEvent, templatePath, hashIp,
+  ERROR_HELP, AUTOMATION, createReceipts, importSiteKey, generateSiteKey, metadataEvent, countryCode, templatePath, hashIp,
   KNOWN_AGENT_TOKENS, AUTOMATION_SIGNALS, matchKnownAgent, matchAutomationSignal, GateFault,
-  routeKind, isCritical, pathOf, queryKeys, templateSegment, publicTemplateSegment, isRouteWord, ROUTE_KINDS, CRITICAL_KINDS, WRITE_METHODS,
+  routeKind, isCritical, pathOf, queryKeys, templateSegment, publicTemplateSegment, publicTemplatePath, isRouteWord, ROUTE_KINDS, CRITICAL_KINDS, WRITE_METHODS,
 };
 
 export const LUDION_VERSION = "0";
@@ -171,7 +171,7 @@ export async function createGate(config) {
       headers["Ludion-Receipt"] = receipts.toHeader(receipt);
     } catch (e) { gateError ??= e; } // a receipt is evidence, not the decision: losing it never changes the response
     if (receipt && sendMetadata && config.sink && AUTOMATION.has(cls.class)) {
-      emit(metadataEvent({ receipt, ip: meta.ip, ipSalt, country: meta.country }));
+      emit(metadataEvent({ receipt, path, ip: meta.ip, ipSalt, country: meta.country }));
     }
     return { cls, decision, receipt, headers, route, ...(gateError ? { gateError: String(gateError?.message ?? gateError).slice(0, 200) } : {}) };
   }
