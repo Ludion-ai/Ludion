@@ -95,7 +95,8 @@ export const ORACLES = [
   // ── M1 privacy ─────────────────────────────────────────────────────────────────
   { id: "PRIV-1", m: "M1", kind: "-", level: 1, title: "canary egress: 0 canaries, 0 raw IPs in any byte leaving the Gate (10k fuzzed)",
     run: nodeTest(["packages/gate-node/test/priv.test.mjs"], "^PRIV-1:") },
-  { id: "PRIV-2", m: "M1", kind: "-", level: 1, title: "send_metadata=false → only key-directory fetches leave the process" },
+  { id: "PRIV-2", m: "M1", kind: "-", level: 1, title: "send_metadata=false → only key-directory fetches leave the process",
+    run: nodeTest(["packages/gate-node/test/priv.test.mjs"], "^PRIV-2:") },
   { id: "PRIV-3", m: "M1", kind: "-", level: 1, title: "Registry receives no site origin/URL/path across the Diver lifecycle" },
 
   // ── M2 diver ───────────────────────────────────────────────────────────────────

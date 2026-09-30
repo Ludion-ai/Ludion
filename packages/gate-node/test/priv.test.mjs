@@ -104,6 +104,59 @@ for (const trustProxy of [false, true]) {
   });
 }
 
+// PRIV-2 (docs/MISSION.md §4, spec §11.4 / §11.7): send_metadata false → the only thing that
+// leaves the process is key discovery, 0 bytes anywhere else. Key discovery is what the protocol
+// defines for resolving a Signature-Agent: the key directory (type=directory), the CIMD Card and
+// the jwks_uri it names (type=cimd), and a bare jwks_uri (type=jwks_uri). Each must be a GET with
+// no body, carrying only Accept and the Gate's User-Agent, to a URL the request's Signature-Agent
+// (or its Card) named.
+const DISCOVERY_ACCEPT = new Set(["application/http-message-signatures-directory+json", "application/json"]);
+function nonDiscovery(run) {
+  const d = run.meta.discovery, allowed = new Set([...d.directory, ...d.card, ...d.jwks]);
+  const problems = [];
+  for (const r of run.records) {
+    if (r.ch !== "fetch") { problems.push(`${r.ch}: ${JSON.stringify(r).slice(0, 160)}`); continue; }
+    const names = r.headers.map(([k]) => k.toLowerCase()).sort();
+    if (!allowed.has(r.url)) problems.push(`fetch to ${r.url}: not a discovery URL any request named`);
+    if (r.method !== "GET" || r.body != null) problems.push(`fetch ${r.method} ${r.url} with a body`);
+    if (JSON.stringify(names) !== JSON.stringify(["accept", "user-agent"])) problems.push(`fetch ${r.url} carries headers ${names.join(",")}`);
+    const accept = r.headers.find(([k]) => k.toLowerCase() === "accept")?.[1];
+    if (!DISCOVERY_ACCEPT.has(accept)) problems.push(`fetch ${r.url} accepts ${accept}`);
+  }
+  if (run.stdout || run.stderr) problems.push(`the process wrote ${run.stdout.length + run.stderr.length} bytes to stdout/stderr`);
+  return problems;
+}
+
+for (const [label, env] of [
+  ["a sink configured and send_metadata false", { PRIV_SEND_METADATA: "0" }],
+  ["no sink and send_metadata false", { PRIV_SEND_METADATA: "0", PRIV_SINK: "0" }],
+]) {
+  test(`PRIV-2: 10,000 requests of every class, ${label}: only key discovery leaves the process`, { timeout: 300_000 }, () => {
+    const run = runWorkload({ PRIV_N: "10000", PRIV_TRUST_PROXY: "1", ...env });
+    const seen = classesSeen(run.meta.tally);
+    for (const cls of EVERY_CLASS) assert.ok(seen[cls] >= 100, `class ${cls} exercised only ${seen[cls] ?? 0} times: ${JSON.stringify(run.meta.tally)}`);
+    const urls = new Set(run.records.filter((r) => r.ch === "fetch").map((r) => r.url)), d = run.meta.discovery;
+    for (const [kind, list] of Object.entries(d)) assert.ok(list.some((u) => urls.has(u)), `no ${kind} fetch: that discovery path is not exercised`);
+    for (const kind of ["VERIFIED", "VERIFIED_CIMD", "VERIFIED_JWKS"]) assert.ok(run.meta.tally[`${kind}>VERIFIED`] >= 100, `${kind} did not verify: ${JSON.stringify(run.meta.tally)}`);
+    assert.deepEqual(nonDiscovery(run).slice(0, 10), []);
+    assert.equal(run.records.filter((r) => r.ch === "sink").length, 0, "the sink received events although send_metadata is false");
+    assert.deepEqual(leaks(run), { canaries: [], ips: [] });
+  });
+}
+
+test("PRIV-2: the checker bites — any sink event, socket, file write, output or non-discovery fetch is found", () => {
+  const meta = { discovery: { directory: ["https://a.example/.well-known/http-message-signatures-directory"], card: ["https://c.example/card"], jwks: ["https://c.example/keys.json"] } };
+  const ok = { ch: "fetch", url: "https://a.example/.well-known/http-message-signatures-directory", method: "GET", body: null,
+    headers: [["accept", "application/http-message-signatures-directory+json"], ["user-agent", "LudionGate/0.0.1"]] };
+  assert.deepEqual(nonDiscovery({ records: [ok], meta, stdout: "", stderr: "" }), []);
+  for (const bad of [
+    [{ ch: "sink", data: {} }], [{ ch: "net.connect", args: ["x"] }], [{ ch: "dns.lookup", args: ["x"] }], [{ ch: "fs.writeFileSync", args: ["/tmp/x", "y"] }],
+    [{ ...ok, url: "https://registry.ludion.ai/ping" }], [{ ...ok, method: "POST", body: "x" }], [{ ...ok, headers: [...ok.headers, ["cookie", "x"]] }],
+    [{ ...ok, headers: [["accept", "text/html"], ["user-agent", "x"]] }],
+  ]) assert.ok(nonDiscovery({ records: bad, meta, stdout: "", stderr: "" }).length > 0, `missed ${JSON.stringify(bad)}`);
+  assert.ok(nonDiscovery({ records: [ok], meta, stdout: "hi", stderr: "" }).length > 0, "missed stdout");
+});
+
 // The two leaks the workload found in the seed Gate, pinned in the fast loop.
 test("PRIV-1: a metadata event carries a country code or nothing, a route of route words only, and a known method", async () => {
   const { metadataEvent, countryCode } = await import("@ludion/gate-core");

@@ -15,9 +15,15 @@ const TRUST_PROXY = process.env.PRIV_TRUST_PROXY === "1";
 const SEND = process.env.PRIV_SEND_METADATA === undefined ? undefined : process.env.PRIV_SEND_METADATA === "1";
 const egress = globalThis.__egress;
 
-const [agent, stranger, registry] = await Promise.all([keypair(), keypair(), keypair()]);
-egress.docs.set(`${AGENT}/.well-known/http-message-signatures-directory`,
-  { body: { keys: [{ ...agent.publicJwk, use: "sig" }] }, type: "application/http-message-signatures-directory+json" });
+const [agent, stranger, registry, cimdKey, jwksKey] = await Promise.all([keypair(), keypair(), keypair(), keypair(), keypair()]);
+// Every way the protocol discovers keys: a directory, a CIMD Card and its jwks_uri, a bare jwks_uri.
+const CARD = "https://cimd.example/card", CARD_KEYS = "https://cimd.example/keys.json", JWKS = "https://jwks.example/keys.json";
+const DIRECTORY = `${AGENT}/.well-known/http-message-signatures-directory`;
+egress.docs.set(DIRECTORY, { body: { keys: [{ ...agent.publicJwk, use: "sig" }] }, type: "application/http-message-signatures-directory+json" });
+egress.docs.set(CARD, { body: { client_id: CARD, client_name: "Card agent", jwks_uri: CARD_KEYS } });
+egress.docs.set(CARD_KEYS, { body: { keys: [{ ...cimdKey.publicJwk, use: "sig" }] } });
+egress.docs.set(JWKS, { body: { keys: [{ ...jwksKey.publicJwk, use: "sig" }] } });
+egress.meta("discovery", { directory: [DIRECTORY, "https://stranger.example/.well-known/http-message-signatures-directory"], card: [CARD], jwks: [CARD_KEYS, JWKS] });
 
 const siteKey = await generateSiteKey();
 const mw = await ludionGate({
@@ -42,7 +48,13 @@ const UAS = {
   DECLARED: "Mozilla/5.0 (compatible; GPTBot/1.2; +https://openai.com/gptbot)",
   SUSPECTED: "python-requests/2.32.3",
 };
-const KINDS = ["UNKNOWN", "DECLARED", "SUSPECTED", "VERIFIED", "VERIFIED_STAPLED", "UNVERIFIED", "SPOOFED", "SPOOFED_UNSIGNED", "REVOKED", "REPLAY"];
+const KINDS = ["UNKNOWN", "DECLARED", "SUSPECTED", "VERIFIED", "VERIFIED_STAPLED", "UNVERIFIED", "SPOOFED", "SPOOFED_UNSIGNED", "REVOKED", "REPLAY", "VERIFIED_CIMD", "VERIFIED_JWKS"];
+const SIGNED = new Set(["VERIFIED", "VERIFIED_STAPLED", "REVOKED", "UNVERIFIED", "SPOOFED", "REPLAY", "VERIFIED_CIMD", "VERIFIED_JWKS"]);
+const signerOf = (kind) => ({
+  UNVERIFIED: { key: stranger, agent: "https://stranger.example" },
+  VERIFIED_CIMD: { key: cimdKey, agentHeader: `sig1="${CARD}";type=cimd` },
+  VERIFIED_JWKS: { key: jwksKey, agentHeader: `sig1="${JWKS}";type=jwks_uri` },
+}[kind] ?? { key: agent, agent: AGENT });
 const PATHS = ["/", "/checkout/:c", "/login", "/search", "/p/:c", "/account/:c/orders"];
 const HOST = "shop.example";
 
@@ -77,14 +89,14 @@ async function build(i) {
   ];
   const url = `http://${HOST}${target}`;
   let sigFields = [];
-  if (["VERIFIED", "VERIFIED_STAPLED", "REVOKED", "UNVERIFIED", "SPOOFED", "REPLAY"].includes(kind)) {
+  if (SIGNED.has(kind)) {
     const stp = kind === "VERIFIED_STAPLED" ? stapleOk : kind === "REVOKED" ? stapleRevoked : null;
     let desc;
     if (kind === "REPLAY" && replayOf) desc = replayOf;
     else {
-      desc = await signed({ key: kind === "UNVERIFIED" ? stranger : agent, url, method, body: body ?? undefined,
+      desc = await signed({ ...signerOf(kind), url, method, body: body ?? undefined,
         headers: { "user-agent": `ExampleAgent/1.0 (${c("u")})`, ...(stp ? { "ludion-staple": stp } : {}) },
-        ...(stp ? { extraComponents: ["ludion-staple"] } : {}), agent: kind === "UNVERIFIED" ? "https://stranger.example" : AGENT });
+        ...(stp ? { extraComponents: ["ludion-staple"] } : {}) });
       if (kind === "SPOOFED") desc.fields = desc.fields.map((f) => (f.name === "signature" ? { ...f, value: f.value.replace(/.(?=:$)/, (ch) => (ch === "A" ? "B" : "A")) } : f));
       if (kind === "VERIFIED") replayOf = { ...desc, url, target, body, method };
     }
