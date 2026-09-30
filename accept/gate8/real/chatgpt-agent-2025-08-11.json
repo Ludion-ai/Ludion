@@ -1,0 +1,53 @@
+{
+  "id": "chatgpt-agent-2025-08-11",
+  "note": "A request ChatGPT agent (OpenAI) sent to api.seatgeek.com on 2025-08-11, whose signature SeatGeek's engineers published when writing their verifier; with the directory that published the signing key. Every byte below is copied from the sources, never retyped from memory. GATE-8 (accept/gate8/gate8.test.mjs).",
+  "agent": { "name": "ChatGPT agent", "operator": "OpenAI", "signatureAgent": "https://chatgpt.com" },
+  "request": {
+    "method": "GET",
+    "target": "https://api.seatgeek.com/2/events?client_id=123&datetime_utc.gt=2025-08-29&geoip=false&lat=56.97205&lon=24.15423&q=Rick%20Feds&range=50mi",
+    "receivedAt": 1754904031000,
+    "headers": [
+      ["Signature", "sig1=:HMum+uuZ2Xy3H/v+W1V5+YFhT9rOEefm5/MJOPaon2Spib8KQRdSwHpz+rS8jj9A4viGptVWLGFUvFGxgdlwDw==:"],
+      ["Signature-Input", "sig1=(\"@authority\" \"@method\" \"@path\" \"signature-agent\");created=1754904031;keyid=\"otMqcjr17mGyruktGvJU8oojQTSMHlVm7uO-lrcqbdg\";expires=1754907631;nonce=\"e4DAqAsy0-wYYNXqJhtW4fWySSbigxcU6nuqaBQnzky8vMtci4g6WYHSdnSWMS4oiOCxx5s9wBq5Q9ipbqdJZg\";tag=\"web-bot-auth\";alg=\"ed25519\""],
+      ["Signature-Agent", "\"https://chatgpt.com\""]
+    ]
+  },
+  "directory": {
+    "url": "https://chatgpt.com/.well-known/http-message-signatures-directory",
+    "contentType": "application/http-message-signatures-directory+json",
+    "body": "{\"keys\":[{\"kid\":\"otMqcjr17mGyruktGvJU8oojQTSMHlVm7uO-lrcqbdg\",\"crv\":\"Ed25519\",\"kty\":\"OKP\",\"x\":\"7F_3jDlxaquwh291MiACkcS3Opq88NksyHiakzS-Y1g\",\"use\":\"sig\",\"nbf\":1735689600,\"exp\":1760418177}],\"signature_agent\":\"https://chatgpt.com\",\"purpose\":\"ai\"}"
+  },
+  "provenance": {
+    "request": {
+      "source": "https://chairnerd.seatgeek.com/chasing-signature/",
+      "published": "2025-08-26",
+      "by": "Ander Parra and Connor Laidlaw, SeatGeek engineering (the operator of api.seatgeek.com)",
+      "how": "They verified \"real ChatGPT Agent request data\" against Cloudflare's web-bot-auth while building a Kong verifier, and published the request's Signature, Signature-Input and Signature-Agent, its signature base (@authority api.seatgeek.com, @method GET, @path /2/events) and its URL. Only those three fields were published; the query (client_id=123) is not signed. The post gives no arrival time, so receivedAt is the signature's created.",
+      "archived": {
+        "url": "https://web.archive.org/web/20250918093209id_/https://chairnerd.seatgeek.com/chasing-signature/",
+        "cdxDigest": "OHAVVZ7GAQMYWPRD2V74VZOUSIRYM2BS",
+        "sha256": "cc6da19196b238508fb9876b3fd4474bc175389e70857c1ca0abf1c78677d2bf",
+        "note": "Holds the same three fields and URL as the live post on 2026-09-30."
+      },
+      "retrieved": "2026-09-30T22:52:34Z"
+    },
+    "directory": {
+      "archived": [
+        { "url": "https://web.archive.org/web/20251007050256id_/https://chatgpt.com/.well-known/http-message-signatures-directory", "cdxDigest": "4QYE6LYHYBIYOPQP4C7Q552OFREVSOXB", "stored": true },
+        { "url": "https://web.archive.org/web/20251123060240id_/https://chatgpt.com/.well-known/http-message-signatures-directory", "cdxDigest": "GG4IAAKDIJTOOPV35XM22UWI7KNUHM2G", "stored": false, "note": "the same key, a later exp (1764482562)" }
+      ],
+      "earlierSnapshots": "none: the Wayback Machine's first capture of the directory is 2025-10-07. The post quotes the same key (kid, x, nbf) as fetched then, with exp 1754656053: exp moves forward as the directory is refreshed. The key's nbf (2025-01-01) is before the request, and the key verifies the request's signature.",
+      "live": {
+        "retrieved": "2026-09-30T22:23:50Z",
+        "note": "no longer lists this key (rotated)",
+        "body": "{\"keys\":[{\"crv\":\"Ed25519\",\"kty\":\"OKP\",\"x\":\"P_1c4SX6fCavDcq6FRegWcVvaOKsp_aXHPEN1FcKDIA\",\"kid\":\"ArwjqcCqtA5oxEWkzXGC-To_0A9whHmajCHtfe8I9aY\",\"use\":\"sig\",\"nbf\":1735689600,\"exp\":1791411830}],\"signature_agent\":\"https://chatgpt.com\",\"purpose\":\"ai\"}"
+      },
+      "retrieved": "2026-09-30T22:28:25Z"
+    }
+  },
+  "expect": {
+    "class": "VERIFIED",
+    "identifier": "https://chatgpt.com/.well-known/http-message-signatures-directory",
+    "keyid": "otMqcjr17mGyruktGvJU8oojQTSMHlVm7uO-lrcqbdg"
+  }
+}

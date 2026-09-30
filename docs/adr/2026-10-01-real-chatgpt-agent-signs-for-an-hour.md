@@ -15,6 +15,14 @@
 - **署名は本物。**
   - 記事のヘッダーから署名の土台を組み、その鍵で検証すると通る。
   - パス、authority、メソッド、Signature-Agent、署名、created のどれか 1 か所を変えると落ちる。
+- **2 件目もあった。**
+  - ChatGPT agent が 2025-08-11 に `api.seatgeek.com` へ送った `GET /2/events`。
+  - SeatGeek の技術者が、自分たちの検証器を作るときに使った「本物の ChatGPT Agent の要求のデータ」として公開した（https://chairnerd.seatgeek.com/chasing-signature/ 、2025-08-26）。
+  - 公開されたのは署名の 3 つのフィールドと URL だけ。同じ鍵で検証が通る。
+- **寿命は、公開された捕獲の 3 件とも 3600 秒。**
+  - 2025-08-01（Castle のブログ。nonce が伏せてあり、検証はできない）
+  - 2025-08-04（simonwillison.net）
+  - 2025-08-11（SeatGeek）
 - **Gate の判定は SPOOFED だった**（`invalid_signature`、`PolicyViolation`）。
   - 理由は 1 つだけ。`expires - created` が 3600 秒で、spec §10.4 の「60 秒以内」を超える。
   - 鍵の発見は通っている。旧来の文字列形式の Signature-Agent（`"https://chatgpt.com"`）から chatgpt.com のディレクトリを引けた（spec §10.4 の注のとおり）。
@@ -30,7 +38,8 @@
 ## 決定（今夜）
 
 - GATE-8 を配線した。
-  - フィクスチャ：`accept/gate8/real/chatgpt-agent-2025-08-04.json`
+  - フィクスチャ：`accept/gate8/real/chatgpt-agent-2025-08-04.json`、`accept/gate8/real/chatgpt-agent-2025-08-11.json`
+    - 2 件目は着いた時刻が公開されていないので、署名の `created` を時計にした。
   - テスト：`accept/gate8/gate8.test.mjs`
 - **出所**：記事の URL、同じ日の Wayback の保存版とその CDX のダイジェスト、取得時刻、取り方を書いた。
   - ディレクトリは、Wayback の保存のバイトそのもの。CDX のダイジェスト（SHA-1、base32）と一致することを、テストがオフラインで確かめる。
@@ -51,7 +60,7 @@
   - STD-2「lifetime over 60s → SPOOFED」（`packages/gate-core/test/std2.test.mjs`）
   - GATE-7 の攻撃 `clock-skew--long-lived`（「created の 1 時間後に expires」）と、GATE-10 の vectors.json にあるその写し
 - **確かめたこと**（コミットしていない実験）：Gate の上限を 3600 秒にした。
-  - GATE-8 は 6 件すべて通り、対の拒否もすべて保たれた。
+  - GATE-8 は 6 つのテストがすべて通った。本物の 2 件は VERIFIED になり、対の拒否もすべて保たれた。
   - 落ちたのは上の 2 つだけ。`clock-skew--pre-dated-long-lived` は拒否されたまま。
 
 ## 人間に頼む判断：Gate が受け入れる寿命の上限
@@ -87,6 +96,6 @@
 
 ## 見直す条件
 
-- 今の ChatGPT agent の寿命は確かめていない。手元にあるのは 2025-08 の 1 件だけ。
+- 今の ChatGPT agent の寿命は確かめていない。手元にあるのは 2025-08 の捕獲だけ（3 件とも 3600 秒）。
   - LIVE-2 で canary が本物を捕まえたら、そのフィクスチャを `accept/gate8/real/` に足す。
 - WG のドラフトが寿命の上限を決めたら、それに合わせる。新しい版は STD-4 が知らせる。
