@@ -117,7 +117,14 @@ export const ORACLES = [
     run: nodeTest(["packages/scan/test/scan2.test.mjs"], "^SCAN-2:") },
   { id: "SCAN-3", m: "M4", kind: "-", level: 1, title: "scan output has no raw IP / query value / untemplated path; zero network",
     run: nodeTest(["packages/scan/test/scan3.test.mjs"], "^SCAN-3:") },
-  { id: "SCAN-4", m: "M4", kind: "+", level: 1, pair: "SCAN-3", title: "1 GB of logs in ≤60s" },
+  { id: "SCAN-4", m: "M4", kind: "+", level: 1, pair: "SCAN-3", title: "1 GB of logs in ≤60s", timeoutMs: 300_000, run: async () => {
+    // 1 GiB generated in a temp dir (untimed), then the real CLI timed end to end; see the script.
+    const r = sh(process.execPath, ["packages/scan/bench/scan4.mjs"], 290_000);
+    let res;
+    try { res = JSON.parse(r.out.trim().split("\n").pop()); } catch { return { pass: false, detail: r.out.trim().slice(-300) || "no result" }; }
+    return { pass: r.code === 0 && res.pass === true, metric: `${res.seconds}s for 1 GiB, ${res.mbps} MB/s`,
+      detail: res.problems?.length ? res.problems.join("; ").slice(0, 300) : undefined };
+  } },
   { id: "RPT-1", m: "M4", kind: "+", level: 1, pair: "PRIV-1", title: "daily report equals ground truth; ja + en, HTML + text" },
 
   // ── M5 pressure, neutrality, crypto ────────────────────────────────────────────
