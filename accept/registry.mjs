@@ -105,6 +105,7 @@ export const ORACLES = [
   { id: "GATE-7", m: "M1", kind: "-", level: 1, title: "attack corpus accept/attacks/ 100% rejected; corpus only grows",
     run: allOf(nodeScript("accept/attacks/run.mjs"), nodeTest(["packages/gate-core/test/hardening.test.mjs", "packages/gate-node/test/route-evasion.test.mjs", "packages/gate-node/test/authority.test.mjs", "packages/gate-core/test/nonce-flood.test.mjs"], "^GATE-7:")) },
   { id: "GATE-8", m: "M1", kind: "+", level: 1, pair: "GATE-7", title: "a real third-party signed request (fixture with provenance) is VERIFIED" },
+  { id: "GATE-9", m: "M1", kind: "+", level: 1, pair: "GATE-7", title: "the same conformance suite (STD vectors, GATE-7 corpus, STD-3 interop) passes in 6 ecosystems: Node, Workers, Deno/Bun, PHP+WordPress, Python, Go" },
 
   // ── M1 privacy ─────────────────────────────────────────────────────────────────
   { id: "PRIV-1", m: "M1", kind: "-", level: 1, title: "canary egress: 0 canaries, 0 raw IPs in any byte leaving the Gate (10k fuzzed)",
@@ -187,4 +188,14 @@ export const ORACLES = [
   { id: "LIVE-1", m: "M6", kind: "+", level: 2, pair: "GATE-5", needs: ["CLOUDFLARE_API_TOKEN"], title: "canary Gate (P0, *.workers.dev) up; hourly signed probe VERIFIED; ≥99.9%/week" },
   { id: "LIVE-2", m: "M6", kind: "+", level: 2, pair: "GATE-7", needs: ["LUDION_CANARY_READ_TOKEN"], title: "a real third-party agent is VERIFIED on the canary at least daily" },
   { id: "LIVE-3", m: "M6", kind: "+", level: 2, pair: "PRIV-1", needs: ["LUDION_CLOUD_READ_TOKEN"], title: "North Star: Verified Actions/day computed from Cloud events, on the scoreboard" },
+
+  // ── M7 web: the site, the /e/<code> help pages, the in-browser scan ──────────────
+  { id: "WEB-1", m: "M7", kind: "+", level: 1, pair: "WEB-5", title: "static site deployed to preview; every page in ja + en; Lighthouse mobile P/A/BP/SEO all ≥95" },
+  { id: "WEB-2", m: "M7", kind: "-", level: 1, title: "copy check: 0 insurance / guarantee / 100%-safe claims (spec §14); every number links to its source" },
+  { id: "WEB-3", m: "M7", kind: "+", level: 1, pair: "WEB-5", title: "every Gate error code has /e/<code> in ja + en (what happened, 3-minute path to VERIFIED); 0 missing" },
+  { id: "WEB-4", m: "M7", kind: "+", level: 1, pair: "WEB-6", title: "in-browser scan at /scan equals the CLI on SCAN fixtures; 200 MB in ≤30s (headless Chromium)" },
+  { id: "WEB-5", m: "M7", kind: "-", level: 1, title: "0 broken links, 0 console errors, 0 requests outside the allowlist" },
+  { id: "WEB-6", m: "M7", kind: "-", level: 1, title: "scan leaks no log byte: canary log → 0 external requests after page load (every request watched)" },
+  { id: "WEB-7", m: "M7", kind: "+", level: 1, pair: "WEB-2", title: "docs are tests: quickstart code blocks run in a clean env and do what they say (VERIFIED, first event)" },
+  { id: "WEB-8", m: "M7", kind: "±", level: 1, title: "signup form: a preview submission reaches the notifier (stub ok); honeypot and rate limit drop bots" },
 ];
