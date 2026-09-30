@@ -1,0 +1,11 @@
+{
+  "id": "route-evasion--format-suffix",
+  "family": "route-evasion",
+  "title": "A format suffix routed to the same action (Rails, Django REST)",
+  "params": {
+    "method": "GET",
+    "target": "/login.json",
+    "canonical": "/login"
+  },
+  "added": "2026-09-30"
+}

@@ -1,0 +1,11 @@
+{
+  "id": "route-evasion--case-trailing-slash",
+  "family": "route-evasion",
+  "title": "Case and trailing slash together",
+  "params": {
+    "method": "GET",
+    "target": "/Login/",
+    "canonical": "/login"
+  },
+  "added": "2026-09-30"
+}

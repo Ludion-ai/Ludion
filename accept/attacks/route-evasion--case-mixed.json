@@ -1,0 +1,11 @@
+{
+  "id": "route-evasion--case-mixed",
+  "family": "route-evasion",
+  "title": "Mixed case reaches the checkout handler",
+  "params": {
+    "method": "GET",
+    "target": "/Checkout/1",
+    "canonical": "/checkout/1"
+  },
+  "added": "2026-09-30"
+}

@@ -1,0 +1,11 @@
+{
+  "id": "route-evasion--percent-encoded-login",
+  "family": "route-evasion",
+  "title": "An encoded first letter of /login",
+  "params": {
+    "method": "GET",
+    "target": "/%6Cogin",
+    "canonical": "/login"
+  },
+  "added": "2026-09-30"
+}

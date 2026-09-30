@@ -1,0 +1,11 @@
+{
+  "id": "route-evasion--matrix-param-login",
+  "family": "route-evasion",
+  "title": "A ;jsessionid path parameter on /login",
+  "params": {
+    "method": "GET",
+    "target": "/login;jsessionid=0AF3C2",
+    "canonical": "/login"
+  },
+  "added": "2026-09-30"
+}

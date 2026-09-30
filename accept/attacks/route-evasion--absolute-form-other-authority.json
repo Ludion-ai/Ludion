@@ -1,0 +1,11 @@
+{
+  "id": "route-evasion--absolute-form-other-authority",
+  "family": "route-evasion",
+  "title": "Absolute-form naming another authority still routes on its path",
+  "params": {
+    "method": "GET",
+    "target": "http://other.example/checkout/1",
+    "canonical": "/checkout/1"
+  },
+  "added": "2026-09-30"
+}

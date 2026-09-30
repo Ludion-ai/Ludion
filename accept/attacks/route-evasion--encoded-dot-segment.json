@@ -1,0 +1,11 @@
+{
+  "id": "route-evasion--encoded-dot-segment",
+  "family": "route-evasion",
+  "title": "Percent-encoded dot segments",
+  "params": {
+    "method": "GET",
+    "target": "/a/%2e%2e/checkout/1",
+    "canonical": "/checkout/1"
+  },
+  "added": "2026-09-30"
+}

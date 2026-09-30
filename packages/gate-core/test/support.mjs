@@ -69,6 +69,9 @@ export function withFields(req, patch) {
 export const fieldOf = (req, name) => req.fields.find((f) => f.name.toLowerCase() === name)?.value;
 export const retarget = (req, targetUri) => ({ ...req, targetUri });
 
+/** The critical routes every harness protects at Pressure 2. */
+export const ROUTES = [{ match: "/checkout/**", pressure: 2 }, { match: "/login", pressure: 2, require: { depth: 1 } }];
+
 /**
  * A Gate at Pressure 0 with critical routes at Pressure 2, directories pinned for the
  * honest agent (and optionally an attacker), and a pinned Registry for Staples.
@@ -77,7 +80,7 @@ export async function harness({ agentKeys, attackerKeys = [], registry, routes, 
   const siteKey = await generateSiteKey();
   const gate = await createGate({
     siteId: "site-test", siteKey: siteKey.privateJwk, pressure: 0, now,
-    routes: routes ?? [{ match: "/checkout/**", pressure: 2 }, { match: "/login", pressure: 2, require: { depth: 1 } }],
+    routes: routes ?? ROUTES,
     ...(registry ? { registryKeys: { keys: [registry.publicJwk] }, registryIssuer: REGISTRY_ISS } : {}),
     ...rest,
   });

@@ -1,0 +1,11 @@
+{
+  "id": "route-evasion--duplicate-slashes-login",
+  "family": "route-evasion",
+  "title": "Merged slashes before /login",
+  "params": {
+    "method": "GET",
+    "target": "//login",
+    "canonical": "/login"
+  },
+  "added": "2026-09-30"
+}

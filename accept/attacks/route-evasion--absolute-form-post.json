@@ -1,0 +1,11 @@
+{
+  "id": "route-evasion--absolute-form-post",
+  "family": "route-evasion",
+  "title": "Absolute-form POST to the checkout base path",
+  "params": {
+    "method": "POST",
+    "target": "https://shop.example/checkout",
+    "canonical": "/checkout/1"
+  },
+  "added": "2026-09-30"
+}

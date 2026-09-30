@@ -1,0 +1,12 @@
+{
+  "id": "route-evasion--declared-agent-case",
+  "family": "route-evasion",
+  "title": "A declared crawler (unsigned) in another case",
+  "params": {
+    "method": "GET",
+    "target": "/CHECKOUT/1",
+    "canonical": "/checkout/1",
+    "ua": "declared"
+  },
+  "added": "2026-09-30"
+}

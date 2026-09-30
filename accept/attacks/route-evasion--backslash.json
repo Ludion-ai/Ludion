@@ -1,0 +1,11 @@
+{
+  "id": "route-evasion--backslash",
+  "family": "route-evasion",
+  "title": "A backslash treated as a slash",
+  "params": {
+    "method": "GET",
+    "target": "/checkout\\1",
+    "canonical": "/checkout/1"
+  },
+  "added": "2026-09-30"
+}

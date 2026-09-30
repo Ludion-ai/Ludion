@@ -1,0 +1,11 @@
+{
+  "id": "route-evasion--encoded-slash",
+  "family": "route-evasion",
+  "title": "%2F decoded to a slash before routing",
+  "params": {
+    "method": "GET",
+    "target": "/checkout%2F1",
+    "canonical": "/checkout/1"
+  },
+  "added": "2026-09-30"
+}

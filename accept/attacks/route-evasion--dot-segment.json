@@ -1,0 +1,11 @@
+{
+  "id": "route-evasion--dot-segment",
+  "family": "route-evasion",
+  "title": "Dot segments resolved before routing",
+  "params": {
+    "method": "GET",
+    "target": "/a/../checkout/1",
+    "canonical": "/checkout/1"
+  },
+  "added": "2026-09-30"
+}

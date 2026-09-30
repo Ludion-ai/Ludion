@@ -19,6 +19,7 @@ import { DiscoveryError } from "./resolver.mjs";
 import { StapleError } from "./staple.mjs";
 import { matchKnownAgent, matchAutomationSignal } from "./agents.mjs";
 import { GateFault, within, clock } from "./budget.mjs";
+import { routeCandidates } from "./route.mjs";
 
 export const CLASSES = ["VERIFIED", "UNVERIFIED", "SPOOFED", "REVOKED", "DECLARED", "SUSPECTED", "UNKNOWN"];
 export const AUTOMATION = new Set(["VERIFIED", "UNVERIFIED", "SPOOFED", "REVOKED", "DECLARED", "SUSPECTED"]);
@@ -193,15 +194,22 @@ export async function classify(req, ctx) {
 
 // ---- Routes & Pressure -----------------------------------------------------
 
-/** Minimal glob → RegExp: `**` any depth, `*` one segment, `:id` param. */
+/**
+ * Minimal glob → RegExp: `**` any depth, `*` one segment, `:id` param. Matched the way common
+ * frameworks route (Express: case-insensitive, non-strict): any case, an optional trailing
+ * slash, and a trailing `/**` also covers the base path (`/checkout/**` protects POST /checkout).
+ */
 export function compileRoute(pattern) {
-  const re = pattern
+  let p = String(pattern);
+  const deep = p.endsWith("/**");
+  if (deep) p = p.slice(0, -3);
+  const re = p
     .replace(/[.+^${}()|[\]\\]/g, "\\$&")
     .replace(/\*\*/g, "\u0000")
     .replace(/\*/g, "[^/]*")
     .replace(/\u0000/g, ".*")
     .replace(/:(\w+)/g, "[^/]+");
-  return new RegExp(`^${re}$`);
+  return new RegExp(`^${re}${deep ? "(?:/.*)?" : "/?"}$`, "i");
 }
 
 /**
@@ -211,10 +219,21 @@ export function createPolicy(config = {}) {
   const routes = (config.routes ?? []).map((r) => ({ ...r, re: compileRoute(r.match) }));
   const base = Number.isInteger(config.pressure) ? config.pressure : 0;
   return {
-    /** @param {string} path */
+    /**
+     * The route protecting a request path. Every path the app could plausibly route the request
+     * to is tried (routeCandidates); each takes its first matching route, and the highest
+     * pressure wins (ties: the literal path first). Erring toward protection only ever affects
+     * automation: decide() never touches UNKNOWN.
+     * @param {string} path
+     */
     forPath(path) {
-      const r = routes.find((x) => x.re.test(path));
-      return { pressure: r?.pressure ?? base, require: r?.require ?? null, template: r?.match ?? null };
+      let best;
+      for (const c of routeCandidates(path)) {
+        const r = routes.find((x) => x.re.test(c));
+        const pressure = r?.pressure ?? base;
+        if (!best || pressure > best.pressure) best = { r, pressure };
+      }
+      return { pressure: best.pressure, require: best.r?.require ?? null, template: best.r?.match ?? null };
     },
   };
 }
