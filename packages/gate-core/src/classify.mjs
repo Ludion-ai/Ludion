@@ -20,6 +20,7 @@ import { StapleError } from "./staple.mjs";
 import { matchKnownAgent, matchAutomationSignal } from "./agents.mjs";
 import { GateFault, within, clock } from "./budget.mjs";
 import { routeCandidates } from "./route.mjs";
+import { requestAuthority } from "./authority.mjs";
 
 export const CLASSES = ["VERIFIED", "UNVERIFIED", "SPOOFED", "REVOKED", "DECLARED", "SUSPECTED", "UNKNOWN"];
 export const AUTOMATION = new Set(["VERIFIED", "UNVERIFIED", "SPOOFED", "REVOKED", "DECLARED", "SUSPECTED"]);
@@ -109,6 +110,15 @@ export async function classify(req, ctx) {
     return { class: "UNKNOWN" };
   }
 
+  // A signature is only for the authority it covers. When the site has said which authorities
+  // are its own, one made for any other site is refused before discovery (no fetch, no crypto):
+  // it was captured elsewhere and replayed here with that site's Host (ADR-023).
+  const authority = requestAuthority(req.targetUri);
+  const pinned = !!ctx.authorities?.pinned;
+  if (pinned && !ctx.authorities.allows(authority)) {
+    return { class: "SPOOFED", reason: "foreign_authority", detail: "signed for an authority that is not one of this site's", signatureAgent: field(req, "signature-agent") };
+  }
+
   // The clock is the Gate's own: if it fails, that is a Gate fault (fail_mode), not a bad signature.
   let now;
   if (ctx.now) {
@@ -175,6 +185,7 @@ export async function classify(req, ctx) {
     card: sig.verifier.card ?? null,
     depth: 0, ballast: { status: "none" }, staple: null,
     covered: sig.components.map((c) => (typeof c === "string" ? c : c.name)),
+    authorityPinned: pinned,
   };
 
   const stapleHdr = field(req, "ludion-staple");

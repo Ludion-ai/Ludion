@@ -13,12 +13,14 @@ import { createReceipts, importSiteKey, generateSiteKey, metadataEvent, countryC
 import { KNOWN_AGENT_TOKENS, AUTOMATION_SIGNALS, matchKnownAgent, matchAutomationSignal } from "./agents.mjs";
 import { GateFault, within, clock } from "./budget.mjs";
 import { isPublicAddress, isIpLiteral } from "./address.mjs";
+import { createAuthorities, requestAuthority } from "./authority.mjs";
 import { routeKind, isCritical, pathOf, originForm, routeCandidates, queryKeys, templateSegment, publicTemplateSegment, publicTemplatePath, isRouteWord, ROUTE_KINDS, CRITICAL_KINDS, WRITE_METHODS } from "./route.mjs";
 
 export {
   createResolver, createStapleVerifier, issueStaple, classify, createPolicy, createNonceCache, decide, compileRoute, CLASSES,
   ERROR_HELP, AUTOMATION, createReceipts, importSiteKey, generateSiteKey, metadataEvent, countryCode, templatePath, hashIp,
   KNOWN_AGENT_TOKENS, AUTOMATION_SIGNALS, matchKnownAgent, matchAutomationSignal, GateFault, isPublicAddress, isIpLiteral,
+  createAuthorities, requestAuthority,
   routeKind, isCritical, pathOf, originForm, routeCandidates, queryKeys, templateSegment, publicTemplateSegment, publicTemplatePath, isRouteWord, ROUTE_KINDS, CRITICAL_KINDS, WRITE_METHODS,
 };
 
@@ -48,6 +50,10 @@ export function denialHeaders(decision) {
  * @property {"open"|"closed"|{pressure_0_1?:"open", pressure_2_3?:"open"|"closed"}} [failMode]
  *           what a fault inside the Gate does on Pressure 2–3 routes (spec §11.4); default closed.
  *           Pressure 0–1 always fails open: a broken Gate never touches those routes (ADR-020).
+ * @property {string[]|((authority:string)=>boolean)} [authorities]  the site's own hosts ("shop.example",
+ *           "shop.example:8443", "*.shop.example", "https://shop.example") or a predicate. A signature
+ *           for any other authority is SPOOFED. Unset = unpinned: verification still works at
+ *           Pressure 0–1, but a VERIFIED request on a Pressure 2–3 route is a Gate fault (ADR-023).
  * @property {number} [timeoutMs]                 the most the Gate may add to one request; default 3000
  * @property {object} [resolver]                  options for createResolver
  * @property {(event: object) => void|Promise<void>} [sink]  metadata sink; never awaited, never blocks
@@ -112,6 +118,9 @@ export async function createGate(config) {
     } catch (e) { health.registryKeys = "unusable"; health.registryKeysError = String(e?.message ?? e); }
   }
 
+  const authorities = createAuthorities(config.authorities);
+  health.authorities = authorities.pinned ? "pinned" : "unpinned";
+
   const policy = createPolicy({ pressure: config.pressure, routes: config.routes });
   const nonceCache = createNonceCache({ now });
   const siteKey = await importSiteKey(config.siteKey);
@@ -153,9 +162,15 @@ export async function createGate(config) {
     let cls, gateError;
     try {
       cls = await within(
-        classify(req, { resolver, stapleVerifier, nonceCache, now, requireNonce: config.requireNonce, discoveryDeadline: started + discoveryMs }),
+        classify(req, { resolver, stapleVerifier, nonceCache, now, requireNonce: config.requireNonce, authorities, discoveryDeadline: started + discoveryMs }),
         timeoutMs - (clock() - started),
         () => new GateFault(`classification exceeded timeoutMs (${timeoutMs}ms)`, "timeout"));
+      // Unpinned (no `authorities`), a valid signature may have been made for another site and
+      // replayed here. Letting it through a Pressure 2–3 route is not the request's call but a gap
+      // in the site's config: a Gate fault, so fail_mode decides (ADR-023, ADR-020).
+      if (!authorities.pinned && route.pressure >= 2 && (cls.class === "VERIFIED" || cls.class === "REVOKED")) {
+        throw new GateFault("authorities not configured: a signature replayed from another site cannot be told apart", "authority_unpinned");
+      }
     } catch (e) {
       gateError = e;
       cls = faultClass(route, e);

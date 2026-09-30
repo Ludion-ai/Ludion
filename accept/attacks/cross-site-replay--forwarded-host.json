@@ -1,0 +1,9 @@
+{
+  "id": "cross-site-replay--forwarded-host",
+  "family": "cross-site-replay",
+  "title": "Behind a trusted proxy: Host is this site, X-Forwarded-Host names the site the signature was made for",
+  "params": {
+    "variant": "forwarded-host"
+  },
+  "added": "2026-09-30"
+}

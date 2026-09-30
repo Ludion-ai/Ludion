@@ -1,0 +1,9 @@
+{
+  "id": "cross-site-replay--absolute-form-other-authority",
+  "family": "cross-site-replay",
+  "title": "Absolute-form request-target naming the other site, Host naming this one",
+  "params": {
+    "variant": "absolute-form-other-authority"
+  },
+  "added": "2026-09-30"
+}

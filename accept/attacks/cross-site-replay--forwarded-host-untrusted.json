@@ -1,0 +1,9 @@
+{
+  "id": "cross-site-replay--forwarded-host-untrusted",
+  "family": "cross-site-replay",
+  "title": "No trusted proxy: X-Forwarded-Host naming the other site is ignored, so the foreign signature must fail",
+  "params": {
+    "variant": "forwarded-host-untrusted"
+  },
+  "added": "2026-09-30"
+}

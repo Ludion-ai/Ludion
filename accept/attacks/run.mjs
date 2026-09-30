@@ -21,7 +21,7 @@ import { keypair, signed, harness, staple, withFields, fieldOf, retarget, reject
 
 const DIR = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(DIR, "../..");
-const REQUIRED = ["replay", "staple-swap", "cnf-mismatch", "strip-signature", "key-confusion", "label-confusion", "omitted-components", "clock-skew", "route-evasion"];
+const REQUIRED = ["replay", "staple-swap", "cnf-mismatch", "strip-signature", "key-confusion", "label-confusion", "omitted-components", "clock-skew", "route-evasion", "cross-site-replay"];
 const UAS = {
   human: "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_0) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15",
   suspected: "python-requests/2.32.3",
@@ -43,15 +43,21 @@ async function world() {
   return w;
 }
 
-/** The same world behind the real Node adapter (same routes, keys and Registry), built on first use. */
-async function nodeGate(w) {
-  if (w.node) return w.node;
+/**
+ * The same world behind the real Node adapter (same routes, keys and Registry), built on first
+ * use per adapter option set (e.g. `{ trustProxy: true }`).
+ */
+async function nodeGate(w, opts = {}) {
+  const k = JSON.stringify(opts);
+  w.nodes ??= new Map();
+  if (w.nodes.has(k)) return w.nodes.get(k);
   const siteKey = await generateSiteKey();
   const mw = await ludionGate({ siteId: "site-test", siteKey: siteKey.privateJwk, pressure: 0, now: () => w.t, routes: ROUTES,
-    registryKeys: { keys: [w.registry.publicJwk] }, registryIssuer: REGISTRY_ISS, resolver: { fetch: w.fetch } });
+    authorities: [new URL(SITE).host], registryKeys: { keys: [w.registry.publicJwk] }, registryIssuer: REGISTRY_ISS, resolver: { fetch: w.fetch }, ...opts });
   await mw.gate.resolver.prime({ type: "directory", uri: AGENT }, { keys: [w.agent, w.sibling].map((k) => ({ ...k.publicJwk, use: "sig" })) });
   await mw.gate.resolver.prime({ type: "directory", uri: ATTACKER }, { keys: [{ ...w.attacker.publicJwk, use: "sig" }] });
-  return (w.node = mw);
+  w.nodes.set(k, mw);
+  return mw;
 }
 
 /** An IncomingMessage as Node hands it to the app: the raw request-target, raw headers, a TLS socket. */
@@ -201,6 +207,42 @@ const FAMILIES = {
       { node: mw, req: plain(target, UAS[ua]), atS: 0, expect: "rejected" },
     ];
   },
+  // A genuine signature captured at another site (or for another port or subdomain) and replayed
+  // here with the authority it was made for: that site's Host, or X-Forwarded-Host behind a
+  // trusted proxy. The signature is valid, just not for this site, and this site's nonce cache
+  // never saw it (ADR-023). Control: the same agent signing for this site is VERIFIED.
+  async "cross-site-replay"({ variant, other = "shop-a.example", method = "POST", body = '{"sku":1}' }, w) {
+    const control = ok(await signed({ key: w.agent, method, body }));
+    const elsewhere = (authority, p = "/checkout/1", extra = {}) => signed({ key: w.agent, method, body, url: `https://${authority}${p}`, ...extra });
+    if (variant === "host-of-origin-site") return [control, bad(await elsewhere(other))];
+    if (variant === "other-port") return [control, bad(await elsewhere(`${new URL(SITE).hostname}:8443`))];
+    if (variant === "sibling-subdomain") return [control, bad(await elsewhere(`api.${new URL(SITE).hostname}`))];
+    if (variant === "get-onto-critical-route") {
+      // A GET covers no @path: one the agent made to /products at the other site lands on /checkout here.
+      const get = await signed({ key: w.agent, url: `https://${other}/products` });
+      return [ok(await signed({ key: w.agent })), bad(retarget(get, `https://${other}/checkout/9`))];
+    }
+    if (variant === "forwarded-host" || variant === "forwarded-host-untrusted") {
+      const mw = await nodeGate(w, { trustProxy: variant === "forwarded-host" });
+      const req = await elsewhere(other);
+      const xfh = withFields(req, { host: new URL(SITE).host, "x-forwarded-host": other, "x-forwarded-proto": "https" });
+      return [{ node: mw, req: incoming(await signed({ key: w.agent, method, body }), "/checkout/1"), atS: 0, expect: "verified" },
+        { node: mw, req: incoming(xfh, "/checkout/1"), atS: 0, expect: "rejected" }];
+    }
+    if (variant === "absolute-form-other-authority") {
+      const mw = await nodeGate(w);
+      return [{ node: mw, req: incoming(await signed({ key: w.agent, method, body }), "/checkout/1"), atS: 0, expect: "verified" },
+        { node: mw, req: incoming(await elsewhere(other), `https://${other}/checkout/1`), atS: 0, expect: "rejected" }];
+    }
+    if (variant === "unpinned-gate") {
+      // A Gate with no `authorities`: verification still works where nothing is granted (P0),
+      // but it must not let a valid signature through a Pressure 2 route (fail_mode, default closed).
+      const unpinned = await harness({ agentKeys: [w.agent, w.sibling], registry: w.registry, now: () => w.t, resolver: { fetch: w.fetch }, authorities: null });
+      return [{ gate: unpinned, req: await signed({ key: w.agent, url: `${SITE}/products` }), atS: 0, expect: "verified" },
+        { gate: unpinned, req: await elsewhere(other), atS: 0, expect: "rejected" }];
+    }
+    throw new Error(`unknown variant ${variant}`);
+  },
   // Abuse the ±30s clock-skew allowance or the lifetime rules.
   async "clock-skew"({ variant }, w) {
     if (variant === "replay-in-skew-tail") {
@@ -245,7 +287,7 @@ for (const f of files) {
     for (const [i, s] of steps.entries()) {
       w.t = NOW_MS + s.atS * 1000;
       const out = s.node ? await throughNode(s.node, s.req) : null;
-      const r = out ? out.result : await w.gate.inspect(s.req);
+      const r = out ? out.result : await (s.gate ?? w.gate).inspect(s.req);
       seen.push(r.cls.class);
       if (s.expect === "verified" && r.cls.class !== "VERIFIED") throw new Error(`control step ${i} not VERIFIED (${r.cls.class} ${r.cls.reason ?? ""} ${r.cls.detail ?? ""}) — the attack proves nothing`);
       if (s.expect === "human" && (!out?.reachedApp || out.headers["ludion-error"])) throw new Error(`human step ${i} was touched (${out?.status} ${out?.headers["ludion-error"] ?? ""})`);

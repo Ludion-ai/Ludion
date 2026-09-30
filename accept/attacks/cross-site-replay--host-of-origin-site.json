@@ -1,0 +1,9 @@
+{
+  "id": "cross-site-replay--host-of-origin-site",
+  "family": "cross-site-replay",
+  "title": "Replay a POST /checkout signed for another site (shop-a.example) here with that site's Host",
+  "params": {
+    "variant": "host-of-origin-site"
+  },
+  "added": "2026-09-30"
+}

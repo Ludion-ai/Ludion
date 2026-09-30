@@ -26,7 +26,7 @@ const [agent, stranger, registry] = await Promise.all([keypair(), keypair(), key
 const siteKey = await generateSiteKey();
 const events = [];
 const mw = await ludionGate({
-  siteId: "site-gate4", siteKey: siteKey.privateJwk, pressure: 0, now: () => NOW_MS,
+  siteId: "site-gate4", siteKey: siteKey.privateJwk, pressure: 0, now: () => NOW_MS, authorities: ["shop.example"],
   routes: [{ match: "/checkout/**", pressure: 2 }, { match: "/login", pressure: 2, require: { depth: 1 } }, { match: "/search", pressure: 1 }],
   registryKeys: { keys: [registry.publicJwk] }, registryIssuer: REGISTRY_ISS,
   resolver: { fetch: async () => new Response("", { status: 404 }) },   // never used warm: everything below is cached

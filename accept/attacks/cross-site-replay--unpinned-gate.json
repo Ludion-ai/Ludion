@@ -1,0 +1,9 @@
+{
+  "id": "cross-site-replay--unpinned-gate",
+  "family": "cross-site-replay",
+  "title": "A Gate with no authorities configured: a signature replayed from another site must not pass a Pressure 2 route",
+  "params": {
+    "variant": "unpinned-gate"
+  },
+  "added": "2026-09-30"
+}

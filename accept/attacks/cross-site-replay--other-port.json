@@ -1,0 +1,9 @@
+{
+  "id": "cross-site-replay--other-port",
+  "family": "cross-site-replay",
+  "title": "Replay a signature made for this host on another port (shop.example:8443)",
+  "params": {
+    "variant": "other-port"
+  },
+  "added": "2026-09-30"
+}
