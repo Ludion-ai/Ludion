@@ -94,8 +94,34 @@ export function prepare(app) {
   const key = h.digest("hex").slice(0, 16);
   const base = path.join(CACHE, `${app}-${key}`);
   const out = { A: path.join(base, "A"), B: path.join(base, "B"), key };
-  if (fs.existsSync(path.join(base, ".ready"))) { fs.rmSync(tmpPack, { recursive: true, force: true }); return out; }
+  const ready = () => fs.existsSync(path.join(base, ".ready"));
+  if (ready()) { fs.rmSync(tmpPack, { recursive: true, force: true }); return out; }
+  // One builder per key across processes: GATE-1 and GATE-3 share these installs, and the
+  // scoreboard may run them (and other worktrees' scoreboards) at the same time.
+  withLock(base, () => { if (!ready()) build(app, spec, base, out, tarballs); });
+  fs.rmSync(tmpPack, { recursive: true, force: true });
+  if (!ready()) throw new Error(`prepare(${app}): ${base} was not built`);
+  return out;
+}
 
+const LOCK_STALE_MS = 20 * 60_000;
+const sleepSync = (ms) => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+/** Run fn holding `${base}.lock` (mkdir is atomic). A lock older than 20 min is a crashed builder's. */
+function withLock(base, fn) {
+  const lock = `${base}.lock`;
+  fs.mkdirSync(path.dirname(base), { recursive: true });
+  for (;;) {
+    try { fs.mkdirSync(lock); break; } catch (e) {
+      if (e.code !== "EEXIST") throw e;
+      try { if (Date.now() - fs.statSync(lock).mtimeMs > LOCK_STALE_MS) fs.rmSync(lock, { recursive: true, force: true }); } catch {}
+      if (fs.existsSync(path.join(base, ".ready"))) return; // another process finished it
+      sleepSync(500);
+    }
+  }
+  try { fn(); } finally { fs.rmSync(lock, { recursive: true, force: true }); }
+}
+
+function build(app, spec, base, out, tarballs) {
   // Prune other keys only once they are stale: a key that is not ours may belong to another
   // worktree's scoreboard running right now (or still building, with no .ready yet).
   if (fs.existsSync(CACHE)) for (const d of fs.readdirSync(CACHE)) {
@@ -112,10 +138,8 @@ export function prepare(app) {
   npm(["ci", "--no-audit", "--no-fund"], out.B);
   const local = tarballs.map((t) => { const d = path.join(out.B, ".ludion-packages", path.basename(t)); fs.mkdirSync(path.dirname(d), { recursive: true }); fs.copyFileSync(t, d); return d; });
   npm(["install", "--no-audit", "--no-fund", ...local], out.B);
-  fs.rmSync(tmpPack, { recursive: true, force: true });
   if (spec.build) { spec.build(out.A); spec.build(out.B); }
   fs.writeFileSync(path.join(base, ".ready"), new Date().toISOString());
-  return out;
 }
 
 // Ports handed out by this process. listen(0)-then-close can return the same port to two callers

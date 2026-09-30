@@ -7,23 +7,27 @@
 // fields: id, m (milestone), kind "+" positive | "-" negative | "±" both inside | "~" hygiene,
 //   level 0 = seconds (Stop gate) | 1 = minutes (CI) | 2 = live (needs inputs),
 //   pair = the opposite oracle, needs = env vars a human must provide, title,
-//   run() → { pass: boolean, metric?: string, detail?: string }
+//   run() → { pass: boolean, metric?: string, detail?: string },
+//   exclusive = run alone, after the parallel phase: the oracle has a latency, throughput or
+//     performance threshold (or a timed observation window) that CPU contention could move,
+//   prepare() = setup an exclusive oracle may do in the parallel phase (installs and builds only;
+//     never part of what the oracle measures or checks).
 import fs from "node:fs";
 import path from "node:path";
-import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import { run, timeoutDetail as timedOut } from "../scripts/proc.mjs";
 
 export const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
-function sh(file, args, timeout = 180_000) {
-  try { return { code: 0, out: execFileSync(file, args, { cwd: ROOT, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], timeout, maxBuffer: 64e6 }) }; }
-  catch (e) { return { code: e.status ?? 1, out: `${e.stdout ?? ""}${e.stderr ?? ""}` || String(e.message) }; }
-}
+/** A child in the repo root: async, tracked for the scoreboard's cap, tree-killed on timeout (scripts/proc.mjs). */
+const sh = (file, args, timeout = 180_000) => run(file, args, { cwd: ROOT, timeout });
+const timeoutDetail = (r) => timedOut(r.timeoutMs, r.out);
 
 /** node:test files, optionally filtered by name. Zero matched tests is a FAIL, never a PASS. */
 export const nodeTest = (files, pattern, { timeoutMs, metric } = {}) => async () => {
   // Pin the TAP reporter: Node ≥23 prints spec (no "# pass N") even when piped.
-  const r = sh(process.execPath, ["--test", "--test-reporter=tap", ...(pattern ? [`--test-name-pattern=${pattern}`] : []), ...files], timeoutMs);
+  const r = await sh(process.execPath, ["--test", "--test-reporter=tap", ...(pattern ? [`--test-name-pattern=${pattern}`] : []), ...files], timeoutMs);
+  if (r.timedOut) return { pass: false, detail: timeoutDetail(r) };
   const n = (k) => Number((new RegExp(`^# ${k} (\\d+)`, "m").exec(r.out) ?? [])[1] ?? 0);
   const pass = n("pass"), fail = n("fail");
   if (pass + fail === 0) return { pass: false, detail: "no test matched" };
@@ -32,7 +36,8 @@ export const nodeTest = (files, pattern, { timeoutMs, metric } = {}) => async ()
 
 /** A node script; exit 0 is PASS. */
 export const nodeScript = (file, args = [], { timeoutMs, metric } = {}) => async () => {
-  const r = sh(process.execPath, [file, ...args], timeoutMs);
+  const r = await sh(process.execPath, [file, ...args], timeoutMs);
+  if (r.timedOut) return { pass: false, detail: timeoutDetail(r) };
   const oks = (r.out.match(/^ok\s/gm) ?? []).length;
   return { pass: r.code === 0, metric: [oks ? `${oks} checks` : undefined, metric?.(r.out)].filter(Boolean).join("; ") || undefined,
     detail: r.code ? r.out.trim().split("\n").slice(-3).join(" | ").slice(0, 300) : undefined };
@@ -88,24 +93,35 @@ export const ORACLES = [
 
   // ── M1 gate ────────────────────────────────────────────────────────────────────
   // Reference apps (Express, Next.js, Workers) are real installs in the OS temp dir, cached by content hash.
+  // Exclusive: it compares first-byte times (+150 ms) and streaming spread between two servers.
+  // Its installs are prepared in the parallel phase. The 9-minute cap gives a cold Windows CI run
+  // about 2.5x headroom (it was 30 min, which let one hang eat a whole CI run: #32, #41, #52).
   { id: "GATE-1", m: "M1", kind: "+", level: 1, pair: "GATE-2", title: "humans untouched: responses byte-identical with/without Gate at P0–3 (reference apps)",
-    timeoutMs: 1_800_000, run: nodeTest(["reference/test/harness.test.mjs", "reference/test/gate1.test.mjs"], "^GATE-1:", { timeoutMs: 1_750_000 }) },
+    exclusive: true, prepare: nodeScript("reference/prepare.mjs", [], { timeoutMs: 480_000 }),
+    timeoutMs: 560_000, run: nodeTest(["reference/test/harness.test.mjs", "reference/test/gate1.test.mjs"], "^GATE-1:", { timeoutMs: 540_000 }) },
   { id: "GATE-2", m: "M1", kind: "-", level: 1, title: "pressure bites: 100% of denials carry Ludion-Error + help Link (+Accept-Signature)",
     run: nodeTest(["packages/gate-node/test/gate2.test.mjs"], "^GATE-2:") },
+  // Exclusive: "first classified event ≤ 60 s" is a latency threshold. Installs are shared with
+  // GATE-1 (prepared, and locked in reference/harness.mjs prepare()). 7-minute cap (was 30).
   { id: "GATE-3", m: "M1", kind: "+", level: 1, pair: "GATE-5", title: "install ≤3 app lines, ≤1 config file, first classified event ≤60s (3 reference apps)",
-    timeoutMs: 1_800_000, run: nodeTest(["reference/test/gate3.test.mjs"], "^GATE-3:", { timeoutMs: 1_750_000,
+    exclusive: true, prepare: nodeScript("reference/prepare.mjs", [], { timeoutMs: 480_000 }),
+    timeoutMs: 440_000, run: nodeTest(["reference/test/gate3.test.mjs"], "^GATE-3:", { timeoutMs: 420_000,
       metric: (out) => [...out.matchAll(/^# (express|next|workers): (\d+) app lines, (\d+) config file, first event ([^\n]+)$/gm)].map((m) => `${m[1]} ${m[2]}L/${m[3]}cfg/${m[4]}`).join(", ") }) },
-  { id: "GATE-4", m: "M1", kind: "+", level: 1, pair: "GATE-6", title: "added latency p99 ≤2ms warm (10k mixed requests)", timeoutMs: 180_000, run: async () => {
+  // Exclusive: p99 ≤ 2 ms is a latency threshold (1.7 ms was seen under a parallel CPU load).
+  { id: "GATE-4", m: "M1", kind: "+", level: 1, pair: "GATE-6", title: "added latency p99 ≤2ms warm (10k mixed requests)", exclusive: true, timeoutMs: 180_000, run: async () => {
     // The real gate-node middleware timed per request, keys cached, every class in the mix; see the script.
-    const r = sh(process.execPath, ["packages/gate-node/bench/gate4.mjs"], 170_000);
+    const r = await sh(process.execPath, ["packages/gate-node/bench/gate4.mjs"], 170_000);
+    if (r.timedOut) return { pass: false, detail: timeoutDetail(r) };
     let res;
     try { res = JSON.parse(r.out.trim().split("\n").pop()); } catch { return { pass: false, detail: r.out.trim().slice(-300) || "no result" }; }
     return { pass: r.code === 0 && res.pass === true, metric: `p50 ${res.p50}ms, p99 ${res.p99}ms (n=${res.n})`,
       detail: res.problems?.length ? res.problems.join("; ").slice(0, 300) : undefined };
   } },
-  { id: "GATE-5", m: "M1", kind: "-", level: 1, title: "fail-open under fault injection at P0–1; fail_mode honoured at P2–3",
+  // Exclusive: the added latency must stay within timeoutMs 400 ms + 350 ms slack, request by request.
+  { id: "GATE-5", m: "M1", kind: "-", level: 1, title: "fail-open under fault injection at P0–1; fail_mode honoured at P2–3", exclusive: true,
     run: nodeTest(["packages/gate-node/test/gate5.test.mjs"], "^GATE-5:") },
-  { id: "GATE-6", m: "M1", kind: "-", level: 1, title: "SSRF sandbox: internal service receives 0 requests (incl. redirects, rebinding, bombs)",
+  // Exclusive: every hostile directory must settle within the Gate's timeout (800 + 400 ms).
+  { id: "GATE-6", m: "M1", kind: "-", level: 1, title: "SSRF sandbox: internal service receives 0 requests (incl. redirects, rebinding, bombs)", exclusive: true,
     run: nodeTest(["packages/gate-node/test/gate6.test.mjs", "packages/gate-core/test/address.test.mjs"], "^GATE-6:") },
   { id: "GATE-7", m: "M1", kind: "-", level: 1, title: "attack corpus accept/attacks/ 100% rejected; corpus only grows",
     run: allOf(nodeScript("accept/attacks/run.mjs"), nodeTest(["packages/gate-core/test/hardening.test.mjs", "packages/gate-node/test/route-evasion.test.mjs", "packages/gate-node/test/authority.test.mjs", "packages/gate-core/test/nonce-flood.test.mjs"], "^GATE-7:")) },
@@ -132,7 +148,8 @@ export const ORACLES = [
       metric: (out) => (/^# PRIV-3: (.+)$/m.exec(out) ?? [])[1] }) },
 
   // ── M2 diver ───────────────────────────────────────────────────────────────────
-  { id: "DIV-1", m: "M2", kind: "+", level: 1, pair: "DIV-3", title: "clean container → init → VERIFIED ≤180s (TS and Python)" },
+  // Exclusive once wired: "≤ 180 s" is a wall-clock threshold on a whole clean install.
+  { id: "DIV-1", m: "M2", kind: "+", level: 1, pair: "DIV-3", exclusive: true, title: "clean container → init → VERIFIED ≤180s (TS and Python)" },
   { id: "DIV-2", m: "M2", kind: "+", level: 1, pair: "DIV-3", title: "Card is a valid CIMD Signature Agent Card and resolves end to end",
     run: nodeTest(["packages/card-host/test/div2.test.mjs"], "^DIV-2:") },
   { id: "DIV-3", m: "M2", kind: "-", level: 1, title: "Root key never signs, never in the directory, never plaintext on disk outside dev",
@@ -141,11 +158,13 @@ export const ORACLES = [
     run: nodeTest(["packages/diver/test/div4.test.mjs"], "^DIV-4:") },
 
   // ── M3 registry ────────────────────────────────────────────────────────────────
-  { id: "REG-1", m: "M3", kind: "+", level: 1, pair: "REG-2", title: "Registry down → Gates keep verifying within Staple TTL",
+  // Exclusive: the p99 added latency with the Registry down must stay < 5 ms.
+  { id: "REG-1", m: "M3", kind: "+", level: 1, pair: "REG-2", title: "Registry down → Gates keep verifying within Staple TTL", exclusive: true,
     run: nodeTest(["services/registry/test/reg1.test.mjs"], "^REG-1:") },
   { id: "REG-2", m: "M3", kind: "-", level: 0, title: "Staple attacks rejected (unknown kid, >1h, expired, iss, cnf, sub)",
     run: nodeTest(["packages/gate-core/test/core.test.mjs"], "^Staple:") },
-  { id: "REG-3", m: "M3", kind: "±", level: 1, title: "revocation reaches subscribed Gates ≤60s, others ≤ Staple TTL",
+  // Exclusive: "subscribed Gates within 60 s" is a latency threshold.
+  { id: "REG-3", m: "M3", kind: "±", level: 1, title: "revocation reaches subscribed Gates ≤60s, others ≤ Staple TTL", exclusive: true,
     run: nodeTest(["services/registry/test/reg3.test.mjs"], "^REG-3:", {
       metric: (out) => (/^# REG-3: (.+)$/m.exec(out) ?? [])[1] }) },
   { id: "REG-4", m: "M3", kind: "-", level: 1, title: "no private key material in git history, logs, or build artifacts",
@@ -158,9 +177,11 @@ export const ORACLES = [
     run: nodeTest(["packages/scan/test/scan2.test.mjs"], "^SCAN-2:") },
   { id: "SCAN-3", m: "M4", kind: "-", level: 1, title: "scan output has no raw IP / query value / untemplated path; zero network",
     run: nodeTest(["packages/scan/test/scan3.test.mjs"], "^SCAN-3:") },
-  { id: "SCAN-4", m: "M4", kind: "+", level: 1, pair: "SCAN-3", title: "1 GB of logs in ≤60s", timeoutMs: 300_000, run: async () => {
+  // Exclusive: a throughput threshold (1 GiB ≤ 60 s) on disk and CPU.
+  { id: "SCAN-4", m: "M4", kind: "+", level: 1, pair: "SCAN-3", title: "1 GB of logs in ≤60s", exclusive: true, timeoutMs: 300_000, run: async () => {
     // 1 GiB generated in a temp dir (untimed), then the real CLI timed end to end; see the script.
-    const r = sh(process.execPath, ["packages/scan/bench/scan4.mjs"], 290_000);
+    const r = await sh(process.execPath, ["packages/scan/bench/scan4.mjs"], 290_000);
+    if (r.timedOut) return { pass: false, detail: timeoutDetail(r) };
     let res;
     try { res = JSON.parse(r.out.trim().split("\n").pop()); } catch { return { pass: false, detail: r.out.trim().slice(-300) || "no result" }; }
     return { pass: r.code === 0 && res.pass === true, metric: `${res.seconds}s for 1 GiB, ${res.mbps} MB/s`,
@@ -175,7 +196,8 @@ export const ORACLES = [
   // The Registry in process, real Node Gates over HTTP (one subscribed to the revocation stream, one
   // not, one at another site), and a software passkey producing real WebAuthn assertions (ES256 in
   // DER, EdDSA) for the Principal's consent (services/registry/test/passkey.mjs).
-  { id: "PRS-2", m: "M5", kind: "±", level: 1, title: "Mandate v0: in scope/limit passes; out of scope/over limit/expired/revoked denied",
+  // Exclusive: "the subscribed Gate hears the withdrawal within 60 s" is a latency threshold.
+  { id: "PRS-2", m: "M5", kind: "±", level: 1, title: "Mandate v0: in scope/limit passes; out of scope/over limit/expired/revoked denied", exclusive: true,
     run: nodeTest(["services/registry/test/prs2.test.mjs"], "^PRS-2:", {
       metric: (out) => (/^# PRS-2: (.+)$/m.exec(out) ?? [])[1] }) },
   // The same portable suite on Node, Deno (no permissions) and workerd, against the npm-packed
@@ -210,7 +232,8 @@ export const ORACLES = [
   { id: "LIVE-3", m: "M6", kind: "+", level: 2, pair: "PRIV-1", needs: ["LUDION_CLOUD_READ_TOKEN"], title: "North Star: Verified Actions/day computed from Cloud events, on the scoreboard" },
 
   // ── M7 web: the site, the /e/<code> help pages, the in-browser scan ──────────────
-  { id: "WEB-1", m: "M7", kind: "+", level: 1, pair: "WEB-5", title: "static site deployed to preview; every page in ja + en; Lighthouse mobile P/A/BP/SEO all ≥95" },
+  // Exclusive once wired: Lighthouse's performance score is a CPU-sensitive threshold (≥ 95).
+  { id: "WEB-1", m: "M7", kind: "+", level: 1, pair: "WEB-5", exclusive: true, title: "static site deployed to preview; every page in ja + en; Lighthouse mobile P/A/BP/SEO all ≥95" },
   // The copy check (site/test/copy.mjs) on the real build: the legal line of spec §14 in English and
   // Japanese, and every figure linked to the repository document that states it; claims and
   // unsourced figures planted in built pages must be caught.
@@ -224,19 +247,23 @@ export const ORACLES = [
       metric: (out) => (/^# WEB-3: (.+)$/m.exec(out) ?? [])[1] }) },
   // Headless Chromium: playwright-core from the site's lockfile, its pinned browser build installed on
   // first use into Playwright's cache (site/test/browser.mjs). The page runs packages/scan's own core.
+  // Exclusive: "200 MB in ≤ 30 s" is a throughput threshold. The site build is prepared in the parallel phase.
   { id: "WEB-4", m: "M7", kind: "+", level: 1, pair: "WEB-6", title: "in-browser scan at /scan equals the CLI on SCAN fixtures; 200 MB in ≤30s (headless Chromium)",
-    timeoutMs: 900_000, run: nodeTest(["site/test/web4.test.mjs"], "^WEB-4:", { timeoutMs: 880_000,
+    exclusive: true, prepare: nodeScript("site/build.mjs", [], { timeoutMs: 600_000 }), timeoutMs: 900_000, run: nodeTest(["site/test/web4.test.mjs"], "^WEB-4:", { timeoutMs: 880_000,
       metric: (out) => (/^# WEB-4: (.+)$/m.exec(out) ?? [])[1] }) },
   // The allowlist is the site's own origin. Every page of the real build, desktop and mobile, is used
   // in Chromium behind the egress watch; links are checked in the files and in the live DOM
   // (site/test/links.mjs); links out are asked on the network, and breakage planted must be caught.
+  // Exclusive: it watches for requests during timed quiet windows (300 ms); under contention a late
+  // request could fall outside the window, which would make this negative oracle weaker, not flakier.
   { id: "WEB-5", m: "M7", kind: "-", level: 1, title: "0 broken links, 0 console errors, 0 requests outside the allowlist",
-    timeoutMs: 900_000, run: nodeTest(["site/test/web5.test.mjs"], "^WEB-5:", { timeoutMs: 880_000,
+    exclusive: true, prepare: nodeScript("site/build.mjs", [], { timeoutMs: 600_000 }), timeoutMs: 900_000, run: nodeTest(["site/test/web5.test.mjs"], "^WEB-5:", { timeoutMs: 880_000,
       metric: (out) => (/^# WEB-5: (.+)$/m.exec(out) ?? [])[1] }) },
   // Chromium's only way out is a proxy in the test (site/test/egress.mjs), loopback included; the
   // test also plants leaks in the page and the worker and must catch each one.
+  // Exclusive, like WEB-5: "0 requests after page load" is watched over a timed quiet window (1500 ms).
   { id: "WEB-6", m: "M7", kind: "-", level: 1, title: "scan leaks no log byte: canary log → 0 external requests after page load (every request watched)",
-    timeoutMs: 900_000, run: nodeTest(["site/test/web6.test.mjs"], "^WEB-6:", { timeoutMs: 880_000,
+    exclusive: true, prepare: nodeScript("site/build.mjs", [], { timeoutMs: 600_000 }), timeoutMs: 900_000, run: nodeTest(["site/test/web6.test.mjs"], "^WEB-6:", { timeoutMs: 880_000,
       metric: (out) => (/^# WEB-6: (.+)$/m.exec(out) ?? [])[1] }) },
   { id: "WEB-7", m: "M7", kind: "+", level: 1, pair: "WEB-2", title: "docs are tests: quickstart code blocks run in a clean env and do what they say (VERIFIED, first event)" },
   // The site as it deploys to Workers (site/edge: the build's static files and POST /api/signup), run
