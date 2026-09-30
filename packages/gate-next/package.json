@@ -1,0 +1,28 @@
+{
+  "name": "@ludion/gate-next",
+  "version": "0.0.1",
+  "description": "Ludion Gate for Next.js (proxy.js).",
+  "license": "Apache-2.0",
+  "type": "module",
+  "main": "index.mjs",
+  "exports": {
+    ".": "./index.mjs",
+    "./core": "./core.mjs"
+  },
+  "files": [
+    "index.mjs",
+    "core.mjs",
+    "README.md"
+  ],
+  "dependencies": {
+    "@ludion/gate-core": "0.0.1"
+  },
+  "peerDependencies": {
+    "next": ">=16.0.0"
+  },
+  "peerDependenciesMeta": {
+    "next": {
+      "optional": true
+    }
+  }
+}

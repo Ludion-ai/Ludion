@@ -62,3 +62,21 @@ export async function ludionGate(config) {
   middleware.gate = gate;
   return middleware;
 }
+
+/**
+ * The 60-second install (ADR-022):
+ *
+ *   import { ludion } from "@ludion/gate-node";
+ *   app.use(await ludion());
+ *
+ * Reads ludion.config.json (or the file named by $LUDION_CONFIG) from the working directory and
+ * the Glass receipt key from $LUDION_SITE_KEY (a secret, never in the config file).
+ * @param {{ cwd?: string, env?: Record<string, string|undefined>, config?: object, onFriction?: Function }} [options]
+ */
+export async function ludion(options = {}) {
+  const [{ readFileSync }, { resolve }, { gateConfig }] = await Promise.all([import("node:fs"), import("node:path"), import("@ludion/gate-core/config")]);
+  const env = options.env ?? process.env;
+  const spec = options.config ?? JSON.parse(readFileSync(resolve(options.cwd ?? process.cwd(), env.LUDION_CONFIG || "ludion.config.json"), "utf8"));
+  const config = await gateConfig(spec, { siteKey: env.LUDION_SITE_KEY });
+  return ludionGate({ ...config, ...(options.onFriction ? { onFriction: options.onFriction } : {}) });
+}
