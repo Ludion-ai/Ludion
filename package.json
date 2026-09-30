@@ -13,7 +13,7 @@
     "node": ">=20"
   },
   "scripts": {
-    "test": "node --test packages/*/test/*.test.mjs services/*/test/*.test.mjs",
+    "test": "node --test packages/*/test/*.test.mjs services/*/test/*.test.mjs reference/test/harness.test.mjs",
     "e2e": "node examples/e2e.mjs",
     "scoreboard": "node scripts/scoreboard.mjs",
     "ratchet": "node scripts/scoreboard.mjs --update-ratchet",

@@ -12,15 +12,17 @@
 // The suite also proves the Gate was really there: every gated response carries a receipt that
 // says UNKNOWN at the route's pressure, streamed bodies still stream, and the same Gate denies an
 // unsigned bot on a Pressure-2 route.
-import { test } from "node:test";
+import { test, after } from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { prepare, start, freePort, raw, comparable, receiptOf, header, decoded, renaming } from "../harness.mjs";
+import { prepare, start, freePorts, stopAll, raw, comparable, receiptOf, header, decoded, renaming } from "../harness.mjs";
 import { browserRequests, automationRequest } from "../requests.mjs";
 
 const PRESSURES = [0, 1, 2, 3];
+
+after(stopAll); // a timed-out test skips its finally; no server may outlive the file
 
 /** Everything GATE-1 masks, per app, with the reason. Keep this list short and explained. */
 export const NORMALISATIONS = {
@@ -89,9 +91,15 @@ for (const app of Object.keys(APPS)) {
     const cfgDir = fs.mkdtempSync(path.join(os.tmpdir(), `ludion-gate1-${app}-`));
     const servers = [];
     try {
-      const up = async (dir, env) => { const s = await start(app, dir, await freePort(), { env }); servers.push(s); return s; };
-      const [base, control, ...gated] = await Promise.all([up(A, {}), up(A, {}),
-        ...PRESSURES.map(async (p) => up(B, await gatedEnv(app, p, cfgDir)))]);
+      // Distinct ports up front, and wait for every start to settle, so a failed start can't leave the
+      // others running unowned (two ways GATE-1 hung for 30 min in CI, #41).
+      const ports = await freePorts(2 + PRESSURES.length);
+      const up = async (dir, env, port) => { const s = await start(app, dir, port, { env }); servers.push(s); return s; };
+      const started = await Promise.allSettled([up(A, {}, ports[0]), up(A, {}, ports[1]),
+        ...PRESSURES.map(async (p, i) => up(B, await gatedEnv(app, p, cfgDir), ports[2 + i]))]);
+      const failed = started.find((r) => r.status === "rejected");
+      if (failed) throw failed.reason;
+      const [base, control, ...gated] = started.map((r) => r.value);
       const problems = [];
       const assetMaps = PRESSURES.map(() => ({ fwd: new Map(), back: new Map() }));
       const pages = PRESSURES.map(() => []);
