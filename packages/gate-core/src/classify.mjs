@@ -113,7 +113,8 @@ async function discover(ctx, candidate) {
  * @param {{ resolver: ReturnType<import("./resolver.mjs").createResolver>,
  *           stapleVerifier?: Awaited<ReturnType<import("./staple.mjs").createStapleVerifier>>,
  *           nonceCache?: ReturnType<typeof createNonceCache>, now?: () => number,
- *           requireNonce?: boolean, discoveryDeadline?: number }} ctx
+ *           requireNonce?: boolean, discoveryDeadline?: number,
+ *           revocations?: ReturnType<import("./revocation.mjs").createRevocationList> }} ctx
  */
 export async function classify(req, ctx) {
   const ua = field(req, "user-agent");
@@ -214,13 +215,20 @@ export async function classify(req, ctx) {
     authorityPinned: pinned,
   };
 
+  // Revocation (spec §10.10): the signing key or the Signature-Agent is on the Registry's list the
+  // Gate holds. Read from memory only; the Registry is never asked about a request (PRIV-3).
+  const revokedKey = ctx.revocations?.match({ jkt: sig.keyid, identifier: out.identifier });
+  if (revokedKey) return { ...out, class: "REVOKED", revocation: revokedKey };
+
   const stapleHdr = field(req, "ludion-staple");
   if (stapleHdr) {
     if (!ctx.stapleVerifier) { out.stapleError = "no_registry_keys"; return out; }
     try {
       const st = await ctx.stapleVerifier.verify(stapleHdr, { requestKeyid: sig.keyid });
       out.staple = st; out.diverId = st.sub; out.depth = st.depth; out.ballast = st.ballast ?? { status: "none" };
-      if (st.revoked === true) return { ...out, class: "REVOKED" };
+      if (st.revoked === true) return { ...out, class: "REVOKED", revocation: { sub: st.sub, reason: "staple" } };
+      const revokedDiver = ctx.revocations?.match({ sub: st.sub });
+      if (revokedDiver) return { ...out, class: "REVOKED", revocation: revokedDiver };
     } catch (e) {
       if (e instanceof StapleError && e.code === "expired") return { ...out, stapleError: "staple_expired" };
       return { ...out, class: "SPOOFED", reason: "invalid_staple", detail: e?.message };

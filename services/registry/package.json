@@ -1,0 +1,23 @@
+{
+  "name": "@ludion/registry",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Ludion Registry v0: Diver registration, session-key approval, Staples, revocation and the revocation stream. Fetch API only; never on the request hot path.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "main": "src/index.mjs",
+  "exports": {
+    ".": "./src/index.mjs",
+    "./node": "./src/node.mjs"
+  },
+  "bin": {
+    "ludion-registry": "bin/registry.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@ludion/gate-core": "0.0.1",
+    "web-bot-auth": "0.2.0"
+  }
+}

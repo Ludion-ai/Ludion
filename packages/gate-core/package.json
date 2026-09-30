@@ -9,7 +9,9 @@
     ".": "./src/index.mjs",
     "./agents": "./src/agents.mjs",
     "./config": "./src/config.mjs",
-    "./route": "./src/route.mjs"
+    "./revocation": "./src/revocation.mjs",
+    "./route": "./src/route.mjs",
+    "./staple": "./src/staple.mjs"
   },
   "engines": {
     "node": ">=20"

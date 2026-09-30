@@ -4,6 +4,9 @@
 //   npx ludion init [--name "My Agent" --contact mailto:ops@example.com --domain dvr-xxx.agents.ludion.ai] [--dev]
 //   npx ludion sign <METHOD> <URL> [--body '{"a":1}']     # prints Web Bot Auth headers for curl/httpx/anything
 //   npx ludion rotate [--overlap 300] [--force]            # session key: publish the next one, then (after the overlap) switch
+//   npx ludion register [--registry https://registry.ludion.ai]  # register with the Registry (Root), approve the session key, fetch a Staple
+//   npx ludion staple                                      # fetch a fresh Staple (signed by the session key)
+//   npx ludion revoke [--compromised] [--key <kid>]        # revoke this Diver (or one session key) at the Registry (Root)
 //   npx ludion doctor                                      # self-check: keys, clock, directory, card
 //   npx ludion scan <access.log|dir|-> [--json]            # log-first Gate: what touched what, unsigned
 //   npx ludion report --events <events.ndjson> [--date D] [--tz Asia/Tokyo] [--lang ja] [--format html]  # the daily report
@@ -16,8 +19,8 @@
 import fs from "node:fs";
 import path from "node:path";
 import readline from "node:readline";
-import { generateEd25519, diverIdFromRoot, directoryDocument, cardDocument, createDiverSigner, sealRootKey, isSealedRoot, MIN_PASSPHRASE_LENGTH,
-  rotateSession, RotationPendingError, DEFAULT_OVERLAP_S } from "../src/index.mjs";
+import { generateEd25519, diverIdFromRoot, directoryDocument, cardDocument, createDiverSigner, sealRootKey, openRootKey, isSealedRoot, MIN_PASSPHRASE_LENGTH,
+  rotateSession, RotationPendingError, DEFAULT_OVERLAP_S, createRegistryClient } from "../src/index.mjs";
 
 const args = process.argv.slice(2);
 const cmd = args[0];
@@ -100,8 +103,71 @@ async function loadSigner() {
   const store = JSON.parse(fs.readFileSync(STORE, "utf8"));
   if (store.dev) devBanner();
   else if (!isSealedRoot(store.root)) err("⚠ ludion.json holds the Root private key in plaintext (made by an older ludion, or edited by hand). Treat this identity as development-only and create a sealed one with `ludion init --force`.");
-  const signer = await createDiverSigner({ sessionPrivateJwk: store.session, signatureAgent: store.signature_agent, insecureAllowHttp: has("insecure") });
+  const signer = await createDiverSigner({ sessionPrivateJwk: store.session, signatureAgent: store.signature_agent, insecureAllowHttp: has("insecure"),
+    staple: () => currentStaple(store) });
   return { store, signer };
+}
+
+/** The stored Staple, while it is valid and bound to the current session key. */
+function currentStaple(store) {
+  const s = store.staple;
+  if (!s?.staple || !(s.exp * 1000 > Date.now()) || s.kid !== store.session.kid) return undefined;
+  return s.staple;
+}
+
+function registryClient(store) {
+  const url = flag("registry") ?? store.registry?.url ?? process.env.LUDION_REGISTRY ?? "https://registry.ludion.ai";
+  return createRegistryClient({ url });
+}
+
+/** Open the Root for a Registry statement. It stays in memory for this command only. */
+async function openRoot(store) {
+  if (store.root?.d) return store.root; // dev identity (warned about in loadSigner)
+  const passphrase = await rootPassphrase({ confirm: false });
+  if (!passphrase) throw new Error("this needs the Root: set LUDION_ROOT_PASSPHRASE or run in a terminal to be prompted.");
+  return openRootKey(store.root, passphrase);
+}
+
+function save(store) { writePrivate(STORE, JSON.stringify(store, null, 2)); }
+
+async function fetchStaple(client, store) {
+  const s = await client.staple(store, store.session);
+  store.staple = { staple: s.staple, iat: s.iat, exp: s.exp, kid: store.session.kid, ...(s.revoked ? { revoked: true } : {}) };
+  return s;
+}
+
+async function register() {
+  const { store } = await loadSigner();
+  const client = registryClient(store);
+  const root = await openRoot(store);
+  const r = await client.register(store, root);
+  const keys = [store.session, ...(store.next ? [store.next] : [])];
+  await client.approveKeys(store, root, keys);
+  store.registry = { url: client.origin, registered: new Date().toISOString() };
+  const s = await fetchStaple(client, store);
+  save(store);
+  out(`✔ Registered ${r.diver_id} at ${client.origin}; approved ${keys.map((k) => k.kid).join(", ")}`);
+  out(`  Staple until ${new Date(s.exp * 1000).toISOString()}${s.revoked ? " — REVOKED" : ""}. Refresh with \`ludion staple\` (the SDK refreshes at half-life).`);
+}
+
+async function stapleCmd() {
+  const { store } = await loadSigner();
+  if (!store.registry) throw new Error("not registered: run `ludion register` first");
+  const s = await fetchStaple(registryClient(store), store);
+  save(store);
+  out(`✔ Staple until ${new Date(s.exp * 1000).toISOString()}${s.revoked ? " — this Diver is REVOKED" : ""}`);
+}
+
+async function revoke() {
+  const { store } = await loadSigner();
+  if (!store.registry) throw new Error("not registered: nothing to revoke at a Registry");
+  const client = registryClient(store);
+  const root = await openRoot(store);
+  const kid = flag("key");
+  const r = await client.revoke(store, root, { ...(kid ? { jkt: [kid] } : {}), reason: has("compromised") ? "compromised" : "retired" });
+  store.revoked = { seq: r.seq, scope: r.scope, at: new Date().toISOString(), ...(kid ? { kid } : {}) };
+  save(store);
+  out(`✔ Revoked ${kid ? `session key ${kid}` : `Diver ${store.diver_id}`} (entry ${r.seq}). Subscribed Gates apply it within seconds; every other Gate when the last Staple expires (≤1 h).`);
 }
 
 async function signCmd() {
@@ -128,6 +194,10 @@ async function rotate() {
     const wait = Math.ceil((e.activeAt - Date.now()) / 1000);
     throw new Error(`${e.message} (in ${wait}s), when every verifier's cached directory has had time to pick it up. Run \`ludion rotate\` again then. --force switches now, and Gates that still cache the old directory will not find the new key until their cache expires.`);
   }
+  // Registered: the Registry must approve the next key before it is published (Root), and the new
+  // key needs its own Staple once it signs.
+  const client = store.registry ? registryClient(store) : undefined;
+  if (client && r.step === "published") await client.approveKeys(r.store, await openRoot(store), [r.store.session, r.store.next]);
   const dirFile = path.join(".well-known", "http-message-signatures-directory");
   fs.mkdirSync(".well-known", { recursive: true });
   // Publishing: directory first (a crash leaves an unused key published). Activating: store first
@@ -140,6 +210,10 @@ async function rotate() {
   } else {
     out(`✔ Now signing with ${r.store.session.kid}; ${store.session.kid} left the directory and the store.`);
     out(`  Verifiers stop accepting the old key when their cached directory expires.`);
+    if (client) {
+      try { const s = await fetchStaple(client, r.store); save(r.store); out(`  Staple for the new key until ${new Date(s.exp * 1000).toISOString()}.`); }
+      catch (e) { err(`⚠ could not fetch a Staple for the new key (${e.message}); run \`ludion staple\`.`); }
+    }
   }
   out(`  Wrote ${dirFile.split(path.sep).join("/")}  ← publish it again at ${store.signature_agent}/.well-known/http-message-signatures-directory`);
 }
@@ -184,6 +258,6 @@ async function report() {
   process.exitCode = await main(args.slice(1));
 }
 
-const commands = { init, sign: signCmd, rotate, doctor, scan, report };
-if (!commands[cmd]) { out("usage: ludion <init|sign|rotate|doctor|scan|report> …"); process.exit(1); }
+const commands = { init, sign: signCmd, rotate, register, staple: stapleCmd, revoke, doctor, scan, report };
+if (!commands[cmd]) { out("usage: ludion <init|sign|rotate|register|staple|revoke|doctor|scan|report> …"); process.exit(1); }
 commands[cmd]().catch((e) => { console.error("✖", e.message); process.exit(1); });
