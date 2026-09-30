@@ -1,0 +1,14 @@
+{
+  "name": "ludion-neutral-runtimes",
+  "private": true,
+  "type": "module",
+  "description": "NEUT-1: the pinned runtimes the portable suite runs on (Node is the host). The packed @ludion/gate-core and @ludion/card-host are installed on top by accept/neutral/runtimes.mjs.",
+  "dependencies": {
+    "http-message-sig": "0.3.0",
+    "web-bot-auth": "0.2.0"
+  },
+  "devDependencies": {
+    "deno": "2.9.6",
+    "wrangler": "4.144.0"
+  }
+}
