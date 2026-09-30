@@ -66,6 +66,8 @@ export const ORACLES = [
     return { pass: !a.length && !b.length, metric: `${doc.size} ids`,
       detail: [a.length && `unregistered: ${a}`, b.length && `undocumented: ${b}`].filter(Boolean).join("; ") || undefined };
   } },
+  // Measured in CI only (the whole workflow run, every job, wall clock); not yet wired: PENDING.
+  { id: "LOOP-2", m: "M0", kind: "~", level: 1, title: "full CI run (all jobs incl. Windows, first start → last finish) ≤10 min, without dropping or loosening any oracle" },
   { id: "SEED-1", m: "M0", kind: "~", level: 0, title: "seed unit tests green", retireWhen: ["STD-1", "STD-2", "GATE-6", "REG-2", "PRS-1", "DIV-2", "DIV-3"],
     run: nodeTest(["packages/gate-core/test/core.test.mjs", "packages/diver/test/diver.test.mjs"]) },
   { id: "SEED-2", m: "M0", kind: "~", level: 0, title: "seed e2e: my agent → my Gate → VERIFIED", retireWhen: ["GATE-2", "GATE-7", "GATE-8", "PRIV-1", "DIV-1"],
