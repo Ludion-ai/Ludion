@@ -3,6 +3,7 @@
 //
 //   npx ludion init [--name "My Agent" --contact mailto:ops@example.com --domain dvr-xxx.agents.ludion.ai] [--dev]
 //   npx ludion sign <METHOD> <URL> [--body '{"a":1}']     # prints Web Bot Auth headers for curl/httpx/anything
+//   npx ludion rotate [--overlap 300] [--force]            # session key: publish the next one, then (after the overlap) switch
 //   npx ludion doctor                                      # self-check: keys, clock, directory, card
 //   npx ludion scan <access.log|dir|-> [--json]            # log-first Gate: what touched what, unsigned
 //
@@ -14,7 +15,8 @@
 import fs from "node:fs";
 import path from "node:path";
 import readline from "node:readline";
-import { generateEd25519, diverIdFromRoot, directoryDocument, cardDocument, createDiverSigner, sealRootKey, isSealedRoot, MIN_PASSPHRASE_LENGTH } from "../src/index.mjs";
+import { generateEd25519, diverIdFromRoot, directoryDocument, cardDocument, createDiverSigner, sealRootKey, isSealedRoot, MIN_PASSPHRASE_LENGTH,
+  rotateSession, RotationPendingError, DEFAULT_OVERLAP_S } from "../src/index.mjs";
 
 const args = process.argv.slice(2);
 const cmd = args[0];
@@ -115,6 +117,32 @@ async function signCmd() {
   out(`\n# expires in 60s. Generate per request; never reuse (draft §6.9).`);
 }
 
+async function rotate() {
+  const { store } = await loadSigner();
+  const overlapS = Number(flag("overlap", DEFAULT_OVERLAP_S));
+  let r;
+  try { r = await rotateSession(store, { overlapS, force: has("force") }); }
+  catch (e) {
+    if (!(e instanceof RotationPendingError)) throw e;
+    const wait = Math.ceil((e.activeAt - Date.now()) / 1000);
+    throw new Error(`${e.message} (in ${wait}s), when every verifier's cached directory has had time to pick it up. Run \`ludion rotate\` again then. --force switches now, and Gates that still cache the old directory will not find the new key until their cache expires.`);
+  }
+  const dirFile = path.join(".well-known", "http-message-signatures-directory");
+  fs.mkdirSync(".well-known", { recursive: true });
+  // Publishing: directory first (a crash leaves an unused key published). Activating: store first
+  // (a crash leaves the old key published a little longer, never a signing key that is unpublished).
+  if (r.step === "published") { fs.writeFileSync(dirFile, JSON.stringify(r.directory, null, 2)); writePrivate(STORE, JSON.stringify(r.store, null, 2)); }
+  else { writePrivate(STORE, JSON.stringify(r.store, null, 2)); fs.writeFileSync(dirFile, JSON.stringify(r.directory, null, 2)); }
+  if (r.step === "published") {
+    out(`✔ Next session key published: ${r.store.next.kid} (still signing with ${store.session.kid})`);
+    out(`  It becomes active at ${r.store.next.active_at}. Run \`ludion rotate\` again then.`);
+  } else {
+    out(`✔ Now signing with ${r.store.session.kid}; ${store.session.kid} left the directory and the store.`);
+    out(`  Verifiers stop accepting the old key when their cached directory expires.`);
+  }
+  out(`  Wrote ${dirFile.split(path.sep).join("/")}  ← publish it again at ${store.signature_agent}/.well-known/http-message-signatures-directory`);
+}
+
 async function doctor() {
   const problems = [];
   let store;
@@ -149,6 +177,6 @@ async function scan() {
   process.exitCode = await main(args.slice(1));
 }
 
-const commands = { init, sign: signCmd, doctor, scan };
-if (!commands[cmd]) { out("usage: ludion <init|sign|doctor|scan> …"); process.exit(1); }
+const commands = { init, sign: signCmd, rotate, doctor, scan };
+if (!commands[cmd]) { out("usage: ludion <init|sign|rotate|doctor|scan> …"); process.exit(1); }
 commands[cmd]().catch((e) => { console.error("✖", e.message); process.exit(1); });

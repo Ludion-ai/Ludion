@@ -102,7 +102,8 @@ export const ORACLES = [
     run: nodeTest(["packages/card-host/test/div2.test.mjs"], "^DIV-2:") },
   { id: "DIV-3", m: "M2", kind: "-", level: 1, title: "Root key never signs, never in the directory, never plaintext on disk outside dev",
     run: nodeTest(["packages/diver/test/div3.test.mjs"], "^DIV-3:") },
-  { id: "DIV-4", m: "M2", kind: "±", level: 1, title: "session key rotation keeps the identifier; old key stops, new key works" },
+  { id: "DIV-4", m: "M2", kind: "±", level: 1, title: "session key rotation keeps the identifier; old key stops, new key works",
+    run: nodeTest(["packages/diver/test/div4.test.mjs"], "^DIV-4:") },
 
   // ── M3 registry ────────────────────────────────────────────────────────────────
   { id: "REG-1", m: "M3", kind: "+", level: 1, pair: "REG-2", title: "Registry down → Gates keep verifying within Staple TTL" },
