@@ -1,0 +1,80 @@
+{
+  "id": "chatgpt-agent-2025-08-04",
+  "note": "A request ChatGPT agent (OpenAI) sent to simonwillison.net on 2025-08-04, as the site's own request log captured it and its operator published it the same day; with the directory that published the signing key. Every byte below is copied from the sources, never retyped from memory. GATE-8 (accept/gate8/gate8.test.mjs).",
+  "agent": { "name": "ChatGPT agent", "operator": "OpenAI", "signatureAgent": "https://chatgpt.com" },
+  "request": {
+    "method": "GET",
+    "target": "https://simonwillison.net/test-url-context",
+    "receivedAt": 1754340840059,
+    "headers": [
+      ["Via", "1.1 heroku-router"],
+      ["Host", "simonwillison.net"],
+      ["Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"],
+      ["Cf-Ray", "96a0f289adcb8e8e-SEA"],
+      ["Cookie", "cf_clearance=zzV8W..."],
+      ["Server", "Heroku"],
+      ["Cdn-Loop", "cloudflare; loops=1"],
+      ["Priority", "u=0, i"],
+      ["Sec-Ch-Ua", "\"Not)A;Brand\";v=\"8\", \"Chromium\";v=\"138\""],
+      ["Signature", "sig1=:1AxfqHocTf693inKKMQ7NRoHoWAZ9d/vY4D/FO0+MqdFBy0HEH3ZIRv1c3hyiTrzCvquqDC8eYl1ojcPYOSpCQ==:"],
+      ["Cf-Visitor", "{\"scheme\":\"https\"}"],
+      ["User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36"],
+      ["Cf-Ipcountry", "US"],
+      ["X-Request-Id", "45ef5be4-ead3-99d5-f018-13c4a55864d3"],
+      ["Sec-Fetch-Dest", "document"],
+      ["Sec-Fetch-Mode", "navigate"],
+      ["Sec-Fetch-Site", "none"],
+      ["Sec-Fetch-User", "?1"],
+      ["Accept-Encoding", "gzip, br"],
+      ["Accept-Language", "en-US,en;q=0.9"],
+      ["Signature-Agent", "\"https://chatgpt.com\""],
+      ["Signature-Input", "sig1=(\"@authority\" \"@method\" \"@path\" \"signature-agent\");created=1754340838;keyid=\"otMqcjr17mGyruktGvJU8oojQTSMHlVm7uO-lrcqbdg\";expires=1754344438;nonce=\"_8jbGwfLcgt_vUeiZQdWvfyIeh9FmlthEXElL-O2Rq5zydBYWivw4R3sV9PV-zGwZ2OEGr3T2Pmeo2NzmboMeQ\";tag=\"web-bot-auth\";alg=\"ed25519\""],
+      ["X-Forwarded-For", "2a09:bac5:665f:1541::21e:154, 172.71.147.183"],
+      ["X-Request-Start", "1754340840059"],
+      ["Cf-Connecting-Ip", "2a09:bac5:665f:1541::21e:154"],
+      ["Sec-Ch-Ua-Mobile", "?0"],
+      ["X-Forwarded-Port", "80"],
+      ["X-Forwarded-Proto", "http"],
+      ["Sec-Ch-Ua-Platform", "\"Linux\""],
+      ["Upgrade-Insecure-Requests", "1"]
+    ]
+  },
+  "directory": {
+    "url": "https://chatgpt.com/.well-known/http-message-signatures-directory",
+    "contentType": "application/http-message-signatures-directory+json",
+    "body": "{\"keys\":[{\"kid\":\"otMqcjr17mGyruktGvJU8oojQTSMHlVm7uO-lrcqbdg\",\"crv\":\"Ed25519\",\"kty\":\"OKP\",\"x\":\"7F_3jDlxaquwh291MiACkcS3Opq88NksyHiakzS-Y1g\",\"use\":\"sig\",\"nbf\":1735689600,\"exp\":1760418177}],\"signature_agent\":\"https://chatgpt.com\",\"purpose\":\"ai\"}"
+  },
+  "provenance": {
+    "request": {
+      "source": "https://simonwillison.net/2025/Aug/4/chatgpt-agents-user-agent/",
+      "published": "2025-08-04",
+      "by": "Simon Willison, the operator of simonwillison.net",
+      "how": "He asked ChatGPT agent to \"Visit https://simonwillison.net/test-url-context and tell me what you see there\" and logged the request that reached that URL (django-http-debug, behind Cloudflare and Heroku). The headers are the log's block under \"My logging captured these request headers\"; the method and path are the ones he asked it to visit. receivedAt is the log's X-Request-Start (Heroku's router, ms). Cookie was shortened in the post; it is not signed.",
+      "archived": {
+        "url": "https://web.archive.org/web/20250804233930id_/https://simonwillison.net/2025/Aug/4/chatgpt-agents-user-agent/",
+        "cdxDigest": "7VV6ZXRL2DMFPCEVW7IUADPJREF363PM",
+        "sha256": "d49161db30a555f26f2c644fe0c3c3fbe4ceec90cf6e2583da5eaf6c02484589",
+        "note": "Saved about three hours after the request; its header block is byte for byte the one in the live post on 2026-09-30 and the one above."
+      },
+      "retrieved": "2026-09-30T22:24:49Z"
+    },
+    "directory": {
+      "archived": [
+        { "url": "https://web.archive.org/web/20251007050256id_/https://chatgpt.com/.well-known/http-message-signatures-directory", "cdxDigest": "4QYE6LYHYBIYOPQP4C7Q552OFREVSOXB", "stored": true },
+        { "url": "https://web.archive.org/web/20251123060240id_/https://chatgpt.com/.well-known/http-message-signatures-directory", "cdxDigest": "GG4IAAKDIJTOOPV35XM22UWI7KNUHM2G", "stored": false, "note": "the same key, a later exp (1764482562)" }
+      ],
+      "earlierSnapshots": "none: the Wayback Machine's first capture of the directory is 2025-10-07. The key's nbf (2025-01-01) is before the request, and the key verifies the request's signature.",
+      "live": {
+        "retrieved": "2026-09-30T22:23:50Z",
+        "note": "no longer lists this key (rotated)",
+        "body": "{\"keys\":[{\"crv\":\"Ed25519\",\"kty\":\"OKP\",\"x\":\"P_1c4SX6fCavDcq6FRegWcVvaOKsp_aXHPEN1FcKDIA\",\"kid\":\"ArwjqcCqtA5oxEWkzXGC-To_0A9whHmajCHtfe8I9aY\",\"use\":\"sig\",\"nbf\":1735689600,\"exp\":1791411830}],\"signature_agent\":\"https://chatgpt.com\",\"purpose\":\"ai\"}"
+      },
+      "retrieved": "2026-09-30T22:28:25Z"
+    }
+  },
+  "expect": {
+    "class": "VERIFIED",
+    "identifier": "https://chatgpt.com/.well-known/http-message-signatures-directory",
+    "keyid": "otMqcjr17mGyruktGvJU8oojQTSMHlVm7uO-lrcqbdg"
+  }
+}

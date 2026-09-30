@@ -109,7 +109,11 @@ export const ORACLES = [
     run: nodeTest(["packages/gate-node/test/gate6.test.mjs", "packages/gate-core/test/address.test.mjs"], "^GATE-6:") },
   { id: "GATE-7", m: "M1", kind: "-", level: 1, title: "attack corpus accept/attacks/ 100% rejected; corpus only grows",
     run: allOf(nodeScript("accept/attacks/run.mjs"), nodeTest(["packages/gate-core/test/hardening.test.mjs", "packages/gate-node/test/route-evasion.test.mjs", "packages/gate-node/test/authority.test.mjs", "packages/gate-core/test/nonce-flood.test.mjs"], "^GATE-7:")) },
-  { id: "GATE-8", m: "M1", kind: "+", level: 1, pair: "GATE-7", title: "a real third-party signed request (fixture with provenance) is VERIFIED" },
+  // Real requests third parties' production agents sent (accept/gate8/real/*.json), with where they
+  // were captured, when, and the directory as archived then. Each is shown authentic apart from the
+  // Gate, then the Gate must name its agent; tampered, replayed, late or elsewhere, it never does.
+  { id: "GATE-8", m: "M1", kind: "+", level: 1, pair: "GATE-7", title: "a real third-party signed request (fixture with provenance) is VERIFIED",
+    run: nodeTest(["accept/gate8/gate8.test.mjs"], "^GATE-8:", { metric: (out) => (/^# GATE-8: (.+)$/m.exec(out) ?? [])[1] }) },
   { id: "GATE-9", m: "M1", kind: "+", level: 1, pair: "GATE-7", title: "the same conformance suite (STD vectors, GATE-7 corpus, STD-3 interop) passes in 6 ecosystems: Node, Workers, Deno/Bun, PHP+WordPress, Python, Go" },
   // The suite as data (accept/conformance/vectors.json, written by export.mjs from the GATE-7 families
   // and the WG vectors); the TypeScript Gate runs it from the file (portable/conformance.mjs), which
