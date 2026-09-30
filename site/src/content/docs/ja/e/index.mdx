@@ -1,0 +1,25 @@
+---
+title: Gate のエラー
+description: Ludion の Gate が返しうるすべてのエラーと、その意味と、通り方。
+sidebar:
+  order: 0
+  label: 一覧
+---
+
+Ludion の Gate を入れたサイトが自動化されたリクエストを断るとき、応答には `Ludion-Error` ヘッダーと、ここへのリンク `Link: <https://ludion.ai/e/{code}>; rel="help"` が付きます。各ページに、何が起きたか、サイトがなぜそれを求めるか、どうすれば通れるかを書いています。
+
+ブラウザを使う人に、Gate がこれらを返すことはありません。Gate が作用するのは自動化に見えるリクエストだけで、しかもサイトが選んだ経路だけです。
+
+| HTTP | `Ludion-Error` | 意味 |
+|---|---|---|
+| 401 | [`signature_required`](/ja/e/signature_required) | この経路は、自動化されたクライアントに署名を求めている |
+| 401 | [`invalid_signature`](/ja/e/invalid_signature) | 署名が検証に通らなかった |
+| 401 | [`staple_expired`](/ja/e/staple_expired) | 状態証明（Staple）が古い |
+| 403 | [`revoked`](/ja/e/revoked) | 鍵またはエージェントの身分が失効している |
+| 403 | [`depth_insufficient`](/ja/e/depth_insufficient) | 経路がより高い Depth を求めている |
+| 403 | [`ballast_required`](/ja/e/ballast_required) | 経路が有効な Ballast を求めている |
+| 403 | [`mandate_required`](/ja/e/mandate_required) | 経路が Principal からの委任（Mandate）を求めている |
+| 403 | [`mandate_scope`](/ja/e/mandate_scope) | Mandate がこの行為を含んでいない |
+| 429 | [`rate_limited`](/ja/e/rate_limited) | リクエストが多すぎる |
+
+Ludion は [Web Bot Auth](https://datatracker.ietf.org/doc/draft-ietf-webbotauth-httpsig-protocol/)（RFC 9421）の上に建っています。これで署名しているエージェントは、Ludion の Gate ではすでに検証済みです。まだ署名していなければ、[`signature_required`](/ja/e/signature_required) から始めてください。

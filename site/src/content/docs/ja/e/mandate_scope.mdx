@@ -1,0 +1,26 @@
+---
+title: mandate_scope
+description: "HTTP 403。エージェントの Mandate がこの行為を含んでいない。何が起きたか、なぜか、約3分で検証済みになる道。"
+sidebar:
+  order: 8
+---
+import VerifyPath from "../../../../partials/verify-path.ja.mdx";
+
+**HTTP 403** · `Ludion-Error: mandate_scope`
+
+## 何が起きたか
+
+署名は検証でき、Mandate も付いていました。しかしその Mandate は、この経路で行う行為を含んでいません。経路はある範囲（たとえば `checkout`）を求めており、あなたの Mandate の `scope` の一覧にそれがありませんでした。
+
+## サイトがこれを求める理由
+
+Mandate が役に立つのは、その範囲が守られるときだけです。閲覧を許されたエージェントは支払いを許されておらず、予約を許されたエージェントはアカウントの解約を許されていません。サイトは Principal 自身が引いた線を守ります。
+
+## 直し方
+
+- この行為を範囲に含む Mandate を、Principal に求めてください。範囲は `read`、`account`、`post`、`reserve`、`checkout`、`delete` です。
+- Mandate を自分で広げないでください。Mandate は署名されており、どんな変更も署名を壊します。
+
+## 3分で検証済みになる
+
+<VerifyPath />

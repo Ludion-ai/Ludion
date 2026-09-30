@@ -27,7 +27,10 @@
 - ADR の次の番号：025〜029 は上の 3 本が予約済み。その次は 030。
 - 夜勤レーン（2026-10-01、`.loop/NIGHT.md`。別の作業ツリーで並走）：
   - GATE-9 と M7 Web（WEB-1〜8）を PENDING で登録した（#43）。
-  - 次は NIGHT.md の優先順：WEB-3（`/e/<code>`）→ WEB-4 と WEB-6（ブラウザ版 scan）→ WEB-1/2/5/8 → 目録の残り → GATE-9（PHP と WordPress、Python）→ WEB-7 → LIVE-1。
+  - WEB-3：`site/` を Astro と Starlight にした（ADR-040）。`/e/<code>` と `/ja/e/<code>` が 9 コード × 2 言語ある。
+  - 次は NIGHT.md の優先順：WEB-4 と WEB-6（ブラウザ版 scan）→ WEB-1/2/5/8 → 目録の残り → GATE-9（PHP と WordPress、Python）→ WEB-7 → LIVE-1。
+  - WEB-4 の入口：`@ludion/scan` の `formats.mjs` と `aggregate.mjs` はブラウザでそのまま動く。Node 専用は `lines.mjs` だけ（fs、zlib）。ブラウザでは File の stream と `DecompressionStream` で置き換える。
+  - プレビューのデプロイ（WEB-1）：トークンは Workers の編集だけの想定。Pages ではなく Workers の静的アセット（`*.workers.dev`）に出すのが確実。
   - 夜勤レーンの ADR は 040〜049 を使う（昼のレーンの 030〜 と衝突させないため）。
 
 ## 人間待ち
@@ -44,6 +47,10 @@
 - [ ] 判断：日次レポートの metadata event に `operator` を足すか。足せば DECLARED の運営者別の上位を出せる。ただし spec §11.7 の送信項目が変わる（#28）。
 - [ ] 日次レポートの送信基盤：送信サービス、送信ドメイン、SPF/DKIM/DMARC、配信停止。`ludion report` は中身を作るだけで、送信はしない。
 - [ ] 判断：nonce なしの同一署名を、同じメソッドと URL へ再送したら SPOOFED にしている（GATE-7、PR #4）。正規のリトライも弾く。これを受け入れるか、`requireNonce` を既定にするか。
+- [ ] 本番公開の前に：`/e/<code>` の文面（`site/src/content/docs/e/`、`ja/e/`）を読む。会社としての約束が 2 つ入っている。
+  - 失効と Depth の引き下げには理由を示し、異議を聞く（spec §8.12）。
+  - Ballast v0 は保険ではない（spec §14）。
+  - `rate_limited` は spec §10.11 にあるが、Gate v0 は返さない。ページにもそう書いた。
 
 ## BLOCKED
 
@@ -75,7 +82,16 @@
 
 ## 直近のセッション
 
-- 2026-10-01（夜勤 1）：GATE-9 と M7 Web（WEB-1〜8）を目録と registry に PENDING で登録した（#43）。ID の衝突はなし。LOOP-1 は PASS のまま、目録は 39 → 49 件。
+- 2026-10-01（夜勤 1）：
+  - GATE-9 と M7 Web（WEB-1〜8）を目録と registry に PENDING で登録した（#43）。ID の衝突はなし。LOOP-1 は PASS のまま、目録は 39 → 49 件。
+  - WEB-3（Astro と Starlight、ADR-040）：
+    - コードの一覧は手で書かない。次の2つから読む。
+      - Gate：`decide()` を全入力の形で回した結果と、アダプタのリテラル
+      - spec §10.11 の表
+    - gate-core に `ERRORS` を足した。
+    - サイトを実際にビルドし、静的ホストと同じ規則で配る。Gate の Link ヘッダーの URL を叩く。
+    - 検査：英日のページ、4つの節、3分の道のコマンド。日本語のページは未翻訳のフォールバックでないこと。
+    - 突然変異で落ちることを確かめた。ja を1枚消す、en を1枚消す、`decide()` に未知のコードを足す。
 
 - 2026-09-30（Claude Code 1）：
   - **Windows/Node 24 の修正（#1）**：ラチェット済みの 4 件が落ちていた。原因は Node ≥23 の test reporter と、パスの区切り文字。検証器を移植可能に直し、`loop-windows` CI と `.gitattributes`（eol=lf）を追加した。

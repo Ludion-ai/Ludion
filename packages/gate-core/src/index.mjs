@@ -8,7 +8,7 @@
 
 import { createResolver } from "./resolver.mjs";
 import { createStapleVerifier, issueStaple } from "./staple.mjs";
-import { classify, createPolicy, createNonceCache, decide, ERROR_HELP, AUTOMATION, compileRoute, CLASSES } from "./classify.mjs";
+import { classify, createPolicy, createNonceCache, decide, ERROR_HELP, ERRORS, AUTOMATION, compileRoute, CLASSES } from "./classify.mjs";
 import { createReceipts, importSiteKey, generateSiteKey, metadataEvent, countryCode, templatePath, hashIp } from "./receipt.mjs";
 import { KNOWN_AGENT_TOKENS, AUTOMATION_SIGNALS, matchKnownAgent, matchAutomationSignal } from "./agents.mjs";
 import { GateFault, within, clock } from "./budget.mjs";
@@ -19,7 +19,7 @@ import { routeKind, isCritical, pathOf, originForm, routeCandidates, queryKeys, 
 
 export {
   createResolver, createStapleVerifier, issueStaple, classify, createPolicy, createNonceCache, decide, compileRoute, CLASSES,
-  ERROR_HELP, AUTOMATION, createReceipts, importSiteKey, generateSiteKey, metadataEvent, countryCode, templatePath, hashIp,
+  ERROR_HELP, ERRORS, AUTOMATION, createReceipts, importSiteKey, generateSiteKey, metadataEvent, countryCode, templatePath, hashIp,
   KNOWN_AGENT_TOKENS, AUTOMATION_SIGNALS, matchKnownAgent, matchAutomationSignal, GateFault, isPublicAddress, isIpLiteral,
   createAuthorities, requestAuthority, createRevocationList, subscribeRevocations, REVOCATION_TYP,
   routeKind, isCritical, pathOf, originForm, routeCandidates, queryKeys, templateSegment, publicTemplateSegment, publicTemplatePath, isRouteWord, ROUTE_KINDS, CRITICAL_KINDS, WRITE_METHODS,

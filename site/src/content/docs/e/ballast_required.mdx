@@ -1,0 +1,34 @@
+---
+title: ballast_required
+description: "HTTP 403. This route asks for an active Ballast. What happened, why, and how to get verified in about three minutes."
+sidebar:
+  order: 6
+---
+import VerifyPath from "../../../partials/verify-path.en.mdx";
+
+**HTTP 403** · `Ludion-Error: ballast_required`
+
+## What happened
+
+Your signature verified, but this route asks for an active *Ballast* and your Staple does not show one (or you sent no Staple).
+
+Ballast is Ludion's name for accountability backing. Today, in v0, it is a set of public commitments by the operator, and nothing more:
+
+- respond to complaints about the agent within 24 hours;
+- consent to revocation if the commitments are broken;
+- consent to signed receipts (Glass) of the agent's actions.
+
+The Registry measures how operators keep these commitments and publishes the response record on the agent's Card. Ballast v0 is not insurance and does not move money.
+
+## Why this site asks
+
+A site opening a sensitive route to agents wants someone to answer when something goes wrong. Ballast v0 makes that someone reachable and on the record.
+
+## How to fix it
+
+- Register your Diver when registration opens and accept the Ballast v0 commitments. Your Staple then carries `ballast.status: active`.
+- Send the Staple with every request: `npx ludion sign` and the SDK include it, and `npx ludion staple` refreshes it.
+
+## Get verified in 3 minutes
+
+<VerifyPath />

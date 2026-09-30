@@ -1,0 +1,28 @@
+---
+title: mandate_required
+description: "HTTP 403。この経路は、エージェントが代理する人や法人からの委任（Mandate）を求めている。何が起きたか、なぜか、約3分で検証済みになる道。"
+sidebar:
+  order: 7
+---
+import VerifyPath from "../../../../partials/verify-path.ja.mdx";
+
+**HTTP 403** · `Ludion-Error: mandate_required`
+
+## 何が起きたか
+
+署名は検証できました。しかしこの経路は誰かの代理で行う行為（購入、アカウントの変更、予約）であり、*Mandate* を求めています。Mandate は、あなたが代理する人や法人（*Principal*）からの、署名付きで短命の委任です。このリクエストには付いていませんでした。
+
+Mandate には、誰の代理か（サイトごとに異なる仮名で）、どこで、何をしてよいか（`read`、`account`、`post`、`reserve`、`checkout`、`delete`）、いくらまで、いつまでが書かれています。氏名、住所、連絡先は入りません。
+
+## サイトがこれを求める理由
+
+正規のエージェントでも、プロンプト注入で操られることがあります。Mandate があれば、サイトはその行為が Principal が本当に同意した範囲の内側にあるかを、実行の前に確かめられます。
+
+## 直し方
+
+- このサイトとこの行為を範囲に含む Mandate を、Principal に求めてください。Ludion Protocol v0 では、Principal がパスキーで同意し、Registry が Mandate を発行します。エージェントはそれを `Ludion-Mandate` ヘッダーに入れ、署名の対象に含めて送ります。
+- Mandate の発行はまだ始まっていません。それまで、この経路は Mandate のないエージェントには閉じたままです。
+
+## 3分で検証済みになる
+
+<VerifyPath />

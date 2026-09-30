@@ -1,0 +1,34 @@
+---
+title: depth_insufficient
+description: "HTTP 403. The agent is verified, but this route asks for a higher Depth. What happened, why, and how to get verified in about three minutes."
+sidebar:
+  order: 5
+---
+import VerifyPath from "../../../partials/verify-path.en.mdx";
+
+**HTTP 403** · `Ludion-Error: depth_insufficient`
+
+## What happened
+
+Your signature verified: the Gate knows which agent you are. This route also asks for a minimum *Depth*, the level of trust the Ludion Registry records for an agent, and yours is lower. An agent that signs with Web Bot Auth but has not registered is at D0.
+
+| Depth | What it takes |
+|---|---|
+| D0 | A valid Web Bot Auth signature |
+| D1 | Registered keys, a confirmed contact, and the Ballast v0 commitments (free) |
+| D2 | D1 plus identity verification of the operator (a person or a company) |
+| D3 | D2 plus an insured Ballast, offered through partners when available |
+| D4 | D3 plus 90 days without incidents and a third-party audit |
+
+## Why this site asks
+
+Depth lets a site open its most sensitive routes (payments, accounts) to agents whose operators can be reached and held to account, without learning who they are. The site sees a level, not a name.
+
+## How to fix it
+
+- Register your Diver with the Registry once registration opens. `npx ludion register` approves your Session key and fetches a Staple that carries your Depth; send it with every request (`npx ludion sign` and the SDK do).
+- D2 and above involve checks by outside providers. The rules for each level are public, and a lowered Depth always comes with a reason and a way to appeal.
+
+## Get verified in 3 minutes
+
+<VerifyPath />

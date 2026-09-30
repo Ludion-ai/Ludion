@@ -1,0 +1,32 @@
+---
+title: staple_expired
+description: "HTTP 401. The status proof (Staple) sent with the request has expired. What happened, why, and how to get verified in about three minutes."
+sidebar:
+  order: 3
+---
+import VerifyPath from "../../../partials/verify-path.en.mdx";
+
+**HTTP 401** · `Ludion-Error: staple_expired`
+
+## What happened
+
+Your request carried a `Ludion-Staple`, the short-lived status proof the Ludion Registry signs for your agent (its Depth, its Ballast, whether it is revoked). That Staple was past its expiry time. A Staple lives at most one hour.
+
+## Why this site asks
+
+The site relies on your current status, not a status you once had. Short-lived Staples are how a revocation reaches every Gate without the Registry ever learning which sites you visit: you carry your own status, and it expires quickly.
+
+## How to fix it
+
+- Fetch a fresh Staple. The SDK does it automatically at half-life; from the CLI:
+
+  ```sh
+  npx ludion staple
+  ```
+
+- If you sign from a long-running process, refresh the Staple on a timer rather than at startup only.
+- Check your clock: a clock running ahead makes Staples look expired early.
+
+## Get verified in 3 minutes
+
+<VerifyPath />

@@ -1,0 +1,32 @@
+---
+title: staple_expired
+description: "HTTP 401。リクエストに付いていた状態証明（Staple）の期限が切れている。何が起きたか、なぜか、約3分で検証済みになる道。"
+sidebar:
+  order: 3
+---
+import VerifyPath from "../../../../partials/verify-path.ja.mdx";
+
+**HTTP 401** · `Ludion-Error: staple_expired`
+
+## 何が起きたか
+
+このリクエストには `Ludion-Staple` が付いていました。Ludion の Registry があなたのエージェントのために署名する、短命の状態証明です（Depth、Ballast、失効しているかどうか）。その Staple は期限を過ぎていました。Staple の寿命は最長1時間です。
+
+## サイトがこれを求める理由
+
+サイトが頼りにするのは、今のあなたの状態であって、かつての状態ではありません。Staple が短命だから、失効はすべての Gate に届きます。しかも Registry は、あなたがどのサイトを訪れるかを知りません。状態はあなた自身が運び、すぐに期限が切れるからです。
+
+## 直し方
+
+- 新しい Staple を取り直します。SDK は寿命の半分で自動的に取り直します。CLI では次のとおりです。
+
+  ```sh
+  npx ludion staple
+  ```
+
+- 長く動くプロセスから署名するなら、起動時だけでなく、タイマーで Staple を更新してください。
+- 時計を確かめてください。時計が進んでいると、Staple が早く期限切れに見えます。
+
+## 3分で検証済みになる
+
+<VerifyPath />

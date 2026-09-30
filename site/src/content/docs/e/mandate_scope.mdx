@@ -1,0 +1,26 @@
+---
+title: mandate_scope
+description: "HTTP 403. The agent's Mandate does not cover this action. What happened, why, and how to get verified in about three minutes."
+sidebar:
+  order: 8
+---
+import VerifyPath from "../../../partials/verify-path.en.mdx";
+
+**HTTP 403** · `Ludion-Error: mandate_scope`
+
+## What happened
+
+Your signature verified and you sent a Mandate, but the Mandate does not cover what this route does. The route asks for a scope (for example `checkout`), and your Mandate's `scope` list does not include it.
+
+## Why this site asks
+
+A Mandate is only useful if its limits hold. An agent allowed to browse is not allowed to pay; an agent allowed to book is not allowed to cancel an account. The site enforces the Principal's own boundaries.
+
+## How to fix it
+
+- Ask your Principal for a Mandate whose scope includes this action. The scopes are `read`, `account`, `post`, `reserve`, `checkout` and `delete`.
+- Do not widen a Mandate on your own: it is signed, and any change breaks it.
+
+## Get verified in 3 minutes
+
+<VerifyPath />

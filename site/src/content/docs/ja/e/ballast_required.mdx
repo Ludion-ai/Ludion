@@ -1,0 +1,34 @@
+---
+title: ballast_required
+description: "HTTP 403。この経路は有効な Ballast を求めている。何が起きたか、なぜか、約3分で検証済みになる道。"
+sidebar:
+  order: 6
+---
+import VerifyPath from "../../../../partials/verify-path.ja.mdx";
+
+**HTTP 403** · `Ludion-Error: ballast_required`
+
+## 何が起きたか
+
+署名は検証できましたが、この経路は有効な *Ballast* を求めており、あなたの Staple はそれを示していませんでした（または Staple が付いていませんでした）。
+
+Ballast は、Ludion が「責任の裏打ち」と呼ぶものです。今の v0 では、運営者が公開で行う次の約束であり、それ以上のものではありません。
+
+- エージェントへの苦情に24時間以内に応答する
+- 約束を破ったときの失効に同意する
+- エージェントの行為の署名付き受領証（Glass）の記録に同意する
+
+Registry は、運営者がこの約束をどう守っているかを計測し、応答の実績をエージェントの Card に公開します。Ballast v0 は保険ではなく、お金も動きません。
+
+## サイトがこれを求める理由
+
+慎重に扱う経路をエージェントに開くサイトは、何かが起きたときに応答する誰かを求めます。Ballast v0 は、その誰かに連絡がつき、記録に残る状態にします。
+
+## 直し方
+
+- 登録の受付が始まったら Diver を登録し、Ballast v0 の約束を受け入れてください。Staple に `ballast.status: active` が載ります。
+- その Staple を毎回のリクエストに付けます。`npx ludion sign` と SDK は自動で付け、`npx ludion staple` で取り直せます。
+
+## 3分で検証済みになる
+
+<VerifyPath />

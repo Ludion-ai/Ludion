@@ -1,0 +1,28 @@
+---
+title: mandate_required
+description: "HTTP 403. This route asks for a Mandate from the person or company the agent acts for. What happened, why, and how to get verified in about three minutes."
+sidebar:
+  order: 7
+---
+import VerifyPath from "../../../partials/verify-path.en.mdx";
+
+**HTTP 403** · `Ludion-Error: mandate_required`
+
+## What happened
+
+Your signature verified, but this route acts on someone's behalf (a purchase, an account change, a booking) and asks for a *Mandate*: a signed, short-lived delegation from the person or company you act for (the *Principal*). Your request carried none.
+
+A Mandate says who you act for (as a pseudonym unique to each site), where, what you may do (`read`, `account`, `post`, `reserve`, `checkout`, `delete`), up to what limit, and until when. It contains no name, address or contact details.
+
+## Why this site asks
+
+Even a legitimate agent can be steered by a prompt injection. A Mandate lets the site check that this action is within what the Principal actually agreed to, before it happens.
+
+## How to fix it
+
+- Ask your Principal for a Mandate that covers this site and this action. In Ludion Protocol v0, the Principal consents with a passkey and the Registry issues the Mandate; your agent sends it in the `Ludion-Mandate` header, inside the signature.
+- Mandate issuance is not open yet. Until it is, this route stays closed to agents without one.
+
+## Get verified in 3 minutes
+
+<VerifyPath />

@@ -6,6 +6,9 @@ node_modules/
 # reference apps run in place
 .next/
 .wrangler/
+# site (Astro): built into the OS temp dir by site/build.mjs; dist only when asked for
+site/dist/
+site/.astro/
 # Diver CLI output when run inside the repo
 ludion.json
 .well-known/

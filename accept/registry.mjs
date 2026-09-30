@@ -192,7 +192,11 @@ export const ORACLES = [
   // ── M7 web: the site, the /e/<code> help pages, the in-browser scan ──────────────
   { id: "WEB-1", m: "M7", kind: "+", level: 1, pair: "WEB-5", title: "static site deployed to preview; every page in ja + en; Lighthouse mobile P/A/BP/SEO all ≥95" },
   { id: "WEB-2", m: "M7", kind: "-", level: 1, title: "copy check: 0 insurance / guarantee / 100%-safe claims (spec §14); every number links to its source" },
-  { id: "WEB-3", m: "M7", kind: "+", level: 1, pair: "WEB-5", title: "every Gate error code has /e/<code> in ja + en (what happened, 3-minute path to VERIFIED); 0 missing" },
+  // The site is its own npm project (ADR-040), installed from site/package-lock.json and built
+  // once per content hash into the OS temp dir by site/build.mjs; the codes come from the Gate.
+  { id: "WEB-3", m: "M7", kind: "+", level: 1, pair: "WEB-5", title: "every Gate error code has /e/<code> in ja + en (what happened, 3-minute path to VERIFIED); 0 missing",
+    timeoutMs: 900_000, run: nodeTest(["site/test/web3.test.mjs"], "^WEB-3:", { timeoutMs: 880_000,
+      metric: (out) => (/^# WEB-3: (.+)$/m.exec(out) ?? [])[1] }) },
   { id: "WEB-4", m: "M7", kind: "+", level: 1, pair: "WEB-6", title: "in-browser scan at /scan equals the CLI on SCAN fixtures; 200 MB in ≤30s (headless Chromium)" },
   { id: "WEB-5", m: "M7", kind: "-", level: 1, title: "0 broken links, 0 console errors, 0 requests outside the allowlist" },
   { id: "WEB-6", m: "M7", kind: "-", level: 1, title: "scan leaks no log byte: canary log → 0 external requests after page load (every request watched)" },

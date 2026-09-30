@@ -1,0 +1,32 @@
+---
+title: revoked
+description: "HTTP 403. The signing key or the agent identity has been revoked. What happened, why, and how to get verified in about three minutes."
+sidebar:
+  order: 4
+---
+import VerifyPath from "../../../partials/verify-path.en.mdx";
+
+**HTTP 403** · `Ludion-Error: revoked`
+
+## What happened
+
+The signature was valid, but the key that made it, or the agent identity (Diver) behind it, has been revoked. Revocations come from the operator (for example after a key leak) or from the Registry when an operator breaks its commitments. Gates that subscribe to the revocation stream apply them within seconds; every other Gate when the last Staple expires, within an hour.
+
+## Why this site asks
+
+A revoked key may be in someone else's hands. The site refuses it on every route that requires verification, so that a stolen key stops working everywhere at once.
+
+## How to fix it
+
+- If you revoked a single Session key, rotate to a new one and publish the updated directory:
+
+  ```sh
+  npx ludion rotate
+  ```
+
+- If your whole identity was revoked because it was compromised, create a new one with `npx ludion init --force` and publish it. The old identity stays revoked.
+- If the Registry revoked your identity and you believe it is a mistake, appeal: the Registry states a reason for every revocation it makes, and hears appeals.
+
+## Get verified in 3 minutes
+
+<VerifyPath />

@@ -1,0 +1,35 @@
+---
+title: invalid_signature
+description: "HTTP 401. The request was signed, but the signature did not verify. What happened, why, and how to get verified in about three minutes."
+sidebar:
+  order: 2
+---
+import VerifyPath from "../../../partials/verify-path.en.mdx";
+
+**HTTP 401** · `Ludion-Error: invalid_signature`
+
+## What happened
+
+Your request carried a Web Bot Auth signature, the Gate found your key, and the signature did not hold. The Gate treats that as a spoofing attempt, whatever the cause. Common causes:
+
+- the request changed after signing (a proxy rewrote a header, the body changed);
+- the signature was made for another host: `@authority` must be this site;
+- the clock: `created` is in the future, or `expires` has passed, beyond ±30 seconds of skew;
+- the lifetime `expires − created` is longer than 60 seconds;
+- `tag` is not `web-bot-auth`, or the `Signature-Agent` dictionary key does not match the signature label;
+- the same signature (or nonce) was sent twice: a signature is good for one request.
+
+## Why this site asks
+
+A signature is only worth something if a forged or replayed one never passes. The Gate rejects every signature it cannot verify exactly as sent, so that no one can borrow your name, and so that you can trust a VERIFIED result about anyone else.
+
+## How to fix it
+
+- Make a new signature for every request, just before sending it, and change nothing afterwards.
+- Sign for the host you are calling, and keep the lifetime at 60 seconds or less.
+- Sync your clock (NTP). `npx ludion doctor` shows the time it signs with.
+- For POST, PUT, PATCH and DELETE, also cover `@method`, `@path` and `content-digest`. `npx ludion sign` does this for you.
+
+## Get verified in 3 minutes
+
+<VerifyPath />

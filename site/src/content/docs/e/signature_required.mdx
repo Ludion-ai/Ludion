@@ -1,0 +1,29 @@
+---
+title: signature_required
+description: "HTTP 401. This route asks automated clients to sign their requests. What happened, why, and how to get verified in about three minutes."
+sidebar:
+  order: 1
+---
+import VerifyPath from "../../../partials/verify-path.en.mdx";
+
+**HTTP 401** · `Ludion-Error: signature_required`
+
+## What happened
+
+Your request reached a route where the site asks automated clients to sign, and the site's Ludion Gate could not tie it to a verifiable agent. Either it carried no Web Bot Auth signature, or it carried one whose key the Gate could not find: the key directory named in `Signature-Agent` was unreachable, or it did not list the signing key. The response includes an `Accept-Signature` header describing what to sign.
+
+People using a browser are never sent here. The Gate only asks this of clients that look automated, and only on the routes the site chose.
+
+## Why this site asks
+
+The site has raised its *Pressure* on this route, usually a checkout, a login or a form. Unsigned automation there is how scraping, stock hoarding and account takeover happen, and the site cannot tell a careful agent from a careless one without a signature. It is not blocking agents. It is asking which one you are.
+
+## How to fix it
+
+- Sign the request with Web Bot Auth, covering at least `@authority` and `signature-agent`. The `Accept-Signature` header in this response lists the components the site expects.
+- If you already sign, run `npx ludion doctor` or fetch your directory yourself. It must answer `200` without redirects, with `Content-Type: application/http-message-signatures-directory+json`, and list the `keyid` you signed with.
+- Rarely, this code means the site's Gate itself could not finish verifying (a fault on its side, with the route set to fail closed). If your setup checks out, retry later.
+
+## Get verified in 3 minutes
+
+<VerifyPath />

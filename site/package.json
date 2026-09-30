@@ -1,1 +1,15 @@
-{ "name": "ludion-site", "private": true, "type": "module" }
+{
+  "name": "ludion-site",
+  "private": true,
+  "type": "module",
+  "description": "ludion.ai: static site (Astro + Starlight, ADR-040). English at /, Japanese at /ja/, Gate help pages at /e/<code>.",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "node build.mjs --out dist",
+    "preview": "node serve.mjs dist"
+  },
+  "dependencies": {
+    "@astrojs/starlight": "0.42.4",
+    "astro": "7.3.5"
+  }
+}
