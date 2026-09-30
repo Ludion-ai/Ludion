@@ -1,0 +1,57 @@
+---
+// The in-browser scan (WEB-4). The log is read by the CLI's own code in a worker, in this tab.
+import { STRINGS } from "../scan/strings.mjs";
+const { lang = "en" } = Astro.props;
+const t = STRINGS[lang] ?? STRINGS.en;
+---
+
+<div class="ludion-scan not-content" data-lang={lang} data-state="loading">
+  <label class="scan-drop" for="scan-input">
+    <strong>{t.drop}</strong>
+    <span class="scan-choose">{t.choose}</span>
+    <input id="scan-input" type="file" multiple />
+  </label>
+  <p class="scan-formats">{t.formats}</p>
+  <p class="scan-privacy">{t.privacy}</p>
+  <p id="scan-status" role="status" aria-live="polite"></p>
+  <div id="scan-result" hidden></div>
+</div>
+
+<script>
+  import { mount } from "../scan/ui.mjs";
+  const root = document.querySelector(".ludion-scan");
+  if (root instanceof HTMLElement) mount(root);
+</script>
+
+<style>
+  .ludion-scan { margin-block: 1.5rem; }
+  .scan-drop {
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.25rem;
+    min-height: 11rem; padding: 1.5rem; text-align: center; cursor: pointer;
+    border: 2px dashed var(--sl-color-gray-4); border-radius: 0.75rem; background: var(--sl-color-gray-6);
+  }
+  .scan-drop strong { font-size: var(--sl-text-2xl); color: var(--sl-color-white); }
+  .scan-choose { color: var(--sl-color-accent-high); text-decoration: underline; }
+  .scan-drop:focus-within { outline: 2px solid var(--sl-color-accent); outline-offset: 3px; }
+  .ludion-scan.scan-over .scan-drop { border-color: var(--sl-color-accent); background: var(--sl-color-accent-low); }
+  .ludion-scan[data-state="reading"] .scan-drop { opacity: 0.6; cursor: progress; }
+  .scan-drop input { position: absolute; width: 1px; height: 1px; opacity: 0; overflow: hidden; }
+  .scan-formats { font-size: var(--sl-text-sm); color: var(--sl-color-gray-2); }
+  .scan-privacy { padding: 0.75rem 1rem; border-inline-start: 4px solid var(--sl-color-accent); background: var(--sl-color-gray-6); }
+  #scan-status { min-height: 1.5em; font-variant-numeric: tabular-nums; }
+  .ludion-scan :global(.scan-hero) { margin-block: 1.5rem; padding: 1.25rem 1.5rem; border-radius: 0.75rem; background: var(--sl-color-gray-6); }
+  .ludion-scan :global(.scan-hero h2) { margin: 0; font-size: var(--sl-text-xl); }
+  .ludion-scan :global(.scan-big) { margin: 0.25rem 0; font-size: clamp(3rem, 12vw, 5.5rem); font-weight: 700; line-height: 1.1; color: var(--sl-color-white); font-variant-numeric: tabular-nums; }
+  .ludion-scan :global(.scan-def) { font-size: var(--sl-text-sm); color: var(--sl-color-gray-2); }
+  .ludion-scan :global(h3) { margin-top: 1.75rem; font-size: var(--sl-text-lg); }
+  .ludion-scan :global(.scan-table) { width: 100%; border-collapse: collapse; margin-top: 0.5rem; font-size: var(--sl-text-sm); }
+  .ludion-scan :global(.scan-table th), .ludion-scan :global(.scan-table td) { padding: 0.35rem 0.5rem; border-bottom: 1px solid var(--sl-color-gray-5); text-align: start; }
+  .ludion-scan :global(.scan-table .num) { text-align: end; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .ludion-scan :global(.scan-note) { font-size: var(--sl-text-sm); color: var(--sl-color-gray-2); }
+  .ludion-scan :global(.scan-actions) { display: flex; gap: 0.75rem; flex-wrap: wrap; }
+  .ludion-scan :global(.scan-button) {
+    padding: 0.4rem 0.9rem; border: 1px solid var(--sl-color-gray-4); border-radius: 999px;
+    background: transparent; color: var(--sl-color-white); font: inherit; cursor: pointer;
+  }
+  .ludion-scan :global(pre#scan-json) { max-height: 24rem; overflow: auto; font-size: var(--sl-text-xs); }
+</style>

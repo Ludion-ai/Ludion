@@ -197,7 +197,11 @@ export const ORACLES = [
   { id: "WEB-3", m: "M7", kind: "+", level: 1, pair: "WEB-5", title: "every Gate error code has /e/<code> in ja + en (what happened, 3-minute path to VERIFIED); 0 missing",
     timeoutMs: 900_000, run: nodeTest(["site/test/web3.test.mjs"], "^WEB-3:", { timeoutMs: 880_000,
       metric: (out) => (/^# WEB-3: (.+)$/m.exec(out) ?? [])[1] }) },
-  { id: "WEB-4", m: "M7", kind: "+", level: 1, pair: "WEB-6", title: "in-browser scan at /scan equals the CLI on SCAN fixtures; 200 MB in ≤30s (headless Chromium)" },
+  // Headless Chromium: playwright-core from the site's lockfile, its pinned browser build installed on
+  // first use into Playwright's cache (site/test/browser.mjs). The page runs packages/scan's own core.
+  { id: "WEB-4", m: "M7", kind: "+", level: 1, pair: "WEB-6", title: "in-browser scan at /scan equals the CLI on SCAN fixtures; 200 MB in ≤30s (headless Chromium)",
+    timeoutMs: 900_000, run: nodeTest(["site/test/web4.test.mjs"], "^WEB-4:", { timeoutMs: 880_000,
+      metric: (out) => (/^# WEB-4: (.+)$/m.exec(out) ?? [])[1] }) },
   { id: "WEB-5", m: "M7", kind: "-", level: 1, title: "0 broken links, 0 console errors, 0 requests outside the allowlist" },
   { id: "WEB-6", m: "M7", kind: "-", level: 1, title: "scan leaks no log byte: canary log → 0 external requests after page load (every request watched)" },
   { id: "WEB-7", m: "M7", kind: "+", level: 1, pair: "WEB-2", title: "docs are tests: quickstart code blocks run in a clean env and do what they say (VERIFIED, first event)" },
