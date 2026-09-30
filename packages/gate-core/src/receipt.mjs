@@ -9,7 +9,7 @@
 // site and the agent hold the same receipt, so neither can later deny it.
 
 import { createHash, randomBytes } from "node:crypto";
-import { templatePath } from "./route.mjs";
+import { templatePath, publicTemplatePath } from "./route.mjs";
 
 const b64u = (bytes) => Buffer.from(bytes).toString("base64url");
 
@@ -90,15 +90,29 @@ export function createReceipts({ siteId, siteKey, now = () => Date.now() }) {
   };
 }
 
-/** Metadata event for Ludion Cloud (spec §11.7). Strictly no content. */
-export function metadataEvent({ receipt, ip, ipSalt, country }) {
+const METHODS = new Set(["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "CONNECT", "TRACE"]);
+
+/** A country code as a CDN sets it (ISO 3166-1 alpha-2, or XX/T1), else nothing: a client can
+ *  send CF-IPCountry itself, and a header value must never leave the site (spec §11.7). */
+export function countryCode(country) {
+  const c = typeof country === "string" ? country.trim() : "";
+  return /^[A-Za-z][A-Za-z0-9]$/.test(c) ? c.toUpperCase() : null;
+}
+
+/**
+ * Metadata event for Ludion Cloud (spec §11.7). Strictly no content: the route is the off-site
+ * template of `path` (route words only, PRIV-1), the method a known token, the country a code.
+ */
+export function metadataEvent({ receipt, path, ip, ipSalt, country }) {
+  const method = String(receipt.method ?? "").toUpperCase();
   return {
     v: 0,
     rid: receipt.rid, site: receipt.site, ts: receipt.ts,
-    method: receipt.method, route: receipt.route,
+    method: METHODS.has(method) ? method : "OTHER",
+    route: publicTemplatePath(path ?? receipt.route ?? ""),
     class: receipt.class, decision: receipt.decision, error: receipt.error, pressure: receipt.pressure,
     diver: receipt.diver,
-    country: country ?? null,
+    country: countryCode(country),
     ip_h: hashIp(ip, ipSalt),
   };
 }

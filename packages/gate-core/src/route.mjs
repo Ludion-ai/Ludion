@@ -185,3 +185,9 @@ export function publicTemplateSegment(seg) {
   const t = templateSegment(seg);
   return !t || t.startsWith(":") || isRouteWord(t) ? t : ":param";
 }
+
+/** A whole target as it may leave the site (Gate metadata, reports, scan): route words only. */
+export function publicTemplatePath(target) {
+  const p = pathOf(target) ?? "";
+  return p.split("/").map(publicTemplateSegment).join("/");
+}
