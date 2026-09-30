@@ -6,6 +6,7 @@
 //   npx ludion rotate [--overlap 300] [--force]            # session key: publish the next one, then (after the overlap) switch
 //   npx ludion doctor                                      # self-check: keys, clock, directory, card
 //   npx ludion scan <access.log|dir|-> [--json]            # log-first Gate: what touched what, unsigned
+//   npx ludion report --events <events.ndjson> [--date D] [--tz Asia/Tokyo] [--lang ja] [--format html]  # the daily report
 //
 // Keys live in ./ludion.json (v0). The Root private key is sealed there with the operator's
 // passphrase (LUDION_ROOT_PASSPHRASE, or a prompt on a terminal): scrypt + AES-256-GCM, see
@@ -177,6 +178,12 @@ async function scan() {
   process.exitCode = await main(args.slice(1));
 }
 
-const commands = { init, sign: signCmd, rotate, doctor, scan };
-if (!commands[cmd]) { out("usage: ludion <init|sign|rotate|doctor|scan> …"); process.exit(1); }
+// ---- report: the daily report from the Gate's metadata events (@ludion/report) ----
+async function report() {
+  const { main } = await import("@ludion/report/cli");
+  process.exitCode = await main(args.slice(1));
+}
+
+const commands = { init, sign: signCmd, rotate, doctor, scan, report };
+if (!commands[cmd]) { out("usage: ludion <init|sign|rotate|doctor|scan|report> …"); process.exit(1); }
 commands[cmd]().catch((e) => { console.error("✖", e.message); process.exit(1); });

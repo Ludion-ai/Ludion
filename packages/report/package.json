@@ -1,0 +1,18 @@
+{
+  "name": "@ludion/report",
+  "version": "0.0.1",
+  "description": "Ludion daily report: what automation did on a site yesterday, from the Gate's metadata events only. Japanese and English, HTML and plain text. Zero network.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "main": "src/index.mjs",
+  "exports": {
+    ".": "./src/index.mjs",
+    "./cli": "./src/cli.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@ludion/gate-core": "0.0.1"
+  }
+}

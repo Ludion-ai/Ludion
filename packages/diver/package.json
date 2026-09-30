@@ -12,6 +12,7 @@
     "ludion": "bin/ludion.mjs"
   },
   "dependencies": {
+    "@ludion/report": "0.0.1",
     "@ludion/scan": "0.0.1",
     "web-bot-auth": "0.2.0",
     "http-message-sig": "0.3.0",
