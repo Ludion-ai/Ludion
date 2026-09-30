@@ -27,6 +27,31 @@ export function publicDirectory(directory) {
   return { keys };
 }
 
+const b64u = (bytes) => btoa(String.fromCharCode(...bytes)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+
+/** RFC 7638 thumbprint of an OKP public key (WebCrypto digest, so it runs on every runtime). */
+async function okpThumbprint(k) {
+  const canonical = JSON.stringify({ crv: k.crv, kty: "OKP", x: k.x });
+  return b64u(new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(canonical))));
+}
+
+/**
+ * What may be served as a key set: public members only, and never the Diver's Root key.
+ * The Root never signs requests (spec §10.3), so a key whose thumbprint (or claimed kid) is the
+ * card's `ludion.root_kid` is dropped, even when the publisher put it there by mistake.
+ */
+export async function servableKeys(keySet, card) {
+  const pub = publicDirectory(keySet);
+  const rootKid = typeof card?.ludion?.root_kid === "string" ? card.ludion.root_kid : undefined;
+  if (!rootKid) return pub;
+  const keys = [];
+  for (const k of pub.keys) {
+    if (k.kid === rootKid || (k.kty === "OKP" && typeof k.x === "string" && await okpThumbprint(k) === rootKid)) continue;
+    keys.push(k);
+  }
+  return { keys };
+}
+
 const json = (status, body, type = "application/json", maxAge = 300) => new Response(JSON.stringify(body), {
   status, headers: { "content-type": type, "cache-control": `max-age=${maxAge}`, "x-content-type-options": "nosniff" },
 });
@@ -46,11 +71,11 @@ export function createCardHost({ lookup, maxAgeS = 300 }) {
       const host = url.hostname.toLowerCase();
       const docs = await lookup(host);
       if (!docs) return problem(404, "unknown_agent");
-      if (url.pathname === DIRECTORY_PATH) return json(200, publicDirectory(docs.directory), DIRECTORY_MEDIA_TYPE, maxAgeS);
+      if (url.pathname === DIRECTORY_PATH) return json(200, await servableKeys(docs.directory, docs.card), DIRECTORY_MEDIA_TYPE, maxAgeS);
       if (!docs.card) return problem(404, "no_card");
       const here = `${url.origin}${CARD_PATH}`;
       if (docs.card.client_id !== here) return problem(500, "card_client_id_mismatch");
-      if (docs.card.jwks) return json(200, { ...docs.card, jwks: publicDirectory(docs.card.jwks) }, "application/json", maxAgeS);
+      if (docs.card.jwks) return json(200, { ...docs.card, jwks: await servableKeys(docs.card.jwks, docs.card) }, "application/json", maxAgeS);
       return json(200, docs.card, "application/json", maxAgeS);
     },
   };

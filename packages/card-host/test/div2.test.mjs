@@ -20,7 +20,9 @@ import { createCardHost, nodeListener, DIRECTORY_MEDIA_TYPE, DIRECTORY_PATH } fr
 const CLI = fileURLToPath(new URL("../../diver/bin/ludion.mjs", import.meta.url));
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "ludion-div2-"));
 after(() => fs.rmSync(tmp, { recursive: true, force: true }));
-execFileSync(process.execPath, [CLI, "init", "--name", "DIV-2 Agent", "--contact", "mailto:ops@example.test"], { cwd: tmp, encoding: "utf8" });
+// A sealed (non-dev) identity: the Root passphrase is the one input `init` needs (DIV-3).
+const { LUDION_DEV: _dev, ...env } = process.env;
+execFileSync(process.execPath, [CLI, "init", "--name", "DIV-2 Agent", "--contact", "mailto:ops@example.test"], { cwd: tmp, encoding: "utf8", env: { ...env, LUDION_ROOT_PASSPHRASE: "div2 correct horse battery staple" } });
 const store = JSON.parse(fs.readFileSync(path.join(tmp, "ludion.json"), "utf8"));
 const card = JSON.parse(fs.readFileSync(path.join(tmp, "card"), "utf8"));
 const directory = JSON.parse(fs.readFileSync(path.join(tmp, ".well-known", "http-message-signatures-directory"), "utf8"));
@@ -135,7 +137,8 @@ test("DIV-2: the Card Host refuses what a parser would reject and never leaks pr
   assert.deepEqual(privateMembers(d), [], "private members dropped even when handed a private JWK");
   assert.equal(d.keys[0].x, store.session.x);
   assert.equal((await leaky.fetch(new Request(`https://${host}/card`))).status, 500, "card whose client_id is not its URL is not served");
-  const inline = createCardHost({ lookup: () => ({ directory, card: { client_id: `https://${host}/card`, jwks: { keys: [store.root] } } }) });
+  // A private JWK handed over inline (the session key: the Root is sealed and has no `d` to leak).
+  const inline = createCardHost({ lookup: () => ({ directory, card: { client_id: `https://${host}/card`, jwks: { keys: [store.session] } } }) });
   assert.deepEqual(privateMembers(await (await inline.fetch(new Request(`https://${host}/card`))).json()), [], "inline jwks is public-only too");
   assert.equal((await get(DIRECTORY_PATH, "unknown.agents.ludion.ai")).status, 404);
   assert.equal((await get("/admin")).status, 404);
