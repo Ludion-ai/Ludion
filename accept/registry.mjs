@@ -73,7 +73,8 @@ export const ORACLES = [
 
   // ── M1 gate ────────────────────────────────────────────────────────────────────
   { id: "GATE-1", m: "M1", kind: "+", level: 1, pair: "GATE-2", title: "humans untouched: responses byte-identical with/without Gate at P0–3 (reference apps)" },
-  { id: "GATE-2", m: "M1", kind: "-", level: 1, title: "pressure bites: 100% of denials carry Ludion-Error + help Link (+Accept-Signature)" },
+  { id: "GATE-2", m: "M1", kind: "-", level: 1, title: "pressure bites: 100% of denials carry Ludion-Error + help Link (+Accept-Signature)",
+    run: nodeTest(["packages/gate-node/test/gate2.test.mjs"], "^GATE-2:") },
   { id: "GATE-3", m: "M1", kind: "+", level: 1, pair: "GATE-5", title: "install ≤3 app lines, ≤1 config file, first classified event ≤60s (3 reference apps)" },
   { id: "GATE-4", m: "M1", kind: "+", level: 1, pair: "GATE-6", title: "added latency p99 ≤2ms warm (10k mixed requests)" },
   { id: "GATE-5", m: "M1", kind: "-", level: 1, title: "fail-open under fault injection at P0–1; fail_mode honoured at P2–3" },

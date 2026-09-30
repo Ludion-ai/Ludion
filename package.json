@@ -17,5 +17,8 @@
     "scoreboard": "node scripts/scoreboard.mjs",
     "ratchet": "node scripts/scoreboard.mjs --update-ratchet",
     "loop": "bash scripts/loop.sh"
+  },
+  "devDependencies": {
+    "structured-headers": "2.0.3"
   }
 }
