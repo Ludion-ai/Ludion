@@ -315,3 +315,9 @@ export function decide(cls, route) {
 }
 
 export const ERROR_HELP = (code) => `<https://ludion.ai/e/${code}>; rel="help"`;
+
+/** Every `Ludion-Error` decide() can return, with its HTTP status (spec §10.11). Each has a help page (WEB-3). */
+export const ERRORS = Object.freeze({
+  signature_required: 401, invalid_signature: 401, staple_expired: 401,
+  revoked: 403, depth_insufficient: 403, ballast_required: 403, mandate_required: 403, mandate_scope: 403,
+});

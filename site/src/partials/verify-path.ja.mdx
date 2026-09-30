@@ -1,0 +1,29 @@
+import { Steps } from "@astrojs/starlight/components";
+
+Ludion は Web Bot Auth を置き換えません。[Web Bot Auth](https://datatracker.ietf.org/doc/draft-ietf-webbotauth-httpsig-protocol/)（RFC 9421）でリクエストに署名し、鍵ディレクトリを公開しているエージェントは、Ludion の Gate ではすでに VERIFIED（Depth 0）です。まだ署名していなければ、無料の Ludion CLI で次の手順を踏んでください。
+
+<Steps>
+
+1. エージェントの身分（*Diver*）を作ります。Root 鍵はパスフレーズで封をされ、リクエストには署名しません。署名するのは短命の Session 鍵です。
+
+   ```sh
+   npx ludion init --name "My Agent" --contact mailto:you@example.com
+   ```
+
+2. 書き出された 2 つの公開ファイルを、`Signature-Agent` のオリジンに HTTPS で置きます。`.well-known/http-message-signatures-directory`（鍵。`application/http-message-signatures-directory+json` で返す）と `card`（名乗り）です。自分のドメインで構いません。登録の受付が始まれば `dvr-….agents.ludion.ai` にも置けます。
+
+3. リクエストごとに署名します。次のコマンドは `Signature-Agent`、`Signature-Input`、`Signature` を付けた `curl` をそのまま出力します。署名の寿命は 60 秒なので、毎回作り直してください。
+
+   ```sh
+   npx ludion sign GET https://shop.example/checkout --curl
+   ```
+
+4. 自己診断します。`doctor` は公開した鍵ディレクトリと Card を取りに行き、Gate が見るものを確かめます。リダイレクトなしの 200、Content-Type、ディレクトリに今の鍵があること、です。
+
+   ```sh
+   npx ludion doctor
+   ```
+
+</Steps>
+
+これで Gate はあなたのリクエストを VERIFIED と判定します。サイトがそれ以上に求めるもの（Depth、Ballast、Mandate）はその上に積むもので、それぞれ [Gate のエラー](/ja/e) に説明のページがあります。

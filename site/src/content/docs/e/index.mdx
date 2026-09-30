@@ -1,0 +1,25 @@
+---
+title: Gate errors
+description: Every error a Ludion Gate can return, what it means, and the way through.
+sidebar:
+  order: 0
+  label: Overview
+---
+
+When a site running a Ludion Gate turns an automated request away, the response carries a `Ludion-Error` header and a link here: `Link: <https://ludion.ai/e/{code}>; rel="help"`. Each page says what happened, why the site asks, and how to get through.
+
+A Gate never sends these to people using a browser. It only acts on requests that look automated, and only on the routes the site chose.
+
+| HTTP | `Ludion-Error` | Meaning |
+|---|---|---|
+| 401 | [`signature_required`](/e/signature_required) | This route asks automated clients to sign |
+| 401 | [`invalid_signature`](/e/invalid_signature) | The signature did not verify |
+| 401 | [`staple_expired`](/e/staple_expired) | The status proof (Staple) is out of date |
+| 403 | [`revoked`](/e/revoked) | The key or the agent identity is revoked |
+| 403 | [`depth_insufficient`](/e/depth_insufficient) | The route asks for a higher Depth |
+| 403 | [`ballast_required`](/e/ballast_required) | The route asks for an active Ballast |
+| 403 | [`mandate_required`](/e/mandate_required) | The route asks for a Mandate from your Principal |
+| 403 | [`mandate_scope`](/e/mandate_scope) | Your Mandate does not cover this action |
+| 429 | [`rate_limited`](/e/rate_limited) | Too many requests |
+
+Ludion builds on [Web Bot Auth](https://datatracker.ietf.org/doc/draft-ietf-webbotauth-httpsig-protocol/) (RFC 9421). Any agent that signs with it is already verified by a Ludion Gate; start with [`signature_required`](/e/signature_required) if you have not signed yet.

@@ -1,0 +1,35 @@
+---
+title: invalid_signature
+description: "HTTP 401。署名は付いていたが、検証に通らなかった。何が起きたか、なぜか、約3分で検証済みになる道。"
+sidebar:
+  order: 2
+---
+import VerifyPath from "../../../../partials/verify-path.ja.mdx";
+
+**HTTP 401** · `Ludion-Error: invalid_signature`
+
+## 何が起きたか
+
+このリクエストには Web Bot Auth の署名があり、Gate は鍵も見つけました。しかし署名が成り立ちませんでした。原因が何であれ、Gate はこれをなりすましとして扱います。よくある原因は次のとおりです。
+
+- 署名の後でリクエストが変わった（プロキシがヘッダーを書き換えた、本文が変わった）
+- 別のホスト宛ての署名だった。`@authority` はこのサイトでなければなりません
+- 時計。`created` が未来にある、または `expires` を過ぎている（±30秒のずれは許します）
+- 寿命 `expires − created` が60秒を超えている
+- `tag` が `web-bot-auth` でない、または `Signature-Agent` の辞書のキーと署名のラベルが一致しない
+- 同じ署名（または nonce）を2回送った。署名は1回のリクエストにしか使えません
+
+## サイトがこれを求める理由
+
+署名に価値があるのは、偽造や再送が決して通らないときだけです。Gate は、送られたとおりに検証できない署名をすべて拒否します。だから誰もあなたの名前を借りられず、あなたも他の誰かの VERIFIED を信用できます。
+
+## 直し方
+
+- リクエストごとに、送る直前に新しい署名を作り、その後は何も変えないでください。
+- 呼び出すホストに対して署名し、寿命は60秒以内にします。
+- 時計を合わせます（NTP）。`npx ludion doctor` が署名に使う時刻を表示します。
+- POST、PUT、PATCH、DELETE では `@method`、`@path`、`content-digest` も対象に含めます。`npx ludion sign` はこれを自動で行います。
+
+## 3分で検証済みになる
+
+<VerifyPath />

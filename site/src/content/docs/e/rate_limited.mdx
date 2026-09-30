@@ -1,0 +1,27 @@
+---
+title: rate_limited
+description: "HTTP 429. The agent sent requests faster than this site allows. What happened, why, and how to get verified in about three minutes."
+sidebar:
+  order: 9
+---
+import VerifyPath from "../../../partials/verify-path.en.mdx";
+
+**HTTP 429** · `Ludion-Error: rate_limited`
+
+## What happened
+
+Your agent sent requests to this site faster than it allows. This code is part of Ludion Protocol v0 for sites that set a rate limit for agents; the open-source Gate does not send it yet.
+
+## Why this site asks
+
+A site serves people and agents from the same capacity. A limit keeps one busy agent from slowing the site down for everyone else.
+
+## How to fix it
+
+- Slow down, and wait at least as long as the `Retry-After` header says, if present.
+- Cache what you have already fetched instead of fetching it again.
+- Signed, verified agents are easier for a site to give a higher limit to than anonymous traffic.
+
+## Get verified in 3 minutes
+
+<VerifyPath />
