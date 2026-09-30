@@ -147,7 +147,8 @@ export const ORACLES = [
     run: nodeTest(["packages/report/test/rpt1.test.mjs"], "^RPT-1:") },
 
   // ── M5 pressure, neutrality, crypto ────────────────────────────────────────────
-  { id: "PRS-1", m: "M5", kind: "±", level: 1, title: "100k random cases: UNKNOWN always passes; denials only at P≥2 on matching routes" },
+  { id: "PRS-1", m: "M5", kind: "±", level: 1, title: "100k random cases: UNKNOWN always passes; denials only at P≥2 on matching routes",
+    run: nodeTest(["packages/gate-core/test/prs1.test.mjs"], "^PRS-1:") },
   { id: "PRS-2", m: "M5", kind: "±", level: 1, title: "Mandate v0: in scope/limit passes; out of scope/over limit/expired/revoked denied" },
   { id: "NEUT-1", m: "M5", kind: "+", level: 1, pair: "NEUT-2", title: "gate-core and Card Host pass the same suite on ≥2 independent runtimes" },
   { id: "NEUT-2", m: "M5", kind: "-", level: 1, title: "no CDN/cloud vendor SDK in gate-core's dependency tree" },
