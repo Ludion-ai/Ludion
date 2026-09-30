@@ -31,10 +31,10 @@ export const nodeTest = (files, pattern, { timeoutMs, metric } = {}) => async ()
 };
 
 /** A node script; exit 0 is PASS. */
-export const nodeScript = (file, args = []) => async () => {
-  const r = sh(process.execPath, [file, ...args]);
+export const nodeScript = (file, args = [], { timeoutMs, metric } = {}) => async () => {
+  const r = sh(process.execPath, [file, ...args], timeoutMs);
   const oks = (r.out.match(/^ok\s/gm) ?? []).length;
-  return { pass: r.code === 0, metric: oks ? `${oks} checks` : undefined,
+  return { pass: r.code === 0, metric: [oks ? `${oks} checks` : undefined, metric?.(r.out)].filter(Boolean).join("; ") || undefined,
     detail: r.code ? r.out.trim().split("\n").slice(-3).join(" | ").slice(0, 300) : undefined };
 };
 
@@ -150,7 +150,11 @@ export const ORACLES = [
   { id: "PRS-1", m: "M5", kind: "±", level: 1, title: "100k random cases: UNKNOWN always passes; denials only at P≥2 on matching routes",
     run: nodeTest(["packages/gate-core/test/prs1.test.mjs"], "^PRS-1:") },
   { id: "PRS-2", m: "M5", kind: "±", level: 1, title: "Mandate v0: in scope/limit passes; out of scope/over limit/expired/revoked denied" },
-  { id: "NEUT-1", m: "M5", kind: "+", level: 1, pair: "NEUT-2", title: "gate-core and Card Host pass the same suite on ≥2 independent runtimes" },
+  // The same portable suite on Node, Deno (no permissions) and workerd, against the npm-packed
+  // packages; pinned runtimes in accept/neutral/runtime, installed in the OS temp dir (ADR-027).
+  { id: "NEUT-1", m: "M5", kind: "+", level: 1, pair: "NEUT-2", title: "gate-core and Card Host pass the same suite on ≥2 independent runtimes",
+    timeoutMs: 900_000, run: nodeScript("accept/neutral/runtimes.mjs", [], { timeoutMs: 880_000,
+      metric: (out) => [...out.matchAll(/^ok (node|deno|workerd) (\S+).*?: (\d+)\/(\d+)/gm)].map((m) => `${m[1]} ${m[2]} ${m[3]}/${m[4]}`).join(", ") }) },
   // Lockfile-resolved tree of gate-core and Card Host: vendor names, vendor-org repositories, vendor
   // endpoints in code; standard reference implementations only by exact name@version (ADR-027).
   { id: "NEUT-2", m: "M5", kind: "-", level: 1, title: "no CDN/cloud vendor SDK in gate-core's dependency tree",
