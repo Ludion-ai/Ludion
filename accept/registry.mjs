@@ -121,7 +121,8 @@ export const ORACLES = [
     run: nodeTest(["packages/diver/test/div4.test.mjs"], "^DIV-4:") },
 
   // ── M3 registry ────────────────────────────────────────────────────────────────
-  { id: "REG-1", m: "M3", kind: "+", level: 1, pair: "REG-2", title: "Registry down → Gates keep verifying within Staple TTL" },
+  { id: "REG-1", m: "M3", kind: "+", level: 1, pair: "REG-2", title: "Registry down → Gates keep verifying within Staple TTL",
+    run: nodeTest(["services/registry/test/reg1.test.mjs"], "^REG-1:") },
   { id: "REG-2", m: "M3", kind: "-", level: 0, title: "Staple attacks rejected (unknown kid, >1h, expired, iss, cnf, sub)",
     run: nodeTest(["packages/gate-core/test/core.test.mjs"], "^Staple:") },
   { id: "REG-3", m: "M3", kind: "±", level: 1, title: "revocation reaches subscribed Gates ≤60s, others ≤ Staple TTL" },
