@@ -1,0 +1,9 @@
+{
+  "id": "key-confusion--multi-member-cover-victim",
+  "family": "key-confusion",
+  "title": "List victim and attacker members, cover the victim's member with my key",
+  "params": {
+    "variant": "multi-member-cover-victim"
+  },
+  "added": "2026-09-30"
+}

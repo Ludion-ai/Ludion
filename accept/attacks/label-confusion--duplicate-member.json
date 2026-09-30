@@ -1,0 +1,9 @@
+{
+  "id": "label-confusion--duplicate-member",
+  "family": "label-confusion",
+  "title": "Repeat a Signature-Agent key: sig1=attacker, sig1=victim",
+  "params": {
+    "variant": "duplicate-member"
+  },
+  "added": "2026-09-30"
+}

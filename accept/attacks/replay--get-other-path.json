@@ -1,0 +1,10 @@
+{
+  "id": "replay--get-other-path",
+  "family": "replay",
+  "title": "Resend a captured signed GET to another path (GET does not cover @path) 30s later",
+  "params": {
+    "delayS": 30,
+    "replayPath": "/checkout/999"
+  },
+  "added": "2026-09-30"
+}

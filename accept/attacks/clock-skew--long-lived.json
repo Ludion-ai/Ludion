@@ -1,0 +1,9 @@
+{
+  "id": "clock-skew--long-lived",
+  "family": "clock-skew",
+  "title": "expires an hour after created",
+  "params": {
+    "variant": "long-lived"
+  },
+  "added": "2026-09-30"
+}

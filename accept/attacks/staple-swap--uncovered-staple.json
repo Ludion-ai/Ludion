@@ -1,0 +1,9 @@
+{
+  "id": "staple-swap--uncovered-staple",
+  "family": "staple-swap",
+  "title": "Attach the victim's Staple to my signature without covering it",
+  "params": {
+    "variant": "uncovered-staple"
+  },
+  "added": "2026-09-30"
+}

@@ -1,0 +1,12 @@
+{
+  "id": "replay--no-nonce-post",
+  "family": "replay",
+  "title": "Resend a captured nonce-less signed POST",
+  "params": {
+    "method": "POST",
+    "body": "{\"sku\":1}",
+    "nonce": false,
+    "delayS": 5
+  },
+  "added": "2026-09-30"
+}

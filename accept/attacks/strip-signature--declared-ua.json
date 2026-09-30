@@ -1,0 +1,15 @@
+{
+  "id": "strip-signature--declared-ua",
+  "family": "strip-signature",
+  "title": "Strip every signature field and the Staple, keep a published agent User-Agent",
+  "params": {
+    "remove": [
+      "signature",
+      "signature-input",
+      "signature-agent",
+      "ludion-staple"
+    ],
+    "ua": "Mozilla/5.0 (compatible; ChatGPT-User/1.0; +https://openai.com/bot)"
+  },
+  "added": "2026-09-30"
+}

@@ -1,0 +1,9 @@
+{
+  "id": "key-confusion--warm-cache-then-claim",
+  "family": "key-confusion",
+  "title": "Get my key cached under my directory first, then claim the victim's directory with the same keyid",
+  "params": {
+    "variant": "warm-cache-then-claim"
+  },
+  "added": "2026-09-30"
+}

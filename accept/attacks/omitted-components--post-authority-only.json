@@ -1,0 +1,18 @@
+{
+  "id": "omitted-components--post-authority-only",
+  "family": "omitted-components",
+  "title": "POST signed over @authority and Signature-Agent only",
+  "params": {
+    "body": "{\"sku\":1}",
+    "cover": [
+      "@authority",
+      {
+        "name": "signature-agent",
+        "params": {
+          "key": "sig1"
+        }
+      }
+    ]
+  },
+  "added": "2026-09-30"
+}

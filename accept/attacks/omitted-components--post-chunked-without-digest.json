@@ -1,0 +1,22 @@
+{
+  "id": "omitted-components--post-chunked-without-digest",
+  "family": "omitted-components",
+  "title": "POST with a chunked body but no Content-Digest at all",
+  "params": {
+    "headers": {
+      "transfer-encoding": "chunked"
+    },
+    "cover": [
+      "@authority",
+      {
+        "name": "signature-agent",
+        "params": {
+          "key": "sig1"
+        }
+      },
+      "@method",
+      "@path"
+    ]
+  },
+  "added": "2026-09-30"
+}

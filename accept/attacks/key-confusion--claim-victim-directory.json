@@ -1,0 +1,9 @@
+{
+  "id": "key-confusion--claim-victim-directory",
+  "family": "key-confusion",
+  "title": "Sign with my key, name the victim's directory as Signature-Agent",
+  "params": {
+    "variant": "claim-victim-directory"
+  },
+  "added": "2026-09-30"
+}

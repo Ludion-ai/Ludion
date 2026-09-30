@@ -38,6 +38,14 @@ export const nodeScript = (file, args = []) => async () => {
     detail: r.code ? r.out.trim().split("\n").slice(-3).join(" | ").slice(0, 300) : undefined };
 };
 
+/** Every part must pass. Metrics and details are joined. */
+export const allOf = (...runs) => async () => {
+  const rs = [];
+  for (const run of runs) rs.push(await run());
+  return { pass: rs.every((r) => r.pass), metric: rs.map((r) => r.metric).filter(Boolean).join(" + ") || undefined,
+    detail: rs.map((r) => r.detail).filter(Boolean).join(" | ") || undefined };
+};
+
 function walk(dir, out = []) {
   if (!fs.existsSync(dir)) return out;
   for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
@@ -79,7 +87,8 @@ export const ORACLES = [
   { id: "GATE-4", m: "M1", kind: "+", level: 1, pair: "GATE-6", title: "added latency p99 ≤2ms warm (10k mixed requests)" },
   { id: "GATE-5", m: "M1", kind: "-", level: 1, title: "fail-open under fault injection at P0–1; fail_mode honoured at P2–3" },
   { id: "GATE-6", m: "M1", kind: "-", level: 1, title: "SSRF sandbox: internal service receives 0 requests (incl. redirects, rebinding, bombs)" },
-  { id: "GATE-7", m: "M1", kind: "-", level: 1, title: "attack corpus accept/attacks/ 100% rejected; corpus only grows" },
+  { id: "GATE-7", m: "M1", kind: "-", level: 1, title: "attack corpus accept/attacks/ 100% rejected; corpus only grows",
+    run: allOf(nodeScript("accept/attacks/run.mjs"), nodeTest(["packages/gate-core/test/hardening.test.mjs"], "^GATE-7:")) },
   { id: "GATE-8", m: "M1", kind: "+", level: 1, pair: "GATE-7", title: "a real third-party signed request (fixture with provenance) is VERIFIED" },
 
   // ── M1 privacy ─────────────────────────────────────────────────────────────────

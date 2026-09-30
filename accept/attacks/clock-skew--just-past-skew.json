@@ -1,0 +1,9 @@
+{
+  "id": "clock-skew--just-past-skew",
+  "family": "clock-skew",
+  "title": "expired 35s ago, just past the 30s skew",
+  "params": {
+    "variant": "just-past-skew"
+  },
+  "added": "2026-09-30"
+}

@@ -1,0 +1,9 @@
+{
+  "id": "staple-swap--strip-covered-staple",
+  "family": "staple-swap",
+  "title": "Drop a Staple the signature covers",
+  "params": {
+    "variant": "strip-covered-staple"
+  },
+  "added": "2026-09-30"
+}

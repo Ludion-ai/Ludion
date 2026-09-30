@@ -1,0 +1,9 @@
+{
+  "id": "label-confusion--append-own-signature",
+  "family": "label-confusion",
+  "title": "Append my own valid signature (sig2) next to the victim's (sig1)",
+  "params": {
+    "variant": "append-own-signature"
+  },
+  "added": "2026-09-30"
+}

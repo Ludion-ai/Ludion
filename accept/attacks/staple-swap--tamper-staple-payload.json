@@ -1,0 +1,9 @@
+{
+  "id": "staple-swap--tamper-staple-payload",
+  "family": "staple-swap",
+  "title": "Raise depth inside the Staple payload, keep the Registry signature, re-sign the request",
+  "params": {
+    "variant": "tamper-staple-payload"
+  },
+  "added": "2026-09-30"
+}

@@ -1,0 +1,11 @@
+{
+  "id": "strip-signature--input-only",
+  "family": "strip-signature",
+  "title": "Strip only the Signature-Input field",
+  "params": {
+    "remove": [
+      "signature-input"
+    ]
+  },
+  "added": "2026-09-30"
+}

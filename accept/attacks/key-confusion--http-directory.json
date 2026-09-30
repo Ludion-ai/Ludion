@@ -1,0 +1,9 @@
+{
+  "id": "key-confusion--http-directory",
+  "family": "key-confusion",
+  "title": "Point Signature-Agent at an http:// look-alike of the victim's origin",
+  "params": {
+    "variant": "http-directory"
+  },
+  "added": "2026-09-30"
+}

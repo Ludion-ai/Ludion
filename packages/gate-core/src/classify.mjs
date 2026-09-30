@@ -53,6 +53,17 @@ function field(req, name) {
   return v.length ? v.join(", ") : undefined;
 }
 
+// Fields that claim a Web Bot Auth identity or Ludion standing. A lone legacy `Signature`
+// (e.g. draft-cavage signatures between fediverse servers) is not one of them.
+const CLAIM_FIELDS = ["signature-input", "signature-agent", "ludion-staple", "ludion-mandate"];
+
+/** The request announces a body (the Gate never reads it; spec §11.7). */
+function announcesBody(req) {
+  return Number(field(req, "content-length") ?? 0) > 0 || field(req, "transfer-encoding") !== undefined;
+}
+
+const b64 = (bytes) => btoa(String.fromCharCode(...bytes));
+
 /**
  * Classify one request.
  * @param {import("http-message-sig").RequestDescriptor} req
@@ -67,6 +78,10 @@ export async function classify(req, ctx) {
   const method = req.method.toUpperCase();
 
   if (!hasSig) {
+    // Stripping (part of) a signature must not turn a claimed agent into "just a visitor":
+    // naming an agent or standing without a complete signature is a spoof (spec §11.5).
+    const claims = CLAIM_FIELDS.filter((n) => field(req, n) !== undefined);
+    if (claims.length) return { class: "SPOOFED", reason: "unsigned_claim", detail: `${claims.join(", ")} without a complete signature`, signatureAgent: field(req, "signature-agent") };
     const known = matchKnownAgent(ua);
     if (known) return { class: "DECLARED", operator: known.operator, token: known.token, kind: known.kind };
     const signal = matchAutomationSignal(ua);
@@ -92,6 +107,7 @@ export async function classify(req, ctx) {
         // State-changing requests must bind method, path and body (spec §10.4).
         if (STATE_CHANGING.has(method) && !(names.includes("@method") && names.includes("@path"))) return false;
         if (STATE_CHANGING.has(method) && field(req, "content-digest") && !names.includes("content-digest")) return false;
+        if (STATE_CHANGING.has(method) && announcesBody(req) && !names.includes("content-digest")) return false; // body unbound
         return true;
       },
     });
@@ -113,8 +129,14 @@ export async function classify(req, ctx) {
     return { class: "SPOOFED", reason: "invalid_signature", code: e?.code, detail: e?.message, signatureAgent: field(req, "signature-agent") };
   }
 
-  if (ctx.nonceCache && sig.nonce && !ctx.nonceCache.check(sig.nonce, sig.expires.getTime())) {
-    return { class: "SPOOFED", reason: "replay", identifier: sig.verifier.identifier };
+  // Replay (spec §10.4). A signature stays acceptable until expires + skew, so it is remembered
+  // that long. Without a nonce, the same signature on the same method and target is the replay;
+  // the same signature on another path is what a signer that binds no nonce and no @path chose.
+  if (ctx.nonceCache) {
+    const key = sig.nonce ? `n ${sig.keyid} ${sig.nonce}` : `s ${method} ${req.targetUri} ${b64(sig.signature)}`;
+    if (!ctx.nonceCache.check(key, sig.expires.getTime() + CLOCK_SKEW_S * 1000)) {
+      return { class: "SPOOFED", reason: "replay", identifier: sig.verifier.identifier };
+    }
   }
 
   const out = {

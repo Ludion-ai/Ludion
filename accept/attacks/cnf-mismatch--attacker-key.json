@@ -1,0 +1,9 @@
+{
+  "id": "cnf-mismatch--attacker-key",
+  "family": "cnf-mismatch",
+  "title": "Present the victim's Staple under the attacker's own valid signature",
+  "params": {
+    "variant": "attacker-key"
+  },
+  "added": "2026-09-30"
+}

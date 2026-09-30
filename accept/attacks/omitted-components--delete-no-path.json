@@ -1,0 +1,19 @@
+{
+  "id": "omitted-components--delete-no-path",
+  "family": "omitted-components",
+  "title": "DELETE covering @method but not @path",
+  "params": {
+    "method": "DELETE",
+    "cover": [
+      "@authority",
+      {
+        "name": "signature-agent",
+        "params": {
+          "key": "sig1"
+        }
+      },
+      "@method"
+    ]
+  },
+  "added": "2026-09-30"
+}

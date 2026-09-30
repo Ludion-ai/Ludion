@@ -1,0 +1,9 @@
+{
+  "id": "label-confusion--cross-member-label",
+  "family": "label-confusion",
+  "title": "Sign as label sig1 but cover the Signature-Agent member sig2 (the victim)",
+  "params": {
+    "variant": "cross-member-label"
+  },
+  "added": "2026-09-30"
+}
