@@ -46,19 +46,37 @@
   - GATE-10（新設、GATE-9 の土台）：適合スイートをデータにした。`accept/conformance/vectors.json` に WG のベクタと GATE-7 の全攻撃を具体的なリクエストとして書き出し、TypeScript の Gate がファイルだけで Node、Deno、workerd で通る（docs/adr/2026-10-01-conformance-suite-as-data.md）。
     - 形式は `accept/conformance/README.md`（他の言語の実装者向け、英語）。
     - GATE-7 に攻撃を足したら `node accept/conformance/export.mjs` を回す。回さないと GATE-10 が落ちる。
-  - 次は NIGHT.md の優先順：WEB-1（トークン待ち）→ 目録の残り（GATE-8 は本物の署名待ち、STD-3/DIV-1/LOOP-2 は元のレーンが持つ）→ GATE-9（PHP と WordPress、Python。今夜は道具が入らず止まっている。人間待ちを見よ。道具が来たら、PHP の Gate を vectors.json に当てる）→ WEB-7 → LIVE-1。
+  - GATE-8：本物の署名を見つけて配線した。PENDING から FAIL になった（docs/adr/2026-10-01-real-chatgpt-agent-signs-for-an-hour.md）。
+    - フィクスチャは 2 件。ChatGPT agent が送った要求と、Wayback に残る当時の chatgpt.com の鍵ディレクトリ。
+      - 2025-08-04、simonwillison.net へ（運営者が同じ日に公開したログ）
+      - 2025-08-11、api.seatgeek.com へ（SeatGeek の技術者が公開した署名）
+    - 署名は 2 件とも本物。Gate は 2 件とも SPOOFED にする。理由は寿命（3600 秒 > spec §10.4 の 60 秒）だけ。
+    - PASS には STD-2 と GATE-7 の 1 件ずつを緩める必要がある。人間待ちに書いた。
+    - 本物をもう 1 件足すときは `accept/gate8/README.md` を見る。
+  - 次は NIGHT.md の優先順：WEB-1（トークン待ち）→ 目録の残り（GATE-8 は寿命の判断待ち、STD-3/DIV-1/LOOP-2 は元のレーンが持つ）→ GATE-9（PHP と WordPress、Python。今夜は道具が入らず止まっている。人間待ちを見よ。道具が来たら、PHP の Gate を vectors.json に当てる）→ WEB-7 → LIVE-1。
     - STD-2 の全テスト（12）も、spec §10.8 の分類つきで vectors.json に入れた（`accept/conformance/std2.mjs`）。STD-2 にテストを足したら、書き出し直す。
   - プレビューのデプロイ（WEB-1）：今のトークンでは何も読めない（docs/DEPLOY.md 1.1）。人間待ちに書いた。
   - 新しい ADR には番号を付けない。`docs/adr/YYYY-MM-DD-<slug>.md` にする（NIGHT.md §8、両レーン共通）。
 
 ## 人間待ち
 
+- [ ] 判断（GATE-8、docs/adr/2026-10-01-real-chatgpt-agent-signs-for-an-hour.md）：Gate が受け入れる署名の寿命の上限。
+  - 今の Gate は、本物の ChatGPT agent の署名（2025-08 の 2 件、寿命はどちらも 3600 秒）を SPOOFED にする。Pressure 2 では 401 で拒否し、レポートでは「なりすまし」と数える。spec §10.8 の「既存の署名者は初日から VERIFIED」と逆。
+  - WG のドラフトは、寿命を 24 時間以内に推奨し、上限は検証者の方針に任せている。60 秒は Ludion の方針。
+  - 推奨（A）：Gate は 3600 秒まで受け入れ、60 秒を超える署名には nonce を必須にする。Diver が付ける寿命は 60 秒のまま。
+  - A か B（24 時間）を選ぶと、ラチェット済みのオラクルを 2 つ緩める。
+    - STD-2「lifetime over 60s → SPOOFED」
+    - GATE-7 の攻撃 `clock-skew--long-lived`（GATE-10 の写しも）
+    - どちらも消さず、向け直す。書き換えの中身は ADR にある。
+  - 了承があれば、1 周で GATE-8 を PASS にできる。上限を 3600 秒にした実験では、本物の 2 件が VERIFIED になり、対の拒否もすべて保たれた。落ちたのは上の 2 つだけだった。
+  - C（60 秒のまま）なら、GATE-8 は 60 秒以内で署名する別の実運用の署名者を待つ。
 - [ ] npm `ludion` と `@ludion`、PyPI `ludion` の確保（2026-09-30 時点で全て空き。匂わせ投稿の前に）
 - [x] リポジトリの公開設定の判断 → public、`Ludion-ai/Ludion`（2026-09-30）
 - [x] main のブランチ保護：PR 必須、`loop` チェック必須、auto-merge 許可（2026-09-30。strict と enforce_admins も付けた）
 - [ ] `CLOUDFLARE_API_TOKEN`（Workers スクリプトの編集だけ。ゾーンと DNS は付けない）→ LIVE-1
   - 2026-10-01 夜勤：渡されたトークンは有効だが、`CLOUDFLARE_ACCOUNT_ID` のアカウントでは、どの資源も 401 だった。Workers、Pages、KV、D1、R2、workers.dev のすべて。
   - アカウント ID の食い違いか権限の不足。このままでは WEB-1 のプレビューも LIVE-1 もデプロイできない。
+  - 2026-10-01 07:20 頃（夜勤 9）：`npx wrangler whoami` は `Invalid access token [code: 9109]`。トークンが失効したか、差し替えが要る。
   - 確かめ方は docs/DEPLOY.md 1.2。
 - [ ] 旧 Ludion の Cloudflare 資源の棚卸し（NIGHT.md §7）：読み取りトークンで `node scripts/cf-inventory.mjs` を1回実行し、docs/DEPLOY.md 1.3 の削除リストを埋める（GET だけ）。
 - [ ] 判断（お金）：Card Host の `*.agents.ludion.ai` は2段目のワイルドカードで、Universal SSL の範囲外。
@@ -108,6 +126,7 @@
 
 ## 既知の問題
 
+- Gate は、寿命が 60 秒を超える本物の署名を SPOOFED にする。ChatGPT agent は 2025-08 の時点で 3600 秒だった（公開された捕獲 3 件。GATE-8 が FAIL）。今の値は未確認。判断は人間待ちに書いた。
 - `ludion doctor` の時計チェックは未実装（ローカル時刻を表示するだけ）。
 - 登録フォームの受け口（`site/edge/signup.mjs`）のレート制限はメモリ内で、インスタンス（isolate）ごと。拠点や isolate に散った連打は、それぞれの枠で数えられる。分散した総当たりはハニーポット頼み。
 - 登録フォームは JS がないと送れない（ボタンが押せない）。`<form action>` を置くと WEB-5 のリンクの規則に掛かるため。
@@ -145,6 +164,9 @@
   - 日次レポートのメール（`ludion report`）の文面は見ていない。
 - `loop-windows` で GATE-3 が一度、29 分の上限まで固まって落ちた（#52 の初回、2026-10-01）。再実行では数秒で通った。変更とは無関係のフレーク。原因は未調査（ログは「no test matched」だけ）。また起きたら、参照アプリのどのプロセスが残っているかを取る。
 - STD-4 は、datatracker が読めないと落ちる（3 回まで試す）。CI の再実行で済む。
+- `loop-windows` で NEUT-1 が一度落ちた（#59 の初回、2026-10-01）。Node、Deno、workerd はすべて 109/109 を報告したあとで、詳細は `}` だけ。再実行では通った。
+  - 見立て：wrangler dev の停止（`server.stop()`）が投げた例外が、トップレベルまで抜けた。確かめてはいない。
+  - また起きたら、`accept/neutral/runtimes.mjs` の出力全体を取る。scoreboard は末尾の 3 行しか見せない。
 - Mandate v0（PRS-2）で未カバーの部分：
   - 同意ページ（ludion.ai）はまだない。PRS-2 のパスキーはソフトウェアの認証器（WebAuthn と同じバイト列を作る）。本物のブラウザ（Chromium の仮想認証器）では、まだ通していない。
   - 発行した Mandate をエージェントに渡す道は決めていない。
@@ -158,6 +180,23 @@
 
 ## 直近のセッション
 
+- 2026-10-01（夜勤 9）：
+  - GATE-8 を配線した。本物の署名付きリクエストを見つけた（docs/adr/2026-10-01-real-chatgpt-agent-signs-for-an-hour.md）。
+    - 要求：ChatGPT agent が送ったもの 2 件。
+      - 2025-08-04、simonwillison.net へ。運営者が自分のログを同じ日に記事で公開していた。Wayback に同じ日の保存版があり、ヘッダーは今日の記事とバイト単位で同じ。
+      - 2025-08-11、api.seatgeek.com へ。SeatGeek の技術者が、検証器を作るときに使った本物の要求の署名を公開していた（2025-08-26）。
+    - 鍵：chatgpt.com のディレクトリの Wayback の保存（2025-10-07）。keyid は JWK の拇印と一致する。今日のディレクトリからは消えている（回転）。
+    - テスト（`accept/gate8/gate8.test.mjs`）：
+      - 出所：保存したバイトが Wayback の CDX のダイジェストと一致する。
+      - 本物：署名の土台を Gate とは別に組んで検証が通る。1 か所変えると落ちる。今日のディレクトリでは通らない。
+      - Gate：既定の Gate が、着いた時刻の時計と当時のディレクトリで、VERIFIED（chatgpt.com のディレクトリ、keyid）にし、Pressure 2 で通すこと。
+      - 対：改ざん、リプレイ、期限後、別サイト、今日のディレクトリは VERIFIED にならず、拒否される。
+    - 結果：Gate は 2 件とも SPOOFED。理由は寿命（3600 秒 > spec §10.4 の 60 秒）だけ。鍵の発見（文字列形式の Signature-Agent）は通る。
+    - 上限を 3600 秒にした実験（コミットしていない）では、本物の 2 件が VERIFIED になった。落ちたのは STD-2 と GATE-7 の 1 件ずつ。緩めるのは人間の判断なので、今夜は緩めない。
+    - 公開された捕獲は 3 件とも寿命 3600 秒だった（2025-08-01 の Castle のブログは nonce が伏せてあり、検証できない）。
+  - #59 の初回で、`loop-windows` の NEUT-1 が落ちた。3 つのランタイムはすべて 109/109 を報告したあとで、詳細は `}` だけ。落ちたジョブだけを再実行したら通った（既知の問題に書いた）。
+  - Cloudflare のトークンは、今夜は `Invalid access token`（9109）になった。前回は「有効だが 401」だった。WEB-1 と LIVE-1 は止まったまま。
+  - この機械には PHP、Python（Microsoft Store のスタブだけ）、Go、Docker、uv がない。GATE-9 は止まったまま。
 - 2026-10-01（夜勤 8、6 周目）：
   - GATE-7 のコーパスに Mandate の攻撃の族 `mandate-swap` を足した（4 件。必須の族にも入れた）。
     - 被害者の Diver の Mandate を、自分の署名と Staple の下で運ぶ。
