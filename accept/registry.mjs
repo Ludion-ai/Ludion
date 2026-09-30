@@ -84,7 +84,7 @@ export const ORACLES = [
   // ── M1 gate ────────────────────────────────────────────────────────────────────
   // Reference apps (Express, Next.js, Workers) are real installs in the OS temp dir, cached by content hash.
   { id: "GATE-1", m: "M1", kind: "+", level: 1, pair: "GATE-2", title: "humans untouched: responses byte-identical with/without Gate at P0–3 (reference apps)",
-    timeoutMs: 1_800_000, run: nodeTest(["reference/test/gate1.test.mjs"], "^GATE-1:", { timeoutMs: 1_750_000 }) },
+    timeoutMs: 1_800_000, run: nodeTest(["reference/test/harness.test.mjs", "reference/test/gate1.test.mjs"], "^GATE-1:", { timeoutMs: 1_750_000 }) },
   { id: "GATE-2", m: "M1", kind: "-", level: 1, title: "pressure bites: 100% of denials carry Ludion-Error + help Link (+Accept-Signature)",
     run: nodeTest(["packages/gate-node/test/gate2.test.mjs"], "^GATE-2:") },
   { id: "GATE-3", m: "M1", kind: "+", level: 1, pair: "GATE-5", title: "install ≤3 app lines, ≤1 config file, first classified event ≤60s (3 reference apps)",
