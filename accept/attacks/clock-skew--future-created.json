@@ -1,0 +1,9 @@
+{
+  "id": "clock-skew--future-created",
+  "family": "clock-skew",
+  "title": "created an hour ahead so the signature stays usable later",
+  "params": {
+    "variant": "future-created"
+  },
+  "added": "2026-09-30"
+}

@@ -1,0 +1,12 @@
+{
+  "id": "strip-signature--keep-agent-and-staple",
+  "family": "strip-signature",
+  "title": "Strip Signature and Signature-Input, keep Signature-Agent and Ludion-Staple",
+  "params": {
+    "remove": [
+      "signature",
+      "signature-input"
+    ]
+  },
+  "added": "2026-09-30"
+}

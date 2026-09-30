@@ -1,0 +1,9 @@
+{
+  "id": "label-confusion--split-header-lines",
+  "family": "label-confusion",
+  "title": "Send Signature-Agent twice as separate field lines, attacker first, victim second",
+  "params": {
+    "variant": "split-header-lines"
+  },
+  "added": "2026-09-30"
+}

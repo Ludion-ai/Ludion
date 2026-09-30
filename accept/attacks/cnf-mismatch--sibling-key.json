@@ -1,0 +1,9 @@
+{
+  "id": "cnf-mismatch--sibling-key",
+  "family": "cnf-mismatch",
+  "title": "Present a Staple bound to one session key under a signature by another key of the same agent",
+  "params": {
+    "variant": "sibling-key"
+  },
+  "added": "2026-09-30"
+}

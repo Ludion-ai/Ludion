@@ -1,0 +1,23 @@
+{
+  "id": "omitted-components--post-body-without-digest",
+  "family": "omitted-components",
+  "title": "POST with a body (Content-Length) but no Content-Digest at all",
+  "params": {
+    "headers": {
+      "content-length": "9",
+      "content-type": "application/json"
+    },
+    "cover": [
+      "@authority",
+      {
+        "name": "signature-agent",
+        "params": {
+          "key": "sig1"
+        }
+      },
+      "@method",
+      "@path"
+    ]
+  },
+  "added": "2026-09-30"
+}

@@ -1,0 +1,9 @@
+{
+  "id": "key-confusion--cimd-card-claims-victim-client-id",
+  "family": "key-confusion",
+  "title": "Host a CIMD card whose client_id claims the victim's card URL",
+  "params": {
+    "variant": "cimd-card-claims-victim-client-id"
+  },
+  "added": "2026-09-30"
+}

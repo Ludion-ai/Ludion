@@ -1,0 +1,9 @@
+{
+  "id": "label-confusion--extra-input-label",
+  "family": "label-confusion",
+  "title": "Add a second Signature-Input member with no matching Signature",
+  "params": {
+    "variant": "extra-input-label"
+  },
+  "added": "2026-09-30"
+}

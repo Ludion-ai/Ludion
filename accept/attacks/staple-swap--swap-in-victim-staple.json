@@ -1,0 +1,9 @@
+{
+  "id": "staple-swap--swap-in-victim-staple",
+  "family": "staple-swap",
+  "title": "Replace my covered Staple with the victim's higher-Depth Staple",
+  "params": {
+    "variant": "swap-in-victim-staple"
+  },
+  "added": "2026-09-30"
+}

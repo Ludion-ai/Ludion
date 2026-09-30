@@ -1,0 +1,11 @@
+{
+  "id": "strip-signature--signature-only",
+  "family": "strip-signature",
+  "title": "Strip only the Signature field",
+  "params": {
+    "remove": [
+      "signature"
+    ]
+  },
+  "added": "2026-09-30"
+}

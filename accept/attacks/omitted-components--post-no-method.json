@@ -1,0 +1,20 @@
+{
+  "id": "omitted-components--post-no-method",
+  "family": "omitted-components",
+  "title": "POST covering @path and Content-Digest but not @method",
+  "params": {
+    "body": "{\"sku\":1}",
+    "cover": [
+      "@authority",
+      {
+        "name": "signature-agent",
+        "params": {
+          "key": "sig1"
+        }
+      },
+      "@path",
+      "content-digest"
+    ]
+  },
+  "added": "2026-09-30"
+}

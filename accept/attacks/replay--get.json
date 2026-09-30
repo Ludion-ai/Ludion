@@ -1,0 +1,9 @@
+{
+  "id": "replay--get",
+  "family": "replay",
+  "title": "Resend a captured signed GET one second later",
+  "params": {
+    "delayS": 1
+  },
+  "added": "2026-09-30"
+}

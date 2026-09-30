@@ -1,0 +1,13 @@
+{
+  "id": "strip-signature--keep-staple-only",
+  "family": "strip-signature",
+  "title": "Strip every signature field, keep the Ludion-Staple",
+  "params": {
+    "remove": [
+      "signature",
+      "signature-input",
+      "signature-agent"
+    ]
+  },
+  "added": "2026-09-30"
+}

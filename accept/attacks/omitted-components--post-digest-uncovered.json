@@ -1,0 +1,20 @@
+{
+  "id": "omitted-components--post-digest-uncovered",
+  "family": "omitted-components",
+  "title": "POST with a Content-Digest header the signature does not cover",
+  "params": {
+    "body": "{\"sku\":1}",
+    "cover": [
+      "@authority",
+      {
+        "name": "signature-agent",
+        "params": {
+          "key": "sig1"
+        }
+      },
+      "@method",
+      "@path"
+    ]
+  },
+  "added": "2026-09-30"
+}

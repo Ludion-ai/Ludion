@@ -1,0 +1,9 @@
+{
+  "id": "clock-skew--replay-in-skew-tail",
+  "family": "clock-skew",
+  "title": "Replay after expires but inside the 30s skew allowance",
+  "params": {
+    "variant": "replay-in-skew-tail"
+  },
+  "added": "2026-09-30"
+}
