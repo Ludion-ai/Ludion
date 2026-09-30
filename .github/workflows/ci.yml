@@ -23,3 +23,14 @@ jobs:
             git diff --stat "origin/${{ github.base_ref }}...HEAD" -- accept docs/MISSION.md .claude || true
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
+  # Same loop on the platform the agent actually runs on. Caught: Node ≥23 test reporter,
+  # Windows path separators in CRY-1. Not a required check (the required one is `loop`).
+  loop-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 24, cache: npm }
+      - run: npm ci
+      - run: node scripts/scoreboard.mjs --base "origin/${{ github.base_ref || 'main' }}"

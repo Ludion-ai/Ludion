@@ -22,7 +22,8 @@ function sh(file, args, timeout = 180_000) {
 
 /** node:test files, optionally filtered by name. Zero matched tests is a FAIL, never a PASS. */
 export const nodeTest = (files, pattern) => async () => {
-  const r = sh(process.execPath, ["--test", ...(pattern ? [`--test-name-pattern=${pattern}`] : []), ...files]);
+  // Pin the TAP reporter: Node ≥23 prints spec (no "# pass N") even when piped.
+  const r = sh(process.execPath, ["--test", "--test-reporter=tap", ...(pattern ? [`--test-name-pattern=${pattern}`] : []), ...files]);
   const n = (k) => Number((new RegExp(`^# ${k} (\\d+)`, "m").exec(r.out) ?? [])[1] ?? 0);
   const pass = n("pass"), fail = n("fail");
   if (pass + fail === 0) return { pass: false, detail: "no test matched" };
@@ -113,7 +114,7 @@ export const ORACLES = [
     const allow = new Set(["packages/gate-core/src/staple.mjs", "packages/gate-core/src/receipt.mjs", "packages/diver/src/keys.mjs"]);
     const banned = /\bcrypto\.subtle\.(sign|verify|importKey|generateKey|deriveKey|deriveBits|encrypt|decrypt)\b|from\s+["'](tweetnacl|elliptic|node-forge|crypto-js)["']/;
     const hits = [...walk(path.join(ROOT, "packages")), ...walk(path.join(ROOT, "services"))]
-      .map((f) => path.relative(ROOT, f)).filter((f) => !/(^|\/)test\//.test(f) && !allow.has(f))
+      .map((f) => path.relative(ROOT, f).split(path.sep).join("/")).filter((f) => !/(^|\/)test\//.test(f) && !allow.has(f))
       .filter((f) => banned.test(fs.readFileSync(path.join(ROOT, f), "utf8")));
     return { pass: hits.length === 0, metric: `${allow.size} allowlisted`, detail: hits.length ? `outside allowlist: ${hits.join(", ")}` : undefined };
   } },
