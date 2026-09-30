@@ -11,9 +11,13 @@ import { check } from "./drafts.mjs";
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const pins = JSON.parse(fs.readFileSync(path.join(ROOT, "accept/std4/pins.json"), "utf8"));
 
-/** Tracked text files: code, the spec, MISSION.md (drafts.mjs skips ADRs, STATE.md and the outbox). */
+/**
+ * The repository's text files as CI will see them: tracked, and also new files not yet added (a
+ * local run before the commit must read what CI will read), never what .gitignore ignores.
+ * drafts.mjs skips ADRs, STATE.md, the outbox and accept/std4/.
+ */
 export function trackedFiles(root = ROOT) {
-  const list = execFileSync("git", ["ls-files", "-z"], { cwd: root, encoding: "utf8", maxBuffer: 64e6 }).split("\0").filter(Boolean);
+  const list = execFileSync("git", ["ls-files", "-z", "--cached", "--others", "--exclude-standard"], { cwd: root, encoding: "utf8", maxBuffer: 64e6 }).split("\0").filter(Boolean);
   return list.filter((p) => /\.(m?[jt]sx?|cjs|json|md|mdx|astro|ya?ml|toml|py|php|go|rs|txt|html)$/.test(p) && !/(^|\/)(package-lock\.json|node_modules\/)/.test(p))
     .flatMap((p) => { try { return [{ path: p, text: fs.readFileSync(path.join(root, p), "utf8") }]; } catch { return []; } });
 }

@@ -3,7 +3,9 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
+import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { check, repoRefs, TRACKER } from "./drafts.mjs";
 import { trackedFiles } from "./run.mjs";
@@ -115,6 +117,26 @@ test("STD-4: repository references name the pinned drafts at the pinned revision
     `docs/ludion-spec.md: ${A}-01, but the pin is -00`,
     "docs/MISSION.md: draft-meunier-web-bot-auth-architecture-05 is a Web Bot Auth draft that is not pinned",
   ]);
+});
+
+test("STD-4: the repository is read as CI reads it: new files too, ignored files and the checker's own fixtures not", () => {
+  // Found in CI (#53): a local run before the commit did not see the new test file, whose
+  // fixtures then failed the check on the runner.
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "ludion-std4-"));
+  try {
+    const git = (...a) => execFileSync("git", a, { cwd: dir, stdio: "ignore" });
+    git("init", "-q");
+    fs.writeFileSync(path.join(dir, ".gitignore"), "ignored.md\n");
+    fs.mkdirSync(path.join(dir, "accept", "std4"), { recursive: true });
+    fs.writeFileSync(path.join(dir, "tracked.md"), `${A}-00`);
+    fs.writeFileSync(path.join(dir, "new.md"), `${A}-01`);
+    fs.writeFileSync(path.join(dir, "ignored.md"), `${A}-02`);
+    fs.writeFileSync(path.join(dir, "accept", "std4", "x.test.mjs"), `${A}-03`);
+    git("add", "tracked.md", ".gitignore");
+    const files = trackedFiles(dir);
+    assert.deepEqual(files.map((f) => f.path).sort(), ["accept/std4/x.test.mjs", "new.md", "tracked.md"], "tracked and new text files, not the ignored one");
+    assert.deepEqual(repoRefs(files, PINS.drafts).problems, [`new.md: ${A}-01, but the pin is -00`], "the new file counts; the ignored one and accept/std4/ do not");
+  } finally { fs.rmSync(dir, { recursive: true, force: true }); }
 });
 
 test("STD-4: this repository agrees with its pins", () => {
