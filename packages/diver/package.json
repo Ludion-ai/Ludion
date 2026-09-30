@@ -3,13 +3,35 @@
   "version": "0.0.1",
   "description": "Ludion Diver: keys, directory/card documents, and one-line request signing on Web Bot Auth (RFC 9421).",
   "license": "Apache-2.0",
+  "homepage": "https://ludion.ai",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Ludion-ai/Ludion.git",
+    "directory": "packages/diver"
+  },
+  "bugs": {
+    "url": "https://github.com/Ludion-ai/Ludion/issues"
+  },
   "type": "module",
   "main": "src/index.mjs",
   "exports": {
-    ".": "./src/index.mjs"
+    ".": "./src/index.mjs",
+    "./cli": "./bin/ludion.mjs"
   },
   "bin": {
     "ludion": "bin/ludion.mjs"
+  },
+  "files": [
+    "src/",
+    "bin/",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "dependencies": {
     "@ludion/report": "0.0.1",

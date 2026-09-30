@@ -3,14 +3,31 @@
   "version": "0.0.1",
   "description": "Ludion daily report: what automation did on a site yesterday, from the Gate's metadata events only. Japanese and English, HTML and plain text. Zero network.",
   "license": "Apache-2.0",
+  "homepage": "https://ludion.ai",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Ludion-ai/Ludion.git",
+    "directory": "packages/report"
+  },
+  "bugs": {
+    "url": "https://github.com/Ludion-ai/Ludion/issues"
+  },
   "type": "module",
   "main": "src/index.mjs",
   "exports": {
     ".": "./src/index.mjs",
     "./cli": "./src/cli.mjs"
   },
+  "files": [
+    "src/",
+    "README.md",
+    "LICENSE"
+  ],
   "engines": {
     "node": ">=20"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "dependencies": {
     "@ludion/gate-core": "0.0.1"

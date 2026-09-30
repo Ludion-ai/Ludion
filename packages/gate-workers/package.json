@@ -3,6 +3,15 @@
   "version": "0.0.1",
   "description": "Ludion Gate for Cloudflare Workers (fetch handler wrapper).",
   "license": "Apache-2.0",
+  "homepage": "https://ludion.ai",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Ludion-ai/Ludion.git",
+    "directory": "packages/gate-workers"
+  },
+  "bugs": {
+    "url": "https://github.com/Ludion-ai/Ludion/issues"
+  },
   "type": "module",
   "main": "index.mjs",
   "exports": {
@@ -10,8 +19,15 @@
   },
   "files": [
     "index.mjs",
-    "README.md"
+    "README.md",
+    "LICENSE"
   ],
+  "engines": {
+    "node": ">=20"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "dependencies": {
     "@ludion/gate-core": "0.0.1"
   }

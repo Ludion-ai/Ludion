@@ -36,7 +36,7 @@
 |---|---|---|
 | M0 ループ | scoreboard、ratchet、CI、フックが回り、シードが緑。フルの CI が10分以内に終わる | LOOP-1、LOOP-2、SEED-1、SEED-2 |
 | M1 Gate | 標準どおりに検証し、60秒で入り、人間を傷つけず、中身を外に出さない | STD、GATE、PRIV |
-| M2 Diver | 3分で登録、1行で署名、どの検証器でも通る | DIV |
+| M2 Diver | 3分で登録、1行で署名、どの検証器でも通る。npm から入れてそのまま動く | DIV、PUB |
 | M3 Registry | ホットパスの外。落ちても世界が回る。行き先を知らない | REG |
 | M4 可視化 | 恐怖を数字にする：scan と日次レポート | SCAN、RPT |
 | M5 圧と信頼 | 圧と委任。中立。暗号を自作しない | PRS、NEUT、CRY |
@@ -96,6 +96,8 @@
 | DIV-2 | + | 1 | Card が正しい。`draft-meunier-webbotauth-registry-03` の CIMD 形式として Cloudflare のパーサで通り、`client_id` が自分の URL と一致し、`jwks_uri` が解決し、ディレクトリが `application/http-message-signatures-directory+json` で返る | DIV-3 |
 | DIV-3 | − | 1 | Root 鍵はリクエストに署名しない。Root 鍵で署名したリクエストは VERIFIED にならず、Root 鍵はディレクトリに載らず、dev モード以外で Root の秘密鍵が平文でディスクに出ない | |
 | DIV-4 | ± | 1 | 回転しても同じ。Session 鍵を回しても識別子は変わらず、旧鍵はキャッシュが切れた後に通らず、新鍵は通る | |
+| PUB-1 | + | 1 | npm の公開セット（`ludion` と `@ludion/*`）を `npm pack` した tarball だけで、クリーンな環境（新しいディレクトリ、新しい npm キャッシュ、workspace なし）に入る。`ludion` の CLI（`.bin` へのリンク、scan と report はリポジトリの CLI と出力が完全に一致、init と sign）と、gate-node・gate-workers・gate-next を通した自分のエージェント → 自分の Gate → VERIFIED が、公開される名前の import だけで動く | PUB-2 |
+| PUB-2 | − | 1 | 公開セットの各 tarball に、宣言した `files` と package.json・README・LICENSE 以外が0件（テスト、ベンチ、フィクスチャ、鍵、`.env`、`ludion.json` が0件）。license、repository、engines、スコープ付きの `publishConfig.access: public`、bin の shebang、export 先の同梱、内部依存がセット内の同じ版であること。検査器は先に仕込みで試す | |
 
 ### M3 Registry
 

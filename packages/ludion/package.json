@@ -1,0 +1,37 @@
+{
+  "name": "ludion",
+  "version": "0.0.1",
+  "description": "Ludion CLI: register an agent identity, sign requests with Web Bot Auth (RFC 9421), and scan access logs for unverified automation.",
+  "keywords": [
+    "web-bot-auth",
+    "rfc9421",
+    "http-message-signatures",
+    "ai-agents",
+    "bot"
+  ],
+  "license": "Apache-2.0",
+  "homepage": "https://ludion.ai",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Ludion-ai/Ludion.git",
+    "directory": "packages/ludion"
+  },
+  "bugs": {
+    "url": "https://github.com/Ludion-ai/Ludion/issues"
+  },
+  "type": "module",
+  "bin": {
+    "ludion": "bin/ludion.mjs"
+  },
+  "files": [
+    "bin/",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@ludion/diver": "0.0.1"
+  }
+}

@@ -137,6 +137,13 @@ export const ORACLES = [
     run: nodeTest(["packages/card-host/test/div2.test.mjs"], "^DIV-2:") },
   { id: "DIV-3", m: "M2", kind: "-", level: 1, title: "Root key never signs, never in the directory, never plaintext on disk outside dev",
     run: nodeTest(["packages/diver/test/div3.test.mjs"], "^DIV-3:") },
+  // The npm publish set (accept/publish/set.mjs): packed tarballs into a clean project; the CLI and
+  // every Gate adapter work from published names only. Third-party deps come from the registry.
+  { id: "PUB-1", m: "M2", kind: "+", level: 1, pair: "PUB-2", title: "npm tarballs alone install into a clean project; ludion CLI and gate-node/workers/next work (my agent → my Gate → VERIFIED)",
+    timeoutMs: 900_000, run: nodeTest(["accept/publish/pub1.test.mjs"], "^PUB-1:", { timeoutMs: 880_000,
+      metric: (out) => (/^# PUB-1: (.+)$/m.exec(out) ?? [])[1] }) },
+  { id: "PUB-2", m: "M2", kind: "-", level: 1, title: "each tarball ships only its declared files (no tests, fixtures, keys, env, identities) and is publishable as is",
+    run: nodeTest(["accept/publish/pub2.test.mjs"], "^PUB-2:", { metric: (out) => (/^# PUB-2: (.+)$/m.exec(out) ?? [])[1] }) },
   { id: "DIV-4", m: "M2", kind: "±", level: 1, title: "session key rotation keeps the identifier; old key stops, new key works",
     run: nodeTest(["packages/diver/test/div4.test.mjs"], "^DIV-4:") },
 
