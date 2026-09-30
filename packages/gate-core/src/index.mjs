@@ -60,6 +60,8 @@ export function denialHeaders(decision) {
  * @property {boolean} [sendMetadata]             spec report.send_metadata; default: true iff a sink is set
  * @property {string} [ipSalt]                    per-site salt for IP hashing
  * @property {boolean} [requireNonce]
+ * @property {{ maxEntries?: number, perOwnerMax?: number }} [nonceCache]  replay cache bounds; default
+ *           100,000 live entries, and once half full at most a quarter of them per signer identifier
  * @property {() => number} [now]
  */
 
@@ -122,7 +124,7 @@ export async function createGate(config) {
   health.authorities = authorities.pinned ? "pinned" : "unpinned";
 
   const policy = createPolicy({ pressure: config.pressure, routes: config.routes });
-  const nonceCache = createNonceCache({ now });
+  const nonceCache = createNonceCache({ now, ...(config.nonceCache ?? {}) });
   const siteKey = await importSiteKey(config.siteKey);
   const receipts = createReceipts({ siteId: config.siteId, siteKey, now });
   const ipSalt = config.ipSalt ?? config.siteId;

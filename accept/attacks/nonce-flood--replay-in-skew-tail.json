@@ -1,0 +1,9 @@
+{
+  "id": "nonce-flood--replay-in-skew-tail",
+  "family": "nonce-flood",
+  "title": "Flood, then replay the victim's request 80s later, inside expires + 30s skew",
+  "params": {
+    "variant": "replay-in-skew-tail"
+  },
+  "added": "2026-09-30"
+}

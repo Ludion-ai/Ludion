@@ -21,7 +21,7 @@ import { keypair, signed, harness, staple, withFields, fieldOf, retarget, reject
 
 const DIR = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(DIR, "../..");
-const REQUIRED = ["replay", "staple-swap", "cnf-mismatch", "strip-signature", "key-confusion", "label-confusion", "omitted-components", "clock-skew", "route-evasion", "cross-site-replay"];
+const REQUIRED = ["replay", "staple-swap", "cnf-mismatch", "strip-signature", "key-confusion", "label-confusion", "omitted-components", "clock-skew", "route-evasion", "cross-site-replay", "nonce-flood"];
 const UAS = {
   human: "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_0) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15",
   suspected: "python-requests/2.32.3",
@@ -243,6 +243,36 @@ const FAMILIES = {
     }
     throw new Error(`unknown variant ${variant}`);
   },
+  // Flood the replay cache with valid signatures of one's own until the victim's nonce is evicted,
+  // then replay the victim's captured request inside its validity. Modelled on a Gate with a
+  // 40-entry cache (the logic does not depend on the size; the default is 100,000). `flood` steps
+  // are the attacker's own traffic and may land in any class; the victim signing afresh after a
+  // single-owner flood must still be VERIFIED (the flooder is stopped, not the victim).
+  async "nonce-flood"({ variant, flood = 60, delayS = 1 }, w) {
+    const gate = await harness({ agentKeys: [w.agent], attackerKeys: [w.attacker], registry: w.registry, now: () => w.t, resolver: { fetch: w.fetch }, nonceCache: { maxEntries: 40 } });
+    const captured = await signed({ key: w.agent, ...(variant === "nonce-less-victim" ? { nonce: null } : {}) });
+    const steps = [{ gate, req: captured, atS: 0, expect: "verified" }];
+    let floodKeys = [{ key: w.attacker, agent: ATTACKER }];
+    if (variant === "many-keys-one-directory" || variant === "many-directories") {
+      const keys = await Promise.all(Array.from({ length: 12 }, () => keypair()));
+      if (variant === "many-keys-one-directory") {
+        await gate.resolver.prime({ type: "directory", uri: "https://swarm.example" }, { keys: keys.map((k) => ({ ...k.publicJwk, use: "sig" })) });
+        floodKeys = keys.map((key) => ({ key, agent: "https://swarm.example" }));
+      } else {
+        floodKeys = [];
+        for (const [i, key] of keys.entries()) {
+          await gate.resolver.prime({ type: "directory", uri: `https://s${i}.swarm.example` }, { keys: [{ ...key.publicJwk, use: "sig" }] });
+          floodKeys.push({ key, agent: `https://s${i}.swarm.example` });
+        }
+      }
+    }
+    for (let i = 0; i < flood; i++) steps.push({ gate, req: await signed(floodKeys[i % floodKeys.length]), atS: 0, expect: "flood" });
+    // Many independent owners can fill the cache (then nobody new is VERIFIED: a documented limit);
+    // one owner, however many keys, must not lock the victim out.
+    if (variant !== "many-directories") steps.push({ gate, req: await signed({ key: w.agent }), atS: 0, expect: "verified" });
+    steps.push({ gate, req: captured, atS: variant === "replay-in-skew-tail" ? 60 + 20 : delayS, expect: "rejected" });
+    return steps;
+  },
   // Abuse the ±30s clock-skew allowance or the lifetime rules.
   async "clock-skew"({ variant }, w) {
     if (variant === "replay-in-skew-tail") {
@@ -292,6 +322,7 @@ for (const f of files) {
       if (s.expect === "verified" && r.cls.class !== "VERIFIED") throw new Error(`control step ${i} not VERIFIED (${r.cls.class} ${r.cls.reason ?? ""} ${r.cls.detail ?? ""}) — the attack proves nothing`);
       if (s.expect === "human" && (!out?.reachedApp || out.headers["ludion-error"])) throw new Error(`human step ${i} was touched (${out?.status} ${out?.headers["ludion-error"] ?? ""})`);
       if (s.expect === "denied" && (!out || out.reachedApp || ![401, 403].includes(out.status))) throw new Error(`control step ${i}: the plainly spelled route is not protected — the attack proves nothing`);
+      if (!["verified", "human", "denied", "rejected", "flood"].includes(s.expect)) throw new Error(`step ${i}: unknown expectation ${s.expect}`);
       if (s.expect === "rejected") {
         const p = rejected(r, { victim: AGENT });
         if (out && (out.reachedApp || !out.headers["ludion-error"])) p.push(`reached the app (route ${r.route?.template ?? "none"}, Pressure ${r.route?.pressure})`);
