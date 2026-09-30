@@ -1,0 +1,12 @@
+{
+  "name": "ludion-site-edge",
+  "private": true,
+  "type": "module",
+  "description": "The site on Workers: the built static assets and POST /api/signup (WEB-8). Its own npm project, installed only by the oracles that run it: workerd would slow the site's install.",
+  "scripts": {
+    "dev": "wrangler dev"
+  },
+  "devDependencies": {
+    "wrangler": "4.144.0"
+  }
+}

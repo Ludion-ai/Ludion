@@ -37,11 +37,10 @@
   - WEB-2：文面が法務の線（spec §14）を越えず、数字はすべて出所を持つ（docs/adr/2026-10-01-copy-check-legal-line-and-figure-sources.md）。
     - 規則は `site/test/copy.mjs`。新しい文面で数字を書くときは、同じブロックに、その数字を言っているリポジトリの文書（spec か MISSION.md の節）へのリンクを置く。行数はすぐ後のコードブロックが出所。
     - 保険、保証、100% の類の語は、否定を語に付けたときだけ書ける（「Ballast v0 is not insurance」）。
-  - 次は NIGHT.md の優先順：WEB-8 → WEB-1（トークン待ち）→ 目録の残り → GATE-9（PHP と WordPress、Python）→ WEB-7 → LIVE-1。
-  - WEB-8 の入口：
-    - 受け口は既存の `site/api/signup.js`（Vercel 形式、未デプロイ）。静的サイトなので、受け口は Worker か Pages Functions にするのが自然。どこに置いても動く形にする。
-    - プレビューに出せない今は、ローカルで受け口を立てて、フォームから通知のスタブまで届くことと、ハニーポットとレート制限でボットが落ちることを測る。
-    - WEB-5 と WEB-6 の許可リストはサイト自身のオリジンだけ。フォームの送信先も同じオリジンに置く。scan のページからは何も送らない（WEB-6）。
+  - WEB-8：トップ（`/` と `/ja`）に登録フォーム。受け口は `site/edge/`（静的ファイルと同じ Worker の `POST /api/signup`）（docs/adr/2026-10-01-signup-endpoint-on-the-site-worker.md）。
+    - `site/edge` はプレビューに出す成果物そのもの（`wrangler.json`、`worker.mjs`）。WEB-1 はこれを `*.workers.dev` に出せばよい。
+    - WEB-8 はそれを `wrangler dev`（workerd）で動かして測る。ヘルパーは `site/test/edge.mjs`。
+  - 次は NIGHT.md の優先順：WEB-1（トークン待ち）→ 目録の残り → GATE-9（PHP と WordPress、Python）→ WEB-7 → LIVE-1。
   - プレビューのデプロイ（WEB-1）：今のトークンでは何も読めない（docs/DEPLOY.md 1.1）。人間待ちに書いた。
   - 新しい ADR には番号を付けない。`docs/adr/YYYY-MM-DD-<slug>.md` にする（NIGHT.md §8、両レーン共通）。
 
@@ -58,7 +57,15 @@
 - [ ] 判断（お金）：Card Host の `*.agents.ludion.ai` は2段目のワイルドカードで、Universal SSL の範囲外。
   - 選択肢：Advanced Certificate Manager（有料）、名前を `dvr-….ludion.ai` に寄せる（spec の変更）、別のドメイン。
   - 詳細は docs/DEPLOY.md 4。
-- [ ] `SIGNUP_WEBHOOK_URL` → LP の登録通知
+- [ ] `SIGNUP_WEBHOOK_URL` → LP の登録通知（Slack か Discord の incoming webhook）
+  - 入れ方：`cd site/edge && npx wrangler secret put SIGNUP_WEBHOOK_URL`（docs/DEPLOY.md 2）。
+  - 無いあいだ、デプロイしたフォームは「送信できませんでした」と答える（503）。受け取ったふりはしない。
+- [ ] 判断：WEB-8 は「プレビューで送信すると」を、プレビューに出す成果物（`site/edge`）を手元の workerd（`wrangler dev`）で動かして測った。通知先はスタブ。
+  - プレビューは WEB-1 のトークン待ちで出せない。
+  - これを PASS と読んでよいか。だめなら、プレビューが出たあとに同じ検査をプレビューの URL に向ける。そのためには、プレビュー用の webhook（観測できる通知先）が要る。
+- [ ] 本番公開の前に：登録フォームの文面を読む（`site/src/signup/strings.mjs`、トップの「先行登録」の節）。
+  - 「入力された内容は Ludion のチームに届き、Ludion についてのご連絡に使います」は、個人情報の利用目的の表示にあたる。会社としての約束になる。
+  - プライバシーポリシーはまだない（spec §21）。
 - [ ] 商標の調査（区分 9、42、45）
 - [ ] （任意）見込み客の了承を得た本物のアクセスログ。scan のコーパスは今は合成データだけ。本物が 1 本あれば、それが一番良い次のフィクスチャになる。`accept/fixtures/logs/` に入れる前に匿名化の方針を決める。
 - [ ] 判断：fail_mode "closed" の拒否は今 `signature_required`（401）で返している。署名済みの正規エージェントには紛らわしい。専用のコード（例：503 `gate_unavailable`）を spec §10.11 に足すか（ADR-020）。
@@ -86,7 +93,8 @@
 ## 既知の問題
 
 - `ludion doctor` の時計チェックは未実装（ローカル時刻を表示するだけ）。
-- LP の登録関数 `site/api/signup.js` は Vercel 形式。DNS は Cloudflare なので、置き場所は自由に選んでよい。LP は未デプロイ。
+- 登録フォームの受け口（`site/edge/signup.mjs`）のレート制限はメモリ内で、インスタンス（isolate）ごと。拠点や isolate に散った連打は、それぞれの枠で数えられる。分散した総当たりはハニーポット頼み。
+- 登録フォームは JS がないと送れない（ボタンが押せない）。`<form action>` を置くと WEB-5 のリンクの規則に掛かるため。
 - resolver の SSRF 対策はホスト名の検査だけ。解決先 IP の検査（DNS リバインディング）は GATE-6 で（進行中）。
 - Session の秘密鍵は v0 の CLI では `ludion.json` に平文で置いている（spec はメモリのみ）。Root は封をした（ADR-019）が、KMS や OS のキーチェーンのバックエンドはまだない。
 - §11.6「P0〜1 では初回の鍵取得を待たない」は未実装。今は timeoutMs の範囲で待つ。
@@ -124,6 +132,19 @@
   - web-bot-auth@0.2.0 のパーサが registry-03 に準拠しているか
 
 ## 直近のセッション
+
+- 2026-10-01（夜勤 7）：
+  - WEB-8：登録フォーム。人の送信は通知まで届き、ボットは落ちる（docs/adr/2026-10-01-signup-endpoint-on-the-site-worker.md）。
+    - 受け口：Web 標準の `handleSignup(Request) → Response`（`site/edge/signup.mjs`、依存なし）。サイトの Worker（`site/edge/worker.mjs`）と Vercel のアダプタが同じ関数を呼ぶ。
+    - ボット：ハニーポット（人と同じ応答で捨てる）と、レート制限（クライアントごと 10 分で 5 回、全体 100 回、`429` と `Retry-After`）。
+    - 通知：`SIGNUP_WEBHOOK_URL` が 2xx を返したときだけ「受け付けました」と答える。ログには何も書かない。
+    - 測り方：プレビューに出す成果物（本物の `wrangler.json` と Worker とビルドした dist）を `wrangler dev`（workerd）で動かす。通知先はスタブ。
+      - 人：`/` と `/ja` で Chromium がフォームを送る。ページの通信は自分のオリジンへの POST 1本だけで、通知にはその人が1件だけ届く。
+      - ボット：ハニーポットを埋めたもの（ブラウザ、JSON、フォーム形式）は通知に届かない。1 クライアントの 10 件は 5 件だけ通り、残りは 429。別のクライアントは通る。止められたページはそれを英日で言う。
+      - 受け口に仕込んだ4つの故障を、すべて狙いの規則で捕まえた：ハニーポットの無視、制限なし、空の鍵の制限、通知せずに ok。
+    - 速いテスト `site/test/signup.test.mjs` を `npm test` に入れた（11 件）。
+    - WEB-2 を強化した：フォームがスクリプトで書く文言（送信中、受け付けた、など英日 26 個）も法務の線にかける。
+  - scoreboard（ローカル）：PASS 36 → 37、PENDING 13 → 12、FAIL 0。ラチェットは WEB-8 を足した。
 
 - 2026-10-01（夜勤 6）：
   - WEB-2：法務の線を越える文面が 0、数字は全部出所付き（docs/adr/2026-10-01-copy-check-legal-line-and-figure-sources.md）。

@@ -66,14 +66,15 @@ function withLock(dir, fn) {
   try { return fn(); } finally { fs.rmSync(lock, { recursive: true, force: true }); }
 }
 
-export function ensureDeps() {
-  const lockHash = createHash("sha256").update(fs.readFileSync(path.join(SITE, "package-lock.json"), "utf8").replace(/\r\n/g, "\n")).digest("hex");
-  const marker = path.join(SITE, "node_modules", ".ludion-lock");
+/** Install an npm project in place from its lockfile (the site, or its edge Worker in site/edge). */
+export function ensureDeps(dir = SITE) {
+  const lockHash = createHash("sha256").update(fs.readFileSync(path.join(dir, "package-lock.json"), "utf8").replace(/\r\n/g, "\n")).digest("hex");
+  const marker = path.join(dir, "node_modules", ".ludion-lock");
   const ok = () => fs.existsSync(marker) && fs.readFileSync(marker, "utf8") === lockHash;
   if (ok()) return;
-  withLock(path.join(SITE, "node_modules"), () => {
+  withLock(path.join(dir, "node_modules"), () => {
     if (ok()) return;
-    run([npmCli(), "ci", "--no-audit", "--no-fund"]);
+    run([npmCli(), "ci", "--no-audit", "--no-fund"], { cwd: dir });
     fs.writeFileSync(marker, lockHash);
   });
 }

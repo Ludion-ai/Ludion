@@ -69,6 +69,12 @@
   - Pages ではない。STATE.md のとおり、トークンは Workers の編集だけの想定だから。
 - 名前：旧の資源の名前と重ならないもの。1.3 が埋まるまでは、`ludion-site-preview` を仮に使う。
 - デプロイは `npm run` のスクリプトの中からだけ行う（NIGHT.md §1）。
+- 中身は `site/edge/`（WEB-8 で足した）：
+  - `wrangler.json`：名前 `ludion-site-preview`、assets は `../dist`（`site/dist`）。
+  - `worker.mjs`：静的ファイルに当たらないリクエストだけを受ける。`POST /api/signup`（登録フォームの受け口）と、それ以外は静的ファイル（404 ページ）へ。
+  - 登録の通知先は Worker の秘密の変数 `SIGNUP_WEBHOOK_URL`（Slack か Discord の incoming webhook）。
+    - 無ければ、フォームは「送信できませんでした」と答える（503）。登録は捨てない。受け取ったふりもしない。
+    - 入れ方：`cd site/edge && npx wrangler secret put SIGNUP_WEBHOOK_URL`（人間待ち）。
 
 ## 3. 本番への切り替え（人間。クリック単位）
 
@@ -77,10 +83,11 @@
 1. **本番の Worker を作る。** リポジトリで次を実行する。
    ```sh
    node site/build.mjs --out site/dist
-   npx wrangler deploy --name ludion-site
+   cd site/edge && npm ci && npx wrangler deploy --name ludion-site
+   npx wrangler secret put SIGNUP_WEBHOOK_URL --name ludion-site
    ```
-   - `site/wrangler.jsonc` は WEB-1 で足す。assets は `site/dist`。
-   - `*.workers.dev` の URL で表示を確かめる。
+   - 設定は `site/edge/wrangler.json`。assets は `site/dist`。
+   - `*.workers.dev` の URL で表示を確かめる。トップの登録フォームから1件送り、通知先に届くことも確かめる。
 2. **旧から `ludion.ai` を外す。** 旧が Pages の場合：
    1. ダッシュボード → **Workers & Pages** → 旧のプロジェクト → **Custom domains** タブ。
    2. `ludion.ai`（と `www.ludion.ai`）の行の **…** → **Remove domain**。
@@ -95,6 +102,7 @@
    - `curl -sI https://ludion.ai/e/signature_required` が `200`。
    - `curl -sI https://ludion.ai/ja/scan` が `200`。
    - `/scan` にログを落として、数字が出る。
+   - `curl -s -X POST https://ludion.ai/api/signup -H 'content-type: application/json' -d '{"email":"x@example.com","message":"bot"}'` が `{"ok":true}` で、通知は来ない（ハニーポット）。
 5. **旧を消す。** 1.3 の表の順に消す。データの書き出しが済んだものだけ。
 
 ## 4. Card Host の `*.agents.ludion.ai`（spec の `dvr-….agents.ludion.ai`）

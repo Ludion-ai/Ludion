@@ -2,8 +2,9 @@
 // has its source. The rules are in ./copy.mjs; this runs them on the real build.
 // - The legal line: no page, title, description, alt or label text says that Ludion sells or
 //   brokers insurance, guarantees a payment, or promises absolute safety, in English or Japanese;
-//   a word on that line appears only where it is denied. The words the scan writes in the browser
-//   (its page strings) and the report it copies (the CLI's text, on a real log) are held to it too.
+//   a word on that line appears only where it is denied. The words the scan and the signup form
+//   write in the browser (their page strings) and the report the scan copies (the CLI's text, on a
+//   real log) are held to it too.
 // - Figures: every quantity on every page links, in its block, to the repository document or
 //   heading section that states it, or is the length of the code block it introduces; a figure
 //   in a heading is sourced in its section, one in the title or description on the page. The
@@ -20,6 +21,7 @@ import { buildSite } from "../build.mjs";
 import { filesOf, publicPath } from "./links.mjs";
 import { legalLine, legalLineOfPage, figures } from "./copy.mjs";
 import { STRINGS } from "../src/scan/strings.mjs";
+import { STRINGS as SIGNUP } from "../src/signup/strings.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const CORPUS = path.join(ROOT, "accept/fixtures/logs/corpus");
@@ -50,15 +52,17 @@ test("WEB-2: every page: nothing sells insurance, guarantees a payment or promis
   legalSummary = `${pages.length} pages, ${stats.runs} runs of text on the legal line (${stats.denied} denials let through)`;
 });
 
-test("WEB-2: the words the scan writes, and the report it copies, stay on the legal line", async () => {
+test("WEB-2: the words the scan and the signup form write, and the report the scan copies, stay on the legal line", async () => {
   const strings = (v) => (typeof v === "string" ? [v] : typeof v === "function" ? [String(v(1234, 5678, "12.3%"))] : v && typeof v === "object" ? Object.values(v).flatMap(strings) : []);
   const words = strings(STRINGS);
   assert.ok(words.length >= 80, `scan strings: ${words.length}`);
+  const signup = strings(SIGNUP);
+  assert.ok(signup.length >= 20, `signup strings: ${signup.length}`);
   const report = renderText(await scan([CORPUS]));
   assert.match(report, /UNVERIFIED AUTOMATION ON CRITICAL ROUTES/);
-  const found = [...words, ...report.split("\n")].flatMap((s) => legalLine(s));
+  const found = [...words, ...signup, ...report.split("\n")].flatMap((s) => legalLine(s));
   assert.deepEqual(found, []);
-  scanSummary = `${words.length} scan strings and a ${report.split("\n").length}-line report clean`;
+  scanSummary = `${words.length} scan strings, ${signup.length} signup strings and a ${report.split("\n").length}-line report clean`;
 });
 
 test("WEB-2: every figure on every page links the repository document that states it, or is the length of the code block it introduces", () => {
