@@ -1,0 +1,11 @@
+{
+  "name": "ludion-reference-express",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node server.mjs"
+  },
+  "dependencies": {
+    "express": "5.2.1"
+  }
+}
