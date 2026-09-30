@@ -1,17 +1,20 @@
 #!/usr/bin/env node
 // ludion — the CLI. Three minutes to register, one line to sign, one command to see the fear.
 //
-//   npx ludion init [--name "My Agent" --contact mailto:ops@example.com --domain dvr-xxx.agents.ludion.ai]
+//   npx ludion init [--name "My Agent" --contact mailto:ops@example.com --domain dvr-xxx.agents.ludion.ai] [--dev]
 //   npx ludion sign <METHOD> <URL> [--body '{"a":1}']     # prints Web Bot Auth headers for curl/httpx/anything
 //   npx ludion doctor                                      # self-check: keys, clock, directory, card
 //   npx ludion scan <access.log|dir|-> [--json]            # log-first Gate: what touched what, unsigned
 //
-// Keys live in ./ludion.json (v0). The Root private key MUST move to a KMS/keychain
-// before production (spec §12.4); the CLI warns while it is on disk.
+// Keys live in ./ludion.json (v0). The Root private key is sealed there with the operator's
+// passphrase (LUDION_ROOT_PASSPHRASE, or a prompt on a terminal): scrypt + AES-256-GCM, see
+// docs/adr/ADR-019. Only `--dev` (or LUDION_DEV=1) stores it in plaintext, and every command
+// then says so on stderr. KMS / OS keychain backends are next (spec §12.4).
 
 import fs from "node:fs";
 import path from "node:path";
-import { generateEd25519, diverIdFromRoot, directoryDocument, cardDocument, createDiverSigner } from "../src/index.mjs";
+import readline from "node:readline";
+import { generateEd25519, diverIdFromRoot, directoryDocument, cardDocument, createDiverSigner, sealRootKey, isSealedRoot, MIN_PASSPHRASE_LENGTH } from "../src/index.mjs";
 
 const args = process.argv.slice(2);
 const cmd = args[0];
@@ -19,20 +22,61 @@ const flag = (name, def) => { const i = args.indexOf(`--${name}`); return i >= 0
 const has = (name) => args.includes(`--${name}`);
 const STORE = path.resolve(process.cwd(), "ludion.json");
 const out = (s) => process.stdout.write(s + "\n");
+const err = (s) => process.stderr.write(s + "\n");
+const DEV = has("dev") || process.env.LUDION_DEV === "1";
+
+function devBanner() {
+  err("⚠ ────────────────────────────────────────────────────────────────────────");
+  err("⚠  LUDION DEV MODE: the Root private key is stored in PLAINTEXT in ludion.json.");
+  err("⚠  Whoever reads that file owns this identity. Development only: never register");
+  err("⚠  or use a dev identity in production. `ludion init --force` without --dev seals it.");
+  err("⚠ ────────────────────────────────────────────────────────────────────────");
+}
+
+/** Read a line from the terminal without echoing it. Terminal only; nothing is written anywhere. */
+function promptHidden(question) {
+  return new Promise((resolve) => {
+    const rl = readline.createInterface({ input: process.stdin, output: process.stderr, terminal: true });
+    rl._writeToOutput = (chunk) => { if (chunk.includes(question)) rl.output.write(chunk); };
+    rl.question(question, (answer) => { rl.close(); process.stderr.write("\n"); resolve(answer); });
+  });
+}
+
+async function rootPassphrase({ confirm }) {
+  if (process.env.LUDION_ROOT_PASSPHRASE) return process.env.LUDION_ROOT_PASSPHRASE;
+  if (!process.stdin.isTTY) return undefined;
+  const a = await promptHidden(`Root passphrase (at least ${MIN_PASSPHRASE_LENGTH} characters): `);
+  if (confirm && a !== await promptHidden("Repeat the passphrase: ")) throw new Error("the passphrases do not match. Nothing was written.");
+  return a;
+}
+
+/** Write a private file atomically (temp file in the same directory, then rename), owner-only. */
+function writePrivate(file, text) {
+  const tmp = `${file}.${process.pid}.tmp`;
+  fs.writeFileSync(tmp, text, { mode: 0o600 });
+  fs.renameSync(tmp, file);
+}
 
 async function init() {
   if (fs.existsSync(STORE) && !has("force")) return out(`ludion.json already exists. Use --force to overwrite (this creates a NEW identity).`);
+  let passphrase;
+  if (!DEV) {
+    passphrase = await rootPassphrase({ confirm: true });
+    if (!passphrase) throw new Error(`the Root key must be protected. Set LUDION_ROOT_PASSPHRASE (at least ${MIN_PASSPHRASE_LENGTH} characters), run \`ludion init\` in a terminal to be prompted, or pass --dev for a throwaway development identity (plaintext Root). Nothing was written.`);
+    if (passphrase.length < MIN_PASSPHRASE_LENGTH) throw new Error(`the Root passphrase must be at least ${MIN_PASSPHRASE_LENGTH} characters. Nothing was written.`);
+  }
   const root = await generateEd25519();
   const session = await generateEd25519();
   const diverId = diverIdFromRoot(root.publicJwk);
   const domain = flag("domain", `${diverId}.agents.ludion.ai`);
   const origin = `https://${domain}`;
   const store = {
-    v: 0, diver_id: diverId, signature_agent: origin,
+    v: 0, ...(DEV ? { dev: true } : {}), diver_id: diverId, signature_agent: origin,
     name: flag("name", "Unnamed agent"), contacts: [flag("contact", "mailto:change-me@example.com")],
-    root: root.privateJwk, session: session.privateJwk, created: new Date().toISOString(),
+    root: DEV ? root.privateJwk : await sealRootKey(root.privateJwk, passphrase),
+    session: session.privateJwk, created: new Date().toISOString(),
   };
-  fs.writeFileSync(STORE, JSON.stringify(store, null, 2), { mode: 0o600 });
+  writePrivate(STORE, JSON.stringify(store, null, 2));
   const dir = directoryDocument([session.publicJwk]);
   const card = cardDocument({ origin, name: store.name, contacts: store.contacts, ludion: { diver_id: diverId, registry: "https://registry.ludion.ai", root_kid: root.kid } });
   fs.mkdirSync(".well-known", { recursive: true });
@@ -40,7 +84,8 @@ async function init() {
   fs.writeFileSync("card", JSON.stringify(card, null, 2));
   out(`✔ Diver created: ${diverId}`);
   out(`  Signature-Agent: ${origin}`);
-  out(`  Wrote ludion.json (KEEP PRIVATE — Root key on disk is for development only)`);
+  if (DEV) devBanner();
+  out(`  Wrote ludion.json (KEEP PRIVATE — ${DEV ? "DEV MODE: Root key in plaintext" : "Root key sealed with your passphrase; the passphrase is not stored"})`);
   out(`  Wrote .well-known/http-message-signatures-directory  ← publish at ${origin}/.well-known/http-message-signatures-directory`);
   out(`  Wrote card                                            ← publish at ${origin}/card (Content-Type: application/json)`);
   out(`\nNext: host those two files at ${origin} (or run \`npx ludion register\` once the Registry is live), then:`);
@@ -50,6 +95,8 @@ async function init() {
 async function loadSigner() {
   if (!fs.existsSync(STORE)) throw new Error("no ludion.json — run `npx ludion init` first");
   const store = JSON.parse(fs.readFileSync(STORE, "utf8"));
+  if (store.dev) devBanner();
+  else if (!isSealedRoot(store.root)) err("⚠ ludion.json holds the Root private key in plaintext (made by an older ludion, or edited by hand). Treat this identity as development-only and create a sealed one with `ludion init --force`.");
   const signer = await createDiverSigner({ sessionPrivateJwk: store.session, signatureAgent: store.signature_agent, insecureAllowHttp: has("insecure") });
   return { store, signer };
 }
@@ -72,6 +119,8 @@ async function doctor() {
   const problems = [];
   let store;
   try { ({ store } = await loadSigner()); out(`✔ keys load (session kid ${store.session.kid})`); } catch (e) { return out(`✖ ${e.message}`); }
+  if (isSealedRoot(store.root)) out(`✔ Root sealed (${store.root.sealed.kdf} + ${store.root.sealed.cipher}), kid ${store.root.kid}`);
+  else problems.push(`${store.dev ? "DEV MODE: " : ""}the Root private key is in plaintext on disk`);
   if (!/^dvr-[a-z2-7]{16}$/.test(store.diver_id)) problems.push("diver_id malformed");
   const skew = Math.abs(Date.now() - Date.now()); // placeholder: compare against a time source in v0.1
   out(`✔ clock: local time ${new Date().toISOString()} (no external time check yet; signatures allow ±30s)`);

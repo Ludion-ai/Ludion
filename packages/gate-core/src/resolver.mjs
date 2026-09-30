@@ -143,6 +143,10 @@ async function fetchKeySet(entry, opts) {
     } else if (card.jwks) {
       keys = validateJwks(card.jwks, opts);
     } else throw new DiscoveryError("card has no key material", "format");
+    // A Diver's Root key never signs requests (spec §10.3). When the card names its Root
+    // (ludion.root_kid), that key is unusable for requests whatever the key set says.
+    const rootKid = typeof json?.ludion?.root_kid === "string" ? json.ludion.root_kid : undefined;
+    if (rootKid) keys = keys.filter((k) => thumbprint(k) !== rootKid);
     target.hash = ""; target.search = "";
     return { identifier: target.href, keys, ttlMs: ttl, card };
   }

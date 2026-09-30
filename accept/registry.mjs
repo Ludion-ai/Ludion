@@ -100,7 +100,8 @@ export const ORACLES = [
   { id: "DIV-1", m: "M2", kind: "+", level: 1, pair: "DIV-3", title: "clean container → init → VERIFIED ≤180s (TS and Python)" },
   { id: "DIV-2", m: "M2", kind: "+", level: 1, pair: "DIV-3", title: "Card is a valid CIMD Signature Agent Card and resolves end to end",
     run: nodeTest(["packages/card-host/test/div2.test.mjs"], "^DIV-2:") },
-  { id: "DIV-3", m: "M2", kind: "-", level: 1, title: "Root key never signs, never in the directory, never plaintext on disk outside dev" },
+  { id: "DIV-3", m: "M2", kind: "-", level: 1, title: "Root key never signs, never in the directory, never plaintext on disk outside dev",
+    run: nodeTest(["packages/diver/test/div3.test.mjs"], "^DIV-3:") },
   { id: "DIV-4", m: "M2", kind: "±", level: 1, title: "session key rotation keeps the identifier; old key stops, new key works" },
 
   // ── M3 registry ────────────────────────────────────────────────────────────────
