@@ -1,10 +1,13 @@
 # STATE
 
-最終更新：2026-09-30（Claude Code セッション 1、scan 後）
+最終更新：2026-09-30（Claude Code セッション 1、#19 まで）
 
 ## 現在地
 
-- 段：M0（ループ）は完了。M4 の scan（SCAN-1〜4）も完了。M1（STD、GATE）と M2（DIV）に着手した。
+- 段：M0（ループ）と M4 の scan（SCAN-1〜4）は完了。
+  - M1：STD-1/2、GATE-2/5/7、PRIV-1/2 まで。
+  - M2：DIV-2/3/4 まで。
+  - M3：REG-2/4 まで。
 - ループの仕組みは Linux/Node 22 と Windows/Node 24 の両方で回る。
 - リポジトリは https://github.com/Ludion-ai/Ludion （public）。main は保護されている：PR 必須、`loop` チェック必須、strict、enforce_admins、auto-merge 可。
   - strict なので、main が先に進んだ PR は `gh pr update-branch` しないとマージされない。
@@ -13,10 +16,16 @@
 
 ## 次の一手
 
-1. DIV-3（DIV-2 の負の対）。DIV-2 に UNPAIRED の警告が出ている。ついでに DIV-4 と REG-4。
-2. GATE-5、PRIV-1、PRIV-2（壊れても開く、中身を外に出さない）。
-3. GATE-1、GATE-3。参照アプリ（Express、Next.js、Workers）が要る。
-4. STD-3（独立実装との相互運用）。
+1. 進行中（ブランチ `gate/hardening`、ローカルのみ）：
+   - 経路の大文字小文字、末尾スラッシュ、エンコードなどによる P2 のすり抜け。GATE-7 のコーパスに足して塞ぐ。
+   - GATE-6（SSRF のサンドボックス）
+   - GATE-4（p99 で 2ms 以内）
+2. 進行中（ブランチ `gate/reference-apps`、ローカルのみ）：GATE-1、GATE-3。参照アプリは Express、Next.js、Workers。`@ludion/gate-next` と `@ludion/gate-workers` を作る。
+3. STD-3（独立実装との相互運用）。
+4. PRS-1、NEUT-1、NEUT-2。
+5. RPT-1（日次レポート）。
+6. Registry（REG-1、REG-3、PRIV-3）と PRS-2（Mandate）。
+- ADR の次の番号：021 と 022 は上の 2 本が予約済み。その次は 023。
 
 ## 人間待ち
 
@@ -27,6 +36,7 @@
 - [ ] `SIGNUP_WEBHOOK_URL` → LP の登録通知
 - [ ] 商標の調査（区分 9、42、45）
 - [ ] （任意）見込み客の了承を得た本物のアクセスログ。scan のコーパスは今は合成データだけ。本物が 1 本あれば、それが一番良い次のフィクスチャになる。`accept/fixtures/logs/` に入れる前に匿名化の方針を決める。
+- [ ] 判断：fail_mode "closed" の拒否は今 `signature_required`（401）で返している。署名済みの正規エージェントには紛らわしい。専用のコード（例：503 `gate_unavailable`）を spec §10.11 に足すか（ADR-020）。
 - [ ] 判断：nonce なしの同一署名を、同じメソッドと URL へ再送したら SPOOFED にしている（GATE-7、PR #4）。正規のリトライも弾く。これを受け入れるか、`requireNonce` を既定にするか。
 
 ## BLOCKED
@@ -37,7 +47,11 @@
 
 - `ludion doctor` の時計チェックは未実装（ローカル時刻を表示するだけ）。
 - LP の登録関数 `site/api/signup.js` は Vercel 形式。DNS は Cloudflare なので、置き場所は自由に選んでよい。LP は未デプロイ。
-- resolver の SSRF 対策はホスト名の検査だけ。解決先 IP の検査（DNS リバインディング）は GATE-6 で。
+- resolver の SSRF 対策はホスト名の検査だけ。解決先 IP の検査（DNS リバインディング）は GATE-6 で（進行中）。
+- Session の秘密鍵は v0 の CLI では `ludion.json` に平文で置いている（spec はメモリのみ）。Root は封をした（ADR-019）が、KMS や OS のキーチェーンのバックエンドはまだない。
+- §11.6「P0〜1 では初回の鍵取得を待たない」は未実装。今は timeoutMs の範囲で待つ。
+- sink の promise は溜まり続ける。背圧がない。
+- 受領証の経路は、まだ `templatePath` のまま（metadata と scan は `publicTemplatePath`）。
 - nonce キャッシュは容量超過で古い順に捨てる。自前の鍵で大量に送れば、被害者の nonce を追い出せる。プロセスをまたがない。GATE-7 のコーパス候補。
 - 署名が 2 つあるリクエストは LabelRequired で丸ごと SPOOFED になる。他の RFC 9421 プロファイル（例：Visa TAP）との共存は STD-3 で検討する。
 - scan で未カバーの部分：
@@ -67,6 +81,23 @@
     - SCAN-3 が最初の実行でユーザー名の漏れを捕まえた。直し方：外に見せる経路は既知の語だけ残し、他は `:param`。
     - diver の CLI が相対パスで gate-core を読む問題も直した。
   - scoreboard（CI）：PASS 10 → 14。ratchet は 14 件。
+  - **検証器の強化**：
+    - CRY-1 の禁止パターンを広げた（#12）。node:crypto の暗号、KDF、署名、destructured subtle、@noble など。
+    - SEED-2 の 1/256 の揺れを直した（#13）。
+  - **diver（#14〜#16）**：
+    - DIV-3：Root の秘密鍵が平文で保存されていた。scrypt と AES-256-GCM で封をした（ADR-019）。Card Host と resolver は `ludion.root_kid` を除外する。
+    - DIV-4：`ludion rotate`（2 段階）を足した。
+    - REG-4：鍵スキャナを作った。git の全履歴、作業ツリー、npm pack を見る。許可リストは RFC 9421 のテスト鍵 1 件だけで、拇印で照合する。
+  - **Gate（#17〜#19）**：
+    - GATE-5：timeoutMs を入れた。fail_mode は Gate の故障にだけ効き、鍵の発見の失敗は UNVERIFIED（ADR-020、tarpit 対策）。直したバグ：
+      - 壊れた Host で P2 をすり抜けられた
+      - resolver や sink が止まると、リクエストも止まった
+      - 時計の故障が SPOOFED になっていた
+      - 真値を返す verify() が VERIFIED になっていた
+      - 壊れた Registry 鍵で起動時に落ちた
+    - PRIV-1：漏れを 2 つ見つけて直した。country ヘッダーがそのまま出ていたのと、経路に文字だけの値が出ていたこと。
+    - PRIV-2：send_metadata false のとき、外に出るのは鍵の発見だけ。
+  - scoreboard（CI）：PASS 14 → 20。ratchet は 20 件。
 - 2026-09-30（チャット）：
   - gate-core、gate-node、diver（CLI：init、sign、doctor、scan）、LP、E2E を作成した。
   - WG -00 のテストベクタを通過した。
