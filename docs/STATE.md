@@ -69,6 +69,15 @@
     - GATE-7 の攻撃 `clock-skew--long-lived`（GATE-10 の写しも）
     - どちらも消さず、向け直す。書き換えの中身は ADR にある。
   - 了承があれば、1 周で GATE-8 を PASS にできる。上限を 3600 秒にした実験では、本物の 2 件が VERIFIED になり、対の拒否もすべて保たれた。落ちたのは上の 2 つだけだった。
+  - **A はローカルのブランチ `proposal/gate8-lifetime` に実装済み**（push していない。worktree は refs を共有するので、元のチェックアウトの `git branch` にも出る）。
+    - 手元の scoreboard：PASS 41 / FAIL 0 / PENDING 9。GATE-8 は 2 of 2 が VERIFIED。ブランチの上ではラチェットに GATE-8 を足した。
+    - 向け直すオラクル（消したものはない）：
+      - STD-2：1 時間超、または nonce なしで 60 秒超は SPOOFED。
+      - GATE-7：`clock-skew--long-lived` を 3601 秒へ。攻撃を 2 つ足した（nonce なしの 1 時間、1 時間の署名を 30 分後にリプレイ）。
+      - SEED-1：WG 自身のベクタ E.2.2（3600 秒、nonce あり）が VERIFIED になる。今の main は SPOOFED を確かめていて、テストの題（「still verifies」）と逆になっている。
+      - GATE-10 は書き出し直した。
+    - spec §10.4、§15.2、MISSION.md の STD-2、`/e/invalid_signature`（英日）も合わせた。
+    - 了承なら、そのブランチを push して PR にする（`git push -u origin proposal/gate8-lifetime`）。main が進んでいれば rebase して、GATE-10 を書き出し直す。
   - C（60 秒のまま）なら、GATE-8 は 60 秒以内で署名する別の実運用の署名者を待つ。
 - [ ] npm `ludion` と `@ludion`、PyPI `ludion` の確保（2026-09-30 時点で全て空き。匂わせ投稿の前に）
 - [x] リポジトリの公開設定の判断 → public、`Ludion-ai/Ludion`（2026-09-30）
@@ -194,6 +203,9 @@
     - 結果：Gate は 2 件とも SPOOFED。理由は寿命（3600 秒 > spec §10.4 の 60 秒）だけ。鍵の発見（文字列形式の Signature-Agent）は通る。
     - 上限を 3600 秒にした実験（コミットしていない）では、本物の 2 件が VERIFIED になった。落ちたのは STD-2 と GATE-7 の 1 件ずつ。緩めるのは人間の判断なので、今夜は緩めない。
     - 公開された捕獲は 3 件とも寿命 3600 秒だった（2025-08-01 の Castle のブログは nonce が伏せてあり、検証できない）。
+  - 2 周目：案 A（上限 3600 秒、60 秒超は nonce 必須）を、ローカルの提案ブランチ `proposal/gate8-lifetime` に実装した。main には出していない。
+    - 手元で PASS 41 / FAIL 0 / PENDING 9。
+    - WG 自身のテストベクタ E.2.2（寿命 3600 秒）も、今の Gate は SPOOFED にしていた。
   - #59 の初回で、`loop-windows` の NEUT-1 が落ちた。3 つのランタイムはすべて 109/109 を報告したあとで、詳細は `}` だけ。落ちたジョブだけを再実行したら通った（既知の問題に書いた）。
   - Cloudflare のトークンは、今夜は `Invalid access token`（9109）になった。前回は「有効だが 401」だった。WEB-1 と LIVE-1 は止まったまま。
   - この機械には PHP、Python（Microsoft Store のスタブだけ）、Go、Docker、uv がない。GATE-9 は止まったまま。
