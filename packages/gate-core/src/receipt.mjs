@@ -9,6 +9,7 @@
 // site and the agent hold the same receipt, so neither can later deny it.
 
 import { createHash, randomBytes } from "node:crypto";
+import { templatePath } from "./route.mjs";
 
 const b64u = (bytes) => Buffer.from(bytes).toString("base64url");
 
@@ -29,16 +30,8 @@ export async function importSiteKey(privateJwk) {
   return { kid, privateKey, publicKey };
 }
 
-/** Replace path segments that look like identifiers with templates. */
-export function templatePath(path) {
-  return path.split("?")[0].split("/").map((seg) => {
-    if (!seg) return seg;
-    if (/^\d+$/.test(seg)) return ":id";
-    if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(seg)) return ":uuid";
-    if (/^[A-Za-z0-9_-]{16,}$/.test(seg) && /\d/.test(seg)) return ":token";
-    return seg;
-  }).join("/");
-}
+// Route templating lives in route.mjs (shared with `ludion scan`); re-exported for callers.
+export { templatePath };
 
 /** IP truncation + salted hash (spec §11.7). */
 export function hashIp(ip, salt) {

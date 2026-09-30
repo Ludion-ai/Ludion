@@ -2,3 +2,5 @@
 * text=auto eol=lf
 *.zip binary
 *.gz binary
+# The scan corpus carries CRLF and BOM on purpose (IIS, Windows Apache): never normalise it.
+accept/fixtures/logs/corpus/** -text

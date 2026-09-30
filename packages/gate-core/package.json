@@ -6,7 +6,9 @@
   "type": "module",
   "main": "src/index.mjs",
   "exports": {
-    ".": "./src/index.mjs"
+    ".": "./src/index.mjs",
+    "./agents": "./src/agents.mjs",
+    "./route": "./src/route.mjs"
   },
   "engines": {
     "node": ">=20"

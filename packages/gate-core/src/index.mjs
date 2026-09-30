@@ -11,11 +11,13 @@ import { createStapleVerifier, issueStaple } from "./staple.mjs";
 import { classify, createPolicy, createNonceCache, decide, ERROR_HELP, AUTOMATION, compileRoute, CLASSES } from "./classify.mjs";
 import { createReceipts, importSiteKey, generateSiteKey, metadataEvent, templatePath, hashIp } from "./receipt.mjs";
 import { KNOWN_AGENT_TOKENS, AUTOMATION_SIGNALS, matchKnownAgent, matchAutomationSignal } from "./agents.mjs";
+import { routeKind, isCritical, pathOf, queryKeys, templateSegment, publicTemplateSegment, isRouteWord, ROUTE_KINDS, CRITICAL_KINDS, WRITE_METHODS } from "./route.mjs";
 
 export {
   createResolver, createStapleVerifier, issueStaple, classify, createPolicy, createNonceCache, decide, compileRoute, CLASSES,
   ERROR_HELP, AUTOMATION, createReceipts, importSiteKey, generateSiteKey, metadataEvent, templatePath, hashIp,
   KNOWN_AGENT_TOKENS, AUTOMATION_SIGNALS, matchKnownAgent, matchAutomationSignal,
+  routeKind, isCritical, pathOf, queryKeys, templateSegment, publicTemplateSegment, isRouteWord, ROUTE_KINDS, CRITICAL_KINDS, WRITE_METHODS,
 };
 
 export const LUDION_VERSION = "0";
