@@ -125,7 +125,9 @@ export const ORACLES = [
     run: nodeTest(["services/registry/test/reg1.test.mjs"], "^REG-1:") },
   { id: "REG-2", m: "M3", kind: "-", level: 0, title: "Staple attacks rejected (unknown kid, >1h, expired, iss, cnf, sub)",
     run: nodeTest(["packages/gate-core/test/core.test.mjs"], "^Staple:") },
-  { id: "REG-3", m: "M3", kind: "±", level: 1, title: "revocation reaches subscribed Gates ≤60s, others ≤ Staple TTL" },
+  { id: "REG-3", m: "M3", kind: "±", level: 1, title: "revocation reaches subscribed Gates ≤60s, others ≤ Staple TTL",
+    run: nodeTest(["services/registry/test/reg3.test.mjs"], "^REG-3:", {
+      metric: (out) => (/^# REG-3: (.+)$/m.exec(out) ?? [])[1] }) },
   { id: "REG-4", m: "M3", kind: "-", level: 1, title: "no private key material in git history, logs, or build artifacts",
     run: nodeScript("accept/keyscan/run.mjs") },
 
