@@ -85,7 +85,9 @@ export const ORACLES = [
     timeoutMs: 1_800_000, run: nodeTest(["reference/test/gate1.test.mjs"], "^GATE-1:", { timeoutMs: 1_750_000 }) },
   { id: "GATE-2", m: "M1", kind: "-", level: 1, title: "pressure bites: 100% of denials carry Ludion-Error + help Link (+Accept-Signature)",
     run: nodeTest(["packages/gate-node/test/gate2.test.mjs"], "^GATE-2:") },
-  { id: "GATE-3", m: "M1", kind: "+", level: 1, pair: "GATE-5", title: "install ≤3 app lines, ≤1 config file, first classified event ≤60s (3 reference apps)" },
+  { id: "GATE-3", m: "M1", kind: "+", level: 1, pair: "GATE-5", title: "install ≤3 app lines, ≤1 config file, first classified event ≤60s (3 reference apps)",
+    timeoutMs: 1_800_000, run: nodeTest(["reference/test/gate3.test.mjs"], "^GATE-3:", { timeoutMs: 1_750_000,
+      metric: (out) => [...out.matchAll(/^# (express|next|workers): (\d+) app lines, (\d+) config file, first event ([^\n]+)$/gm)].map((m) => `${m[1]} ${m[2]}L/${m[3]}cfg/${m[4]}`).join(", ") }) },
   { id: "GATE-4", m: "M1", kind: "+", level: 1, pair: "GATE-6", title: "added latency p99 ≤2ms warm (10k mixed requests)", timeoutMs: 180_000, run: async () => {
     // The real gate-node middleware timed per request, keys cached, every class in the mix; see the script.
     const r = sh(process.execPath, ["packages/gate-node/bench/gate4.mjs"], 170_000);
