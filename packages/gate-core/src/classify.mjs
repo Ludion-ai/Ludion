@@ -17,6 +17,7 @@ import { verify } from "web-bot-auth";
 import { isSignatureError } from "http-message-sig";
 import { DiscoveryError } from "./resolver.mjs";
 import { StapleError } from "./staple.mjs";
+import { verifyMandate, MandateError } from "./mandate.mjs";
 import { matchKnownAgent, matchAutomationSignal } from "./agents.mjs";
 import { GateFault, within, clock } from "./budget.mjs";
 import { routeCandidates } from "./route.mjs";
@@ -113,7 +114,8 @@ async function discover(ctx, candidate) {
  * @param {{ resolver: ReturnType<import("./resolver.mjs").createResolver>,
  *           stapleVerifier?: Awaited<ReturnType<import("./staple.mjs").createStapleVerifier>>,
  *           nonceCache?: ReturnType<typeof createNonceCache>, now?: () => number,
- *           requireNonce?: boolean, discoveryDeadline?: number,
+ *           requireNonce?: boolean, discoveryDeadline?: number, categories?: string[],
+ *           authorities?: ReturnType<import("./authority.mjs").createAuthorities>,
  *           revocations?: ReturnType<import("./revocation.mjs").createRevocationList> }} ctx
  */
 export async function classify(req, ctx) {
@@ -232,6 +234,24 @@ export async function classify(req, ctx) {
     } catch (e) {
       if (e instanceof StapleError && e.code === "expired") return { ...out, stapleError: "staple_expired" };
       return { ...out, class: "SPOOFED", reason: "invalid_staple", detail: e?.message };
+    }
+  }
+
+  // Mandate (spec §10.6). Carrying a delegation that was never given (forged, or another Diver's)
+  // is a spoof; a real one that does not hold here and now (another site, expired, withdrawn, no
+  // Staple to say whose it is) is simply no Mandate: decide() then answers mandate_required.
+  const mandateHdr = field(req, "ludion-mandate");
+  if (mandateHdr) {
+    if (!ctx.stapleVerifier) { out.mandateError = "no_registry_keys"; return out; }
+    try {
+      out.mandate = await verifyMandate(mandateHdr, {
+        stapleVerifier: ctx.stapleVerifier, staple: out.staple, authority, authorities: ctx.authorities,
+        categories: ctx.categories, revocations: ctx.revocations, now: now ? now.getTime() : Date.now(), skewS: CLOCK_SKEW_S,
+      });
+    } catch (e) {
+      if (!(e instanceof MandateError)) throw e; // not the request's doing: a Gate fault
+      if (e.code === "invalid" || e.code === "subject") return { ...out, class: "SPOOFED", reason: "invalid_mandate", detail: e.message };
+      out.mandateError = e.code;
     }
   }
   return out;

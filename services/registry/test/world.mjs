@@ -96,21 +96,35 @@ export function directoryHost() {
 /**
  * A site running the real Node Gate. Allowed requests answer with what the Gate decided, so a test
  * reads the class and standing from the body; denied ones carry Ludion-Error.
+ * A request with `?total=<amount>&currency=<ISO>` is a checkout: the site charges that amount
+ * through req.ludion.charge (the Gate never reads the cart; the site knows the total) and answers
+ * the Gate's refusal if there is one. The answer then carries `charge`.
  */
-export async function site({ host = "shop.example", clock, registryKeys, revocations, directory, routes }) {
+export async function site({ host = "shop.example", clock, registryKeys, revocations, directory, routes, categories }) {
   const siteKey = await generateSiteKey();
   const mw = await ludionGate({
     siteId: `site-${host}`, siteKey: siteKey.privateJwk, pressure: 0, now: () => clock.now(), authorities: [host],
     routes: routes ?? [{ match: "/checkout/**", pressure: 2, require: { depth: 1, ballast: "active" } }, { match: "/account", pressure: 2 }],
     registryKeys, registryIssuer: ISSUER, resolver: { fetch: directory.fetch },
-    ...(revocations ? { revocations } : {}),
+    ...(revocations ? { revocations } : {}), ...(categories ? { categories } : {}),
   });
-  const server = http.createServer((req, res) => mw(req, res, () => {
+  let last; // the last request the site saw (tests send one at a time): its Gate result, even when denied
+  const server = http.createServer((req, res) => { last = req; return mw(req, res, () => {
     const c = req.ludion.cls;
+    const q = new URL(req.url, "http://site.invalid").searchParams;
+    let charge;
+    if (q.has("total")) {
+      charge = req.ludion.charge({ amount: Number(q.get("total")), currency: q.get("currency") });
+      if (!charge.ok) {
+        res.writeHead(charge.status, { ...charge.headers, "content-type": "application/json" });
+        return res.end(JSON.stringify({ error: charge.error, reason: charge.reason }));
+      }
+    }
     res.setHeader("content-type", "application/json");
     res.end(JSON.stringify({ class: c.class, depth: c.depth ?? null, ballast: c.ballast?.status ?? null, revoked: c.revocation?.reason ?? null,
-      reason: c.reason ?? c.stapleError ?? null, detail: c.detail ?? null }));
-  }));
+      reason: c.reason ?? c.stapleError ?? null, detail: c.detail ?? null, mandate: c.mandate?.jti ?? null, mandateError: c.mandateError ?? null,
+      ...(charge ? { charge } : {}) }));
+  }); });
   await new Promise((r) => server.listen(0, "127.0.0.1", r));
   const origin = `http://127.0.0.1:${server.address().port}`;
   return {
@@ -124,7 +138,10 @@ export async function site({ host = "shop.example", clock, registryKeys, revocat
           res.on("data", (c) => chunks.push(c));
           res.on("end", () => {
             const body = Buffer.concat(chunks).toString("utf8");
-            resolve({ status: res.statusCode, error: res.headers["ludion-error"] ?? null, body: res.statusCode === 200 ? JSON.parse(body) : null, ms: performance.now() - t });
+            let parsed = null;
+            try { parsed = JSON.parse(body); } catch { /* not JSON */ }
+            resolve({ status: res.statusCode, error: res.headers["ludion-error"] ?? null, link: res.headers.link ?? null,
+              body: res.statusCode === 200 ? parsed : null, refusal: res.statusCode === 200 ? null : parsed, cls: last?.ludion?.cls ?? null, ms: performance.now() - t });
           });
         });
         req.on("error", reject);
@@ -148,10 +165,10 @@ export async function agent({ registryUrl, clock, directory, name, fetch }) {
     async refresh() { staple = await client.staple(d.store, d.session); return staple; },
     get staple() { return staple; },
     set staple(s) { staple = s; },
-    /** Signed headers for a request to https://<host><path>, carrying the current Staple (or none). */
-    async headers(host, pathname, { method = "GET", withStaple = true } = {}) {
+    /** Signed headers for a request to https://<host><path>, carrying the current Staple (or none) and a Mandate if given. */
+    async headers(host, pathname, { method = "GET", withStaple = true, mandate } = {}) {
       const signer = await createDiverSigner({ sessionPrivateJwk: d.session, signatureAgent: d.store.signature_agent, now: () => clock.now(),
-        staple: () => (withStaple ? staple?.staple : undefined) });
+        staple: () => (withStaple ? staple?.staple : undefined), mandate: () => mandate });
       return signer.headersFor({ method, url: `https://${host}${pathname}` });
     },
     keeper: (o = {}) => createStapleKeeper({ client, store: d.store, sessionPrivateJwk: d.session, now: () => clock.now(), ...o }),

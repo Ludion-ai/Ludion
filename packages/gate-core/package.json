@@ -9,6 +9,7 @@
     ".": "./src/index.mjs",
     "./agents": "./src/agents.mjs",
     "./config": "./src/config.mjs",
+    "./mandate": "./src/mandate.mjs",
     "./revocation": "./src/revocation.mjs",
     "./route": "./src/route.mjs",
     "./staple": "./src/staple.mjs"

@@ -8,6 +8,9 @@
 //   POST /v0/revocations                   revoke a Diver or some keys  (Root-signed statement)
 //   GET  /v0/revocations?since=N           revocation entries after N   (each a Registry-signed JWS)
 //   GET  /v0/revocations/stream            the same, live (SSE, Last-Event-ID / ?since=)
+//   POST /v0/principals                    register a Principal's passkey
+//   POST /v0/mandates                      issue a Mandate              (the Principal's passkey consent)
+//   POST /v0/mandates/{jti}/revoke         withdraw it                  (the same Principal's passkey)
 //
 // Off the hot path (spec §9.1, invariants 7 and 8): no Gate ever asks the Registry about a request.
 // Agents carry their state (Staples); Gates hold the Registry's public keys and the revocation list.
@@ -15,13 +18,20 @@
 // Staple is the same for every site (PRIV-3). What it stores is the Diver's public identity, the
 // approved public session keys, and revocations; Staples are counted, not kept (spec §13.3).
 //
+// Mandates (spec §10.6) are the one place a site is named to the Registry: by the Principal, who
+// consents with a passkey to a delegation for a site (or a category). The Registry keeps the
+// Mandate's hash, whose it is, its Diver and its expiry — never the site, scope or limits (§13.3).
+//
 // Fetch API only (Request → Response): Node, workerd, Deno and Bun run the same code. Crypto: the
-// Registry signs and verifies JWS through @ludion/gate-core/staple and checks request signatures
-// through web-bot-auth; it holds no primitive of its own (CRY-1).
+// Registry signs and verifies JWS, passkey signatures and pseudonyms through
+// @ludion/gate-core/staple and checks request signatures through web-bot-auth; it holds no
+// primitive of its own (CRY-1).
 
 import { verify as verifyRequestSignature } from "web-bot-auth";
 import { verifierFromJWK } from "web-bot-auth/crypto";
-import { verifyJws, importRegistryKey, signJws, issueStaple } from "@ludion/gate-core/staple";
+import { verifyJws, importRegistryKey, signJws, issueStaple, hmacSha256 } from "@ludion/gate-core/staple";
+import { MANDATE_TYP, SCOPES, CHARGE_SCOPE, DEFAULT_MANDATE_LIFETIME_S, MAX_MANDATE_LIFETIME_S, validLimits, audienceHost } from "@ludion/gate-core/mandate";
+import { credentialFrom, verifyAssertion, challengeFor, fromB64u, ConsentError } from "./webauthn.mjs";
 
 export const REGISTER_TYP = "ludion-register+jwt";
 export const KEYS_TYP = "ludion-keys+jwt";
@@ -30,8 +40,14 @@ export const REVOCATION_TYP = "ludion-revocation+jwt";
 /** Ballast v0 (spec §14): the three commitments an operator makes at registration. */
 export const BALLAST_V0 = ["abuse_response_24h", "revocation_consent", "glass_consent"];
 
+export const MANDATE_REQUEST_TYP = "ludion-mandate-request";
+export const MANDATE_REVOKE_TYP = "ludion-mandate-revoke";
+
 const MAX_STAPLE_LIFETIME_S = 3600;   // spec §10.5
 const STATEMENT_SKEW_S = 300;         // Root statements must be fresh: a captured one cannot be replayed later
+const CONSENT_HELD_S = 2 * STATEMENT_SKEW_S; // a consent's challenge is refused again for as long as its iat could pass
+const MAX_REQUEST = 4096;
+const MAX_MREV = 32;                  // revoked Mandates a Staple carries (it must stay under the Gate's 4 KiB)
 const MAX_BODY = 16 * 1024;
 const MAX_KEYS = 8;
 const SIG_MAX_AGE_S = 60, SIG_SKEW_S = 30;
@@ -77,10 +93,25 @@ function peekPayload(compact) {
 export function createMemoryStore({ state, save } = {}) {
   const s = state ?? { divers: {}, revocations: [], seq: 0, stapleCount: 0 };
   s.divers ??= {}; s.revocations ??= []; s.seq ??= 0; s.stapleCount ??= 0;
+  s.principals ??= {}; s.mandates ??= {}; s.consents ??= {};
   const persist = async () => { if (save) await save(s); };
   return {
     async getDiver(id) { return s.divers[id]; },
     async putDiver(id, rec) { s.divers[id] = rec; await persist(); },
+    async getPrincipal(credentialId) { return Object.hasOwn(s.principals, credentialId) ? s.principals[credentialId] : undefined; },
+    /** false if the credential is already registered (a key is never replaced). */
+    async addPrincipal(rec) { if (Object.hasOwn(s.principals, rec.id)) return false; s.principals[rec.id] = rec; await persist(); return true; },
+    async putPrincipal(rec) { s.principals[rec.id] = rec; await persist(); },
+    async getMandate(jti) { return Object.hasOwn(s.mandates, jti) ? s.mandates[jti] : undefined; },
+    async putMandate(jti, rec) { s.mandates[jti] = rec; await persist(); },
+    /** Record a consent's challenge; false if it was already used (checked and set in one step). */
+    async useConsent(challenge, untilS, nowS) {
+      for (const [c, t] of Object.entries(s.consents)) if (t < nowS) delete s.consents[c];
+      if (Object.hasOwn(s.consents, challenge)) return false;
+      s.consents[challenge] = untilS;
+      await persist();
+      return true;
+    },
     async appendRevocation(make) { const seq = ++s.seq; const entry = await make(seq); s.revocations.push(entry); await persist(); return entry; },
     async revocationsSince(seq) { return s.revocations.filter((e) => e.seq > seq); },
     async countStaple() { s.stapleCount++; await persist(); },
@@ -97,11 +128,15 @@ export function createMemoryStore({ state, save } = {}) {
  *            in production; tests and `--dev-ephemeral-key` make throwaway ones.
  *   origin:  the Registry's own origin. Signed requests must cover this authority (cf. ADR-023).
  *   contactsVerified: development only — treat every registered contact as confirmed (D1).
+ *   consentOrigin, rpId: where Principals consent with their passkeys (default https://ludion.ai,
+ *            ludion.ai); an assertion made on any other page or for any other RP is refused.
  */
 export async function createRegistry(o) {
   if (!o?.key) throw new Error("the Registry needs its signing key");
   const signing = o.key.privateKey ? o.key : await importRegistryKey(o.key);
   const issuer = o.issuer ?? "https://registry.ludion.ai";
+  const consentOrigin = o.consentOrigin ?? "https://ludion.ai";
+  const rpId = o.rpId ?? "ludion.ai";
   const now = o.now ?? (() => Date.now());
   const store = o.store ?? createMemoryStore();
   const lifetime = Math.min(o.stapleLifetimeS ?? MAX_STAPLE_LIFETIME_S, MAX_STAPLE_LIFETIME_S);
@@ -231,9 +266,12 @@ export async function createRegistry(o) {
     if (jkt.length > MAX_KEYS || !jkt.every((k) => rec.keys.some((x) => x.kid === k))) throw new HttpError(400, "bad_cnf", "every bound key must be approved");
     const t = nowS();
     const revoked = !!rec.revoked || jkt.some((k) => rec.revoked_jkt.includes(k));
+    // Mandates this Diver's Principals withdrew and that could still pass: every Gate hears of it
+    // through the Staple within its lifetime, subscribed or not (as with revocation, ADR-025 §4).
+    const mrev = (rec.mrev ?? []).filter((m) => m.exp + 60 > t).slice(-MAX_MREV).map((m) => m.jti);
     const payload = revoked
       ? { iss: issuer, sub: id, iat: t, exp: t + lifetime, depth: 0, ballast: { status: "suspended" }, revoked: true, cnf: { jkt } }
-      : { iss: issuer, sub: id, iat: t, exp: t + lifetime, ...standing(rec), cnf: { jkt } };
+      : { iss: issuer, sub: id, iat: t, exp: t + lifetime, ...standing(rec), ...(mrev.length ? { mrev } : {}), cnf: { jkt } };
     payload.jti = `stp-${b64u(crypto.getRandomValues(new Uint8Array(12)))}`;
     const compact = await issueStaple(signing.privateKey, signing.kid, payload);
     await store.countStaple();
@@ -319,6 +357,101 @@ export async function createRegistry(o) {
     return new Response(body, { status: 200, headers: { "content-type": "text/event-stream", "cache-control": "no-store", "x-content-type-options": "nosniff" } });
   }
 
+  // ── Principals and Mandates (spec §10.6) ─────────────────────────────────────────────────
+
+  async function registerPrincipal(request) {
+    const { credential } = await readJson(request);
+    let cred;
+    try { cred = await credentialFrom(credential); } catch (e) { throw new HttpError(400, "bad_credential", e.message); }
+    const k = new Uint8Array(32);
+    crypto.getRandomValues(k);
+    // k is the Principal's pseudonym key: prn = "pw-" + base32(HMAC(k, aud)) differs per site (spec §10.2).
+    const added = await store.addPrincipal({ id: cred.id, alg: cred.alg, jwk: cred.jwk, sign_count: 0, k: b64u(k), created: new Date(now()).toISOString() });
+    if (!added) throw new HttpError(409, "credential_exists", "this passkey is already registered; a registered key is never replaced");
+    return json(201, { credential_id: cred.id });
+  }
+
+  /**
+   * A consented request: `request` is the exact text the passkey approved (its SHA-256 is the
+   * challenge). Returns the parsed request and the Principal, the assertion checked and spent.
+   */
+  async function consented(body, typ) {
+    const { request: text, assertion } = body;
+    if (typeof text !== "string" || text.length > MAX_REQUEST) throw new HttpError(400, "bad_request", "request must be the consented JSON text");
+    let req;
+    try { req = JSON.parse(text); } catch { throw new HttpError(400, "bad_request", "request is not JSON"); }
+    if (!req || typeof req !== "object" || req.typ !== typ) throw new HttpError(400, "bad_request", `request typ must be ${typ}`);
+    if (!Number.isInteger(req.iat) || Math.abs(req.iat - nowS()) > STATEMENT_SKEW_S) throw new HttpError(400, "stale_request", "request iat is missing or not within 5 minutes of now");
+    if (typeof req.nonce !== "string" || !/^[A-Za-z0-9_-]{16,128}$/.test(req.nonce)) throw new HttpError(400, "bad_request", "request nonce must be 16..128 base64url characters");
+    const principal = typeof assertion?.credential_id === "string" ? await store.getPrincipal(assertion.credential_id) : undefined;
+    if (!principal) throw new HttpError(401, "unknown_credential", "no Principal has registered this passkey");
+    return { req, text, assertion, principal };
+  }
+
+  async function spend({ text, assertion, principal, req }) {
+    let signCount;
+    try { ({ signCount } = await verifyAssertion(assertion, { credential: principal, requestText: text, rpId, origin: consentOrigin, signCount: principal.sign_count })); }
+    catch (e) { throw new HttpError(401, "bad_consent", e instanceof ConsentError ? e.message : "assertion could not be checked"); }
+    if (!await store.useConsent(await challengeFor(text), req.iat + CONSENT_HELD_S, nowS())) throw new HttpError(409, "consent_replayed", "this consent was already used");
+    await store.putPrincipal({ ...(await store.getPrincipal(principal.id)), sign_count: signCount });
+  }
+
+  async function issueMandate(request) {
+    const c = await consented(await readJson(request), MANDATE_REQUEST_TYP);
+    const { req } = c;
+    const diver = typeof req.sub === "string" ? await store.getDiver(req.sub) : undefined;
+    if (!diver) throw new HttpError(404, "unknown_diver", "sub must be a registered Diver");
+    if (diver.revoked) throw new HttpError(403, "revoked", "this Diver is revoked");
+    if (typeof req.aud !== "string" || (audienceHost(req.aud) == null && !/^cat:[a-z0-9-]{1,32}$/.test(req.aud))) {
+      throw new HttpError(400, "bad_audience", 'aud must be a site origin ("https://shop.example") or a category ("cat:ecommerce")');
+    }
+    if (!Array.isArray(req.scope) || !req.scope.length || !req.scope.every((s) => SCOPES.includes(s)) || new Set(req.scope).size !== req.scope.length) {
+      throw new HttpError(400, "bad_scope", `scope must be distinct words from ${SCOPES.join(", ")}`);
+    }
+    let limits;
+    if (req.limits != null) {
+      if (typeof req.limits !== "object" || Array.isArray(req.limits) || Object.keys(req.limits).some((k) => !["checkout_max", "currency", "per_day"].includes(k))) {
+        throw new HttpError(400, "bad_limits", "limits may hold checkout_max, currency and per_day only");
+      }
+      if (!validLimits(req.limits) || (req.limits.per_day != null && req.limits.per_day > 1000)) throw new HttpError(400, "bad_limits", "checkout_max: a positive integer in the currency's minor unit; currency: ISO 4217; per_day: 1..1000");
+      limits = { checkout_max: req.limits.checkout_max, currency: req.limits.currency, ...(req.limits.per_day != null ? { per_day: req.limits.per_day } : {}) };
+    }
+    if (req.scope.includes(CHARGE_SCOPE) && !limits) throw new HttpError(400, "bad_limits", "a checkout Mandate carries its limits (spec §10.6)");
+    const t = nowS();
+    const exp = req.exp == null ? t + DEFAULT_MANDATE_LIFETIME_S : req.exp;
+    if (!Number.isInteger(exp) || exp <= t || exp - t > MAX_MANDATE_LIFETIME_S) throw new HttpError(400, "bad_expiry", "exp must be in the future and at most 7 days away");
+    await spend(c);
+
+    const prn = `pw-${base32(await hmacSha256(fromB64u(c.principal.k), enc.encode(req.aud)))}`;
+    const jti = `mdt-${b64u(crypto.getRandomValues(new Uint8Array(12)))}`;
+    const payload = { iss: issuer, sub: req.sub, prn, aud: req.aud, scope: [...req.scope], ...(limits ? { limits } : {}), iat: t, exp, jti };
+    const compact = await signJws(signing.privateKey, signing.kid, MANDATE_TYP, payload);
+    // Kept: the hash, whose it is, its Diver and expiry. Not the site, the scope or the limits.
+    await store.putMandate(jti, { h: b64u(await sha256(enc.encode(compact))), principal: c.principal.id, sub: req.sub, exp });
+    return json(201, { mandate: compact, jti, exp });
+  }
+
+  async function revokeMandate(jti, request) {
+    const c = await consented(await readJson(request), MANDATE_REVOKE_TYP);
+    if (c.req.jti !== jti) throw new HttpError(400, "bad_request", "the consented request names another Mandate");
+    const rec = await store.getMandate(jti);
+    if (!rec) throw new HttpError(404, "unknown_mandate");
+    await spend(c);
+    if (rec.principal !== c.principal.id) throw new HttpError(403, "not_your_mandate", "only the Principal who gave a Mandate can withdraw it");
+    if (rec.revoked) return json(200, { jti, seq: rec.revoked.seq });
+    const entry = await store.appendRevocation(async (seq) => ({
+      seq, jws: await signJws(signing.privateKey, signing.kid, REVOCATION_TYP, { iss: issuer, seq, sub: rec.sub, scope: "mandate", mdt: [jti], reason: "withdrawn", iat: nowS() }),
+    }));
+    await store.putMandate(jti, { ...rec, revoked: { seq: entry.seq } });
+    const diver = await store.getDiver(rec.sub);
+    if (diver) {
+      const t = nowS();
+      await store.putDiver(rec.sub, { ...diver, mrev: [...(diver.mrev ?? []).filter((m) => m.exp + 60 > t), { jti, exp: rec.exp }] });
+    }
+    for (const push of subscribers.keys()) push(entry);
+    return json(200, { jti, seq: entry.seq });
+  }
+
   async function route(request) {
     const url = new URL(request.url);
     const m = request.method;
@@ -330,7 +463,11 @@ export async function createRegistry(o) {
     if (m === "POST" && p === "/v0/revocations") return revokeHttp(request);
     if (m === "GET" && p === "/v0/revocations") return revocationList(request);
     if (m === "GET" && p === "/v0/revocations/stream") return revocationStream(request);
-    if (["/v0/divers", "/v0/revocations", "/v0/revocations/stream", "/.well-known/ludion-keys"].includes(p) || r) throw new HttpError(405, "method_not_allowed");
+    if (m === "POST" && p === "/v0/principals") return registerPrincipal(request);
+    if (m === "POST" && p === "/v0/mandates") return issueMandate(request);
+    const mr = /^\/v0\/mandates\/(mdt-[A-Za-z0-9_-]{8,64})\/revoke$/.exec(p);
+    if (mr && m === "POST") return revokeMandate(mr[1], request);
+    if (["/v0/divers", "/v0/revocations", "/v0/revocations/stream", "/.well-known/ludion-keys", "/v0/principals", "/v0/mandates"].includes(p) || r || mr) throw new HttpError(405, "method_not_allowed");
     throw new HttpError(404, "not_found");
   }
 

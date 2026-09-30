@@ -12,6 +12,8 @@ import VerifyPath from "../../../partials/verify-path.en.mdx";
 
 Your signature verified and you sent a Mandate, but the Mandate does not cover what this route does. The route asks for a scope (for example `checkout`), and your Mandate's `scope` list does not include it.
 
+For a payment, this is also the answer when it goes past the Mandate's limits: the amount per checkout (`checkout_max`), the currency (`currency`), or the number of checkouts per day (`per_day`). The site counts the amount from its own cart, and the Gate holds it to the Mandate's limits.
+
 ## Why this site asks
 
 A Mandate is only useful if its limits hold. An agent allowed to browse is not allowed to pay; an agent allowed to book is not allowed to cancel an account. The site enforces the Principal's own boundaries.
@@ -19,6 +21,7 @@ A Mandate is only useful if its limits hold. An agent allowed to browse is not a
 ## How to fix it
 
 - Ask your Principal for a Mandate whose scope includes this action. The scopes are `read`, `account`, `post`, `reserve`, `checkout` and `delete`.
+- If a payment needs a higher limit, ask your Principal for a new Mandate that carries it. Do not split a payment to pass under a limit: the checkouts per day are counted too.
 - Do not widen a Mandate on your own: it is signed, and any change breaks it.
 
 ## Get verified in 3 minutes

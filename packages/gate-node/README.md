@@ -47,7 +47,7 @@ Pressure 0 only observes. Nothing changes for anyone until you raise it.
 
 - **`site_id`** (required): your site's identifier.
 - **`pressure`**: the site-wide Pressure, from 0 (observe) to 3 (everything). Default 0.
-- **`routes`**: per-path overrides. Critical routes usually sit at 2 while the rest of the site stays at 0.
+- **`routes`**: per-path overrides. Critical routes usually sit at 2 while the rest of the site stays at 0. `require` may ask for a `depth`, `ballast: "active"`, and a Mandate `scope` (`read`, `account`, `post`, `reserve`, `checkout`, `delete`; see [Mandates](#mandates-payments-on-someones-behalf)).
 - **`report.endpoint`**: where the classified events are POSTed. They carry metadata only (spec §11.7): no bodies, no cookies, no query values, and no raw IPs.
 - **`report.send_metadata`**: `false` keeps everything on the site.
 - **`fail_mode`**: what a fault inside the Gate does. Pressure 0–1 always stays open. Pressure 2–3 follows `pressure_2_3`.
@@ -58,6 +58,29 @@ Pressure 0 only observes. Nothing changes for anyone until you raise it.
 
 - **`LUDION_SITE_KEY`**: the Glass receipt signing key, a private Ed25519 JWK. Keep it in your secret store, never in the config file. Without it, an ephemeral key is generated at startup, and the receipts verify only while that process runs.
 - **`LUDION_CONFIG`**: a different config file path.
+
+## Mandates (payments on someone's behalf)
+
+A route can ask agents for a Mandate: the Principal's signed delegation, with a scope and limits (spec §10.6).
+
+```json
+{ "match": "/checkout/**", "pressure": 2, "require": { "scope": "checkout" } }
+```
+
+The Gate checks the Mandate an agent sends: its signature, the Diver it names, your site, its expiry, and whether it was withdrawn. An agent without one gets `403 mandate_required`, and one whose Mandate lacks the scope gets `403 mandate_scope`.
+
+The amount is yours to give, because the Gate never reads the body. Where your handler knows the cart total, charge it:
+
+```js
+app.post("/checkout/:id", (req, res) => {
+  const total = cartTotal(req);                        // an integer in the currency's minor unit (JPY: yen, USD: cents)
+  const v = req.ludion.charge({ amount: total, currency: "JPY" });
+  if (!v.ok) return res.status(v.status).set(v.headers).json({ error: v.error, reason: v.reason });
+  // … take the payment
+});
+```
+
+`charge` holds the payment to the Mandate's `checkout_max`, `currency` and `per_day`, counted by this process over the last 24 hours. It only applies where the route asks for a scope at Pressure 2 or higher, and never to humans: for them it always returns `{ ok: true, enforced: false }`.
 
 ## Lower level
 

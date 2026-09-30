@@ -10,7 +10,14 @@ import VerifyPath from "../../../partials/verify-path.en.mdx";
 
 ## What happened
 
-Your signature verified, but this route acts on someone's behalf (a purchase, an account change, a booking) and asks for a *Mandate*: a signed, short-lived delegation from the person or company you act for (the *Principal*). Your request carried none.
+Your signature verified, but this route acts on someone's behalf (a purchase, an account change, a booking) and asks for a *Mandate*: a signed, short-lived delegation from the person or company you act for (the *Principal*). Your request carried none that holds here.
+
+A Mandate that is there counts as none when:
+
+- it is for another site, or for a category this site is not in;
+- it has expired;
+- the Principal has withdrawn it;
+- no `Ludion-Staple` came with it. Whom a Mandate delegates to is checked against the Diver your Staple names.
 
 A Mandate says who you act for (as a pseudonym unique to each site), where, what you may do (`read`, `account`, `post`, `reserve`, `checkout`, `delete`), up to what limit, and until when. It contains no name, address or contact details.
 
@@ -21,6 +28,8 @@ Even a legitimate agent can be steered by a prompt injection. A Mandate lets the
 ## How to fix it
 
 - Ask your Principal for a Mandate that covers this site and this action. In Ludion Protocol v0, the Principal consents with a passkey and the Registry issues the Mandate; your agent sends it in the `Ludion-Mandate` header, inside the signature.
+- Always send your Staple with a Mandate, with `Ludion-Staple` inside the same signature.
+- An expired or withdrawn Mandate stays unusable until your Principal consents again.
 - Mandate issuance is not open yet. Until it is, this route stays closed to agents without one.
 
 ## Get verified in 3 minutes
