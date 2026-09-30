@@ -28,9 +28,13 @@
 - 夜勤レーン（2026-10-01、`.loop/NIGHT.md`。別の作業ツリーで並走）：
   - GATE-9 と M7 Web（WEB-1〜8）を PENDING で登録した（#43）。
   - WEB-3：`site/` を Astro と Starlight にした（ADR-040）。`/e/<code>` と `/ja/e/<code>` が 9 コード × 2 言語ある。
-  - 次は NIGHT.md の優先順：WEB-4 と WEB-6（ブラウザ版 scan）→ WEB-1/2/5/8 → 目録の残り → GATE-9（PHP と WordPress、Python）→ WEB-7 → LIVE-1。
-  - WEB-4 の入口：`@ludion/scan` の `formats.mjs` と `aggregate.mjs` はブラウザでそのまま動く。Node 専用は `lines.mjs` だけ（fs、zlib）。ブラウザでは File の stream と `DecompressionStream` で置き換える。
-  - プレビューのデプロイ（WEB-1）：トークンは Workers の編集だけの想定。Pages ではなく Workers の静的アセット（`*.workers.dev`）に出すのが確実。
+  - WEB-4：`/scan` と `/ja/scan` にログを落とすと、CLI と同じ数字が出る（docs/adr/2026-10-01-browser-scan-shares-the-cli-core.md）。
+  - 次は NIGHT.md の優先順：WEB-6（scan の漏れ）→ WEB-1/2/5/8 → 目録の残り → GATE-9（PHP と WordPress、Python）→ WEB-7 → LIVE-1。
+  - WEB-6 の入口：
+    - ヘッドレス Chromium は `site/test/browser.mjs` の `launchChromium()` で起動できる。
+    - `/scan` の `.ludion-scan` の `data-state` が `idle` → `reading` → `done` と進む。
+    - Worker のスクリプトは、ログを落とした時に同じオリジンから取る。
+  - プレビューのデプロイ（WEB-1）：今のトークンでは何も読めない（docs/DEPLOY.md 1.1）。人間待ちに書いた。
   - 夜勤レーンの ADR は 040〜049 を使う（昼のレーンの 030〜 と衝突させないため）。
 
 ## 人間待ち
@@ -39,6 +43,13 @@
 - [x] リポジトリの公開設定の判断 → public、`Ludion-ai/Ludion`（2026-09-30）
 - [x] main のブランチ保護：PR 必須、`loop` チェック必須、auto-merge 許可（2026-09-30。strict と enforce_admins も付けた）
 - [ ] `CLOUDFLARE_API_TOKEN`（Workers スクリプトの編集だけ。ゾーンと DNS は付けない）→ LIVE-1
+  - 2026-10-01 夜勤：渡されたトークンは有効だが、`CLOUDFLARE_ACCOUNT_ID` のアカウントでは、どの資源も 401 だった。Workers、Pages、KV、D1、R2、workers.dev のすべて。
+  - アカウント ID の食い違いか権限の不足。このままでは WEB-1 のプレビューも LIVE-1 もデプロイできない。
+  - 確かめ方は docs/DEPLOY.md 1.2。
+- [ ] 旧 Ludion の Cloudflare 資源の棚卸し（NIGHT.md §7）：読み取りトークンで `node scripts/cf-inventory.mjs` を1回実行し、docs/DEPLOY.md 1.3 の削除リストを埋める（GET だけ）。
+- [ ] 判断（お金）：Card Host の `*.agents.ludion.ai` は2段目のワイルドカードで、Universal SSL の範囲外。
+  - 選択肢：Advanced Certificate Manager（有料）、名前を `dvr-….ludion.ai` に寄せる（spec の変更）、別のドメイン。
+  - 詳細は docs/DEPLOY.md 4。
 - [ ] `SIGNUP_WEBHOOK_URL` → LP の登録通知
 - [ ] 商標の調査（区分 9、42、45）
 - [ ] （任意）見込み客の了承を得た本物のアクセスログ。scan のコーパスは今は合成データだけ。本物が 1 本あれば、それが一番良い次のフィクスチャになる。`accept/fixtures/logs/` に入れる前に匿名化の方針を決める。
@@ -76,11 +87,30 @@
   - SCAN-4 は nginx 形式でしか測っていない。JSON 形式（Cloudflare、Vercel、Caddy、Fastly）の速さは未計測。CI は 24.4s、上限は 60s。
   - 経路の語彙は英語だけ。日本語の経路語は `:param` になる。
   - 前提を置いた形式がある：ALB の UA の引用符のエスケープ、IIS の `+`。詳細は `accept/fixtures/logs/README.md`。
+- ブラウザ版 scan（WEB-4）で未カバーの部分：
+  - 末尾をゼロで埋めた gzip は、CLI（zlib）は読めるが、ブラウザでは読めない。
+  - 末尾にゴミのある gzip では、CLI もブラウザも止まる（`incorrect header check`）。
+  - 「テキストでコピー」は CLI の文面なので、`https://ludion.ai/gate` へのリンクを含む。そのページはまだない。WEB-5 で拾う。
 - DIV-2 で未カバーの部分：
   - TLS は通していない（Host ヘッダーを保ってローカルに転送）
   - web-bot-auth@0.2.0 のパーサが registry-03 に準拠しているか
 
 ## 直近のセッション
+
+- 2026-10-01（夜勤 2）：
+  - 旧 Ludion の棚卸し（NIGHT.md §7）：渡されたトークンでは、アカウントの資源が1つも読めなかった。
+    - 読むだけのスクリプト `scripts/cf-inventory.mjs` を足した。
+    - `docs/DEPLOY.md` を書いた。棚卸しのやり方、削除リストの枠、本番への切り替え手順、`*.agents.ludion.ai` の証明書の問題。
+  - WEB-4（docs/adr/2026-10-01-browser-scan-shares-the-cli-core.md）：
+    - `@ludion/scan` の解析と集計を `core.mjs` に分けた。ブラウザはそれを Web Worker でそのまま動かす。
+    - `/scan` と `/ja/scan` を足し、トップから導線を張った。
+    - ヘッドレス Chromium で、全フィクスチャ、コーパスの一括、英日のページを CLI の `--json` とフィールド単位で突き合わせた。
+    - 200 MiB を 1.9 秒で読んだ。
+  - 現実のバグを1つ捕まえた：Chromium の `DecompressionStream` は、連結された gzip（`cat a.gz b.gz`）を途中で拒む。
+    - 直し方：gzip のメンバーの境目を、その前までが1つの完全なメンバーとして展開できるかで確かめ、メンバーごとに展開する。
+    - 偽の境目（無圧縮のデータの中のヘッダーのバイト列）もケースに入れた。
+  - 突然変異で落ちることを確かめた。並べ替え、gzip の展開、見出しの数字、境目の検証。
+  - scoreboard（ローカル）：PASS 32 → 33。ラチェットは WEB-4 を足した。
 
 - 2026-10-01（夜勤 1）：
   - GATE-9 と M7 Web（WEB-1〜8）を目録と registry に PENDING で登録した（#43）。ID の衝突はなし。LOOP-1 は PASS のまま、目録は 39 → 49 件。

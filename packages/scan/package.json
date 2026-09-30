@@ -7,7 +7,8 @@
   "main": "src/index.mjs",
   "exports": {
     ".": "./src/index.mjs",
-    "./cli": "./src/cli.mjs"
+    "./cli": "./src/cli.mjs",
+    "./web": "./src/web.mjs"
   },
   "engines": {
     "node": ">=20"

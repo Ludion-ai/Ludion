@@ -13,6 +13,8 @@ import { fileURLToPath } from "node:url";
 
 export const SITE = path.dirname(fileURLToPath(import.meta.url));
 const SKIP = new Set(["node_modules", "dist", ".astro", "test"]);
+// Code outside site/ that the build bundles (astro.config.mjs aliases it): /scan runs the CLI's scan.
+const BUNDLED = ["packages/scan/src", "packages/gate-core/src/agents.mjs", "packages/gate-core/src/route.mjs"];
 const ENV = { ASTRO_TELEMETRY_DISABLED: "1", npm_config_audit: "false", npm_config_fund: "false", npm_config_update_notifier: "false" };
 
 /** The npm CLI as a JS file, so no .cmd shim or shell is needed on Windows. */
@@ -37,7 +39,14 @@ function files(dir, base = dir, out = []) {
 /** Content hash of everything the build reads (line endings normalised: the same tree on any OS). */
 export function siteHash() {
   const h = createHash("sha256");
-  for (const f of files(SITE)) h.update(f).update("\0").update(fs.readFileSync(path.join(SITE, f), "utf8").replace(/\r\n/g, "\n")).update("\0");
+  const add = (name, file) => h.update(name).update("\0").update(fs.readFileSync(file, "utf8").replace(/\r\n/g, "\n")).update("\0");
+  for (const f of files(SITE)) add(f, path.join(SITE, f));
+  const root = path.dirname(SITE);
+  for (const b of BUNDLED) {
+    const abs = path.join(root, b);
+    if (fs.statSync(abs).isDirectory()) for (const f of files(abs)) add(`${b}/${f}`, path.join(abs, f));
+    else add(b, abs);
+  }
   return h.digest("hex").slice(0, 16);
 }
 

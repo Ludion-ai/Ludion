@@ -1,0 +1,23 @@
+---
+title: Scan your access logs
+description: Drop an access log and see how much unverified automation touched your checkout, login and forms. The log never leaves this device.
+template: splash
+---
+import ScanDrop from "../../components/ScanDrop.astro";
+
+How much automation touched your checkout, login, signup and forms? How much of it could anyone tie to an agent it could verify? If you have a server access log, you can count it here, now.
+
+<ScanDrop lang="en" />
+
+## What is counted
+
+- **Declared**: requests whose User-Agent names a published agent (GPTBot, ClaudeBot, Googlebot and the like). There is no signature, so anyone can say it.
+- **Suspected**: requests with automation signals: HTTP libraries, headless browsers, no User-Agent.
+- **Signed (UNVERIFIED)**: requests that carried a Web Bot Auth signature. A log keeps neither the key nor what was signed, so nothing here can verify it. A Gate can.
+- **Critical routes**: checkout, login, signup and account pages, and any write (POST, PUT, PATCH, DELETE), such as a form submission. From a log, not one automated request on them can be tied to whose agent it was, what it was allowed to do, and who answers for it.
+
+The counting is exactly that of `npx ludion scan` in a terminal: the same code runs on this page.
+
+## Your log is not sent anywhere
+
+The browser's File API reads the file into this tab, and a Web Worker parses it. The page makes no request to do so, and this site has no endpoint that accepts a log. What is shown is counts and templated routes (`/orders/:id`) only: no IP address, query value, cookie or user name.
