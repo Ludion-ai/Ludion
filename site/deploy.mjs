@@ -11,6 +11,7 @@ import path from "node:path";
 import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { SITE, buildSite, siteHash, ensureDeps } from "./build.mjs";
+import { loadCloudflareEnv } from "../scripts/cf-env.mjs";
 
 export const PREVIEW_NAME = "ludion-site-preview";
 const EDGE = path.join(SITE, "edge");
@@ -25,6 +26,7 @@ function guard(config) {
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  console.error(`credentials: ${loadCloudflareEnv()}`);
   for (const k of ["CLOUDFLARE_API_TOKEN", "CLOUDFLARE_ACCOUNT_ID"]) if (!process.env[k]) { console.error(`set ${k} (see docs/DEPLOY.md §2)`); process.exit(2); }
   const config = JSON.parse(fs.readFileSync(path.join(EDGE, "wrangler.json"), "utf8"));
   const bad = guard(config);

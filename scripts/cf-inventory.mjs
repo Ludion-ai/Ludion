@@ -8,6 +8,8 @@
 // Workers KV Storage, D1, Workers R2 Storage (Read); Zone (ludion.ai) → Workers Routes, DNS (Read).
 // A section the token cannot read is printed as such, not skipped silently.
 import { classifiedTables } from "./cf-classify.mjs";
+import { loadCloudflareEnv } from "./cf-env.mjs";
+if (!process.argv.includes("--self-test")) console.error(`credentials: ${loadCloudflareEnv()}`);
 const token = process.env.CLOUDFLARE_API_TOKEN, account = process.env.CLOUDFLARE_ACCOUNT_ID;
 const zi = process.argv.indexOf("--zone");
 const zoneName = zi > 0 ? process.argv[zi + 1] : "ludion.ai";
