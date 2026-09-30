@@ -111,6 +111,12 @@ export const ORACLES = [
     run: allOf(nodeScript("accept/attacks/run.mjs"), nodeTest(["packages/gate-core/test/hardening.test.mjs", "packages/gate-node/test/route-evasion.test.mjs", "packages/gate-node/test/authority.test.mjs", "packages/gate-core/test/nonce-flood.test.mjs"], "^GATE-7:")) },
   { id: "GATE-8", m: "M1", kind: "+", level: 1, pair: "GATE-7", title: "a real third-party signed request (fixture with provenance) is VERIFIED" },
   { id: "GATE-9", m: "M1", kind: "+", level: 1, pair: "GATE-7", title: "the same conformance suite (STD vectors, GATE-7 corpus, STD-3 interop) passes in 6 ecosystems: Node, Workers, Deno/Bun, PHP+WordPress, Python, Go" },
+  // The suite as data (accept/conformance/vectors.json, written by export.mjs from the GATE-7 families
+  // and the WG vectors); the TypeScript Gate runs it from the file (portable/conformance.mjs), which
+  // NEUT-1 also runs on Deno and workerd. Other languages read the same file (GATE-9).
+  { id: "GATE-10", m: "M1", kind: "+", level: 1, pair: "GATE-7", title: "the conformance suite is data: WG vectors + every GATE-7 attack as requests, one for one with the corpus; the TS Gate passes it from the file",
+    run: nodeTest(["accept/conformance/gate10.test.mjs"], "^GATE-10:", {
+      metric: (out) => (/^# GATE-10: (.+)$/m.exec(out) ?? [])[1] }) },
 
   // ── M1 privacy ─────────────────────────────────────────────────────────────────
   { id: "PRIV-1", m: "M1", kind: "-", level: 1, title: "canary egress: 0 canaries, 0 raw IPs in any byte leaving the Gate (10k fuzzed)",

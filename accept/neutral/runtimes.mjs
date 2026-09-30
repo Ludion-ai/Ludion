@@ -18,14 +18,18 @@ import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { npm, pack, freePort, start } from "../../reference/harness.mjs";
-import { registeredTests } from "../../packages/gate-core/test/portable/shim.mjs";
+import { registeredTests, test as register } from "../../packages/gate-core/test/portable/shim.mjs";
 import "../../packages/gate-core/test/portable/suite.mjs";
+import { registerConformance } from "../../packages/gate-core/test/portable/conformance.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(HERE, "../..");
 const RUNTIME = path.join(HERE, "runtime");
 const PORTABLE = path.join(ROOT, "packages/gate-core/test/portable");
-const SUITE_FILES = ["shim.mjs", "suite.mjs", "cli.mjs", "worker.mjs"];
+const SUITE_FILES = ["shim.mjs", "suite.mjs", "conformance.mjs", "cli.mjs", "worker.mjs"];
+// The conformance vectors (GATE-10) run after the suite, in the hosts' order, from the same file.
+const VECTORS = path.join(ROOT, "accept/conformance/vectors.json");
+registerConformance(JSON.parse(fs.readFileSync(VECTORS, "utf8")), { test: register });
 const PINNED = { deno: "2.9.6", wrangler: "4.144.0" };
 const EXPECTED = registeredTests().map((t) => t.name);
 
@@ -50,6 +54,7 @@ function prepare() {
   fs.rmSync(tmpPack, { recursive: true, force: true });
   fs.mkdirSync(path.join(dir, "suite"), { recursive: true });
   for (const f of SUITE_FILES) fs.copyFileSync(path.join(PORTABLE, f), path.join(dir, "suite", f));
+  fs.copyFileSync(VECTORS, path.join(dir, "suite", "vectors.json"));
   fs.writeFileSync(path.join(dir, "wrangler.toml"), [
     'name = "ludion-neutral"', 'main = "suite/worker.mjs"', 'compatibility_date = "2026-09-01"', 'compatibility_flags = ["nodejs_compat"]', "",
   ].join("\n"));
