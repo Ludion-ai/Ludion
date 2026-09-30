@@ -1,0 +1,19 @@
+{
+  "name": "@ludion/gate-core",
+  "version": "0.0.1",
+  "description": "Ludion Gate core: verify Web Bot Auth (RFC 9421) signatures, classify agents, apply Pressure policy, issue Glass receipts.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "main": "src/index.mjs",
+  "exports": {
+    ".": "./src/index.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "web-bot-auth": "0.2.0",
+    "http-message-sig": "0.3.0",
+    "jsonwebkey-thumbprint": "0.1.0"
+  }
+}

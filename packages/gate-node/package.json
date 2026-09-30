@@ -1,0 +1,10 @@
+{
+  "name": "@ludion/gate-node",
+  "version": "0.0.1",
+  "description": "Ludion Gate middleware for Node http / Express / Connect-style servers.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "main": "index.mjs",
+  "exports": { ".": "./index.mjs" },
+  "dependencies": { "@ludion/gate-core": "0.0.1" }
+}

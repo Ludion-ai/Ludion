@@ -1,0 +1,25 @@
+name: ci
+on:
+  pull_request:
+  push:
+    branches: [main]
+jobs:
+  loop:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - name: Scoreboard — ratchet read from the base branch, so a PR cannot loosen it
+        run: node scripts/scoreboard.mjs --base "origin/${{ github.base_ref || 'main' }}"
+      - name: Verifier diff — the only part a human must read
+        if: github.event_name == 'pull_request'
+        run: |
+          {
+            echo "## Verifier diff (accept/, docs/MISSION.md, .claude/)"
+            echo '```'
+            git diff --stat "origin/${{ github.base_ref }}...HEAD" -- accept docs/MISSION.md .claude || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

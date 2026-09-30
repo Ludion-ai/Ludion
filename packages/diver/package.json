@@ -1,0 +1,19 @@
+{
+  "name": "@ludion/diver",
+  "version": "0.0.1",
+  "description": "Ludion Diver: keys, directory/card documents, and one-line request signing on Web Bot Auth (RFC 9421).",
+  "license": "Apache-2.0",
+  "type": "module",
+  "main": "src/index.mjs",
+  "exports": {
+    ".": "./src/index.mjs"
+  },
+  "bin": {
+    "ludion": "bin/ludion.mjs"
+  },
+  "dependencies": {
+    "web-bot-auth": "0.2.0",
+    "http-message-sig": "0.3.0",
+    "jsonwebkey-thumbprint": "0.1.0"
+  }
+}

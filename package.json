@@ -1,0 +1,21 @@
+{
+  "name": "ludion-monorepo",
+  "private": true,
+  "version": "0.0.1",
+  "description": "Ludion — every agent in a bottle. Neutral accountability layer for AI agents on Web Bot Auth (RFC 9421).",
+  "license": "Apache-2.0",
+  "type": "module",
+  "workspaces": [
+    "packages/*"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "test": "node --test packages/*/test/*.test.mjs",
+    "e2e": "node examples/e2e.mjs",
+    "scoreboard": "node scripts/scoreboard.mjs",
+    "ratchet": "node scripts/scoreboard.mjs --update-ratchet",
+    "loop": "bash scripts/loop.sh"
+  }
+}
