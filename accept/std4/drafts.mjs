@@ -7,7 +7,8 @@
 //                that cannot be read fails: an unknown is never a pass.
 //   repository   every `draft-…-NN` reference to a Web Bot Auth draft in the code, the spec and
 //                MISSION.md names a pinned draft at its pinned revision. ADRs, STATE.md and the
-//                outbox are records of their day and are not read.
+//                outbox are records of their day and are not read; neither is accept/std4/ itself,
+//                whose tests are made of drafts that must not match.
 //
 // Pure logic: fetch and the clock are passed in (accept/std4/drafts.test.mjs runs it offline).
 
@@ -98,7 +99,7 @@ export function repoRefs(files, pins) {
   const problems = [];
   let refs = 0;
   for (const f of files) {
-    if (/^(docs\/adr\/|docs\/outbox\/|docs\/STATE\.md$)/.test(f.path)) continue;
+    if (/^(docs\/adr\/|docs\/outbox\/|docs\/STATE\.md$|accept\/std4\/)/.test(f.path)) continue;
     for (const [token] of f.text.matchAll(/\bdraft(?:-[a-z0-9]+)+/g)) {
       const m = /^(.*)-(\d{2})$/.exec(token); // a reference to a revision ends in -NN
       if (!m || !WEB_BOT_AUTH.test(m[1])) continue;
