@@ -246,7 +246,7 @@ export const ORACLES = [
   // one shared record, updated atomically — two Gate processes on one SQLite ledger, racing; the
   // Registry holds no spend; a Gate with no shared record refuses a counted Mandate (fail closed).
   { id: "PRS-3", m: "M5", kind: "±", level: 1, title: "Mandate limits are the site's: per_day counted once across all its Gates (two processes, racing); no shared record → counted Mandates refused",
-    run: nodeTest(["packages/gate-node/test/prs3.test.mjs"], "^PRS-3:") },
+    run: nodeTest(["packages/gate-node/test/prs3.test.mjs", "packages/gate-node/test/ledger.test.mjs"], "^PRS-3:") },
   // Overlapping routes (Codex audit #8; the rule is the human's, 2026-10-01): the strictest wins.
   // Expectations computed from the rule route by route, never from forPath(); and over real HTTP.
   { id: "PRS-4", m: "M5", kind: "±", level: 1, title: "overlapping routes: the strictest wins (highest Pressure, every requirement), whatever the order; a leading /** at P0 never lowers /checkout",
