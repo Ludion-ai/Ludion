@@ -35,15 +35,35 @@ export const nodeTest = (files, pattern, { timeoutMs, metric, requires = [] } = 
   const ran = new Set([...r.out.matchAll(/^ok \d+ - (.+?)\s*$/gm)].map((m) => m[1]));
   const missing = requires.filter((t) => !ran.has(t));
   if (missing.length) return { pass: false, detail: `named tests did not run and pass: ${missing.join("; ")}` };
-  return { pass: r.code === 0 && fail === 0, metric: [`${pass} tests`, metric?.(r.out)].filter(Boolean).join("; "), detail: fail ? `${fail} failing` : undefined };
+  return { pass: r.code === 0 && fail === 0, metric: [`${pass} tests`, metric?.(r.out)].filter(Boolean).join("; "), detail: fail ? `${fail} failing — ${firstFailure(r.out)}` : undefined };
 };
+
+/** The first failing test in TAP output and its error, so a red oracle in a CI log says why. */
+export function firstFailure(out) {
+  const m = /^not ok \d+ - (.+)\n([\s\S]*?)^ {2}\.\.\.$/m.exec(out);
+  if (!m) return "(no failing test in the output: the file itself failed)";
+  const block = m[2];
+  let err = /^ {2}error: '((?:[^'\\]|\\.)*)'$/m.exec(block)?.[1];
+  if (err == null) {
+    const b = /^ {2}error: \|-?\n((?: {4}.*\n?)+)/m.exec(block);
+    err = b ? b[1].split("\n").map((l) => l.trim()).filter((l) => l && l !== "+ actual - expected").slice(0, 10).join(" / ") : "";
+  }
+  return `${m[1]}: ${err}`.slice(0, 900);
+}
 
 /** A node script; exit 0 is PASS. */
 export const nodeScript = (file, args = [], { timeoutMs, metric } = {}) => async () => {
   const r = sh(process.execPath, [file, ...args], timeoutMs);
   const oks = (r.out.match(/^ok\s/gm) ?? []).length;
   return { pass: r.code === 0, metric: [oks ? `${oks} checks` : undefined, metric?.(r.out)].filter(Boolean).join("; ") || undefined,
-    detail: r.code ? r.out.trim().split("\n").slice(-3).join(" | ").slice(0, 300) : undefined };
+    detail: r.code ? scriptFailure(r.out) : undefined };
+};
+
+/** Why a script oracle failed: its lines that say FAIL / Error / not ok first, else its last lines. */
+export function scriptFailure(out) {
+  const lines = out.trim().split("\n").map((l) => l.trim()).filter(Boolean);
+  const loud = lines.filter((l) => /\b(FAIL|Error|ERR_|not ok|failed|problem)/.test(l));
+  return (loud.length ? loud.slice(0, 3) : lines.slice(-3)).join(" | ").slice(0, 400);
 };
 
 /** Every part must pass. Metrics and details are joined. */
