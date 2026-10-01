@@ -1,6 +1,6 @@
 # STATE
 
-最終更新：2026-10-01 昼（Claude Code、1本のレーン。セッションの終わりの引き継ぎ。main は 298309a、#66 まで）
+最終更新：2026-10-01 11:15（Claude Code、1本のレーン。プレビューをエージェント用のアカウントへ移した。main は 298309a、#66 まで。#67 は引き継ぎの PR）
 
 ## 現在地
 
@@ -11,9 +11,10 @@
   - M5：PRS-1、PRS-2、CRY-1 まで。
 - 2026-10-01 から、進め方は**このセッション1本**。夜勤のループと2本の並走はやめた（人間の指示）。人間が spec を渡し、区切りのいいところで PR を1本出す。
   - 夜勤（`C:Usershaya0ludion-night`、`.loop/NIGHT.md`）は 2026-10-01 08:48 に終わった。もう動かない。
-- **サイト**：プレビュー https://ludion-site-preview.ludion.workers.dev （WEB-1 PASS）。本番（ludion.ai）への切り替えは人間（docs/DEPLOY.md §3）。
+- **サイト**：プレビュー https://ludion-site-preview.ludion-agents.workers.dev （エージェント用のアカウント `Ludion Agents`、WEB-1 PASS）。本番（ludion.ai）への切り替えは人間（docs/DEPLOY.md §3）。
   - **Claude はプレビュー以外にデプロイしない**（2026-10-01、人間の決定）。本番への最初のデプロイ、ludion.ai の付け替え、DNS、旧資源の削除は人間がやる。
-  - いまのトークンは本番の Worker の中身も書き換えられる（DEPLOY.md §5.1）。人間がエージェント用のアカウントへ移す（§5.2）。移ったら、プレビューを新しいアカウントに出し直す。
+  - エージェントのトークン（`~/.config/ludion/cloudflare.env`）は `Ludion Agents` にしか効かない。本番のアカウントは読み取りでも 403（DEPLOY.md §5.3）。
+  - `npm run deploy:preview` は、デプロイの前に毎回この境界を確かめ、外れていれば止まる（DEPLOY.md §2）。
 - ループの仕組みは Linux/Node 22 と Windows/Node 24 の両方で回る。
 - リポジトリは https://github.com/Ludion-ai/Ludion （public）。main は保護されている：PR 必須、`loop` チェック必須、strict、enforce_admins、auto-merge 可。
   - strict なので、main が先に進んだ PR は `gh pr update-branch` しないとマージされない。
@@ -27,11 +28,8 @@
 1. **Codex のセキュリティの指摘 4 件**（人間の指示で、これが最初）。
    - 中身はこのリポジトリにも、このセッションの記録にもない。2026-10-01 の朝、別のセッション（[7a873d]、すでに閉じた）とのやり取りで出たもの。**最初に人間から4件の中身を受け取る。**
 2. **GATE-8 の案 A を仕上げて push する**（下の「進行中」）。条件 a と b を満たしてから。
-3. **エージェント用アカウントへの移行の後始末**（人間が DEPLOY.md §5.2 を済ませたら）：
-   - プレビューを新しいアカウントに出し直し、WEB-1 を回し、`site/preview.json` を PR で入れる。
-   - 下の「プレビューのデプロイの回避策」をやめる。
-4. 目録の残り（人間待ちでないもの）：WEB-7（ドキュメントをテストに）、LOOP-2、PRIV-1/2 の強化（既定の `createSafeFetch` 経由でも回す）。
-5. 棚上げ（ブランチに残してある。再開は人間の判断）：
+3. 目録の残り（人間待ちでないもの）：WEB-7（ドキュメントをテストに）、LOOP-2、PRIV-1/2 の強化（既定の `createSafeFetch` 経由でも回す）。
+4. 棚上げ（ブランチに残してある。再開は人間の判断）：
    - **B1**（scoreboard の並列化、PR #63 は下書き）：`loop-windows` で GATE-3 が新しい上限 7 分を越え、REG-1 も落ちた。直すなら、`prepare` を並列の前に直列で回すか、上限を戻す。
    - **A と B2**（ラチェットのファイル化、CI の分割）：`fast-loop-shelf`。A は deny ルール（PR #60）を人間が当てるまで入れない。
    - **fail-closed**（`--base` が読めないときに通さない）：`fast-loop-failclosed`。B1 と独立。
@@ -54,29 +52,13 @@
 - 両方を満たしたら、push して PR にする。ラチェットは `npm run ratchet` で GATE-8 を固定する。
   - PR には、緩めた（向け直した）オラクルを明記する。人間は案 A を承認済み。
 
-### プレビューのデプロイの今の回避策（ホームの差し替え）
-
-- **何をしているか**：
-  - `site/deploy.mjs` と `scripts/cf-inventory.mjs` は、`~/.config/ludion/cloudflare.env` を環境変数より優先して読む（`scripts/cf-env.mjs`）。
-  - ところが、そのファイルのトークンは使い始め（Start Date）が **2026-10-03 09:00 JST** なので、今はどの API も 401 になる。
-  - そこで、ホームを空のディレクトリに差し替えてファイルを読ませず、ターミナルの環境変数のトークンを使っている：
-
-    ```sh
-    mkdir -p "$SCRATCH/noconf/.config"
-    USERPROFILE="$SCRATCH/noconf" HOME="$SCRATCH/noconf" npm run deploy:preview
-    ```
-
-    （`$SCRATCH` はセッションの一時ディレクトリ。登録フォームの `SIGNUP_WEBHOOK_URL` を `wrangler secret put` で入れたときも同じ。値は `~/.config/ludion/signup.env` から標準入力で渡した。）
-  - ターミナルのトークンは期限が 2026-10-17 で、**本番の Worker の中身も書き換えられる**（DEPLOY.md §5.1）。設定ファイルやレジストリには無く、Claude を起動したターミナルにしか無い。別のターミナルから起動したセッションには無い。
-- **要らなくなる条件**：人間が DEPLOY.md §5.2 を済ませたとき。つまり、
-  - エージェント用のアカウント（`Ludion Agents`）ができ、
-  - `~/.config/ludion/cloudflare.env` が、そのアカウントの Workers Scripts の編集だけを持つトークン（Start Date が今日以前）とその Account ID になり、
-  - 今の2本のトークンが失効したとき。
-  - そのあとは、普通に `npm run deploy:preview` を回せばよい。プレビューの URL は変わるので、出し直して WEB-1 を回す。
-- **WEB-1 の注意**：WEB-1 はラチェット済み。サイト（`site/`）を変えたら、プレビューを出し直すまで、手元の scoreboard では WEB-1 が「古い」で落ちる。CI ではトークンが無いので SKIP。
-- **デプロイの決まり**：Claude はプレビュー（`ludion-site-preview`）以外にデプロイしない。本番、ludion.ai の付け替え、DNS、削除は人間。
-
 ### いつもの決まり
+
+- **プレビューのデプロイ**：`npm run deploy:preview` だけ。ホームの差し替えなどの回避策は要らない（2026-10-01 11:00 にやめた）。
+  - 資格情報は `~/.config/ludion/cloudflare.env`（`Ludion Agents` のトークンと Account ID）。登録フォームの通知先は `~/.config/ludion/signup.env` から、デプロイと一緒に入る。
+  - `npx wrangler secret put` を手で使わない。wrangler は `cloudflare.env` を読まないので、ターミナルの別の資格情報で別のアカウントに入れてしまう。
+  - Claude はプレビュー（`ludion-site-preview`）以外にデプロイしない。本番、ludion.ai の付け替え、DNS、削除は人間。
+- **WEB-1 の注意**：WEB-1 はラチェット済み。サイト（`site/` の下のファイル。`site/deploy.mjs` も含む）を変えたら、プレビューを出し直すまで、手元の scoreboard では WEB-1 が「古い」で落ちる。CI ではトークンが無いので SKIP。
 
 - 新しい ADR には番号を付けない。`docs/adr/YYYY-MM-DD-<slug>.md` にする。
 - サイトの PR は、`loop-windows` が緑になってからマージする（#45 の教訓）。
@@ -87,7 +69,12 @@
 ## 人間待ち
 
 - [x] 判断（GATE-8）：2026-10-01 朝、人間が案 A を条件付きで承認した。条件 a・b と進め方は「次の一手」の「進行中：GATE-8 の案 A」。
-- [ ] **エージェント用の Cloudflare アカウントへ移す**（DEPLOY.md §5.2、人間がやると決めた）。済んだら Claude に伝える。Claude がプレビューを新しいアカウントに出し直し、WEB-1 を回す。
+- [x] **エージェント用の Cloudflare アカウントへ移す**（DEPLOY.md §5.2 の 1〜4）：2026-10-01 11:00。プレビューは https://ludion-site-preview.ludion-agents.workers.dev 、WEB-1 PASS。境界は §5.3。
+- [ ] **移したあとの後始末**（DEPLOY.md §5.2 の手順 5、人間）：
+  - 本番のアカウントの `ludion-site-preview`（前のプレビュー）を消す。通知先の秘密が入っているので、残すとそのフォームからも通知が届く。エージェントのトークンではもう見えない。
+  - 古いトークン 2 本の失効を、ダッシュボードで確かめる。ターミナルの「前からある方」は 11:05 に 401 を返した（失効したと見える）。09:00 に置いたものは確かめられない。
+  - Claude を起動したターミナルの窓を閉じる（環境変数に古いトークンの値が残っている）。
+  - wrangler のログインは 11:05 に消えていた。済み。
 - [ ] **`privacy@ludion.ai` でメールが届くようにする**（Cloudflare の Email Routing、人間がやる）。登録フォームの告知が、削除の宛先として案内している。
 - [ ] **ludion.ai を新しいサイトに切り替える**（docs/DEPLOY.md §3、15分、クリック単位）。旧は Worker `ludion` のカスタムドメイン。`ludion-site` を作って付け替える。
 - [ ] **旧資源の削除**（docs/DEPLOY.md §1.3、Ludion の16件だけ）。消す前に：
@@ -95,9 +82,6 @@
   - D1 3つ、KV 2つ、R2 2つの中身を書き出す。提出物や登録者の情報なら、残すか消すかを決める。
   - `chat-app-relay`（Worker）は Ludion のものか判断できなかった。リストに入れていない。
 - [ ] **npm の publish**（docs/PUBLISH.md、人間が 2026-10-01 にやると言った）：先に npm で組織 `ludion` を作る。PUB-1 と PUB-2 が PASS。8パッケージを表の順に、OTP を入れて出す。
-- [ ] **エージェント用の Cloudflare アカウントを分ける**（DEPLOY.md §5）。今のトークンは本番の Worker の中身も書き換えられる。
-  - 分けたあと、エージェントのトークンは新しいアカウントの Workers Scripts Edit だけの1本にする。今ある2本（ターミナルの「前からある方」、期限 10/17。`~/.config/ludion/cloudflare.env` のもの、使い始め 10/3）は失効させる。
-  - この機械の wrangler のログイン（2026-09-24、`default.enc`）は `npx wrangler logout` で消す。
 - [ ] npm `ludion` と `@ludion`、PyPI `ludion` の確保（2026-09-30 時点で全て空き。匂わせ投稿の前に）
 - [x] リポジトリの公開設定の判断 → public、`Ludion-ai/Ludion`（2026-09-30）
 - [x] main のブランチ保護：PR 必須、`loop` チェック必須、auto-merge 許可（2026-09-30。strict と enforce_admins も付けた）
@@ -106,11 +90,12 @@
 - [ ] 判断（お金）：Card Host の `*.agents.ludion.ai` は2段目のワイルドカードで、Universal SSL の範囲外。
   - 選択肢：Advanced Certificate Manager（有料）、名前を `dvr-….ludion.ai` に寄せる（spec の変更）、別のドメイン。
   - 詳細は docs/DEPLOY.md 4。
-- [ ] `SIGNUP_WEBHOOK_URL` → LP の登録通知（Slack か Discord の incoming webhook）
-  - 入れ方：`cd site/edge && npx wrangler secret put SIGNUP_WEBHOOK_URL`（docs/DEPLOY.md 2）。
+- [ ] `SIGNUP_WEBHOOK_URL` → LP の登録通知（Discord の incoming webhook）
+  - プレビューには入っている（`~/.config/ludion/signup.env` から、デプロイと一緒に。DEPLOY.md §2）。試しの送信はしていない。
+  - 本番の `ludion-site` には、人間が DEPLOY.md §3 の手順 1 で入れる。
   - 無いあいだ、デプロイしたフォームは「送信できませんでした」と答える（503）。受け取ったふりはしない。
 - [ ] 判断：WEB-8 は「プレビューで送信すると」を、プレビューに出す成果物（`site/edge`）を手元の workerd（`wrangler dev`）で動かして測った。通知先はスタブ。
-  - プレビューは WEB-1 のトークン待ちで出せない。
+  - プレビューは出ている。ただ、通知先は本物の Discord なので、検査から送ると人に届く。
   - これを PASS と読んでよいか。だめなら、プレビューが出たあとに同じ検査をプレビューの URL に向ける。そのためには、プレビュー用の webhook（観測できる通知先）が要る。
 - [x] 登録フォームの文面：2026-10-01 に人間が承認した（保存は「先行登録のご案内が終わるまでか、削除のご依頼を受けるまで」、削除の宛先は privacy@ludion.ai）。
 - [ ] （以下は承認前のメモ）登録フォームの文面を読む（`site/src/signup/strings.mjs`、トップの「先行登録」の節）。
@@ -153,6 +138,7 @@
 
 - Gate は、寿命が 60 秒を超える本物の署名を SPOOFED にする。ChatGPT agent は 2025-08 の時点で 3600 秒だった（公開された捕獲 3 件。GATE-8 が FAIL）。今の値は未確認。判断は人間待ちに書いた。
 - `ludion doctor` の時計チェックは未実装（ローカル時刻を表示するだけ）。
+- プレビューのデプロイの境界の確認（`site/deploy.mjs`）が試せるのは、トークンに見えるアカウントだけ。一覧に出ないのに届くアカウントがあっても気づけない。本番の ID を名指しする確認は、2026-10-01 に手で一度だけ行った（DEPLOY.md §5.3）。書き込みは試していない。
 - 登録フォームの受け口（`site/edge/signup.mjs`）のレート制限はメモリ内で、インスタンス（isolate）ごと。拠点や isolate に散った連打は、それぞれの枠で数えられる。分散した総当たりはハニーポット頼み。
 - 登録フォームは JS がないと送れない（ボタンが押せない）。`<form action>` を置くと WEB-5 のリンクの規則に掛かるため。
 - resolver の SSRF 対策はホスト名の検査だけ。解決先 IP の検査（DNS リバインディング）は GATE-6 で（進行中）。
@@ -204,6 +190,23 @@
   - web-bot-auth@0.2.0 のパーサが registry-03 に準拠しているか
 
 ## 直近のセッション
+
+- 2026-10-01 11:00（Claude Code）：プレビューをエージェント用のアカウント `Ludion Agents` へ移した（人間の指示 3 つ）。
+  - **境界**：最初に渡されたトークンは、本番のアカウントにも届いていた。
+    - 本番の `ludion-site` と `ludion` の settings、秘密の名前、deployments、本体が、すべて 200 で読めた。ゾーン `ludion.ai` と `synteria.xyz` も見えた。
+    - `cloudflare.env` の Account ID は本番のままで、`Ludion Agents` には workers.dev のサブドメインがなかった。
+    - デプロイせずに人間に返した。人間が Account Resources を `Ludion Agents` だけにし、Account ID を直し、サブドメイン `ludion-agents` を作った。
+    - 直した後：本番のアカウントの ID を名指しした GET が、すべて 403 になった（DEPLOY.md §5.3）。
+  - **デプロイの前の検査**（`site/deploy.mjs`、`site/test/deploy-guard.test.mjs`）：次のどれかなら、ビルドもせずに止まる。`node site/deploy.mjs --check` は境界だけを見る。
+    - アカウントが `Ludion Agents` でない。
+    - 他のアカウントの Worker が読める。
+    - ゾーンが見える。
+    - サブドメインがない。
+    - 最初のトークンの形を、速いテストに負のケースとして入れた。4 つの突然変異を 4 つとも捕まえた。実際の API でも、直す前は拒否し（exit 2）、直した後は通った。
+  - **プレビュー**：https://ludion-site-preview.ludion-agents.workers.dev 。ホームの差し替えなしの `npm run deploy:preview` で出した。
+    - 登録フォームの通知先は `signup.env` から `--secrets-file` で入れ、Worker の秘密の名前を読み返して確かめた。試しの送信はしていない。
+    - WEB-1 PASS：全28ページがバイト単位で一致、Lighthouse の最低は 96。
+  - 前のプレビュー（本番のアカウント）の削除と古いトークンの失効の確認は、人間待ちに書いた。
 
 - 2026-10-01 昼（Claude Code、セッションの終わり）：
   - #65（トップの文面、/scan の次の一歩、登録フォームの告知、DEPLOY.md §5、デプロイのガードのテスト）と #66（プレビューの記録）をマージした。
