@@ -51,7 +51,7 @@ Ludionは、AIエージェントの「責任」を検証する中立の関所。
 
 ## 触らないもの
 
-`.claude/settings.json`、`.claude/hooks/`、`accept/ratchet.json` は人間が持つ。あなたの権限と、あなたを測る仕組みだからだ。変えたいときは `docs/outbox/` に提案を書く（ratchet は `npm run ratchet` だけが書く）。
+`.claude/settings.json`、`.claude/hooks/`、`accept/ratchet.json`、`accept/ratchet/` は人間が持つ。あなたの権限と、あなたを測る仕組みだからだ。変えたいときは `docs/outbox/` に提案を書く（ratchet は `npm run ratchet` だけが書く）。
 
 ## 書き方
 

@@ -19,7 +19,9 @@
     "deny": [
       "Bash(git push --force *)", "Bash(git push -f *)",
       "Read(./.env)", "Read(./.env.*)", "Read(./secrets/**)",
-      "Edit(.claude/settings.json)", "Edit(.claude/settings.local.json)", "Edit(.claude/hooks/**)", "Edit(accept/ratchet.json)"
+      "Edit(.claude/settings.json)", "Edit(.claude/settings.local.json)", "Edit(.claude/hooks/**)", "Edit(accept/ratchet.json)",
+      "Edit(accept/ratchet/**)", "Write(accept/ratchet/**)", "Write(accept/ratchet.json)",
+      "Bash(rm accept/ratchet*)", "Bash(rm -rf accept/ratchet*)", "Bash(git rm accept/ratchet*)"
     ]
   },
   "hooks": {
