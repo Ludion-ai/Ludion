@@ -5,5 +5,8 @@
   "params": {
     "variant": "through-node"
   },
+  "classes": [
+    "SPOOFED"
+  ],
   "added": "2026-10-01"
 }

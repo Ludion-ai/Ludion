@@ -63,10 +63,11 @@
 
 | ID | ± | L | 合格条件 | 対 |
 |---|---|---|---|---|
-| STD-1 | + | 0 | `draft-ietf-webbotauth-httpsig-protocol-00` 付録 E.2 の Ed25519 ベクタ（辞書形式の Signature-Agent）が Gate の経路で検証できる | STD-2 |
+| STD-1 | + | 0 | `draft-ietf-webbotauth-httpsig-protocol-00` 付録 E.2 の Ed25519 ベクタ（E.2.1 辞書形式の Signature-Agent、E.2.2 旧来の文字列形式）が、Gate と同じ検証ライブラリと鍵の発見で、暗号として検証でき、keyid が鍵の JWK サムプリントと一致する。ベクタの寿命は §10.4 の60秒を超えるので、寿命は問わない（Gate の経路は STD-5）。名前で指定したテストが全部実行されて通ること | STD-2 |
 | STD-2 | − | 1 | 改ざん、別の鍵、別の authority、期限切れ、未来の created、寿命60秒超、tag 違い、辞書キーと署名ラベルの不一致を全て拒否する | |
 | STD-3 | + | 1 | 独立した実装2つ以上（Cloudflare `web-bot-auth` と、JS 以外の実装1つ）と双方向に相互運用する。我々の署名が相手で通り、相手の署名が我々で通る。不一致は我々か相手のバグとして再現し、上流への報告を `docs/outbox/` に下書きする | STD-2 |
 | STD-4 | ~ | 2 | ピン留めしたドラフト（httpsig-protocol、registry）の版が datatracker の最新と一致する。新版が出たら差分の要約つきで issue を立て、7日以内に追随しなければ FAIL | |
+| STD-5 | + | 0 | WG のベクタの形（E.2.1 と E.2.2。同じ鍵、ラベル、署名対象、tag）を、created を今、寿命60秒で署名し直すと、実際の Gate（gate.inspect と、gate-node を通した HTTP）で、ベクタの keyid とベクタのエージェントとして VERIFIED になり、Pressure 2 の経路を通る。寿命60秒超の同じ署名は STD-2 が拒否する | STD-2 |
 
 ### M1 Gate
 

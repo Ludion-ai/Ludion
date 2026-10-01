@@ -6,5 +6,8 @@
     "delayS": 30,
     "replayPath": "/checkout/999"
   },
+  "classes": [
+    "SPOOFED"
+  ],
   "added": "2026-09-30"
 }

@@ -5,5 +5,8 @@
   "params": {
     "variant": "claim-victim-directory"
   },
+  "classes": [
+    "UNVERIFIED"
+  ],
   "added": "2026-09-30"
 }

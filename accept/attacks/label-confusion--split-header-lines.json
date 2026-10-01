@@ -5,5 +5,8 @@
   "params": {
     "variant": "split-header-lines"
   },
+  "classes": [
+    "UNVERIFIED"
+  ],
   "added": "2026-09-30"
 }

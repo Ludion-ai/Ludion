@@ -8,5 +8,8 @@
     "canonical": "/checkout/1",
     "ua": "declared"
   },
+  "classes": [
+    "DECLARED"
+  ],
   "added": "2026-09-30"
 }

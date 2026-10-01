@@ -21,13 +21,20 @@ function sh(file, args, timeout = 180_000) {
   catch (e) { return { code: e.status ?? 1, out: `${e.stdout ?? ""}${e.stderr ?? ""}` || String(e.message) }; }
 }
 
-/** node:test files, optionally filtered by name. Zero matched tests is a FAIL, never a PASS. */
-export const nodeTest = (files, pattern, { timeoutMs, metric } = {}) => async () => {
+/**
+ * node:test files, optionally filtered by name. Zero matched tests is a FAIL, never a PASS.
+ * `requires`: test names that must each have run and passed (a filter that happens to match only
+ * some other test cannot pass the oracle; Codex audit #3).
+ */
+export const nodeTest = (files, pattern, { timeoutMs, metric, requires = [] } = {}) => async () => {
   // Pin the TAP reporter: Node ≥23 prints spec (no "# pass N") even when piped.
   const r = sh(process.execPath, ["--test", "--test-reporter=tap", ...(pattern ? [`--test-name-pattern=${pattern}`] : []), ...files], timeoutMs);
   const n = (k) => Number((new RegExp(`^# ${k} (\\d+)`, "m").exec(r.out) ?? [])[1] ?? 0);
   const pass = n("pass"), fail = n("fail");
   if (pass + fail === 0) return { pass: false, detail: "no test matched" };
+  const ran = new Set([...r.out.matchAll(/^ok \d+ - (.+?)\s*$/gm)].map((m) => m[1]));
+  const missing = requires.filter((t) => !ran.has(t));
+  if (missing.length) return { pass: false, detail: `named tests did not run and pass: ${missing.join("; ")}` };
   return { pass: r.code === 0 && fail === 0, metric: [`${pass} tests`, metric?.(r.out)].filter(Boolean).join("; "), detail: fail ? `${fail} failing` : undefined };
 };
 
@@ -83,8 +90,21 @@ export const ORACLES = [
     run: nodeScript("examples/e2e.mjs") },
 
   // ── M1 standards ───────────────────────────────────────────────────────────────
-  { id: "STD-1", m: "M1", kind: "+", level: 0, pair: "STD-2", property: "signature-validity", title: "WG -00 App. E.2 Ed25519 vectors verify through the Gate path",
-    run: nodeTest(["packages/gate-core/test/core.test.mjs"], "E\\.2\\.1|thumbprint matches") },
+  // The vectors as cryptography (their lifetimes are past spec §10.4's 60 s); the Gate path is STD-5.
+  { id: "STD-1", m: "M1", kind: "+", level: 0, pair: "STD-2", property: "signature-validity", title: "WG -00 App. E.2 Ed25519 vectors (E.2.1 dictionary, E.2.2 string) verify cryptographically with the Gate's library and key discovery; keyid = JWK thumbprint",
+    run: nodeTest(["packages/gate-core/test/core.test.mjs"], "^(thumbprint matches|E\\.2\\.1 dictionary|E\\.2\\.2 legacy sf-string Signature-Agent verifies cryptographically)", { requires: [
+      "thumbprint matches the draft's keyid for the RFC 9421 B.1.4 Ed25519 key",
+      "E.2.1 dictionary Signature-Agent → VERIFIED (lifetime check relaxed for the far-future vector)",
+      "E.2.2 legacy sf-string Signature-Agent verifies cryptographically (the library path, lifetime aside)",
+    ] }) },
+  // The vectors' shape signed again within 60 s, through the Gate itself (Codex audit #3's STD-1G).
+  { id: "STD-5", m: "M1", kind: "+", level: 0, pair: "STD-2", property: "signature-validity", title: "the WG vectors' shape (E.2.1, E.2.2: same key, labels, components, tag) signed again within 60 s is VERIFIED by the real Gate (inspect and gate-node over HTTP)",
+    run: nodeTest(["packages/gate-core/test/std5.test.mjs"], "^STD-5:", { requires: [
+      "STD-5: the vector key is the published one (its thumbprint is the vectors' keyid)",
+      "STD-5: E.2.1 (dictionary Signature-Agent), signed again within 60 s, is VERIFIED by the Gate as the vector's agent",
+      "STD-5: E.2.2 (legacy string Signature-Agent), signed again within 60 s, is VERIFIED by the Gate (a verifier MAY accept it)",
+      "STD-5: through the real Node adapter over HTTP, both forms are VERIFIED and reach the app",
+    ] }) },
   { id: "STD-2", m: "M1", kind: "-", level: 1, property: "signature-validity", title: "tamper / wrong key / wrong authority / expired / future / >60s / wrong tag all rejected",
     run: nodeTest(["packages/gate-core/test/std2.test.mjs"], "^STD-2:") },
   { id: "STD-3", m: "M1", kind: "+", level: 1, pair: "STD-2", property: "signature-validity", title: "interop both ways with ≥2 independent implementations (one non-JS)" },

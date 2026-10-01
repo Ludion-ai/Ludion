@@ -5,5 +5,8 @@
   "params": {
     "variant": "attacker-key"
   },
+  "classes": [
+    "SPOOFED"
+  ],
   "added": "2026-09-30"
 }

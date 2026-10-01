@@ -7,5 +7,8 @@
     "target": "/login;jsessionid=0AF3C2",
     "canonical": "/login"
   },
+  "classes": [
+    "SUSPECTED"
+  ],
   "added": "2026-09-30"
 }

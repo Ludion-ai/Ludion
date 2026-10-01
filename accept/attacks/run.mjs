@@ -15,6 +15,7 @@ import path from "node:path";
 import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { rejected, AGENT, NOW_MS } from "../../packages/gate-core/test/support.mjs";
+import { CLASSES } from "@ludion/gate-core";
 import { FAMILIES, REQUIRED, world, throughNode } from "./families.mjs";
 
 const DIR = path.dirname(fileURLToPath(import.meta.url));
@@ -41,6 +42,9 @@ for (const f of files) {
   if (spec.id !== id) { problems.push(`${f}: id ${spec.id} must equal the file name`); continue; }
   if (!FAMILIES[spec.family]) { problems.push(`${id}: unknown family ${spec.family}`); continue; }
   if (!spec.title) { problems.push(`${id}: needs a title`); continue; }
+  // The class each attack must get (spec §10.8), declared in the corpus and reviewed, never taken
+  // from what the Gate answers: a regeneration cannot quietly move an attack to another class.
+  if (!Array.isArray(spec.classes) || !spec.classes.length || !spec.classes.every((c) => CLASSES.includes(c))) { problems.push(`${id}: needs "classes", the spec §10.8 classes its attack steps must get`); continue; }
   families.add(spec.family);
   try {
     const w = await world();
@@ -58,6 +62,7 @@ for (const f of files) {
       if (!["verified", "human", "denied", "rejected", "flood"].includes(s.expect)) throw new Error(`step ${i}: unknown expectation ${s.expect}`);
       if (s.expect === "rejected") {
         const p = rejected(r, { victim: AGENT });
+        if (!spec.classes.includes(r.cls.class)) p.push(`class ${r.cls.class}, but the corpus declares ${spec.classes.join(" or ")}`);
         if (out && (out.reachedApp || !out.headers["ludion-error"])) p.push(`reached the app (route ${r.route?.template ?? "none"}, Pressure ${r.route?.pressure})`);
         if (p.length) throw new Error(`GOT THROUGH at step ${i}: ${p.join("; ")}`);
       }

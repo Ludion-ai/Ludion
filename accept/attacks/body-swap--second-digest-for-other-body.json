@@ -5,5 +5,8 @@
   "params": {
     "variant": "second-digest-for-other-body"
   },
+  "classes": [
+    "SPOOFED"
+  ],
   "added": "2026-10-01"
 }

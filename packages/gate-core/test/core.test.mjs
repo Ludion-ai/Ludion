@@ -47,6 +47,16 @@ test("E.2.1 dictionary Signature-Agent → VERIFIED (lifetime check relaxed for 
   assert.equal(v.verifier.identifier, "https://signature-agent.test");
 });
 
+test("E.2.2 legacy sf-string Signature-Agent verifies cryptographically (the library path, lifetime aside)", async () => {
+  // As for E.2.1: the vector's lifetime (3600 s) is past spec §10.4's 60 s; STD-5 runs a fresh
+  // signature of the same shape through the Gate.
+  const { verify } = await import("web-bot-auth");
+  const r = await primedResolver();
+  const v = await verify(E22_LEGACY, { resolver: (c) => r.resolve(c), now: new Date(VEC_NOW()), maxAge: 1e12 });
+  assert.equal(v.keyid, VEC_KID);
+  assert.equal(v.verifier.identifier, "https://signature-agent.test");
+});
+
 test("E.2.2 legacy sf-string Signature-Agent still verifies (verifier MAY accept)", async () => {
   const r = await primedResolver();
   const cls = await classify(E22_LEGACY, { resolver: r, now: VEC_NOW });

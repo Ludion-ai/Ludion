@@ -18,5 +18,8 @@
       "@path"
     ]
   },
+  "classes": [
+    "SPOOFED"
+  ],
   "added": "2026-09-30"
 }
