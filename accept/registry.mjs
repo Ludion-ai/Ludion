@@ -66,6 +66,14 @@ export const ORACLES = [
     return { pass: !a.length && !b.length, metric: `${doc.size} ids`,
       detail: [a.length && `unregistered: ${a}`, b.length && `undocumented: ${b}`].filter(Boolean).join("; ") || undefined };
   } },
+  // The ratchet itself, tested (Codex audit #1, #2; accept/loop/ratchet.test.mjs, scripts/ratchet.mjs).
+  { id: "LOOP-3", m: "M0", kind: "±", level: 0, title: "the ratchet's base: an existing ref yields its ratchet and IDs; a missing or broken one stops the scoreboard (non-zero) before any oracle runs",
+    run: nodeTest(["accept/loop/ratchet.test.mjs"], "^LOOP-3:") },
+  { id: "LOOP-4", m: "M0", kind: "±", level: 0, title: "a ratcheted oracle is held to PASS: FAIL, PENDING, SKIP for a missing input, a removal are regressions; every CI job an oracle names is run",
+    run: nodeTest(["accept/loop/ratchet.test.mjs"], "^LOOP-4:") },
+  // Pairs are the two sides of one property (MISSION.md §1.4); the catalog says what the registry says.
+  { id: "LOOP-5", m: "M0", kind: "~", level: 0, title: "every pair is a − or ± oracle of the same property; MISSION.md's ± and 対 columns equal the registry",
+    run: nodeTest(["accept/loop/pairs.test.mjs"], "^LOOP-5:", { metric: (out) => (/^# LOOP-5: (.+)$/m.exec(out) ?? [])[1] }) },
   // Measured in CI only (the whole workflow run, every job, wall clock); not yet wired: PENDING.
   { id: "LOOP-2", m: "M0", kind: "~", level: 1, title: "full CI run (all jobs incl. Windows, first start → last finish) ≤10 min, without dropping or loosening any oracle" },
   { id: "SEED-1", m: "M0", kind: "~", level: 0, title: "seed unit tests green", retireWhen: ["STD-1", "STD-2", "GATE-6", "REG-2", "PRS-1", "DIV-2", "DIV-3"],
