@@ -67,7 +67,7 @@ test("gate-workers: ludion(request) is the Gate's result for the request the han
   const app = { async fetch(request) {
     seen = ludion(request);
     other = ludion(new Request(request.url));
-    return Response.json(seen.charge({ amount: 10 ** 9, currency: "XXX" }));
+    return Response.json(await seen.charge({ amount: 10 ** 9, currency: "XXX" }));
   } };
   const res = await withLudion(app).fetch(new Request("https://shop.example/checkout/1", { method: "POST", headers: { "user-agent": HUMAN } }),
     { LUDION: { site_id: "s", routes: [{ match: "/checkout/**", pressure: 2, require: { scope: "checkout" } }] } }, ctx());

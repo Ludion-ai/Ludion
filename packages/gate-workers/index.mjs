@@ -24,7 +24,7 @@ const results = new WeakMap();
  * The Gate's result for the request your handler received (null if the Gate did not see it, or is
  * disabled). Where the handler knows the total of a payment made on someone's behalf:
  *
- *   const v = ludion(request)?.charge({ amount, currency });   // integer, the currency's minor unit
+ *   const v = await ludion(request)?.charge({ amount, currency });   // integer, the currency's minor unit
  *   if (v && !v.ok) return new Response(JSON.stringify({ error: v.error }), { status: v.status, headers: v.headers });
  *
  * charge() holds it to the agent's Mandate (spec §10.6) where the route asks for one; never on humans.
@@ -57,16 +57,25 @@ function withHeaders(response, headers) {
 /**
  * @template {{ fetch: Function }} H
  * @param {H} handler                  the Worker's default export
- * @param {{ configVar?: string, onError?: (e: unknown) => void }} [options]
+ * @param {{ configVar?: string, onError?: (e: unknown) => void, mandateLedger?: { shared: true, charge: Function } }} [options]
+ *        mandateLedger: where the site counts each Mandate's per_day, ONE record for all its isolates and
+ *        Gates (e.g. backed by a Durable Object or a database); without one a Mandate with per_day is
+ *        refused at charge() (PRS-3). Isolates share no memory, so the file config cannot name one.
  * @returns {H}
  */
-export function withLudion(handler, { configVar = "LUDION", onError = defaultOnError } = {}) {
+export function withLudion(handler, { configVar = "LUDION", onError = defaultOnError, mandateLedger } = {}) {
   let ready;
   const pending = [];
   // The sink is never awaited by the Gate; each delivery is handed to ctx.waitUntil so the
   // runtime does not cancel it when the response is returned.
   const trackedFetch = (...args) => { const p = fetch(...args); pending.push(p); return p; };
-  const init = async (env) => createGate(await gateConfig(env?.[configVar], { siteKey: env?.LUDION_SITE_KEY, fetch: trackedFetch }));
+  const init = async (env) => {
+    const spec = env?.[configVar];
+    const config = await gateConfig(spec, { siteKey: env?.LUDION_SITE_KEY, fetch: trackedFetch });
+    if (config.mandateLedger || config.mandateLedgerFile) throw new TypeError("mandate_ledger: a Worker runs in many isolates that share no memory or file; pass a shared ledger in code: withLudion(handler, { mandateLedger })");
+    const { mandateLedgerFile, ...rest } = config;
+    return createGate({ ...rest, ...(mandateLedger ? { mandateLedger } : {}) });
+  };
 
   return {
     ...handler,

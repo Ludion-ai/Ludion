@@ -8,6 +8,7 @@ import { test, after } from "node:test";
 import assert from "node:assert/strict";
 import { generateRegistryKey, signJws } from "@ludion/gate-core/staple";
 import { MANDATE_TYP } from "@ludion/gate-core/mandate";
+import { memoryLedger } from "@ludion/gate-core";
 import { withLudion, ludion } from "@ludion/gate-workers";
 import { registryServer, site, agent, directoryHost, testClock, ISSUER } from "./world.mjs";
 import { softPasskey, principal } from "./passkey.mjs";
@@ -37,19 +38,21 @@ async function world() {
   cleanups.push(() => reg.close());
   const directory = directoryHost();
   const registryKeys = reg.registry.publicKeys;
+  // One site, one record of what each Mandate spent: every Gate of shop.example shares it (PRS-3).
+  const shopLedger = memoryLedger();
   const common = { clock, registryKeys, directory, routes: ROUTES };
-  const S = await site({ ...common, host: "shop.example", revocations: { url: `${reg.url}/v0/revocations/stream`, retryMs: 200, maxRetryMs: 1000 } });
-  const U = await site({ ...common, host: "shop.example" }); // the same site on a Gate that does not subscribe
-  const O = await site({ ...common, host: "other.example", categories: ["ecommerce"] });
+  const S = await site({ ...common, host: "shop.example", mandateLedger: shopLedger, revocations: { url: `${reg.url}/v0/revocations/stream`, retryMs: 200, maxRetryMs: 1000 } });
+  const U = await site({ ...common, host: "shop.example", mandateLedger: shopLedger }); // the same site on a Gate that does not subscribe
+  const O = await site({ ...common, host: "other.example", categories: ["ecommerce"], mandateLedger: memoryLedger() });
   // One Gate in front of two sites (e.g. a shared reverse proxy): both authorities are its own.
-  const M = await site({ ...common, host: "admin.example", authorities: ["shop.example", "admin.example"] });
+  const M = await site({ ...common, host: "admin.example", authorities: ["shop.example", "admin.example"], mandateLedger: shopLedger });
   cleanups.push(() => S.close(), () => U.close(), () => O.close(), () => M.close());
   const [A, B] = await Promise.all(["A", "B"].map((name) => agent({ registryUrl: reg.url, clock, directory, name: `PRS-2 ${name}` })));
   const P = principal({ registryUrl: reg.url, now: () => clock.now(), passkey: await softPasskey({ alg: -7 }) });
   const Q = principal({ registryUrl: reg.url, now: () => clock.now(), passkey: await softPasskey({ alg: -8, counting: false }) });
   for (const p of [P, Q]) assert.equal((await p.register()).status, 201, "a Principal registers a passkey");
   assert.notEqual(await waitFor(() => S.gate.health.revocations.state === "open", 5000), Infinity, "S is subscribed to the revocation stream");
-  return { clock, reg, directory, S, U, O, M, A, B, P, Q };
+  return { clock, reg, directory, S, U, O, M, A, B, P, Q, shopLedger };
 }
 
 /** A checkout of `total` (minor units) by agent `x` at Gate `g`, carrying `mandate`. */
@@ -64,7 +67,7 @@ const refused = (r, error, reason) => r.status !== 200 && r.error === error && (
   && r.link === `<https://ludion.ai/e/${error}>; rel="help"`;
 
 test("PRS-2: inside scope and limits a checkout passes; out of scope, over a limit, expired, withdrawn, elsewhere or another Diver's is refused", { timeout: 180_000 }, async () => {
-  const { clock, reg, directory, S, U, O, M, A, B, P, Q } = await world();
+  const { clock, reg, directory, S, U, O, M, A, B, P, Q, shopLedger } = await world();
   const counts = { passed: 0, refused: 0 };
   const yes = (r, what) => { assert.ok(passed(r), `${what}: ${JSON.stringify({ status: r.status, error: r.error, body: r.body, refusal: r.refusal })}`); counts.passed++; };
   const no = (r, error, reason, what) => { assert.ok(refused(r, error, reason), `${what}: expected ${error}${reason ? `/${reason}` : ""}, got ${JSON.stringify({ status: r.status, error: r.error, refusal: r.refusal, body: r.body })}`); counts.refused++; };
@@ -80,18 +83,19 @@ test("PRS-2: inside scope and limits a checkout passes; out of scope, over a lim
   assert.equal(JSON.parse(Buffer.from(M1.split(".")[0], "base64url").toString()).typ, MANDATE_TYP);
 
   for (let i = 0; i < 3; i++) yes(await checkout(S, A, { mandate: M1, total: 50_000 - i }), `checkout ${i + 1} of per_day 3 at the limit`);
-  yes(await checkout(U, A, { mandate: M1 }), "the same Mandate at another Gate of the site");
+  // per_day is the site's, not each Gate's (Codex audit #4; PRS-3): the 4th charge is refused at the other Gate too.
+  no(await checkout(U, A, { mandate: M1 }), "mandate_scope", "per_day", "the same Mandate at another Gate of the site, past per_day");
 
   // ── the same, at a Workers site configured only by its file config (@ludion/gate-workers) ─
   {
     const app = { async fetch(request) {
       const q = new URL(request.url).searchParams;
-      const v = ludion(request)?.charge({ amount: Number(q.get("total")), currency: q.get("currency") });
+      const v = await ludion(request)?.charge({ amount: Number(q.get("total")), currency: q.get("currency") });
       if (v && !v.ok) return new Response(JSON.stringify({ error: v.error, reason: v.reason }), { status: v.status, headers: { ...v.headers, "content-type": "application/json" } });
       return Response.json({ class: ludion(request)?.cls.class ?? null, charge: v ?? null });
     } };
     const env = { LUDION: { site_id: "site-workers", authorities: ["shop.example"], routes: ROUTES, registry: { keys: reg.registry.publicKeys.keys, issuer: ISSUER } } };
-    const worker = withLudion(app);
+    const worker = withLudion(app, { mandateLedger: shopLedger }); // the same site: the same record
     const realFetch = globalThis.fetch; // the Worker discovers keys over fetch; here the agents' directories are in memory
     globalThis.fetch = async (url, init) => (/\/\.well-known\/http-message-signatures-directory$/.test(String(url)) ? directory.fetch(String(url)) : realFetch(url, init));
     try {
@@ -102,8 +106,10 @@ test("PRS-2: inside scope and limits a checkout passes; out of scope, over a lim
         return { status: res.status, error: res.headers.get("ludion-error"), link: res.headers.get("link"),
           body: res.status === 200 ? body : null, refusal: res.status === 200 ? null : body, cls: null };
       };
-      yes(await w(A, { mandate: M1 }), "Workers: a checkout within the Mandate");
-      no(await w(A, { mandate: M1, total: 50_001 }), "mandate_scope", "over_limit", "Workers: over checkout_max");
+      const MW = (await P.mandate({ sub: A.store.diver_id, aud: SHOP, scope: ["checkout"], limits: LIMITS })).body.mandate; // M1 has spent its per_day
+      yes(await w(A, { mandate: MW }), "Workers: a checkout within the Mandate");
+      no(await w(A, { mandate: M1 }), "mandate_scope", "per_day", "Workers: the site's count holds here too");
+      no(await w(A, { mandate: MW, total: 50_001 }), "mandate_scope", "over_limit", "Workers: over checkout_max");
       no(await w(A), "mandate_required", null, "Workers: no Mandate");
       no(await w(A, { mandate: (await Q.mandate({ sub: B.store.diver_id, aud: SHOP, scope: ["checkout"], limits: LIMITS })).body.mandate }), "invalid_signature", null, "Workers: another Diver's Mandate");
     } finally { globalThis.fetch = realFetch; }
@@ -169,7 +175,9 @@ test("PRS-2: inside scope and limits a checkout passes; out of scope, over a lim
   const heardMs = performance.now() - tRevoke;
   no(await checkout(S, A, { mandate: M4 }), "mandate_required", "revoked", "withdrawn, at the subscribed Gate");
   assert.equal(S.gate.revocations.match({ sub: A.store.diver_id }), undefined, "withdrawing a Mandate does not revoke the Diver");
-  yes(await checkout(U, A, { mandate: M1, total: 1 }), "A's other Mandate still holds");
+  // Another of A's Mandates with charges left (M1 spent its per_day across the site's Gates).
+  const M5 = (await P.mandate({ sub: A.store.diver_id, aud: SHOP, scope: ["checkout"], limits: LIMITS })).body.mandate;
+  yes(await checkout(U, A, { mandate: M5, total: 1 }), "A's other Mandate still holds");
   yes(await checkout(U, A, { mandate: M4 }), "the Gate that does not subscribe still takes it with A's old Staple (the Staple's life is the bound)");
   await A.refresh();
   assert.ok(JSON.parse(Buffer.from(A.staple.staple.split(".")[1], "base64url").toString()).mrev.includes(j4), "a fresh Staple lists the withdrawn Mandate");

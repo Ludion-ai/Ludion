@@ -16,11 +16,13 @@
   "main": "index.mjs",
   "exports": {
     ".": "./index.mjs",
-    "./safe-fetch": "./safe-fetch.mjs"
+    "./safe-fetch": "./safe-fetch.mjs",
+    "./ledger": "./ledger.mjs"
   },
   "files": [
     "index.mjs",
     "safe-fetch.mjs",
+    "ledger.mjs",
     "README.md",
     "LICENSE"
   ],

@@ -100,21 +100,21 @@ export function directoryHost() {
  * through req.ludion.charge (the Gate never reads the cart; the site knows the total) and answers
  * the Gate's refusal if there is one. The answer then carries `charge`.
  */
-export async function site({ host = "shop.example", authorities = [host], clock, registryKeys, revocations, directory, routes, categories }) {
+export async function site({ host = "shop.example", authorities = [host], clock, registryKeys, revocations, directory, routes, categories, mandateLedger }) {
   const siteKey = await generateSiteKey();
   const mw = await ludionGate({
     siteId: `site-${host}`, siteKey: siteKey.privateJwk, pressure: 0, now: () => clock.now(), authorities,
     routes: routes ?? [{ match: "/checkout/**", pressure: 2, require: { depth: 1, ballast: "active" } }, { match: "/account", pressure: 2 }],
     registryKeys, registryIssuer: ISSUER, resolver: { fetch: directory.fetch },
-    ...(revocations ? { revocations } : {}), ...(categories ? { categories } : {}),
+    ...(revocations ? { revocations } : {}), ...(categories ? { categories } : {}), ...(mandateLedger ? { mandateLedger } : {}),
   });
   let last; // the last request the site saw (tests send one at a time): its Gate result, even when denied
-  const server = http.createServer((req, res) => { last = req; return mw(req, res, () => {
+  const server = http.createServer((req, res) => { last = req; return mw(req, res, async () => {
     const c = req.ludion.cls;
     const q = new URL(req.url, "http://site.invalid").searchParams;
     let charge;
     if (q.has("total")) {
-      charge = req.ludion.charge({ amount: Number(q.get("total")), currency: q.get("currency") });
+      charge = await req.ludion.charge({ amount: Number(q.get("total")), currency: q.get("currency") });
       if (!charge.ok) {
         res.writeHead(charge.status, { ...charge.headers, "content-type": "application/json" });
         return res.end(JSON.stringify({ error: charge.error, reason: charge.reason }));
