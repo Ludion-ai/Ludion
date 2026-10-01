@@ -1,6 +1,6 @@
 # STATE
 
-最終更新：2026-10-01 朝（Claude Code、1本のレーン。今日の spec：ludion.ai を新しいサイトに）
+最終更新：2026-10-01 昼（Claude Code、1本のレーン。セッションの終わりの引き継ぎ。main は 298309a、#66 まで）
 
 ## 現在地
 
@@ -22,41 +22,71 @@
 
 ## 次の一手
 
-1. 人間の作業を待つもの（下の「人間待ち」）：ludion.ai の切り替え（DEPLOY.md §3）、旧資源の削除（§1.3）、npm の publish（docs/PUBLISH.md）。
-   - 切り替えの後、WEB-1 を本番の URL にも向ける（`site/preview.json` と同じ形で、`https://ludion.ai` を検査する）。
-2. 棚上げ（ブランチに残してある。再開は人間の判断）：
+次のセッションは、この順に進める。
+
+1. **Codex のセキュリティの指摘 4 件**（人間の指示で、これが最初）。
+   - 中身はこのリポジトリにも、このセッションの記録にもない。2026-10-01 の朝、別のセッション（[7a873d]、すでに閉じた）とのやり取りで出たもの。**最初に人間から4件の中身を受け取る。**
+2. **GATE-8 の案 A を仕上げて push する**（下の「進行中」）。条件 a と b を満たしてから。
+3. **エージェント用アカウントへの移行の後始末**（人間が DEPLOY.md §5.2 を済ませたら）：
+   - プレビューを新しいアカウントに出し直し、WEB-1 を回し、`site/preview.json` を PR で入れる。
+   - 下の「プレビューのデプロイの回避策」をやめる。
+4. 目録の残り（人間待ちでないもの）：WEB-7（ドキュメントをテストに）、LOOP-2、PRIV-1/2 の強化（既定の `createSafeFetch` 経由でも回す）。
+5. 棚上げ（ブランチに残してある。再開は人間の判断）：
    - **B1**（scoreboard の並列化、PR #63 は下書き）：`loop-windows` で GATE-3 が新しい上限 7 分を越え、REG-1 も落ちた。直すなら、`prepare` を並列の前に直列で回すか、上限を戻す。
-   - **A と B2**（ラチェットのファイル化、CI の分割）：`fast-loop-shelf`。A は deny ルール（docs/outbox、PR #60）を人間が当てるまで入れない。
+   - **A と B2**（ラチェットのファイル化、CI の分割）：`fast-loop-shelf`。A は deny ルール（PR #60）を人間が当てるまで入れない。
    - **fail-closed**（`--base` が読めないときに通さない）：`fast-loop-failclosed`。B1 と独立。
    - **STD-3 と DIV-1**（`interop/std3-div1`）：CI に setup-python を足す差分の了承待ち。
-3. 目録の残り（人間待ちでないもの）：WEB-7（ドキュメントをテストに）、LOOP-2、PRIV-1/2 の強化（既定の `createSafeFetch` 経由でも回す）。
-4. GATE-8 は寿命の上限の判断待ち、GATE-9 は道具（PHP か `@php-wasm/node`）待ち。
+   - GATE-9 は道具（PHP か `@php-wasm/node`）待ち。
+
+### 進行中：GATE-8 の案 A（人間が条件付きで承認済み。判断待ちではない）
+
+- **案 A**：Gate が受け入れる寿命は 3600 秒まで。60 秒を超える署名は nonce が必須。Diver が付ける寿命は 60 秒のまま。
+- **ブランチ**：`proposal/gate8-lifetime`。
+  - ローカルだけで、まだ push していない。#59 の上に 2 コミット（`8032f6c`、`7fa09ac`）。
+  - main はその後 #61、#62、#64、#65、#66 と進んだ。rebase して、`node accept/conformance/export.mjs` で GATE-10 を書き出し直す。
+  - 中身：STD-2、GATE-7（`clock-skew--long-lived` を 3601 秒へ、攻撃を 2 つ追加）、SEED-1（WG のベクタ E.2.2 が VERIFIED）を向け直す。消したオラクルはない。spec §10.4、§15.2、MISSION.md の STD-2、`/e/invalid_signature`（英日）も直してある。詳細は docs/adr/2026-10-01-real-chatgpt-agent-signs-for-an-hour.md。
+- **条件 a**（未着手）：本物の ChatGPT agent の 2 件（`accept/gate8/`）で、nonce が違うかを確かめて、人間に報告する。
+  - 同じ署名（同じ nonce）を使い回す運用なら、push の前に人間に相談する。
+- **条件 b**（未着手）：nonce の記憶が 1 時間分を持てること。
+  - 溢れたとき、古いものを黙って忘れない。60 秒を超える署名は拒否の側に倒す。
+  - これを攻撃コーパス（GATE-7、`accept/attacks/`）に足して PASS させてから push する。足したら GATE-10 を書き出し直す。
+  - 今の nonce キャッシュは、有効期限内の項目を追い出さず、満杯なら新しい記録を拒む（#31）。それを 1 時間の寿命の署名でも確かめ、60 秒超の署名が満杯のときに VERIFIED にならないことを、攻撃として固定する。
+- 両方を満たしたら、push して PR にする。ラチェットは `npm run ratchet` で GATE-8 を固定する。
+  - PR には、緩めた（向け直した）オラクルを明記する。人間は案 A を承認済み。
+
+### プレビューのデプロイの今の回避策（ホームの差し替え）
+
+- **何をしているか**：
+  - `site/deploy.mjs` と `scripts/cf-inventory.mjs` は、`~/.config/ludion/cloudflare.env` を環境変数より優先して読む（`scripts/cf-env.mjs`）。
+  - ところが、そのファイルのトークンは使い始め（Start Date）が **2026-10-03 09:00 JST** なので、今はどの API も 401 になる。
+  - そこで、ホームを空のディレクトリに差し替えてファイルを読ませず、ターミナルの環境変数のトークンを使っている：
+
+    ```sh
+    mkdir -p "$SCRATCH/noconf/.config"
+    USERPROFILE="$SCRATCH/noconf" HOME="$SCRATCH/noconf" npm run deploy:preview
+    ```
+
+    （`$SCRATCH` はセッションの一時ディレクトリ。登録フォームの `SIGNUP_WEBHOOK_URL` を `wrangler secret put` で入れたときも同じ。値は `~/.config/ludion/signup.env` から標準入力で渡した。）
+  - ターミナルのトークンは期限が 2026-10-17 で、**本番の Worker の中身も書き換えられる**（DEPLOY.md §5.1）。設定ファイルやレジストリには無く、Claude を起動したターミナルにしか無い。別のターミナルから起動したセッションには無い。
+- **要らなくなる条件**：人間が DEPLOY.md §5.2 を済ませたとき。つまり、
+  - エージェント用のアカウント（`Ludion Agents`）ができ、
+  - `~/.config/ludion/cloudflare.env` が、そのアカウントの Workers Scripts の編集だけを持つトークン（Start Date が今日以前）とその Account ID になり、
+  - 今の2本のトークンが失効したとき。
+  - そのあとは、普通に `npm run deploy:preview` を回せばよい。プレビューの URL は変わるので、出し直して WEB-1 を回す。
+- **WEB-1 の注意**：WEB-1 はラチェット済み。サイト（`site/`）を変えたら、プレビューを出し直すまで、手元の scoreboard では WEB-1 が「古い」で落ちる。CI ではトークンが無いので SKIP。
+- **デプロイの決まり**：Claude はプレビュー（`ludion-site-preview`）以外にデプロイしない。本番、ludion.ai の付け替え、DNS、削除は人間。
+
+### いつもの決まり
+
 - 新しい ADR には番号を付けない。`docs/adr/YYYY-MM-DD-<slug>.md` にする。
 - サイトの PR は、`loop-windows` が緑になってからマージする（#45 の教訓）。
 - GATE-7 に攻撃を足したら `node accept/conformance/export.mjs` を回す（GATE-10）。STD-2 にテストを足したときも同じ。
-- 夜勤が足したもの（WEB-2〜8、PRS-2、STD-4、GATE-10、GATE-8 の配線）の詳細は「直近のセッション」と各 ADR にある。
+- 同じ作業ツリーで、複数のセッションを動かさない（2026-10-01 朝の事故）。
+- 秘密のファイルはリポジトリの外（`~/.config/ludion/`）に置く。`*.env` は `.gitignore` にある。
 
 ## 人間待ち
 
-- [ ] 判断（GATE-8、docs/adr/2026-10-01-real-chatgpt-agent-signs-for-an-hour.md）：Gate が受け入れる署名の寿命の上限。
-  - 今の Gate は、本物の ChatGPT agent の署名（2025-08 の 2 件、寿命はどちらも 3600 秒）を SPOOFED にする。Pressure 2 では 401 で拒否し、レポートでは「なりすまし」と数える。spec §10.8 の「既存の署名者は初日から VERIFIED」と逆。
-  - WG のドラフトは、寿命を 24 時間以内に推奨し、上限は検証者の方針に任せている。60 秒は Ludion の方針。
-  - 推奨（A）：Gate は 3600 秒まで受け入れ、60 秒を超える署名には nonce を必須にする。Diver が付ける寿命は 60 秒のまま。
-  - A か B（24 時間）を選ぶと、ラチェット済みのオラクルを 2 つ緩める。
-    - STD-2「lifetime over 60s → SPOOFED」
-    - GATE-7 の攻撃 `clock-skew--long-lived`（GATE-10 の写しも）
-    - どちらも消さず、向け直す。書き換えの中身は ADR にある。
-  - 了承があれば、1 周で GATE-8 を PASS にできる。上限を 3600 秒にした実験では、本物の 2 件が VERIFIED になり、対の拒否もすべて保たれた。落ちたのは上の 2 つだけだった。
-  - **A はローカルのブランチ `proposal/gate8-lifetime` に実装済み**（push していない。worktree は refs を共有するので、元のチェックアウトの `git branch` にも出る）。
-    - 手元の scoreboard：PASS 41 / FAIL 0 / PENDING 9。GATE-8 は 2 of 2 が VERIFIED。ブランチの上ではラチェットに GATE-8 を足した。
-    - 向け直すオラクル（消したものはない）：
-      - STD-2：1 時間超、または nonce なしで 60 秒超は SPOOFED。
-      - GATE-7：`clock-skew--long-lived` を 3601 秒へ。攻撃を 2 つ足した（nonce なしの 1 時間、1 時間の署名を 30 分後にリプレイ）。
-      - SEED-1：WG 自身のベクタ E.2.2（3600 秒、nonce あり）が VERIFIED になる。今の main は SPOOFED を確かめていて、テストの題（「still verifies」）と逆になっている。
-      - GATE-10 は書き出し直した。
-    - spec §10.4、§15.2、MISSION.md の STD-2、`/e/invalid_signature`（英日）も合わせた。
-    - 了承なら、そのブランチを push して PR にする（`git push -u origin proposal/gate8-lifetime`）。main が進んでいれば rebase して、GATE-10 を書き出し直す。
-  - C（60 秒のまま）なら、GATE-8 は 60 秒以内で署名する別の実運用の署名者を待つ。
+- [x] 判断（GATE-8）：2026-10-01 朝、人間が案 A を条件付きで承認した。条件 a・b と進め方は「次の一手」の「進行中：GATE-8 の案 A」。
 - [ ] **エージェント用の Cloudflare アカウントへ移す**（DEPLOY.md §5.2、人間がやると決めた）。済んだら Claude に伝える。Claude がプレビューを新しいアカウントに出し直し、WEB-1 を回す。
 - [ ] **`privacy@ludion.ai` でメールが届くようにする**（Cloudflare の Email Routing、人間がやる）。登録フォームの告知が、削除の宛先として案内している。
 - [ ] **ludion.ai を新しいサイトに切り替える**（docs/DEPLOY.md §3、15分、クリック単位）。旧は Worker `ludion` のカスタムドメイン。`ludion-site` を作って付け替える。
@@ -64,7 +94,7 @@
   - 提供元で秘密を失効させる：`ludion-api` の OpenAI と楽天のキー、`ludion-fallback-relay` の `PROVIDER_API_KEY`、`ludion` の GitHub OAuth アプリ。Worker を消してもキーは生きている。
   - D1 3つ、KV 2つ、R2 2つの中身を書き出す。提出物や登録者の情報なら、残すか消すかを決める。
   - `chat-app-relay`（Worker）は Ludion のものか判断できなかった。リストに入れていない。
-- [ ] **npm の publish**（docs/PUBLISH.md）：先に npm で組織 `ludion` を作る。PUB-1 と PUB-2 が PASS。8パッケージを表の順に、OTP を入れて出す。
+- [ ] **npm の publish**（docs/PUBLISH.md、人間が 2026-10-01 にやると言った）：先に npm で組織 `ludion` を作る。PUB-1 と PUB-2 が PASS。8パッケージを表の順に、OTP を入れて出す。
 - [ ] **エージェント用の Cloudflare アカウントを分ける**（DEPLOY.md §5）。今のトークンは本番の Worker の中身も書き換えられる。
   - 分けたあと、エージェントのトークンは新しいアカウントの Workers Scripts Edit だけの1本にする。今ある2本（ターミナルの「前からある方」、期限 10/17。`~/.config/ludion/cloudflare.env` のもの、使い始め 10/3）は失効させる。
   - この機械の wrangler のログイン（2026-09-24、`default.enc`）は `npx wrangler logout` で消す。
@@ -175,6 +205,11 @@
 
 ## 直近のセッション
 
+- 2026-10-01 昼（Claude Code、セッションの終わり）：
+  - #65（トップの文面、/scan の次の一歩、登録フォームの告知、DEPLOY.md §5、デプロイのガードのテスト）と #66（プレビューの記録）をマージした。
+  - プレビューを main のビルドで出し直した。WEB-1 PASS（全28ページがバイト単位で一致、Lighthouse は全ページ 100）。
+  - 登録フォームの通知先（Discord の webhook）を、プレビューの Worker にだけ秘密の変数として入れた。試しの送信はしていない。
+  - main の scoreboard（ローカル）：PASS 44 / FAIL 1（GATE-8）/ PENDING 8。CI では WEB-1 が SKIP なので PASS 43。
 - 2026-10-01 昼（Claude Code）：トップページの文面を人間が承認した。
   - 一番上に三つの問い（誰の代理か、何を許されているか、壊したら誰が払うか）と、具体的な一文。導線は /scan の1本だけ。
   - Gate errors は末尾の「開発者の方へ」に移した。「3行以内」は Gate の入れ方へリンクし、出所（MISSION.md）を小さく添えた（WEB-2 のため）。
