@@ -42,11 +42,13 @@ Pressure 0 only observes. Nothing changes for anyone until you raise it. `nodejs
   ```js
   import { withLudion, ludion } from "@ludion/gate-workers";
   // inside fetch(request, env, ctx), with the total in the currency's minor unit:
-  const v = ludion(request)?.charge({ amount: total, currency: "JPY" });
+  const v = await ludion(request)?.charge({ amount: total, currency: "JPY" });
   if (v && !v.ok) return new Response(JSON.stringify({ error: v.error }), { status: v.status, headers: v.headers });
   ```
 
-  Pass the very `Request` your handler received. Humans are never held: for them `charge` returns `{ ok: true, enforced: false }`. The count behind `per_day` is kept per isolate.
+  Pass the very `Request` your handler received. Humans are never held: for them `charge` returns `{ ok: true, enforced: false }`.
+
+  A Mandate's `per_day` is your site's, counted once across every isolate and Gate. Isolates share no memory, so hand the Gate a ledger they all reach: `withLudion(handler, { mandateLedger })`, where `mandateLedger` is `{ shared: true, async charge(mandate, { at }) }` backed by a Durable Object or a database, and checks and records in one atomic step. Without one, a charge on a Mandate with `per_day` is refused (`mandate_scope`, reason `no_shared_ledger`). The per-charge maximum and the currency hold either way.
 
 ## Configuration
 

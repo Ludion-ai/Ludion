@@ -16,7 +16,8 @@ import { isPublicAddress, isIpLiteral } from "./address.mjs";
 import { createAuthorities, requestAuthority } from "./authority.mjs";
 import { createRevocationList, subscribeRevocations, REVOCATION_TYP } from "./revocation.mjs";
 import { routeKind, isCritical, pathOf, originForm, routeCandidates, queryKeys, templateSegment, publicTemplateSegment, publicTemplatePath, isRouteWord, ROUTE_KINDS, CRITICAL_KINDS, WRITE_METHODS } from "./route.mjs";
-import { verifyMandate, createMandateLedger, MandateError, MANDATE_TYP, SCOPES, CHARGE_SCOPE, DEFAULT_MANDATE_LIFETIME_S, MAX_MANDATE_LIFETIME_S } from "./mandate.mjs";
+import { verifyMandate, chargeProblem, MandateError, MANDATE_TYP, SCOPES, CHARGE_SCOPE, DEFAULT_MANDATE_LIFETIME_S, MAX_MANDATE_LIFETIME_S } from "./mandate.mjs";
+import { memoryLedger, isLedger } from "./ledger.mjs";
 import { bodyNeeded, checkContentDigest, parseContentDigest, readWebBody, DEFAULT_MAX_BODY_BYTES, DEFAULT_BODY_TIMEOUT_MS } from "./digest.mjs";
 
 export {
@@ -25,7 +26,7 @@ export {
   KNOWN_AGENT_TOKENS, AUTOMATION_SIGNALS, matchKnownAgent, matchAutomationSignal, GateFault, isPublicAddress, isIpLiteral,
   createAuthorities, requestAuthority, createRevocationList, subscribeRevocations, REVOCATION_TYP,
   routeKind, isCritical, pathOf, originForm, routeCandidates, queryKeys, templateSegment, publicTemplateSegment, publicTemplatePath, isRouteWord, ROUTE_KINDS, CRITICAL_KINDS, WRITE_METHODS,
-  verifyMandate, createMandateLedger, MandateError, MANDATE_TYP, SCOPES, CHARGE_SCOPE, DEFAULT_MANDATE_LIFETIME_S, MAX_MANDATE_LIFETIME_S,
+  verifyMandate, chargeProblem, MandateError, MANDATE_TYP, SCOPES, CHARGE_SCOPE, DEFAULT_MANDATE_LIFETIME_S, MAX_MANDATE_LIFETIME_S, memoryLedger, isLedger,
   bodyNeeded, checkContentDigest, parseContentDigest, readWebBody, DEFAULT_MAX_BODY_BYTES, DEFAULT_BODY_TIMEOUT_MS,
 };
 
@@ -65,7 +66,10 @@ export function denialHeaders(decision) {
  *           Off the hot path: a dead Registry never touches a request (REG-1).
  * @property {string[]} [categories]              Mandate categories the site belongs to ("ecommerce"): a Mandate
  *           for "cat:ecommerce" then holds here as well as one for the site itself (spec §10.6)
- * @property {{ maxMandates?: number }} [mandateLedger]  bounds of the per-Mandate charge count (default 100,000)
+ * @property {{ shared: true, charge: Function }} [mandateLedger]  where the site counts each Mandate's per_day, ONE record
+ *           for all of the site's Gates (PRS-3): memoryLedger() when this process is the site's only Gate,
+ *           @ludion/gate-node's sqliteLedger(file) for processes on one machine, or the site's own. Without
+ *           one, a charge on a Mandate with per_day is refused (fail closed); per-charge limits still hold.
  * @property {number} [timeoutMs]                 the most the Gate may add to one request; default 3000
  * @property {object} [resolver]                  options for createResolver
  * @property {(event: object) => void|Promise<void>} [sink]  metadata sink; never awaited, never blocks
@@ -159,7 +163,10 @@ export async function createGate(config) {
   if (!Array.isArray(categories) || !categories.every((c) => typeof c === "string" && /^[a-z0-9-]{1,32}$/.test(c))) {
     throw new TypeError('categories must be an array of lowercase category names, e.g. ["ecommerce"]');
   }
-  const ledger = createMandateLedger({ now, ...(config.mandateLedger ?? {}) });
+  if (config.mandateLedger != null && !isLedger(config.mandateLedger)) {
+    throw new TypeError("mandateLedger must be a shared ledger: memoryLedger() (this process is the site's only Gate), sqliteLedger(file) from @ludion/gate-node, or the site's own { shared: true, charge }");
+  }
+  const ledger = config.mandateLedger ?? null;
   const siteKey = await importSiteKey(config.siteKey);
   const receipts = createReceipts({ siteId: config.siteId, siteKey, now });
   const ipSalt = config.ipSalt ?? config.siteId;
@@ -244,16 +251,18 @@ export async function createGate(config) {
 
   /**
    * A payment on a request the Gate inspected (spec §10.6 limits). The site calls this where it
-   * knows the amount — the Gate never reads a body — and answers with the refusal if not ok.
+   * knows the amount (the Gate never parses a body) and answers with the refusal if not ok.
+   * The per-charge limits hold here; per_day is the site's, counted in its shared ledger (PRS-3),
+   * and without one a Mandate with per_day is refused (fail closed).
    * Enforced exactly where decide() holds a route to a Mandate: automation, on a route at
    * Pressure ≥ 2 whose `require` names a scope. Everywhere else (humans above all) it is
    * `{ ok: true, enforced: false }`: it never changes the human path. Never throws.
    * @param {Awaited<ReturnType<typeof inspect>>} result
    * @param {{ amount: number, currency: string }} charge  integer amount in the currency's minor unit
-   * @returns {{ ok: boolean, enforced: boolean, status?: number, error?: string, reason?: string,
-   *             headers?: Record<string,string>, remaining?: { per_day: number|null } }}
+   * @returns {Promise<{ ok: boolean, enforced: boolean, status?: number, error?: string, reason?: string,
+   *             headers?: Record<string,string>, remaining?: { per_day: number|null } }>}
    */
-  function charge(result, c) {
+  async function charge(result, c) {
     try {
       const cls = result?.cls, route = result?.route, decision = result?.decision;
       if (!cls || !route || !AUTOMATION.has(cls.class) || !(route.pressure >= 2) || !route.require?.scope) return { ok: true, enforced: false };
@@ -262,10 +271,16 @@ export async function createGate(config) {
       const m = cls.mandate;
       if (!m) return refuse("mandate_required", cls.mandateError ?? "none");
       if (m.exp * 1000 < now() - 30_000) return refuse("mandate_required", "expired"); // it lapsed while the site worked
-      const r = ledger.charge(m, { amount: c?.amount, currency: c?.currency });
-      // Out of scope or over a limit is outside the delegation (mandate_scope). So is a charge the
-      // Gate cannot count (ledger_full): like the nonce cache, it errs toward protection.
-      return r.ok ? { ok: true, enforced: true, remaining: r.remaining } : refuse("mandate_scope", r.reason);
+      // Out of scope or over a per-charge limit is outside the delegation (mandate_scope).
+      const problem = chargeProblem(m, { amount: c?.amount, currency: c?.currency });
+      if (problem) return refuse("mandate_scope", problem);
+      const perDay = m.limits.per_day;
+      if (perDay == null) return { ok: true, enforced: true, remaining: { per_day: null } };
+      // per_day is the site's, across all of its Gates: only the site's shared record can count it.
+      // No record, or a charge the record cannot count (ledger_full), errs toward protection.
+      if (!ledger) return refuse("mandate_scope", "no_shared_ledger");
+      const r = await ledger.charge(m, { at: now() });
+      return r.ok ? { ok: true, enforced: true, remaining: { per_day: perDay - r.count } } : refuse("mandate_scope", r.reason);
     } catch (e) {
       return failClosed ? { ...refuse("mandate_required", "gate_error"), gateError: String(e?.message ?? e).slice(0, 200) } : { ok: true, enforced: false, gateError: String(e?.message ?? e).slice(0, 200) };
     }

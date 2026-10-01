@@ -9,8 +9,9 @@
 
 import { createGate, originForm, bodyNeeded, DEFAULT_MAX_BODY_BYTES, DEFAULT_BODY_TIMEOUT_MS } from "@ludion/gate-core";
 import { createSafeFetch } from "@ludion/gate-core/safe-fetch";
+import { sqliteLedger } from "./ledger.mjs";
 
-export { createSafeFetch };
+export { createSafeFetch, sqliteLedger };
 
 /**
  * The body of an IncomingMessage, for the Gate to check a signed Content-Digest (GATE-11), handed
@@ -94,7 +95,7 @@ export async function ludionGate(config) {
       result = gate.failSafe(req.url, e); // inspect never throws; this is the last line, and it still honours fail_mode
     }
     req.ludion = result;
-    // Where the handler knows the amount: const v = req.ludion.charge({ amount, currency });
+    // Where the handler knows the amount: const v = await req.ludion.charge({ amount, currency });
     // if (!v.ok) answer v.status with v.headers (spec §10.6 limits; never enforced on humans).
     result.charge = (c) => gate.charge(result, c);
     try {
@@ -126,6 +127,8 @@ export async function ludion(options = {}) {
   const [{ readFileSync }, { resolve }, { gateConfig }] = await Promise.all([import("node:fs"), import("node:path"), import("@ludion/gate-core/config")]);
   const env = options.env ?? process.env;
   const spec = options.config ?? JSON.parse(readFileSync(resolve(options.cwd ?? process.cwd(), env.LUDION_CONFIG || "ludion.config.json"), "utf8"));
-  const config = await gateConfig(spec, { siteKey: env.LUDION_SITE_KEY });
+  const { mandateLedgerFile, ...config } = await gateConfig(spec, { siteKey: env.LUDION_SITE_KEY });
+  // mandate_ledger: { "sqlite": file } — the per_day record every Gate process of the site shares (PRS-3).
+  if (mandateLedgerFile) config.mandateLedger = await sqliteLedger(resolve(options.cwd ?? process.cwd(), mandateLedgerFile));
   return ludionGate({ ...config, ...(options.onFriction ? { onFriction: options.onFriction } : {}) });
 }

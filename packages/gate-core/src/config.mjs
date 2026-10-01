@@ -13,8 +13,9 @@
 
 import { generateSiteKey } from "./receipt.mjs";
 import { SCOPES } from "./mandate.mjs";
+import { memoryLedger } from "./ledger.mjs";
 
-const TOP = new Set(["$schema", "site_id", "pressure", "routes", "report", "fail_mode", "timeout_ms", "friction_hook", "trust_proxy", "authorities", "registry", "categories"]);
+const TOP = new Set(["$schema", "site_id", "pressure", "routes", "report", "fail_mode", "timeout_ms", "friction_hook", "trust_proxy", "authorities", "registry", "categories", "mandate_ledger"]);
 const REGISTRY = new Set(["keys", "issuer", "revocations"]);
 const REPORT = new Set(["email", "endpoint", "send_metadata"]);
 const ROUTE = new Set(["match", "pressure", "require"]);
@@ -132,6 +133,15 @@ export async function gateConfig(spec, { siteKey, fetch, onEphemeralKey } = {}) 
   if (spec.trust_proxy != null) {
     if (typeof spec.trust_proxy !== "boolean") fail("trust_proxy must be true or false");
     out.trustProxy = spec.trust_proxy;
+  }
+  if (spec.mandate_ledger != null) {
+    // Where the site counts each Mandate's per_day, once for all of its Gates (PRS-3). "memory":
+    // this process is the site's only Gate. { "sqlite": "<file>" }: every Gate process on this
+    // machine names the same file (@ludion/gate-node opens it; other runtimes refuse it).
+    const l = spec.mandate_ledger;
+    if (l === "memory") out.mandateLedger = memoryLedger();
+    else if (isObject(l) && Object.keys(l).length === 1 && typeof l.sqlite === "string" && l.sqlite) out.mandateLedgerFile = l.sqlite;
+    else fail('mandate_ledger must be "memory" (this process is the site\'s only Gate) or { "sqlite": "<file every Gate process shares>" }');
   }
 
   if (siteKey != null && siteKey !== "") {

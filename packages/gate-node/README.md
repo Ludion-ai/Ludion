@@ -76,15 +76,23 @@ The Gate checks the Mandate an agent sends: its signature, the Diver it names, y
 The amount is yours to give: the Gate reads a body only to check a signed `Content-Digest`, and never parses it. Where your handler knows the cart total, charge it:
 
 ```js
-app.post("/checkout/:id", (req, res) => {
+app.post("/checkout/:id", async (req, res) => {
   const total = cartTotal(req);                        // an integer in the currency's minor unit (JPY: yen, USD: cents)
-  const v = req.ludion.charge({ amount: total, currency: "JPY" });
+  const v = await req.ludion.charge({ amount: total, currency: "JPY" });
   if (!v.ok) return res.status(v.status).set(v.headers).json({ error: v.error, reason: v.reason });
   // … take the payment
 });
 ```
 
-`charge` holds the payment to the Mandate's `checkout_max`, `currency` and `per_day`, counted by this process over the last 24 hours. It only applies where the route asks for a scope at Pressure 2 or higher, and never to humans: for them it always returns `{ ok: true, enforced: false }`.
+`charge` holds the payment to the Mandate's `checkout_max` and `currency` on any Gate. It only applies where the route asks for a scope at Pressure 2 or higher, and never to humans: for them it always returns `{ ok: true, enforced: false }`.
+
+A Mandate's `per_day` is your site's, counted once across all of its Gates over the last 24 hours. Tell the Gate where that record is, in `ludion.config.json`:
+
+- `"mandate_ledger": "memory"`: this process is your site's only Gate.
+- `"mandate_ledger": { "sqlite": "ludion-ledger.db" }`: several processes on one machine. Every one names the same file (Node 22.13 or later).
+- More machines: pass your own `{ shared: true, async charge(mandate, { at }) }` to `ludionGate({ mandateLedger })`. It must check and record in one atomic step, in a database all your Gates reach.
+
+Without a ledger, a charge on a Mandate with `per_day` is refused (`mandate_scope`, reason `no_shared_ledger`): nothing could count it for the whole site. The Registry never holds what anyone spends.
 
 ## Lower level
 

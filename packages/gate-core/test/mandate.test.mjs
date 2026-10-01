@@ -5,7 +5,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { createHmac } from "node:crypto";
 import { component } from "http-message-sig";
-import { createRevocationList, createMandateLedger, MANDATE_TYP } from "../src/index.mjs";
+import { createRevocationList, memoryLedger, MANDATE_TYP } from "../src/index.mjs";
 import { signJws, derToRawEcdsa, verifyPasskeySignature, passkeyPublicJwk, hmacSha256 } from "../src/staple.mjs";
 import { gateConfig } from "../src/config.mjs";
 import { keypair, signed, harness, staple, NOW_MS, NOW_S, SITE, REGISTRY_ISS } from "./support.mjs";
@@ -127,35 +127,48 @@ test("mandate: withdrawn through the revocation list or the Staple, never taking
 
 test("mandate: charge() holds a payment to the limits where the route asks for a Mandate, and nowhere else", async () => {
   let t = NOW_MS;
-  const w = await world({ now: () => t });
+  const w = await world({ now: () => t, mandateLedger: memoryLedger() });
   const r = await w.send(await mandateOf(w.registry, { exp: NOW_S + 3 * 86_400 }));
   const pay = (amount, currency = "JPY", res = r) => w.gate.charge(res, { amount, currency });
-  assert.deepEqual(pay(50_000), { ok: true, enforced: true, remaining: { per_day: 1 } });
+  assert.deepEqual(await pay(50_000), { ok: true, enforced: true, remaining: { per_day: 1 } });
   for (const [amount, currency, reason] of [[50_001, "JPY", "over_limit"], [100, "USD", "currency"], [0, "JPY", "bad_amount"], [-5, "JPY", "bad_amount"],
     [12.5, "JPY", "bad_amount"], [Number.NaN, "JPY", "bad_amount"], ["100", "JPY", "bad_amount"], [2 ** 60, "JPY", "bad_amount"]]) {
-    const v = pay(amount, currency);
+    const v = await pay(amount, currency);
     assert.equal(v.ok, false, `${amount} ${currency}`); assert.equal(v.reason, reason); assert.equal(v.error, "mandate_scope"); assert.equal(v.status, 403);
     assert.equal(v.headers["Ludion-Error"], "mandate_scope"); assert.match(v.headers.Link, /\/e\/mandate_scope>; rel="help"/);
   }
-  assert.equal(pay(1).ok, true, "refusals are not counted");
-  assert.equal(pay(1).reason, "per_day");
+  assert.equal((await pay(1)).ok, true, "refusals are not counted");
+  assert.equal((await pay(1)).reason, "per_day");
   t += 86_400_000 - 1;
-  assert.equal(pay(1).reason, "per_day", "still within 24 hours of the first");
+  assert.equal((await pay(1)).reason, "per_day", "still within 24 hours of the first");
   t += 2;
-  assert.equal(pay(1).ok, true, "a rolling 24 hours");
+  assert.equal((await pay(1)).ok, true, "a rolling 24 hours");
   t = (NOW_S + 3 * 86_400 + 31) * 1000;
-  assert.equal(pay(1).reason, "expired", "a Mandate that lapsed while the site worked");
+  assert.equal((await pay(1)).reason, "expired", "a Mandate that lapsed while the site worked");
   t = NOW_MS;
 
   const human = await w.gate.inspect({ kind: "request", method: "POST", targetUri: `${SITE}/checkout/1`, fields: [{ name: "user-agent", value: "Mozilla/5.0" }] });
-  assert.deepEqual(w.gate.charge(human, { amount: 10 ** 9, currency: "XXX" }), { ok: true, enforced: false }, "never on humans");
+  assert.deepEqual(await w.gate.charge(human, { amount: 10 ** 9, currency: "XXX" }), { ok: true, enforced: false }, "never on humans");
   const watch = await w.send(undefined, { path: "/watch/1" });
-  assert.deepEqual(w.gate.charge(watch, { amount: 10 ** 9, currency: "XXX" }), { ok: true, enforced: false }, "not at Pressure 1");
+  assert.deepEqual(await w.gate.charge(watch, { amount: 10 ** 9, currency: "XXX" }), { ok: true, enforced: false }, "not at Pressure 1");
   const depthOnly = await w.send(undefined, { path: "/depth/1" });
-  assert.equal(w.gate.charge(depthOnly, { amount: 10 ** 9, currency: "XXX" }).enforced, false, "not where the route asks no scope");
+  assert.equal((await w.gate.charge(depthOnly, { amount: 10 ** 9, currency: "XXX" })).enforced, false, "not where the route asks no scope");
   const noMandate = await w.send(undefined);
-  assert.equal(w.gate.charge(noMandate, { amount: 1, currency: "JPY" }).error, "mandate_required");
-  for (const junk of [undefined, null, {}, { cls: { class: "VERIFIED" } }, { cls: null, route: null }]) assert.equal(typeof w.gate.charge(junk, junk).ok, "boolean", "never throws");
+  assert.equal((await w.gate.charge(noMandate, { amount: 1, currency: "JPY" })).error, "mandate_required");
+  for (const junk of [undefined, null, {}, { cls: { class: "VERIFIED" } }, { cls: null, route: null }]) assert.equal(typeof (await w.gate.charge(junk, junk)).ok, "boolean", "never throws");
+});
+
+test("mandate: per_day is the site's — without a shared ledger it is refused, per-charge limits hold anyway (PRS-3)", async () => {
+  const w = await world();
+  const counted = await w.send(await mandateOf(w.registry));
+  assert.deepEqual(await w.gate.charge(counted, { amount: 1, currency: "JPY" }).then((v) => [v.ok, v.error, v.reason]), [false, "mandate_scope", "no_shared_ledger"]);
+  const plain = await w.send(await mandateOf(w.registry, { limits: { checkout_max: 50_000, currency: "JPY" }, jti: "mdt-bbbbbbbbbbbbbbbb" }));
+  assert.deepEqual(await w.gate.charge(plain, { amount: 50_000, currency: "JPY" }), { ok: true, enforced: true, remaining: { per_day: null } }, "nothing to count");
+  assert.equal((await w.gate.charge(plain, { amount: 50_001, currency: "JPY" })).reason, "over_limit");
+  await assert.rejects(() => harness({ agentKeys: [], mandateLedger: { maxMandates: 5 } }), /mandateLedger must be a shared ledger/, "the old per-Gate bounds are not a ledger");
+  await assert.rejects(() => gateConfig({ site_id: "s", mandate_ledger: "disk" }), /mandate_ledger must be/);
+  assert.equal(typeof (await gateConfig({ site_id: "s", mandate_ledger: "memory" })).mandateLedger.charge, "function");
+  assert.equal((await gateConfig({ site_id: "s", mandate_ledger: { sqlite: "ledger.db" } })).mandateLedgerFile, "ledger.db");
 });
 
 test("mandate: a Gate without Registry keys cannot read a Mandate; its fail_mode decides, as for a Staple", async () => {
@@ -166,20 +179,18 @@ test("mandate: a Gate without Registry keys cannot read a Mandate; its fail_mode
     const req = await signed({ key: agent, method: "POST", url: `${SITE}/checkout/1`, headers: { "ludion-mandate": m }, extraComponents: [component("ludion-mandate")] });
     const r = await gate.inspect(req);
     assert.equal(r.cls.mandateError, "no_registry_keys"); assert.equal(r.decision.action, action, failMode);
-    assert.equal(gate.charge(r, { amount: 1, currency: "JPY" }).ok, action === "allow", failMode);
+    assert.equal((await gate.charge(r, { amount: 1, currency: "JPY" })).ok, action === "allow", failMode);
   }
 });
 
-test("mandate: the ledger never drops a count still inside its 24 hours", () => {
-  let t = 0;
-  const ledger = createMandateLedger({ now: () => t, maxMandates: 2 });
+test("mandate: the memory ledger never drops a count still inside its 24 hours", async () => {
+  const ledger = memoryLedger({ maxMandates: 2 });
   const m = (jti) => ({ jti, scope: ["checkout"], limits: { checkout_max: 10, currency: "JPY", per_day: 1 } });
-  assert.equal(ledger.charge(m("a"), { amount: 1, currency: "JPY" }).ok, true);
-  assert.equal(ledger.charge(m("b"), { amount: 1, currency: "JPY" }).ok, true);
-  assert.equal(ledger.charge(m("c"), { amount: 1, currency: "JPY" }).reason, "ledger_full", "full of live counts: refused, not let through uncounted");
-  assert.equal(ledger.charge(m("a"), { amount: 1, currency: "JPY" }).reason, "per_day", "a's count survived");
-  t = 86_400_001;
-  assert.equal(ledger.charge(m("c"), { amount: 1, currency: "JPY" }).ok, true, "stale counts make room");
+  assert.equal((await ledger.charge(m("a"), { at: 0 })).ok, true);
+  assert.equal((await ledger.charge(m("b"), { at: 0 })).ok, true);
+  assert.equal((await ledger.charge(m("c"), { at: 0 })).reason, "ledger_full", "full of live counts: refused, not let through uncounted");
+  assert.equal((await ledger.charge(m("a"), { at: 0 })).reason, "per_day", "a's count survived");
+  assert.equal((await ledger.charge(m("c"), { at: 86_400_001 })).ok, true, "stale counts make room");
 });
 
 test("mandate: config names only the scopes a Mandate can carry", async () => {

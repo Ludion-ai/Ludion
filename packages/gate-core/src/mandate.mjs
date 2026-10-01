@@ -10,7 +10,8 @@
 // issuer), the Staple (the Diver it names, which the request key is bound to), its own
 // authorities (the site it names), its clock, and the revocation list. The Registry is never
 // asked (REG-1, PRIV-3). Limits are the site's to apply at the moment it knows the amount
-// (gate.charge), on the routes it holds to a Mandate; this module keeps the count.
+// (gate.charge), on the routes it holds to a Mandate; per_day is counted in the site's shared
+// ledger (ledger.mjs), never here and never at the Registry.
 //
 // Runtime-neutral, no primitives (CRY-1): signatures go through the Staple verifier.
 
@@ -100,41 +101,16 @@ export function validLimits(l) {
 }
 
 /**
- * What each Mandate has spent at this Gate: charges in the last 24 h, per jti. In memory and per
- * process, like the nonce cache: Gates on several instances each keep their own count. Bounded
- * like the nonce cache too: a count still inside its 24 h is never dropped (dropping it would
- * restart a per_day limit); when `maxMandates` live counts are held, a new Mandate's charge is
- * refused ("ledger_full") rather than let through uncounted.
- * @param {{ now?: () => number, maxMandates?: number }} [o]
+ * The limits a single charge must meet, at any Gate and with no record (spec §10.6): the scope that
+ * allows paying, an integer amount in the currency's minor unit, the Mandate's currency, and its
+ * per-charge maximum. per_day is counted elsewhere: a site-wide ledger (ledger.mjs, PRS-3).
+ * @returns {null | "scope" | "bad_amount" | "currency" | "over_limit"}
  */
-export function createMandateLedger({ now = () => Date.now(), maxMandates = 100_000 } = {}) {
-  const spent = new Map(); // jti -> charge times (ms), oldest first; least recently charged first
-  const sweep = (t) => { for (const [k, times] of spent) if (times[times.length - 1] <= t - DAY_MS) spent.delete(k); };
-  return {
-    /**
-     * Apply the Mandate's limits to one charge and, if it holds, count it.
-     * Amounts are integers in the currency's minor unit (JPY: yen; USD: cents), as the limits are.
-     * @param {object} m verified Mandate payload @param {{ amount: number, currency: string }} c
-     * @returns {{ ok: true, remaining: { per_day: number|null } } | { ok: false, reason: string }}
-     */
-    charge(m, { amount, currency } = {}) {
-      if (!m.scope.includes(CHARGE_SCOPE)) return { ok: false, reason: "scope" };
-      const l = m.limits;
-      if (!Number.isSafeInteger(amount) || amount <= 0) return { ok: false, reason: "bad_amount" };
-      if (currency !== l.currency) return { ok: false, reason: "currency" };
-      if (amount > l.checkout_max) return { ok: false, reason: "over_limit" };
-      const t = now();
-      const known = spent.has(m.jti);
-      const times = (spent.get(m.jti) ?? []).filter((x) => x > t - DAY_MS);
-      if (l.per_day != null && times.length >= l.per_day) return { ok: false, reason: "per_day" };
-      if (!known && spent.size >= maxMandates) {
-        sweep(t);
-        if (spent.size >= maxMandates) return { ok: false, reason: "ledger_full" };
-      }
-      times.push(t);
-      spent.delete(m.jti); spent.set(m.jti, times);
-      return { ok: true, remaining: { per_day: l.per_day == null ? null : l.per_day - times.length } };
-    },
-    size() { return spent.size; },
-  };
+export function chargeProblem(m, { amount, currency } = {}) {
+  if (!m?.scope?.includes(CHARGE_SCOPE)) return "scope";
+  const l = m.limits;
+  if (!Number.isSafeInteger(amount) || amount <= 0) return "bad_amount";
+  if (currency !== l?.currency) return "currency";
+  if (amount > l.checkout_max) return "over_limit";
+  return null;
 }
