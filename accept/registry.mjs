@@ -137,6 +137,13 @@ export const ORACLES = [
     run: nodeTest(["packages/card-host/test/div2.test.mjs"], "^DIV-2:") },
   { id: "DIV-3", m: "M2", kind: "-", level: 1, title: "Root key never signs, never in the directory, never plaintext on disk outside dev",
     run: nodeTest(["packages/diver/test/div3.test.mjs"], "^DIV-3:") },
+  // The npm publish set (accept/publish/set.mjs): packed tarballs into a clean project; the CLI and
+  // every Gate adapter work from published names only. Third-party deps come from the registry.
+  { id: "PUB-1", m: "M2", kind: "+", level: 1, pair: "PUB-2", title: "npm tarballs alone install into a clean project; ludion CLI and gate-node/workers/next work (my agent → my Gate → VERIFIED)",
+    timeoutMs: 900_000, run: nodeTest(["accept/publish/pub1.test.mjs"], "^PUB-1:", { timeoutMs: 880_000,
+      metric: (out) => (/^# PUB-1: (.+)$/m.exec(out) ?? [])[1] }) },
+  { id: "PUB-2", m: "M2", kind: "-", level: 1, title: "each tarball ships only its declared files (no tests, fixtures, keys, env, identities) and is publishable as is",
+    run: nodeTest(["accept/publish/pub2.test.mjs"], "^PUB-2:", { metric: (out) => (/^# PUB-2: (.+)$/m.exec(out) ?? [])[1] }) },
   { id: "DIV-4", m: "M2", kind: "±", level: 1, title: "session key rotation keeps the identifier; old key stops, new key works",
     run: nodeTest(["packages/diver/test/div4.test.mjs"], "^DIV-4:") },
 
@@ -210,7 +217,12 @@ export const ORACLES = [
   { id: "LIVE-3", m: "M6", kind: "+", level: 2, pair: "PRIV-1", needs: ["LUDION_CLOUD_READ_TOKEN"], title: "North Star: Verified Actions/day computed from Cloud events, on the scoreboard" },
 
   // ── M7 web: the site, the /e/<code> help pages, the in-browser scan ──────────────
-  { id: "WEB-1", m: "M7", kind: "+", level: 1, pair: "WEB-5", title: "static site deployed to preview; every page in ja + en; Lighthouse mobile P/A/BP/SEO all ≥95" },
+  // The live preview (site/preview.json from `npm run deploy:preview`) serves THIS checkout's build
+  // (_build.json = siteHash(), every page byte-identical), and Lighthouse on every preview page ≥95.
+  // needs CLOUDFLARE_API_TOKEN: only a human's token can redeploy, so without one (CI) it SKIPs
+  // rather than going red on every site change; WEB-9 holds the same bar in CI on the local artifact.
+  { id: "WEB-1", m: "M7", kind: "+", level: 1, pair: "WEB-5", needs: ["CLOUDFLARE_API_TOKEN"], title: "static site deployed to preview; every page in ja + en; Lighthouse mobile P/A/BP/SEO all ≥95",
+    timeoutMs: 900_000, run: nodeTest(["site/test/web1.test.mjs"], "^WEB-1:", { timeoutMs: 880_000, metric: (out) => (/^# WEB-1: (.+)$/m.exec(out) ?? [])[1] }) },
   // The copy check (site/test/copy.mjs) on the real build: the legal line of spec §14 in English and
   // Japanese, and every figure linked to the repository document that states it; claims and
   // unsourced figures planted in built pages must be caught.
@@ -242,6 +254,10 @@ export const ORACLES = [
   // The site as it deploys to Workers (site/edge: the build's static files and POST /api/signup), run
   // by wrangler dev in workerd with a webhook stub as the notifier (site/test/edge.mjs); the form is
   // used in Chromium, and faults planted in the endpoint must be caught. The deployed preview is WEB-1's.
+  // The deploy artifact in workerd: ja/en pairing, and Lighthouse mobile ≥95 on one page per template in
+  // both languages. The runner is first shown to fail a planted degraded page.
+  { id: "WEB-9", m: "M7", kind: "+", level: 1, pair: "WEB-5", title: "deploy artifact in workerd: every page ja + en; Lighthouse mobile ≥95 on every template (en, ja)",
+    timeoutMs: 600_000, run: nodeTest(["site/test/web9.test.mjs"], "^WEB-9:", { timeoutMs: 580_000, metric: (out) => (/^# WEB-9: (.+)$/m.exec(out) ?? [])[1] }) },
   { id: "WEB-8", m: "M7", kind: "±", level: 1, title: "signup form: a preview submission reaches the notifier (stub ok); honeypot and rate limit drop bots",
     timeoutMs: 900_000, run: nodeTest(["site/test/web8.test.mjs"], "^WEB-8:", { timeoutMs: 880_000,
       metric: (out) => (/^# WEB-8: (.+)$/m.exec(out) ?? [])[1] }) },

@@ -1,6 +1,6 @@
 # STATE
 
-最終更新：2026-09-30（Claude Code セッション 1、#32 まで）
+最終更新：2026-10-01 朝（Claude Code、1本のレーン。今日の spec：ludion.ai を新しいサイトに）
 
 ## 現在地
 
@@ -9,6 +9,9 @@
   - M2：DIV-2/3/4 まで。
   - M3：REG-2/4 まで。
   - M5：PRS-1、PRS-2、CRY-1 まで。
+- 2026-10-01 から、進め方は**このセッション1本**。夜勤のループと2本の並走はやめた（人間の指示）。人間が spec を渡し、区切りのいいところで PR を1本出す。
+  - 夜勤（`C:Usershaya0ludion-night`、`.loop/NIGHT.md`）は 2026-10-01 08:48 に終わった。もう動かない。
+- **サイト**：プレビュー https://ludion-site-preview.ludion.workers.dev （WEB-1 PASS）。本番（ludion.ai）への切り替えは人間（docs/DEPLOY.md §3）。
 - ループの仕組みは Linux/Node 22 と Windows/Node 24 の両方で回る。
 - リポジトリは https://github.com/Ludion-ai/Ludion （public）。main は保護されている：PR 必須、`loop` チェック必須、strict、enforce_admins、auto-merge 可。
   - strict なので、main が先に進んだ PR は `gh pr update-branch` しないとマージされない。
@@ -17,46 +20,19 @@
 
 ## 次の一手
 
-1. 進行中（ローカルのみ。どれも `PRS-1 PASS` の main から始めた）：
-   - `registry/v0`：Registry v0（`services/registry`）と REG-1、REG-3、PRIV-3
-   - `neutral/runtimes`：NEUT-1、NEUT-2
-   - `interop/std3-div1`：STD-3（相互運用）と DIV-1（TS と Python の Diver をクリーンなコンテナで）
-2. ~~PRS-2（Mandate v0）~~：夜勤レーンで済ませた（docs/adr/2026-10-01-mandate-v0-passkey-consent-and-site-charge.md）。
-3. ~~STD-4（datatracker の版の追随。L2）~~：夜勤レーンで済ませた（docs/adr/2026-10-01-draft-pins-tracked-against-datatracker.md）。
-4. PRIV-1/2 の強化：ワークロードを既定の `createSafeFetch` 経由でも回す。ワイヤは `dial` フックで捕まえる。
-- ADR の次の番号：025〜029 は上の 3 本が予約済み。その次は 030。
-- 夜勤レーン（2026-10-01、`.loop/NIGHT.md`。別の作業ツリーで並走）：
-  - GATE-9 と M7 Web（WEB-1〜8）を PENDING で登録した（#43）。
-  - WEB-3：`site/` を Astro と Starlight にした（ADR-040）。`/e/<code>` と `/ja/e/<code>` が 9 コード × 2 言語ある。
-  - WEB-4：`/scan` と `/ja/scan` にログを落とすと、CLI と同じ数字が出る（docs/adr/2026-10-01-browser-scan-shares-the-cli-core.md）。
-  - WEB-6：scan はログのバイトを外に出さない。測り方は `site/test/egress.mjs`（監視）と `site/test/web6.test.mjs`。
-    - サイトの PR は、`loop-windows` が緑になってから auto-merge を付ける（#45 の教訓）。
-  - WEB-5：リンク切れ、コンソールエラー、許可リスト外の通信が 0（docs/adr/2026-10-01-site-links-own-origin-and-gate-page.md）。
-    - リンクの規則は `site/test/links.mjs`。ファイルにも、使ったあとの DOM にも同じ規則をかける。
-    - `/gate` と `/ja/gate`（Gate の入れ方）と、日本語の 404 を足した。
-  - WEB-2：文面が法務の線（spec §14）を越えず、数字はすべて出所を持つ（docs/adr/2026-10-01-copy-check-legal-line-and-figure-sources.md）。
-    - 規則は `site/test/copy.mjs`。新しい文面で数字を書くときは、同じブロックに、その数字を言っているリポジトリの文書（spec か MISSION.md の節）へのリンクを置く。行数はすぐ後のコードブロックが出所。
-    - 保険、保証、100% の類の語は、否定を語に付けたときだけ書ける（「Ballast v0 is not insurance」）。
-  - WEB-8：トップ（`/` と `/ja`）に登録フォーム。受け口は `site/edge/`（静的ファイルと同じ Worker の `POST /api/signup`）（docs/adr/2026-10-01-signup-endpoint-on-the-site-worker.md）。
-    - `site/edge` はプレビューに出す成果物そのもの（`wrangler.json`、`worker.mjs`）。WEB-1 はこれを `*.workers.dev` に出せばよい。
-    - WEB-8 はそれを `wrangler dev`（workerd）で動かして測る。ヘルパーは `site/test/edge.mjs`。
-  - PRS-2（Mandate v0）：Principal のパスキーの同意で Registry が Mandate を出し、Gate が読み、支払いの上限はサイトが `req.ludion.charge()` で当てる（docs/adr/2026-10-01-mandate-v0-passkey-consent-and-site-charge.md）。
-    - 目録の残りで、元のレーンの「次の一手」にあったもの。元のレーンは #42 のあと動いていなかったので、夜勤で取った。
-  - STD-4：実装しているドラフトの版を `accept/std4/pins.json` に留め、datatracker（7 日の猶予、置き換えの追跡）とリポジトリの全参照に当てる（docs/adr/2026-10-01-draft-pins-tracked-against-datatracker.md）。
-  - GATE-10（新設、GATE-9 の土台）：適合スイートをデータにした。`accept/conformance/vectors.json` に WG のベクタと GATE-7 の全攻撃を具体的なリクエストとして書き出し、TypeScript の Gate がファイルだけで Node、Deno、workerd で通る（docs/adr/2026-10-01-conformance-suite-as-data.md）。
-    - 形式は `accept/conformance/README.md`（他の言語の実装者向け、英語）。
-    - GATE-7 に攻撃を足したら `node accept/conformance/export.mjs` を回す。回さないと GATE-10 が落ちる。
-  - GATE-8：本物の署名を見つけて配線した。PENDING から FAIL になった（docs/adr/2026-10-01-real-chatgpt-agent-signs-for-an-hour.md）。
-    - フィクスチャは 2 件。ChatGPT agent が送った要求と、Wayback に残る当時の chatgpt.com の鍵ディレクトリ。
-      - 2025-08-04、simonwillison.net へ（運営者が同じ日に公開したログ）
-      - 2025-08-11、api.seatgeek.com へ（SeatGeek の技術者が公開した署名）
-    - 署名は 2 件とも本物。Gate は 2 件とも SPOOFED にする。理由は寿命（3600 秒 > spec §10.4 の 60 秒）だけ。
-    - PASS には STD-2 と GATE-7 の 1 件ずつを緩める必要がある。人間待ちに書いた。
-    - 本物をもう 1 件足すときは `accept/gate8/README.md` を見る。
-  - 次は NIGHT.md の優先順：WEB-1（トークン待ち）→ 目録の残り（GATE-8 は寿命の判断待ち、STD-3/DIV-1/LOOP-2 は元のレーンが持つ）→ GATE-9（PHP と WordPress、Python。今夜は道具が入らず止まっている。人間待ちを見よ。道具が来たら、PHP の Gate を vectors.json に当てる）→ WEB-7 → LIVE-1。
-    - STD-2 の全テスト（12）も、spec §10.8 の分類つきで vectors.json に入れた（`accept/conformance/std2.mjs`）。STD-2 にテストを足したら、書き出し直す。
-  - プレビューのデプロイ（WEB-1）：今のトークンでは何も読めない（docs/DEPLOY.md 1.1）。人間待ちに書いた。
-  - 新しい ADR には番号を付けない。`docs/adr/YYYY-MM-DD-<slug>.md` にする（NIGHT.md §8、両レーン共通）。
+1. 人間の作業を待つもの（下の「人間待ち」）：ludion.ai の切り替え（DEPLOY.md §3）、旧資源の削除（§1.3）、npm の publish（docs/PUBLISH.md）。
+   - 切り替えの後、WEB-1 を本番の URL にも向ける（`site/preview.json` と同じ形で、`https://ludion.ai` を検査する）。
+2. 棚上げ（ブランチに残してある。再開は人間の判断）：
+   - **B1**（scoreboard の並列化、PR #63 は下書き）：`loop-windows` で GATE-3 が新しい上限 7 分を越え、REG-1 も落ちた。直すなら、`prepare` を並列の前に直列で回すか、上限を戻す。
+   - **A と B2**（ラチェットのファイル化、CI の分割）：`fast-loop-shelf`。A は deny ルール（docs/outbox、PR #60）を人間が当てるまで入れない。
+   - **fail-closed**（`--base` が読めないときに通さない）：`fast-loop-failclosed`。B1 と独立。
+   - **STD-3 と DIV-1**（`interop/std3-div1`）：CI に setup-python を足す差分の了承待ち。
+3. 目録の残り（人間待ちでないもの）：WEB-7（ドキュメントをテストに）、LOOP-2、PRIV-1/2 の強化（既定の `createSafeFetch` 経由でも回す）。
+4. GATE-8 は寿命の上限の判断待ち、GATE-9 は道具（PHP か `@php-wasm/node`）待ち。
+- 新しい ADR には番号を付けない。`docs/adr/YYYY-MM-DD-<slug>.md` にする。
+- サイトの PR は、`loop-windows` が緑になってからマージする（#45 の教訓）。
+- GATE-7 に攻撃を足したら `node accept/conformance/export.mjs` を回す（GATE-10）。STD-2 にテストを足したときも同じ。
+- 夜勤が足したもの（WEB-2〜8、PRS-2、STD-4、GATE-10、GATE-8 の配線）の詳細は「直近のセッション」と各 ADR にある。
 
 ## 人間待ち
 
@@ -79,15 +55,18 @@
     - spec §10.4、§15.2、MISSION.md の STD-2、`/e/invalid_signature`（英日）も合わせた。
     - 了承なら、そのブランチを push して PR にする（`git push -u origin proposal/gate8-lifetime`）。main が進んでいれば rebase して、GATE-10 を書き出し直す。
   - C（60 秒のまま）なら、GATE-8 は 60 秒以内で署名する別の実運用の署名者を待つ。
+- [ ] **ludion.ai を新しいサイトに切り替える**（docs/DEPLOY.md §3、15分、クリック単位）。旧は Worker `ludion` のカスタムドメイン。`ludion-site` を作って付け替える。
+- [ ] **旧資源の削除**（docs/DEPLOY.md §1.3、Ludion の16件だけ）。消す前に：
+  - 提供元で秘密を失効させる：`ludion-api` の OpenAI と楽天のキー、`ludion-fallback-relay` の `PROVIDER_API_KEY`、`ludion` の GitHub OAuth アプリ。Worker を消してもキーは生きている。
+  - D1 3つ、KV 2つ、R2 2つの中身を書き出す。提出物や登録者の情報なら、残すか消すかを決める。
+  - `chat-app-relay`（Worker）は Ludion のものか判断できなかった。リストに入れていない。
+- [ ] **npm の publish**（docs/PUBLISH.md）：先に npm で組織 `ludion` を作る。PUB-1 と PUB-2 が PASS。8パッケージを表の順に、OTP を入れて出す。
+- [ ] Cloudflare のトークンの整理：09:00 に置いたトークン（期限 2026-11-03、`~/.config/ludion/cloudflare.env`）は、このアカウントのどの API も 401。Account Resources を見直す（DEPLOY.md §1.1）。棚卸しとデプロイは、前からあるトークン（期限 2026-10-17、ターミナルの環境変数）で行った。片方に揃えて、もう片方は失効させる。
 - [ ] npm `ludion` と `@ludion`、PyPI `ludion` の確保（2026-09-30 時点で全て空き。匂わせ投稿の前に）
 - [x] リポジトリの公開設定の判断 → public、`Ludion-ai/Ludion`（2026-09-30）
 - [x] main のブランチ保護：PR 必須、`loop` チェック必須、auto-merge 許可（2026-09-30。strict と enforce_admins も付けた）
-- [ ] `CLOUDFLARE_API_TOKEN`（Workers スクリプトの編集だけ。ゾーンと DNS は付けない）→ LIVE-1
-  - 2026-10-01 夜勤：渡されたトークンは有効だが、`CLOUDFLARE_ACCOUNT_ID` のアカウントでは、どの資源も 401 だった。Workers、Pages、KV、D1、R2、workers.dev のすべて。
-  - アカウント ID の食い違いか権限の不足。このままでは WEB-1 のプレビューも LIVE-1 もデプロイできない。
-  - 2026-10-01 07:20 頃（夜勤 9）：`npx wrangler whoami` は `Invalid access token [code: 9109]`。トークンが失効したか、差し替えが要る。
-  - 確かめ方は docs/DEPLOY.md 1.2。
-- [ ] 旧 Ludion の Cloudflare 資源の棚卸し（NIGHT.md §7）：読み取りトークンで `node scripts/cf-inventory.mjs` を1回実行し、docs/DEPLOY.md 1.3 の削除リストを埋める（GET だけ）。
+- [x] `CLOUDFLARE_API_TOKEN`：2026-10-01 朝、前からあるトークンが通るようになった。プレビューのデプロイ（WEB-1）に使った。LIVE-1（canary）はまだ。
+- [x] 旧 Ludion の Cloudflare 資源の棚卸し：2026-10-01 09:03、`node scripts/cf-inventory.mjs`（GET だけ）。結果は docs/DEPLOY.md §1.3。
 - [ ] 判断（お金）：Card Host の `*.agents.ludion.ai` は2段目のワイルドカードで、Universal SSL の範囲外。
   - 選択肢：Advanced Certificate Manager（有料）、名前を `dvr-….ludion.ai` に寄せる（spec の変更）、別のドメイン。
   - 詳細は docs/DEPLOY.md 4。
@@ -188,6 +167,22 @@
   - web-bot-auth@0.2.0 のパーサが registry-03 に準拠しているか
 
 ## 直近のセッション
+
+- 2026-10-01 朝（Claude Code、1本のレーン）：今日の spec「ludion.ai を新しいサイトにして、ブラウザ版 scan を誰でも使えるようにする」。
+  - **プレビュー**：https://ludion-site-preview.ludion.workers.dev 。`npm run deploy:preview`（`site/deploy.mjs`）はプレビューの名前にしか出さない。
+    - WEB-1 PASS：プレビューがこのチェックアウトのビルドを配り（`/_build.json`）、全28ページが手元のビルドとバイト単位で一致し、Lighthouse（モバイル）の4項目が全ページで95以上。トークンが要るので CI では SKIP。
+    - WEB-9（新設）：同じ基準を CI で。デプロイと同じ成果物を workerd で動かし、テンプレートごとに英日で Lighthouse を当てる。
+    - WEB-4 は同じ成果物で PASS（200 MiB を 1.8 秒）。プレビューはそれとバイト単位で同じ。
+  - **DEPLOY.md**：棚卸しで、旧 ludion.ai は Worker `ludion` のカスタムドメインと分かった。切り替えは一本道（§3）。削除リストは Ludion の16件（§1.3）。振り分けは `scripts/cf-classify.mjs`（自己テスト付き）。
+  - **npm の公開準備**：無印の `ludion`（`npx ludion`）を足し、全パッケージに `files`、LICENSE、README、`publishConfig` を付けた。
+    - PUB-1：8パッケージを tarball だけでクリーンな環境に入れ、CLI（scan、report、init、sign）と3つのアダプタで VERIFIED まで動く。
+    - PUB-2：tarball には宣言したものしか入らない（テスト、ベンチ、鍵、`.env` が0件）。
+    - 手順は docs/PUBLISH.md。publish は人間。
+  - **B1** は `loop-windows` で後退したので棚上げした（PR #63 は下書き）。上の「次の一手」2。
+  - **事故と教訓**：
+    - 同じレーンのバックグラウンドのセッションが同時に起動し、同じブランチにコミットしていた（08:36〜08:49）。人間がこちらを残した。複数のセッションを同じ作業ツリーで動かさない。
+    - トークンのファイルがリポジトリの直下に置かれた。中身を読まずに `~/.config/ludion/` へ移し、`.gitignore` に `*.env` を足した。
+  - scoreboard（ローカル）：PASS 40 → 44（WEB-1、WEB-9、PUB-1、PUB-2）。ラチェットは 44 件。FAIL は GATE-8 だけ（main と同じ、ラチェット外）。
 
 - 2026-10-01（夜勤 9）：
   - GATE-8 を配線した。本物の署名付きリクエストを見つけた（docs/adr/2026-10-01-real-chatgpt-agent-signs-for-an-hour.md）。

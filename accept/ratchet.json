@@ -21,6 +21,8 @@
     "PRIV-3",
     "PRS-1",
     "PRS-2",
+    "PUB-1",
+    "PUB-2",
     "REG-1",
     "REG-2",
     "REG-3",
@@ -35,11 +37,13 @@
     "STD-1",
     "STD-2",
     "STD-4",
+    "WEB-1",
     "WEB-2",
     "WEB-3",
     "WEB-4",
     "WEB-5",
     "WEB-6",
-    "WEB-8"
+    "WEB-8",
+    "WEB-9"
   ]
 }
