@@ -1,22 +1,24 @@
 # DEPLOY — プレビューから ludion.ai の本番へ
 
-最終更新：2026-10-01 朝（元のレーン）。この文書は手順だけを書く。Claude は本番、DNS、削除に触れない。それは人間がやる。
+最終更新：2026-10-01 09:10 JST（元のレーン）。この文書は手順だけを書く。Claude は本番、DNS、削除に触れない。それは人間がやる。
 
-## 0. 今の状態（2026-10-01 08:50 JST、公開の DNS と HTTP で確かめた）
+## 0. 今の状態（2026-10-01 09:10 JST。棚卸しは 1.2 の出力、公開の DNS と HTTP でも確かめた）
 
 - **いまの ludion.ai は旧 Ludion。**
+  - 配っているのは Worker **`ludion`** の**カスタムドメイン**（`ludion.ai` と `www.ludion.ai`、environment は production）。だから切り替えは 3 の一本道でよい。
   - 中身は「Ludion — アプリが住む場所」。React Router のアプリで、`/assets/entry.client-…js` を読む。
-  - 配っているのは Cloudflare（`Server: cloudflare`）。ネームサーバは `kehlani.ns.cloudflare.com` と `lennox.ns.cloudflare.com`。
+  - ネームサーバは `kehlani.ns.cloudflare.com` と `lennox.ns.cloudflare.com`。
   - `/e/signature_required` と `/scan` は 404。Gate の拒否が指すヘルプのページが、今は無い。
-  - `www.ludion.ai` も同じものを返す。
 - **同じ Cloudflare アカウントに、他の製品の資源がある。**
   - `synteria.xyz` のネームサーバが ludion.ai と同じ組（kehlani / lennox）。
   - 削除リストには Ludion の資源だけを入れる（1.3）。
 - **新しいサイト**：`site/`（Astro と Starlight の静的出力）と、それを配る Worker `site/edge/`。
   - `/e/<code>`、`/scan`、`/gate`、英語はルート、日本語は `/ja/`。
   - 登録フォームの受け口は `POST /api/signup`。
-- **プレビュー**：`ludion-site-preview.<アカウントのサブドメイン>.workers.dev`。
-  - デプロイは `npm run deploy:preview`（2）。Cloudflare のトークン待ち。
+- **プレビュー：https://ludion-site-preview.ludion.workers.dev**（2026-10-01 09:05 にデプロイ、WEB-1 PASS）。
+  - 全28ページ（英日）が手元のビルドとバイト単位で一致。Lighthouse（モバイル）の4項目は全ページ 96 以上。
+  - 登録フォームの通知先（`SIGNUP_WEBHOOK_URL`）はまだ無いので、送信すると「送信できませんでした」と答える。
+- **トークン**（1.1）：09:00 に置いたトークン（期限 2026-11-03）は、このアカウントのどの API も 401 だった。Account Resources にこのアカウントが入っていないと思われる。棚卸しとデプロイは、前からあるトークン（期限 2026-10-17）で行った。
 
 ## 1. 旧 Ludion の棚卸し（読むだけ）
 
@@ -29,7 +31,9 @@
    - Account → **Cloudflare Pages**、**Workers KV Storage**、**D1**、**Workers R2 Storage** → **Read**
    - Zone → **Workers Routes**、**DNS** → **Read**
    - DNS の **Edit** は付けない。本番の DNS は人間だけが触る。
-4. **Account Resources**：Include → ludion.ai があるアカウント。**Zone Resources**：Include → Specific zone → `ludion.ai`。
+4. **Account Resources**：Include → ludion.ai があるアカウント（`Haya0910oasis@gmail.com's Account`）。**Zone Resources**：Include → Specific zone → `ludion.ai`。
+   - ここが外れていると、トークンは「有効」なのに、どの API も `401 Authentication error` になる（09:00 のトークンがそうだった）。
+   - 作ったあと、**API Tokens** の一覧でそのトークンの **…** → **Edit** → Account Resources を見直せる。
 5. **TTL**：今日から数日。
 6. **Continue to summary** → **Create Token**。表示されたトークンを控える。
 7. **アカウント ID**：ダッシュボードの左の **Workers & Pages** → 右側の **Account ID** の横のコピー。
@@ -55,11 +59,36 @@ node scripts/cf-inventory.mjs
 
 ### 1.3 削除リスト（Ludion の資源だけ）
 
-**Cloudflare**（1.2 の出力で埋める）：
+**Cloudflare**（2026-10-01 09:03 の 1.2 の出力。アカウント `Haya0910oasis@gmail.com's Account`）：
 
-| 種類 | 名前 | 作成日 | 最後の更新 | 結びついたドメイン | 消したときの影響 | 残すべきデータ |
-|---|---|---|---|---|---|---|
-| （棚卸し待ち） | | | | | | |
+| # | 種類 | 名前 | 作成日 | 最後の更新 | 結びついたドメイン | 消したときの影響 | 残すべきデータ・先にやること |
+|---|---|---|---|---|---|---|---|
+| 1 | Worker | `ludion` | 2026-09-22 | 2026-09-24 | **ludion.ai、www.ludion.ai** | 今の ludion.ai（旧アプリ）が消える。**3 の切り替えの後に消す。** Durable Object `ROOM` の保存データも一緒に消える | D1 `ludion`（#12）と R2 `ludion`（#15）を使う。GitHub の OAuth アプリ（`GITHUB_CLIENT_ID`）は GitHub 側で消す |
+| 2 | Worker | `ludion-api` | 2026-08-10 | 2026-09-04 | なし | なし（どこからも配っていない）。Durable Object `LUDION_ANALYTICS_DO`、`LUDION_WATCH_DO` の保存データが消える | **秘密の失効が先**：`OPENAI_API_KEY`（OpenAI）、`RAKUTEN_ACCESS_KEY`・`RAKUTEN_APPLICATION_ID`・`RAKUTEN_AFFILIATE_ID`（楽天）を提供元で失効させる。Worker を消してもキーは生きている。署名鍵 `CTBS_DISPLAY_LEASE_PRIVATE_SEED_HEX` もここにある（取り出せないので、使っていた先の鍵を失効させる） |
+| 3 | Worker | `ludion-collector` | 2026-06-12 | 2026-06-24 | なし | なし | KV `COLLECTOR_KV`（#11）と R2 `ludion-bench-submissions`（#16）を使う。**集めた提出物（人の情報かもしれない）が入っている** |
+| 4 | Worker | `ludion-fallback-relay` | 2026-06-20 | 2026-06-21 | なし | なし | `PROVIDER_API_KEY` を提供元で失効させる |
+| 5 | Worker | `ludion-task299-fetch-proof` | 2026-09-04 | 2026-09-04 | なし | なし | なし（平文の変数1つだけ） |
+| 6 | Worker | `ludion-task300-pipeline` | 2026-09-04 | 2026-09-04 | なし | なし | なし（平文の変数1つだけ） |
+| 7 | Worker | `ludion-web` | 2026-08-10 | 2026-08-18 | なし | なし | 静的ファイルだけ。ソースが git に無ければ落としておく |
+| 8 | Pages | `ludion-demo` | 2026-06-11 | 2026-06-28 | `ludion-demo.pages.dev` だけ | その URL が消える | ソースが git に無ければ、最後のデプロイを落としておく |
+| 9 | Pages | `ludion-bench` | 2026-06-12 | 2026-06-14 | `ludion-bench.pages.dev` だけ | その URL が消える | 同上 |
+| 10 | KV | ` ludion-workspace`（名前の先頭に空白） | ? | ? | — | どの Worker も使っていない | 中身を書き出す（下の決まり） |
+| 11 | KV | `COLLECTOR_KV` | ? | ? | — | `ludion-collector`（#3）が使う。#3 の後に消す | 中身を書き出す |
+| 12 | D1 | `ludion` | 2026-09-22 | ? | — | `ludion`（#1）が使う。#1 の後に消す | **217 KB。書き出す**。登録者などの情報なら、残すか消すかを決める |
+| 13 | D1 | `ludion-commerce-discovery` | 2026-09-03 | ? | — | `ludion-api`（#2）が使う | 147 KB。書き出す |
+| 14 | D1 | `ludion-ctbs-authority` | 2026-08-28 | ? | — | `ludion-api`（#2）が使う | 25 KB。書き出す |
+| 15 | R2 | `ludion` | ? | ? | — | `ludion`（#1）が `SOURCES` として使う | トークンに R2 の権限がなく、中身と大きさは未確認。ダッシュボードで見る |
+| 16 | R2 | `ludion-bench-submissions` | ? | ? | — | `ludion-collector`（#3）が `SUBMISSIONS` として使う | 同上。**提出物が入っている** |
+
+- D1 の一覧の表は「テーブル 0」と返したが、大きさは 0 ではない。一覧の数字は信用せず、書き出して中身を見る。
+- `ludion.ai` の DNS とルートは、このトークンでは読めなかった。カスタムドメインは読めた（上の #1）。
+
+**対象外**（Ludion のものではない、またはそう判断できないもの。リストに入れない）：
+
+| 種類 | 名前 | 理由 |
+|---|---|---|
+| Pages | `synteria`（`synteria.xyz`） | 別の製品 |
+| Worker | `chat-app-relay` | 名前もドメインも Ludion ではなく、Ludion の資源も使っていない。誰のものかは人間が判断する |
 
 **Vercel**（2026-10-01 に読み取りで確かめた。チーム `usercode_X's projects`）：
 
@@ -114,35 +143,17 @@ npx wrangler secret put SIGNUP_WEBHOOK_URL --name ludion-site
 - `wrangler` のログインがまだなら、先に `npx wrangler login`。
 - 出力の `https://ludion-site.<サブドメイン>.workers.dev` を開き、トップ、`/ja`、`/scan`、`/e/signature_required` が出ることを見る。
 
-### 2. 旧が何で ludion.ai を配っているかを見る
+### 2. 旧の設定を控える（1分、戻すときに使う）
 
-1. ダッシュボードの左の **Workers & Pages** を開く。
-2. 1.3 の表で「結びついたドメイン」に `ludion.ai` がある行を探す。種類によって、次の 3 の手順が変わる。
-   - **Worker（カスタムドメイン）**：3-A
-   - **Worker（ルート `ludion.ai/*`）**：3-B
-   - **Pages**：3-C
+1. ダッシュボードの左の **Workers & Pages** → **`ludion`**（旧）→ **Settings** タブ → **Domains & Routes**。
+2. `ludion.ai` と `www.ludion.ai` の2行が **Custom domain** として並んでいることを見る（棚卸しのとおり）。ルートの行があれば、その pattern も控える。
 
-### 3. 旧から ludion.ai を外す
+### 3. 旧から ludion.ai を外す（ここからサイトが数分落ちる）
 
-**3-A. Worker のカスタムドメイン**
-
-1. **Workers & Pages** → 旧の Worker → **Settings** タブ → **Domains & Routes**。
-2. `ludion.ai` の行の右の **…** → **Remove** → 確認で **Remove**。
-3. `www.ludion.ai` の行があれば、同じく **Remove**。
+1. 同じ画面（`ludion` → **Settings** → **Domains & Routes**）で、`ludion.ai` の行の右の **…** → **Remove** → 確認で **Remove**。
+2. `www.ludion.ai` の行も、同じく **…** → **Remove** → **Remove**。
    - カスタムドメインを外すと、Cloudflare がその DNS のレコードも消す。
-
-**3-B. Worker のルート**
-
-1. **Workers & Pages** → 旧の Worker → **Settings** → **Domains & Routes**。
-2. `ludion.ai/*`（と `www.ludion.ai/*`）の行の **…** → **Remove**。
-3. 左のドメインの一覧で **ludion.ai** → **DNS** → **Records**。
-4. Name が `ludion.ai`（`@`）と `www` の行（A、AAAA、CNAME）の **Edit** → **Delete** → 確認で **Delete**。
-
-**3-C. Pages**
-
-1. **Workers & Pages** → 旧の Pages のプロジェクト → **Custom domains** タブ。
-2. `ludion.ai` の行の **…** → **Remove domain** → 確認。`www.ludion.ai` も同じ。
-3. **ludion.ai** → **DNS** → **Records** で、`*.pages.dev` を指している `ludion.ai` と `www` の CNAME を **Edit** → **Delete**。
+   - 外すのは1つずつ。どちらかが残っていると、4 で同じ名前を付けられない（1つの名前は1つの Worker にしか付かない）。
 
 ### 4. 新に ludion.ai を付ける
 
@@ -164,15 +175,15 @@ curl -s https://ludion.ai/_build.json              # {"site":"…"}：新しい�
 - ブラウザで `https://ludion.ai/scan` を開き、アクセスログを落として数字が出ることを見る。
 - 登録フォームから1件送り、通知先に届くことを見る。
 
-**戻し方**（何かおかしいとき）：`ludion-site` の **Domains & Routes** から `ludion.ai` を **Remove** し、3 で外したものを元に戻す。
+**戻し方**（何かおかしいとき、数分で戻る）：
 
-- カスタムドメインなら **Add** → **Custom domain**。
-- ルートなら **Add** → **Route**。
-- Pages なら **Custom domains** → **Set up a custom domain**。
+1. **Workers & Pages** → **`ludion-site`** → **Settings** → **Domains & Routes** で、`ludion.ai` と `www.ludion.ai` を **…** → **Remove**。
+2. **Workers & Pages** → **`ludion`**（旧）→ **Settings** → **Domains & Routes** → **+ Add** → **Custom domain** → `ludion.ai` → **Add domain**。`www.ludion.ai` も同じ。
+3. 旧を消すのは、戻す必要がないと分かってから（6）。
 
 ### 6. 旧を消す（切り替えが済んで、1日様子を見てから）
 
-1.3 の表の上から順に行う。データの書き出しが済んだものだけ消す。
+1.3 の表の順に行う。先に秘密の失効（#2、#4、#1 の GitHub OAuth アプリ）と、データの書き出し（#10〜#16）を済ませる。済んだものだけ消す。Worker を先に消し、それが使っていた KV・D1・R2 を後に消す。
 
 - **Worker**：**Workers & Pages** → その Worker → **Settings** → いちばん下の **Delete** → 名前を入れて **Delete**。
 - **Pages**：そのプロジェクト → **Settings** → いちばん下の **Delete project** → 名前を入れて **Delete**。

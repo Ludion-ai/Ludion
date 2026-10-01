@@ -12,7 +12,7 @@ import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
 export const SITE = path.dirname(fileURLToPath(import.meta.url));
-const SKIP = new Set(["node_modules", "dist", ".astro", "test"]);
+const SKIP = new Set(["node_modules", "dist", ".astro", "test", "preview.json"]); // preview.json records a deploy; it is not part of what was built
 // Code outside site/ that the build bundles (astro.config.mjs aliases it): /scan runs the CLI's scan.
 const BUNDLED = ["packages/scan/src", "packages/gate-core/src/agents.mjs", "packages/gate-core/src/route.mjs"];
 const ENV = { ASTRO_TELEMETRY_DISABLED: "1", npm_config_audit: "false", npm_config_fund: "false", npm_config_update_notifier: "false" };
