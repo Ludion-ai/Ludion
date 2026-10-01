@@ -433,6 +433,7 @@ Signature: sig1=:<Ed25519署名のbase64>:
 
 - 必須の署名対象：`@authority`、`"signature-agent";key=<ラベル>`（Web Bot Auth）。`ludion-staple`、`ludion-mandate` がある時は必ず含める。
 - 状態を変えるリクエスト（POST／PUT／PATCH／DELETE）は、`@method`、`@path`、`content-digest`（RFC 9530）も含める。
+- 検証者は、署名が覆う `content-digest` を、届いた本文と照合する（RFC 9530 の sha-256 と sha-512。知っているものは全部一致すること）。一致しなければ SPOOFED。本文を確かめられない（大きすぎる、先に読まれた、知らないアルゴリズムだけ）ときは VERIFIED にしない（UNVERIFIED）。本文はサイトの中でハッシュするだけで、外には出さない（§8 の6）。
 - `expires - created` は60秒以内。時計のずれは±30秒まで許す。
 - `nonce` は、有効期間内の再利用を検証者が拒否する。
 - アルゴリズムはEd25519のみ（v0）。
@@ -490,6 +491,7 @@ scopeの語彙（v0）：
 | `checkout` | 決済 |
 | `delete` | 削除・解約 |
 
+- `aud` がサイトの時、それは**そのリクエストの宛先**（authority）と一致しなければならない。同じ Gate が別のサイトも受け持っていても、別のサイトでは効かない。
 - 実名・住所・連絡先はMandateに入れない。必要な時は、サイトが通常の手段でPrincipal本人に求める。
 - Principalはいつでも取り消せる。寿命は短く、長期はリフレッシュで。
 
@@ -630,6 +632,8 @@ fail_mode:
   pressure_0_1: open        # Gateに障害があっても通す
   pressure_2_3: closed      # 重要経路は閉じる（サイトが選べる）
 ```
+
+- ルートが重なったら、一番厳しいものが勝つ。一致する全てのルートの中で最も高い Pressure と、どれかが求める要件の全部（Depth は最大、Ballast はどれかが求めれば、scope は全部）。並べる順番は関係しない。広いルートで狭いルートの圧を下げることも、狭いルートで広いルートに穴を開けることもできない。どのルートにも当たらない経路は、サイトの `pressure` のまま。
 
 ### 11.5 分類
 

@@ -41,13 +41,15 @@ async function world() {
   const S = await site({ ...common, host: "shop.example", revocations: { url: `${reg.url}/v0/revocations/stream`, retryMs: 200, maxRetryMs: 1000 } });
   const U = await site({ ...common, host: "shop.example" }); // the same site on a Gate that does not subscribe
   const O = await site({ ...common, host: "other.example", categories: ["ecommerce"] });
-  cleanups.push(() => S.close(), () => U.close(), () => O.close());
+  // One Gate in front of two sites (e.g. a shared reverse proxy): both authorities are its own.
+  const M = await site({ ...common, host: "admin.example", authorities: ["shop.example", "admin.example"] });
+  cleanups.push(() => S.close(), () => U.close(), () => O.close(), () => M.close());
   const [A, B] = await Promise.all(["A", "B"].map((name) => agent({ registryUrl: reg.url, clock, directory, name: `PRS-2 ${name}` })));
   const P = principal({ registryUrl: reg.url, now: () => clock.now(), passkey: await softPasskey({ alg: -7 }) });
   const Q = principal({ registryUrl: reg.url, now: () => clock.now(), passkey: await softPasskey({ alg: -8, counting: false }) });
   for (const p of [P, Q]) assert.equal((await p.register()).status, 201, "a Principal registers a passkey");
   assert.notEqual(await waitFor(() => S.gate.health.revocations.state === "open", 5000), Infinity, "S is subscribed to the revocation stream");
-  return { clock, reg, directory, S, U, O, A, B, P, Q };
+  return { clock, reg, directory, S, U, O, M, A, B, P, Q };
 }
 
 /** A checkout of `total` (minor units) by agent `x` at Gate `g`, carrying `mandate`. */
@@ -62,7 +64,7 @@ const refused = (r, error, reason) => r.status !== 200 && r.error === error && (
   && r.link === `<https://ludion.ai/e/${error}>; rel="help"`;
 
 test("PRS-2: inside scope and limits a checkout passes; out of scope, over a limit, expired, withdrawn, elsewhere or another Diver's is refused", { timeout: 180_000 }, async () => {
-  const { clock, reg, directory, S, U, O, A, B, P, Q } = await world();
+  const { clock, reg, directory, S, U, O, M, A, B, P, Q } = await world();
   const counts = { passed: 0, refused: 0 };
   const yes = (r, what) => { assert.ok(passed(r), `${what}: ${JSON.stringify({ status: r.status, error: r.error, body: r.body, refusal: r.refusal })}`); counts.passed++; };
   const no = (r, error, reason, what) => { assert.ok(refused(r, error, reason), `${what}: expected ${error}${reason ? `/${reason}` : ""}, got ${JSON.stringify({ status: r.status, error: r.error, refusal: r.refusal, body: r.body })}`); counts.refused++; };
@@ -126,6 +128,14 @@ test("PRS-2: inside scope and limits a checkout passes; out of scope, over a lim
   const Mother = r.body.mandate;
   no(await checkout(S, A, { mandate: Mother }), "mandate_required", "audience", "a Mandate for another site");
   yes(await checkout(O, A, { mandate: Mother }), "…which holds at that site");
+  // The audience is the site the request is for, not any site the Gate fronts: at a Gate whose
+  // authorities are shop.example and admin.example, a Mandate for shop.example holds on
+  // shop.example and not on admin.example (Codex audit #6).
+  r = await P.mandate({ sub: A.store.diver_id, aud: SHOP, scope: ["checkout"], limits: LIMITS });
+  const Mshop = r.body.mandate;
+  const asShop = { ...M, host: "shop.example", send: (p, h, m) => M.send(p, h, m, "shop.example") };
+  yes(await checkout(asShop, A, { mandate: Mshop }), "a two-site Gate: the Mandate on the site it names");
+  no(await checkout(M, A, { mandate: Mshop }), "mandate_required", "audience", "a two-site Gate: the same Mandate on its other site");
   const prnOther = JSON.parse(Buffer.from(Mother.split(".")[1], "base64url").toString()).prn;
   assert.notEqual(prnOther, m1.prn, "one Principal, two sites: two pseudonyms");
   r = await P.mandate({ sub: A.store.diver_id, aud: "cat:ecommerce", scope: ["checkout"], limits: LIMITS });

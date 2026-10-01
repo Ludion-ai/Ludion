@@ -1,0 +1,9 @@
+{
+  "id": "body-swap--empty-body",
+  "family": "body-swap",
+  "title": "Keep a captured POST's signed headers, send it with no body at all",
+  "params": {
+    "variant": "empty-body"
+  },
+  "added": "2026-10-01"
+}

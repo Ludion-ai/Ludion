@@ -14,7 +14,7 @@
 //
 // The receipt key comes from the LUDION_SITE_KEY secret (`wrangler secret put LUDION_SITE_KEY`).
 // It runs in the customer's own account, so neutrality holds (spec §11.2).
-import { createGate } from "@ludion/gate-core";
+import { createGate, bodyNeeded, readWebBody } from "@ludion/gate-core";
 import { gateConfig } from "@ludion/gate-core/config";
 
 /** The Gate's result for each request the wrapped handler is serving. */
@@ -74,7 +74,10 @@ export function withLudion(handler, { configVar = "LUDION", onError = defaultOnE
       let gate;
       try { gate = await (ready ??= init(env)); }
       catch (e) { ready = Promise.reject(e); ready.catch(() => {}); onError(e); return handler.fetch.call(this ?? handler, request, env, ctx); } // never take the site down
-      const result = await gate.inspect(describe(request), { ip: request.headers.get("cf-connecting-ip") ?? undefined, country: request.cf?.country });
+      const desc = describe(request);
+      // Only a signature that covers content-digest makes the Gate read the body: a clone, to check it (GATE-11).
+      if (bodyNeeded(desc)) desc.body = await readWebBody(request);
+      const result = await gate.inspect(desc, { ip: request.headers.get("cf-connecting-ip") ?? undefined, country: request.cf?.country });
       result.charge = (c) => gate.charge(result, c);
       results.set(request, result);
       if (pending.length) ctx?.waitUntil?.(Promise.allSettled(pending.splice(0)));

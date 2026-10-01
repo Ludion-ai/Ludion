@@ -1,7 +1,8 @@
 // @ludion/gate-next core: the Next.js proxy without importing Next (so it is testable anywhere).
 // Next.js 16 runs proxy.js on the Node.js runtime, before routing, for every request.
-import { createGate } from "@ludion/gate-core";
+import { createGate, bodyNeeded, readWebBody } from "@ludion/gate-core";
 import { gateConfig } from "@ludion/gate-core/config";
+import { createSafeFetch } from "@ludion/gate-core/safe-fetch";
 
 /** ludion.config.json (or $LUDION_CONFIG) from the directory `next start` / `next dev` runs in. */
 export async function readConfigFile(env = process.env) {
@@ -18,18 +19,29 @@ export function describe(request) {
 
 /**
  * @param {{ next: () => Response, loadConfig?: (env: object) => Promise<object>, env?: Record<string, string|undefined>,
- *           onError?: (e: unknown) => void }} deps
+ *           onError?: (e: unknown) => void, resolver?: { lookup?: Function, dial?: Function, insecureAllowHttp?: boolean } }} deps
  *        next: NextResponse.next — continue to the app with the headers set on the returned response.
+ *        resolver: tests only (name resolution, where a checked address is reached), as gate-node's config.resolver.
  */
-export function createNextGate({ next, loadConfig = readConfigFile, env = process.env, onError = defaultOnError }) {
+export function createNextGate({ next, loadConfig = readConfigFile, env = process.env, onError = defaultOnError, resolver = {} }) {
   let ready;
-  const init = async () => createGate(await gateConfig(await loadConfig(env), { siteKey: env.LUDION_SITE_KEY }));
+  // proxy.js runs on Node: key discovery goes through the safe transport, which checks and pins
+  // every resolved address, as in gate-node (GATE-6, GATE-12). Never the runtime's plain fetch.
+  const init = async () => {
+    const config = await gateConfig(await loadConfig(env), { siteKey: env.LUDION_SITE_KEY });
+    const { lookup, dial, ...rest } = resolver;
+    const fetch = createSafeFetch({ lookup, dial, allowPrivateNetwork: rest.allowPrivateNetwork });
+    return createGate({ ...config, resolver: { ...config.resolver, ...rest, fetch } });
+  };
 
   async function proxy(request) {
     let gate;
     try { gate = await (ready ??= init()); }
     catch (e) { ready = Promise.reject(e); ready.catch(() => {}); onError(e); return next(); } // a broken config never takes the site down
-    const result = await gate.inspect(describe(request), {
+    const desc = describe(request);
+    // Only a signature that covers content-digest makes the Gate read the body: a clone, to check it (GATE-11).
+    if (bodyNeeded(desc)) desc.body = await readWebBody(request);
+    const result = await gate.inspect(desc, {
       ip: request.headers.get("x-forwarded-for")?.split(",")[0].trim(), country: request.headers.get("x-vercel-ip-country") ?? undefined,
     });
     if (result.decision.action === "deny") {

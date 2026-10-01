@@ -1,0 +1,9 @@
+{
+  "id": "body-swap--appended-bytes",
+  "family": "body-swap",
+  "title": "Keep a captured POST's signed headers, append bytes to its body",
+  "params": {
+    "variant": "appended-bytes"
+  },
+  "added": "2026-10-01"
+}

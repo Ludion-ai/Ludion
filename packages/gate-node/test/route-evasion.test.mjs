@@ -86,14 +86,18 @@ test("GATE-7: unverified automation on neighbouring and ordinary paths is not pu
   }
 });
 
-test("GATE-7: the matcher errs toward protection but keeps carve-outs, neighbours and the base pressure", () => {
+// Until 2026-10-01 a narrower lower-Pressure route listed first ("/checkout/help" at P0 before
+// "/checkout/**" at P2) carved a hole in the broader one. The human's rule for overlapping routes
+// (Codex audit #8, PRS-4) is that the strictest wins, so that path is now protected like its route.
+test("GATE-7: the matcher errs toward protection, keeps neighbours and the base pressure; an overlapping lower route is no carve-out", () => {
   const p = createPolicy({ pressure: 0, routes: [{ match: "/checkout/help", pressure: 0 }, { match: "/checkout/**", pressure: 2 }, { match: "/login", pressure: 2, require: { depth: 1 } }] });
   const at = (path) => p.forPath(path).pressure;
-  for (const path of ["/checkout", "/checkout/", "/CHECKOUT/9", "/login", "/login/", "/LOGIN", "/%6Cogin", "/x/../login", "/login;a=b", "/login.json", "/login.", "//login", "/checkout%2F9", "/checkout/help.json"]) {
+  for (const path of ["/checkout", "/checkout/", "/CHECKOUT/9", "/login", "/login/", "/LOGIN", "/%6Cogin", "/x/../login", "/login;a=b", "/login.json", "/login.", "//login", "/checkout%2F9", "/checkout/help.json",
+    "/checkout/help", "/CHECKOUT/HELP", "/checkout/help/"]) {
     assert.equal(at(path), 2, `${path} is protected`);
   }
   assert.deepEqual(p.forPath("/Login/").require, { depth: 1 }, "the protecting route's requirements come with it");
-  for (const path of ["/checkout/help", "/CHECKOUT/HELP", "/checkout/help/", "/checkoutx", "/logins", "/log/in", "/about", "/"]) {
+  for (const path of ["/checkoutx", "/logins", "/log/in", "/about", "/"]) {
     assert.equal(at(path), 0, `${path} keeps its configured pressure`);
   }
   // A lower-pressure route can never be reached by spelling a path oddly: the higher pressure wins.

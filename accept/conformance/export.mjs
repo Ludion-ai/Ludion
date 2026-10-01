@@ -78,9 +78,10 @@ function recordingHarness(original) {
 function serializeRequest(s) {
   if (s.node) {
     const r = s.req;
-    return { raw: { method: r.method, target: r.url, rawHeaders: r.rawHeaders, tls: !!r.socket?.encrypted, remoteAddress: r.socket?.remoteAddress } };
+    return { raw: { method: r.method, target: r.url, rawHeaders: r.rawHeaders, tls: !!r.socket?.encrypted, remoteAddress: r.socket?.remoteAddress, ...(r.conformanceBody != null ? { body: r.conformanceBody } : {}) } };
   }
-  return { core: { method: s.req.method, targetUri: s.req.targetUri, fields: s.req.fields.map((f) => ({ name: f.name, value: f.value })) } };
+  // `body`: the bytes that arrive (UTF-8). A Gate checks a signed Content-Digest against them (GATE-11).
+  return { core: { method: s.req.method, targetUri: s.req.targetUri, fields: s.req.fields.map((f) => ({ name: f.name, value: f.value })), ...(s.req.body != null ? { body: String(s.req.body) } : {}) } };
 }
 
 /** One corpus entry → a case, run against the real Gates as it is recorded. */
@@ -167,7 +168,7 @@ async function std2Vectors(original) {
       const r = await gate.inspect(s.req);
       steps.push({
         gate: "main", atS: 0, expect: s.expect, ...(s.classes ? { classes: s.classes } : {}), ...(s.expect === "verified" ? { identifier: s.identifier } : {}), note: s.note,
-        core: { method: s.req.method, targetUri: s.req.targetUri, fields: s.req.fields.map((f) => ({ name: f.name, value: f.value })) },
+        ...serializeRequest(s),
         reference: { class: r.cls.class, action: r.decision.action, ...(r.decision.error ? { error: r.decision.error } : {}) },
       });
     }

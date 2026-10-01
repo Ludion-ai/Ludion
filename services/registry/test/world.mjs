@@ -100,10 +100,10 @@ export function directoryHost() {
  * through req.ludion.charge (the Gate never reads the cart; the site knows the total) and answers
  * the Gate's refusal if there is one. The answer then carries `charge`.
  */
-export async function site({ host = "shop.example", clock, registryKeys, revocations, directory, routes, categories }) {
+export async function site({ host = "shop.example", authorities = [host], clock, registryKeys, revocations, directory, routes, categories }) {
   const siteKey = await generateSiteKey();
   const mw = await ludionGate({
-    siteId: `site-${host}`, siteKey: siteKey.privateJwk, pressure: 0, now: () => clock.now(), authorities: [host],
+    siteId: `site-${host}`, siteKey: siteKey.privateJwk, pressure: 0, now: () => clock.now(), authorities,
     routes: routes ?? [{ match: "/checkout/**", pressure: 2, require: { depth: 1, ballast: "active" } }, { match: "/account", pressure: 2 }],
     registryKeys, registryIssuer: ISSUER, resolver: { fetch: directory.fetch },
     ...(revocations ? { revocations } : {}), ...(categories ? { categories } : {}),
@@ -129,11 +129,11 @@ export async function site({ host = "shop.example", clock, registryKeys, revocat
   const origin = `http://127.0.0.1:${server.address().port}`;
   return {
     gate: mw.gate, host, origin,
-    /** Send a request as it would arrive at https://<host><path>. */
-    send(pathname, headers = {}, method = "GET") {
+    /** Send a request as it would arrive at https://<as><path> (`as`: another of the Gate's authorities). */
+    send(pathname, headers = {}, method = "GET", as = host) {
       const t = performance.now();
       return new Promise((resolve, reject) => {
-        const req = http.request(`${origin}${pathname}`, { method, headers: { ...headers, host }, agent: false }, (res) => {
+        const req = http.request(`${origin}${pathname}`, { method, headers: { ...headers, host: as }, agent: false }, (res) => {
           const chunks = [];
           res.on("data", (c) => chunks.push(c));
           res.on("end", () => {

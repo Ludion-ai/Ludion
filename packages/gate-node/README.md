@@ -26,6 +26,8 @@ Put `ludion.config.json` next to your `package.json`:
 
 Pressure 0 only observes. Nothing changes for anyone until you raise it.
 
+Mount the Gate **before** any body parser (`express.json()`, `multer`, …). When an agent signs a request's `Content-Digest`, the Gate reads the body to check it against that digest, then hands every byte back to your parser. It never parses the body and never sends it anywhere. A body that is over 1 MiB (`maxBodyBytes`), or that something read before the Gate did, cannot be checked, so the request is not `VERIFIED`.
+
 ## Configuration
 
 `ludion.config.json` takes the shape of spec §11.4. Unknown keys are an error, so a typo can't silently mean Pressure 0.
@@ -71,7 +73,7 @@ A route can ask agents for a Mandate: the Principal's signed delegation, with a 
 
 The Gate checks the Mandate an agent sends: its signature, the Diver it names, your site, its expiry, and whether it was withdrawn. An agent without one gets `403 mandate_required`, and one whose Mandate lacks the scope gets `403 mandate_scope`.
 
-The amount is yours to give, because the Gate never reads the body. Where your handler knows the cart total, charge it:
+The amount is yours to give: the Gate reads a body only to check a signed `Content-Digest`, and never parses it. Where your handler knows the cart total, charge it:
 
 ```js
 app.post("/checkout/:id", (req, res) => {

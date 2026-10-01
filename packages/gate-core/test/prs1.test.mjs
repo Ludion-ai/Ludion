@@ -70,7 +70,7 @@ function qualifies(c, req) {
   if (!req) return true;
   if (req.depth !== undefined && (c.depth ?? 0) < req.depth) return false;
   if (req.ballast === "active" && c.ballast?.status !== "active") return false;
-  if (req.scope && !c.mandate?.scope?.includes(req.scope)) return false;
+  if (req.scope && ![].concat(req.scope).every((s) => c.mandate?.scope?.includes(s))) return false; // overlapping routes: every scope (PRS-4)
   return true;
 }
 
@@ -79,10 +79,12 @@ function check(w) {
   const route = policy.forPath(w.path);
   const d = decide(w.cls, route);
   const configured = new Set([w.base, ...w.routes.map((r) => r.pressure ?? w.base)]);
-  const literal = w.routes.find((r) => compileRoute(r.match).test(w.path));
+  // The floor, computed here: the strictest of every route the literal path matches (PRS-4), never forPath's choice.
+  const literal = w.routes.filter((r) => compileRoute(r.match).test(w.path));
+  const floor = literal.length ? Math.max(...literal.map((r) => r.pressure ?? w.base)) : null;
   const problems = [];
   if (!configured.has(route.pressure)) problems.push(`pressure ${route.pressure} is not one the site configured`);
-  if (literal && route.pressure < (literal.pressure ?? w.base)) problems.push(`a spelling lowered protection below the literal path's route ${literal.match} (P${literal.pressure})`);
+  if (floor != null && route.pressure < floor) problems.push(`protection below the strictest route the literal path matches (P${floor}: ${literal.map((r) => r.match).join(", ")})`);
   if (w.cls.class === "UNKNOWN" && d.action !== "allow") problems.push(`UNKNOWN got ${d.action}`);
   if (qualifies(w.cls, route.require) && d.action !== "allow") problems.push(`qualifying VERIFIED got ${d.action} (${d.error})`);
   if (d.action === "deny") {

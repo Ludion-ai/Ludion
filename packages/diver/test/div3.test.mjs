@@ -43,7 +43,7 @@ async function gateVia(publish) {
     const signer = await createDiverSigner({ sessionPrivateJwk: key, signatureAgent, cimd });
     const url = "https://shop.example/checkout/1";
     const h = await signer.headersFor({ method: "POST", url, headers: {}, body: "{}" });
-    return (await gate.inspect(inputOf(h, "POST", url))).cls;
+    return (await gate.inspect({ ...inputOf(h, "POST", url), body: "{}" })).cls; // the body an adapter hands over with a signed Content-Digest
   };
   return { check, seen };
 }

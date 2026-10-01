@@ -7,11 +7,13 @@
 // and Staple, a pinned Registry, a Gate at P0 with Pressure-2 routes. A step is
 // { req, atS, expect } against the world's Gate, or { gate, … } / { node, … } against another
 // Gate or the real @ludion/gate-node adapter. Expectations: verified | rejected | human | denied | flood.
+import { Readable } from "node:stream";
 import { component } from "http-message-sig";
 import { ludionGate } from "@ludion/gate-node";
 import { generateSiteKey, originForm, MANDATE_TYP } from "@ludion/gate-core";
 import { signJws } from "@ludion/gate-core/staple";
-import { keypair as supportKeypair, signed as supportSigned, harness as supportHarness, staple, withFields, fieldOf, retarget, AGENT, ATTACKER, SITE, NOW_MS, NOW_S, ROUTES, REGISTRY_ISS } from "../../packages/gate-core/test/support.mjs";
+import { createHash } from "node:crypto";
+import { keypair as supportKeypair, signed as supportSigned, harness as supportHarness, staple, withFields, fieldOf, retarget, digestOf, AGENT, ATTACKER, SITE, NOW_MS, NOW_S, ROUTES, REGISTRY_ISS } from "../../packages/gate-core/test/support.mjs";
 
 /**
  * What families build worlds with. The conformance exporter (accept/conformance/export.mjs) swaps in
@@ -20,7 +22,7 @@ import { keypair as supportKeypair, signed as supportSigned, harness as supportH
  */
 export const deps = { harness: supportHarness, keypair: supportKeypair, signed: supportSigned };
 
-export const REQUIRED = ["replay", "staple-swap", "cnf-mismatch", "strip-signature", "key-confusion", "label-confusion", "omitted-components", "clock-skew", "route-evasion", "cross-site-replay", "nonce-flood", "mandate-swap"];
+export const REQUIRED = ["replay", "staple-swap", "cnf-mismatch", "strip-signature", "key-confusion", "label-confusion", "omitted-components", "clock-skew", "route-evasion", "cross-site-replay", "nonce-flood", "mandate-swap", "body-swap"];
 export const UAS = {
   human: "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_0) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15",
   suspected: "python-requests/2.32.3",
@@ -60,12 +62,19 @@ export async function nodeGate(w, opts = {}) {
   return mw;
 }
 
-/** An IncomingMessage as Node hands it to the app: the raw request-target, raw headers, a TLS socket. */
+/**
+ * An IncomingMessage as Node hands it to the app: the raw request-target, raw headers, a TLS socket,
+ * and the body as a stream with the Content-Length that frames it (the Gate reads it to check a
+ * signed Content-Digest, GATE-11).
+ */
 export function incoming(desc, target) {
-  const fields = desc.fields.some((f) => f.name.toLowerCase() === "host") ? desc.fields : [{ name: "host", value: new URL(SITE).host }, ...desc.fields];
+  let fields = desc.fields.some((f) => f.name.toLowerCase() === "host") ? desc.fields : [{ name: "host", value: new URL(SITE).host }, ...desc.fields];
+  const body = desc.body == null ? null : Buffer.from(desc.body);
+  if (body && !fields.some((f) => f.name.toLowerCase() === "content-length")) fields = [...fields, { name: "content-length", value: String(body.length) }];
   const headers = {};
   for (const f of fields) { const k = f.name.toLowerCase(); headers[k] = k in headers ? `${headers[k]}, ${f.value}` : f.value; }
-  return { method: desc.method, url: target, rawHeaders: fields.flatMap((f) => [f.name, f.value]), headers, socket: { encrypted: true, remoteAddress: "203.0.113.7" } };
+  return Object.assign(Readable.from(body ? [body] : []), { method: desc.method, url: target, rawHeaders: fields.flatMap((f) => [f.name, f.value]), headers, socket: { encrypted: true, remoteAddress: "203.0.113.7" },
+    conformanceBody: body ? body.toString("utf8") : null }); // what the conformance export writes as the raw body
 }
 
 /** Run one request through the adapter: did it reach the app, and what did the Gate decide? */
@@ -202,6 +211,31 @@ export const FAMILIES = {
       const fields = req.fields.filter((f) => f.name !== "signature-agent");
       fields.unshift({ name: "signature-agent", value: `sig1="${ATTACKER}"` }, { name: "signature-agent", value: `sig1="${AGENT}"` });
       return [ok(await deps.signed({ key: w.attacker, agent: ATTACKER })), bad({ ...req, fields })];
+    }
+    throw new Error(`unknown variant ${variant}`);
+  },
+  // Another body under a captured signature (spec §10.4, RFC 9530, GATE-11): the signature covers
+  // the Content-Digest, so only a body that hashes to it is the signed one. The headers stay exactly
+  // as signed. Control: the same agent's request with the body it signed is VERIFIED.
+  async "body-swap"({ variant, body = '{"sku":1,"amount":100}', swapped = '{"sku":1,"amount":900}' }, w) {
+    const control = ok(await deps.signed({ key: w.agent, method: "POST", body }));
+    const req = await deps.signed({ key: w.agent, method: "POST", body });
+    if (variant === "other-body") return [control, bad({ ...req, body: swapped })];
+    if (variant === "empty-body") return [control, bad({ ...req, body: "" })];
+    if (variant === "appended-bytes") return [control, bad({ ...req, body: `${body}
+` })];
+    if (variant === "through-node") {
+      const mw = await nodeGate(w);
+      const honest = await deps.signed({ key: w.agent, method: "POST", body });
+      return [{ node: mw, req: incoming(honest, "/checkout/1"), atS: 0, expect: "verified" },
+        { node: mw, req: incoming({ ...req, body: swapped }, "/checkout/1"), atS: 0, expect: "rejected" }];
+    }
+    if (variant === "second-digest-for-other-body") {
+      // sha-256 of the signed body, sha-512 of another: every digest the Gate checks must match.
+      const sha512 = (b) => `sha-512=:${createHash("sha512").update(b).digest("base64")}:`;
+      const both = (second) => deps.signed({ key: w.agent, method: "POST", headers: { "content-digest": `${digestOf(body)}, ${second}` },
+        components: ["@authority", component("signature-agent", { key: "sig1" }), "@method", "@path", "content-digest"] }).then((r) => ({ ...r, body }));
+      return [ok(await both(sha512(body))), bad(await both(sha512(swapped)))];
     }
     throw new Error(`unknown variant ${variant}`);
   },

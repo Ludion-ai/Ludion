@@ -44,7 +44,7 @@ const LOCAL_NAME = /(^|\.)(localhost|local|internal|localdomain|home\.arpa|lan|i
  * that are not public (every form the URL parser normalises to, e.g. 2130706433, 0x7f.1, [::ffff:7f00:1]),
  * and names that are local by construction (single-label names such as `metadata`, `.internal`, …).
  * A name that resolves to a non-public address is caught at connect time by the runtime's fetch
- * (gate-node: safe-fetch.mjs, which checks and pins every resolved address — DNS rebinding).
+ * (on Node: safe-fetch.mjs, which every Node adapter uses; it checks and pins every resolved address — DNS rebinding).
  */
 export function assertFetchable(url, opts) {
   if (url.protocol !== "https:" && !(opts.insecureAllowHttp && url.protocol === "http:")) {

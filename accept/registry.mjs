@@ -122,6 +122,14 @@ export const ORACLES = [
     run: nodeTest(["accept/conformance/gate10.test.mjs"], "^GATE-10:", {
       metric: (out) => (/^# GATE-10: (.+)$/m.exec(out) ?? [])[1] }) },
 
+  // The body a signature binds through its Content-Digest is the body the app gets (Codex audit #5):
+  // through the real adapters (gate-node on a real HTTP server, gate-workers, gate-next).
+  { id: "GATE-11", m: "M1", kind: "±", level: 1, title: "the signed body is the body: a covered Content-Digest is held to the bytes that arrive (Node, Workers, Next); the same headers with another body are never VERIFIED",
+    run: nodeTest(["accept/body/gate11.test.mjs"], "^GATE-11:") },
+  // GATE-6 held to @ludion/gate-next (Codex audit #7): the proxy as shipped, this process's DNS replaced.
+  { id: "GATE-12", m: "M1", kind: "±", level: 1, title: "SSRF in the Next.js adapter: names resolving to non-public addresses reach the internal service 0 times; a public directory still VERIFIES",
+    run: nodeTest(["packages/gate-next/test/gate12.test.mjs"], "^GATE-12:") },
+
   // ── M1 privacy ─────────────────────────────────────────────────────────────────
   { id: "PRIV-1", m: "M1", kind: "-", level: 1, title: "canary egress: 0 canaries, 0 raw IPs in any byte leaving the Gate (10k fuzzed)",
     run: nodeTest(["packages/gate-node/test/priv.test.mjs"], "^PRIV-1:") },
@@ -185,6 +193,10 @@ export const ORACLES = [
   { id: "PRS-2", m: "M5", kind: "±", level: 1, title: "Mandate v0: in scope/limit passes; out of scope/over limit/expired/revoked denied",
     run: nodeTest(["services/registry/test/prs2.test.mjs"], "^PRS-2:", {
       metric: (out) => (/^# PRS-2: (.+)$/m.exec(out) ?? [])[1] }) },
+  // Overlapping routes (Codex audit #8; the rule is the human's, 2026-10-01): the strictest wins.
+  // Expectations computed from the rule route by route, never from forPath(); and over real HTTP.
+  { id: "PRS-4", m: "M5", kind: "±", level: 1, title: "overlapping routes: the strictest wins (highest Pressure, every requirement), whatever the order; a leading /** at P0 never lowers /checkout",
+    run: nodeTest(["packages/gate-core/test/prs4.test.mjs"], "^PRS-4:") },
   // The same portable suite on Node, Deno (no permissions) and workerd, against the npm-packed
   // packages; pinned runtimes in accept/neutral/runtime, installed in the OS temp dir (ADR-027).
   { id: "NEUT-1", m: "M5", kind: "+", level: 1, pair: "NEUT-2", title: "gate-core and Card Host pass the same suite on ≥2 independent runtimes",

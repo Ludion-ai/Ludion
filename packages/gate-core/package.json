@@ -21,7 +21,8 @@
     "./mandate": "./src/mandate.mjs",
     "./revocation": "./src/revocation.mjs",
     "./route": "./src/route.mjs",
-    "./staple": "./src/staple.mjs"
+    "./staple": "./src/staple.mjs",
+    "./safe-fetch": "./src/safe-fetch.mjs"
   },
   "files": [
     "src/",

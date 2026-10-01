@@ -1,0 +1,9 @@
+{
+  "id": "body-swap--through-node",
+  "family": "body-swap",
+  "title": "Through the real Node adapter: the signed headers of a captured POST with another body on the wire",
+  "params": {
+    "variant": "through-node"
+  },
+  "added": "2026-10-01"
+}

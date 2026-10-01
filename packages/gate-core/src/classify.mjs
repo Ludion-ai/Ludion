@@ -22,6 +22,7 @@ import { matchKnownAgent, matchAutomationSignal } from "./agents.mjs";
 import { GateFault, within, clock } from "./budget.mjs";
 import { routeCandidates } from "./route.mjs";
 import { requestAuthority } from "./authority.mjs";
+import { checkContentDigest } from "./digest.mjs";
 
 export const CLASSES = ["VERIFIED", "UNVERIFIED", "SPOOFED", "REVOKED", "DECLARED", "SUSPECTED", "UNKNOWN"];
 export const AUTOMATION = new Set(["VERIFIED", "UNVERIFIED", "SPOOFED", "REVOKED", "DECLARED", "SUSPECTED"]);
@@ -83,7 +84,7 @@ function field(req, name) {
 // (e.g. draft-cavage signatures between fediverse servers) is not one of them.
 const CLAIM_FIELDS = ["signature-input", "signature-agent", "ludion-staple", "ludion-mandate"];
 
-/** The request announces a body (the Gate never reads it; spec §11.7). */
+/** The request announces a body (read only to check a signed Content-Digest, never sent; spec §11.7). */
 function announcesBody(req) {
   return Number(field(req, "content-length") ?? 0) > 0 || field(req, "transfer-encoding") !== undefined;
 }
@@ -192,6 +193,20 @@ export async function classify(req, ctx) {
     return { class: "SPOOFED", reason: "invalid_signature", code: e?.code, detail: e?.message, signatureAgent: field(req, "signature-agent") };
   }
 
+  // The body (spec §10.4, RFC 9530): a covered Content-Digest binds the body only if the bytes that
+  // arrived hash to it. Checked before the nonce is spent, so an honest request whose body could
+  // not be read here can be sent again. Another body under the same signature is a spoof; a body
+  // the adapter could not hand over (too large, already read, none given) is simply unchecked.
+  if (sig.components.some((c) => (typeof c === "string" ? c : c.name) === "content-digest")) {
+    const body = req.body;
+    if (body == null || body.unavailable) {
+      return { class: "UNVERIFIED", reason: body?.unavailable ?? "body_unchecked", detail: "the signed body could not be checked against its Content-Digest", signatureAgent: field(req, "signature-agent") };
+    }
+    const digest = await checkContentDigest(field(req, "content-digest"), body);
+    if (digest === "mismatch") return { class: "SPOOFED", reason: "content_digest", detail: "the body is not the one the signature covers", signatureAgent: field(req, "signature-agent") };
+    if (digest !== "match") return { class: "UNVERIFIED", reason: `content_digest_${digest}`, detail: "no Content-Digest algorithm the Gate can check", signatureAgent: field(req, "signature-agent") };
+  }
+
   // Replay (spec §10.4). A signature stays acceptable until expires + skew, so it is remembered
   // that long. Without a nonce, the same signature on the same method and target is the replay;
   // the same signature on another path is what a signer that binds no nonce and no @path chose.
@@ -245,7 +260,7 @@ export async function classify(req, ctx) {
     if (!ctx.stapleVerifier) { out.mandateError = "no_registry_keys"; return out; }
     try {
       out.mandate = await verifyMandate(mandateHdr, {
-        stapleVerifier: ctx.stapleVerifier, staple: out.staple, authority, authorities: ctx.authorities,
+        stapleVerifier: ctx.stapleVerifier, staple: out.staple, authority,
         categories: ctx.categories, revocations: ctx.revocations, now: now ? now.getTime() : Date.now(), skewS: CLOCK_SKEW_S,
       });
     } catch (e) {
@@ -280,6 +295,19 @@ export function compileRoute(pattern) {
   return new RegExp(`^${re}${deep ? "(?:/.*)?" : "/?"}$`, "i");
 }
 
+/** The strictest of several routes' requirements: the highest depth, ballast if any asks, every scope. */
+function strictest(requires) {
+  const out = {}, scopes = [];
+  for (const q of requires) {
+    if (!q) continue;
+    if (q.depth !== undefined) out.depth = Math.max(out.depth ?? 0, q.depth);
+    if (q.ballast === "active") out.ballast = "active";
+    for (const s of [].concat(q.scope ?? [])) if (!scopes.includes(s)) scopes.push(s);
+  }
+  if (scopes.length) out.scope = scopes.length === 1 ? scopes[0] : scopes;
+  return Object.keys(out).length ? out : null;
+}
+
 /**
  * @param {{ pressure?: number, routes?: {match:string, pressure?:number, require?:{depth?:number, scope?:string, ballast?:"active"}}[] }} config
  */
@@ -289,19 +317,25 @@ export function createPolicy(config = {}) {
   return {
     /**
      * The route protecting a request path. Every path the app could plausibly route the request
-     * to is tried (routeCandidates); each takes its first matching route, and the highest
-     * pressure wins (ties: the literal path first). Erring toward protection only ever affects
-     * automation: decide() never touches UNKNOWN.
+     * to is tried (routeCandidates): a spelling no route matches keeps the site's Pressure, and
+     * every route matching a spelling counts. Where they overlap, the strictest wins (PRS-4): the
+     * highest Pressure, and every requirement any of them names. A broad route never lowers a
+     * narrower one and the order they are listed in never matters. Erring toward protection only
+     * ever affects automation: decide() never touches UNKNOWN.
      * @param {string} path
      */
     forPath(path) {
-      let best;
+      let pressure = -1, top = null;
+      const requires = [];
       for (const c of routeCandidates(path)) {
-        const r = routes.find((x) => x.re.test(c));
-        const pressure = r?.pressure ?? base;
-        if (!best || pressure > best.pressure) best = { r, pressure };
+        const hits = routes.filter((r) => r.re.test(c));
+        if (!hits.length && base > pressure) { pressure = base; top = null; }
+        for (const r of hits) {
+          if ((r.pressure ?? base) > pressure) { pressure = r.pressure ?? base; top = r; }
+          requires.push(r.require);
+        }
       }
-      return { pressure: best.pressure, require: best.r?.require ?? null, template: best.r?.match ?? null };
+      return { pressure, require: strictest(requires), template: top?.match ?? null };
     },
   };
 }
@@ -330,9 +364,10 @@ export function decide(cls, route) {
   if (req.depth !== undefined && (cls.depth ?? 0) < req.depth) return { action: "deny", status: 403, error: "depth_insufficient" };
   if (req.ballast === "active" && cls.ballast?.status !== "active") return { action: "deny", status: 403, error: "ballast_required" };
   if (req.scope) {
+    // Overlapping routes can each name a scope: the Mandate must carry every one (PRS-4).
     const m = cls.mandate;
     if (!m) return { action: "deny", status: 403, error: "mandate_required" };
-    if (!m.scope?.includes(req.scope)) return { action: "deny", status: 403, error: "mandate_scope" };
+    if (![].concat(req.scope).every((s) => m.scope?.includes(s))) return { action: "deny", status: 403, error: "mandate_scope" };
   }
   return { action: "allow", exempt: true };
 }
