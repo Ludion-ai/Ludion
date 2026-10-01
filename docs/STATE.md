@@ -61,7 +61,9 @@
   - D1 3つ、KV 2つ、R2 2つの中身を書き出す。提出物や登録者の情報なら、残すか消すかを決める。
   - `chat-app-relay`（Worker）は Ludion のものか判断できなかった。リストに入れていない。
 - [ ] **npm の publish**（docs/PUBLISH.md）：先に npm で組織 `ludion` を作る。PUB-1 と PUB-2 が PASS。8パッケージを表の順に、OTP を入れて出す。
-- [ ] Cloudflare のトークンの整理：09:00 に置いたトークン（期限 2026-11-03、`~/.config/ludion/cloudflare.env`）は、このアカウントのどの API も 401。Account Resources を見直す（DEPLOY.md §1.1）。棚卸しとデプロイは、前からあるトークン（期限 2026-10-17、ターミナルの環境変数）で行った。片方に揃えて、もう片方は失効させる。
+- [ ] **エージェント用の Cloudflare アカウントを分ける**（DEPLOY.md §5）。今のトークンは本番の Worker の中身も書き換えられる。
+  - 分けたあと、エージェントのトークンは新しいアカウントの Workers Scripts Edit だけの1本にする。今ある2本（ターミナルの「前からある方」、期限 10/17。`~/.config/ludion/cloudflare.env` のもの、使い始め 10/3）は失効させる。
+  - この機械の wrangler のログイン（2026-09-24、`default.enc`）は `npx wrangler logout` で消す。
 - [ ] npm `ludion` と `@ludion`、PyPI `ludion` の確保（2026-09-30 時点で全て空き。匂わせ投稿の前に）
 - [x] リポジトリの公開設定の判断 → public、`Ludion-ai/Ludion`（2026-09-30）
 - [x] main のブランチ保護：PR 必須、`loop` チェック必須、auto-merge 許可（2026-09-30。strict と enforce_admins も付けた）
