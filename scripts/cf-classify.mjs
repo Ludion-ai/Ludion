@@ -40,6 +40,18 @@ export function classify({ scripts, domains, routes, pages, kv, d1, r2, zoneName
   for (const n of res(kv)) store("KV", "kv_namespace", n.title, n.id);
   for (const d of res(d1)) store("D1", "d1", d.name, d.uuid, d.created_at);
   for (const b of res(r2)) store("R2", "r2_bucket", b.name, b.name, b.creation_date);
+  // The bucket list may be unreadable (no R2 permission). A bucket a Ludion Worker binds is still Ludion's.
+  if (r2?.error) {
+    const seen = new Set();
+    for (const w of res(scripts)) {
+      if (!ludionWorkers.has(w.id)) continue;
+      for (const b of w.bindings ?? []) {
+        if (b.type !== "r2_bucket" || seen.has(b.bucket_name ?? b.name)) continue;
+        seen.add(b.bucket_name ?? b.name);
+        put({ kind: "R2", name: b.bucket_name ?? b.name }, true, `bound by ${w.id} (bucket list not readable: check in the dashboard)`);
+      }
+    }
+  }
   return out;
 }
 
@@ -67,4 +79,7 @@ if (process.argv.includes("--self-test")) {
   ok(JSON.stringify(L) === JSON.stringify(["blog", "landing", "ludion-old", "ludion-site-preview", "ludion-web", "sessions"]), `Ludion's by name, by ludion.ai, by a Ludion Worker's binding: ${L}`);
   ok(["synteria-ludion-bridge", "synteria-site", "shop-edge", "synteria-cache", "synteria-db"].every((n) => O.includes(n)), `others never enter the list, even with "ludion" in the name: ${O}`);
   ok(c.ludion.find((r) => r.name === "ludion-site-preview").keep === true, "the new preview is kept");
+  const r2 = classify({ scripts: { result: [{ id: "ludion-x", bindings: [{ type: "r2_bucket", name: "B", bucket_name: "uploads" }] }, { id: "other", bindings: [{ type: "r2_bucket", bucket_name: "theirs" }] }] },
+    domains: { result: [] }, routes: { result: [] }, pages: { result: [] }, kv: { result: [] }, d1: { result: [] }, r2: { error: "403" } });
+  ok(r2.ludion.some((r) => r.kind === "R2" && r.name === "uploads") && !r2.ludion.some((r) => r.name === "theirs"), "an unreadable bucket list still yields the buckets Ludion Workers bind, and only those");
 }

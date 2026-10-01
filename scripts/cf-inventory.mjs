@@ -15,16 +15,16 @@ const zi = process.argv.indexOf("--zone");
 const zoneName = zi > 0 ? process.argv[zi + 1] : "ludion.ai";
 if (!token || !account) { console.error("set CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID"); process.exit(2); }
 
-async function get(p) {
+async function get(p, { perPage = 50 } = {}) {
   const out = [];
   for (let page = 1; page < 50; page++) {
-    const r = await fetch(`https://api.cloudflare.com/client/v4${p}${p.includes("?") ? "&" : "?"}page=${page}&per_page=50`, { headers: { authorization: `Bearer ${token}` } });
+    const r = await fetch(`https://api.cloudflare.com/client/v4${p}${p.includes("?") ? "&" : "?"}page=${page}&per_page=${perPage}`, { headers: { authorization: `Bearer ${token}` } });
     const j = await r.json().catch(() => ({}));
     if (!j.success) return { error: `${r.status} ${(j.errors ?? []).map((e) => `${e.code} ${e.message}`).join("; ")}` };
     if (!Array.isArray(j.result)) return { result: j.result };
     out.push(...j.result);
     const info = j.result_info;
-    if (!info || j.result.length === 0 || (info.total_pages ? page >= info.total_pages : j.result.length < 50)) break;
+    if (!info || j.result.length === 0 || (info.total_pages ? page >= info.total_pages : j.result.length < perPage)) break;
   }
   return { result: out };
 }
@@ -36,11 +36,17 @@ const A = `/accounts/${account}`;
 const zones = await get(`/zones?name=${encodeURIComponent(zoneName)}`);
 const zone = zones.result?.[0];
 const [scripts, domains, pages, kv, d1, r2, routes, dns] = await Promise.all([
-  get(`${A}/workers/scripts`), get(`${A}/workers/domains`), get(`${A}/pages/projects`),
+  get(`${A}/workers/scripts`), get(`${A}/workers/domains`), get(`${A}/pages/projects`, { perPage: 10 }),
   get(`${A}/storage/kv/namespaces`), get(`${A}/d1/database`), get(`${A}/r2/buckets`),
   zone ? get(`/zones/${zone.id}/workers/routes`) : Promise.resolve({ error: zones.error ?? `zone ${zoneName} not visible` }),
   zone ? get(`/zones/${zone.id}/dns_records`) : Promise.resolve({ error: zones.error ?? `zone ${zoneName} not visible` }),
 ]);
+
+// The script list carries no bindings; each script's settings do (GET only).
+for (const s of scripts.result ?? []) {
+  const r = await fetch(`https://api.cloudflare.com/client/v4${A}/workers/scripts/${encodeURIComponent(s.id)}/settings`, { headers: { authorization: `Bearer ${token}` } }).then((x) => x.json()).catch(() => ({}));
+  if (r.success) s.bindings = r.result?.bindings ?? [];
+}
 
 const lines = [`# Cloudflare inventory (${new Date().toISOString()}, read-only)`, ""];
 const section = (title, res, head, rows) => {
