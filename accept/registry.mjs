@@ -46,9 +46,9 @@ export function firstFailure(out) {
   let err = /^ {2}error: '((?:[^'\\]|\\.)*)'$/m.exec(block)?.[1];
   if (err == null) {
     const b = /^ {2}error: \|-?\n((?: {4}.*\n?)+)/m.exec(block);
-    err = b ? b[1].split("\n").map((l) => l.trim()).filter(Boolean).slice(0, 3).join(" / ") : "";
+    err = b ? b[1].split("\n").map((l) => l.trim()).filter((l) => l && l !== "+ actual - expected").slice(0, 10).join(" / ") : "";
   }
-  return `${m[1]}: ${err}`.slice(0, 400);
+  return `${m[1]}: ${err}`.slice(0, 900);
 }
 
 /** A node script; exit 0 is PASS. */
