@@ -12,6 +12,8 @@
 - 2026-10-01 から、進め方は**このセッション1本**。夜勤のループと2本の並走はやめた（人間の指示）。人間が spec を渡し、区切りのいいところで PR を1本出す。
   - 夜勤（`C:Usershaya0ludion-night`、`.loop/NIGHT.md`）は 2026-10-01 08:48 に終わった。もう動かない。
 - **サイト**：プレビュー https://ludion-site-preview.ludion.workers.dev （WEB-1 PASS）。本番（ludion.ai）への切り替えは人間（docs/DEPLOY.md §3）。
+  - **Claude はプレビュー以外にデプロイしない**（2026-10-01、人間の決定）。本番への最初のデプロイ、ludion.ai の付け替え、DNS、旧資源の削除は人間がやる。
+  - いまのトークンは本番の Worker の中身も書き換えられる（DEPLOY.md §5.1）。人間がエージェント用のアカウントへ移す（§5.2）。移ったら、プレビューを新しいアカウントに出し直す。
 - ループの仕組みは Linux/Node 22 と Windows/Node 24 の両方で回る。
 - リポジトリは https://github.com/Ludion-ai/Ludion （public）。main は保護されている：PR 必須、`loop` チェック必須、strict、enforce_admins、auto-merge 可。
   - strict なので、main が先に進んだ PR は `gh pr update-branch` しないとマージされない。
@@ -55,6 +57,8 @@
     - spec §10.4、§15.2、MISSION.md の STD-2、`/e/invalid_signature`（英日）も合わせた。
     - 了承なら、そのブランチを push して PR にする（`git push -u origin proposal/gate8-lifetime`）。main が進んでいれば rebase して、GATE-10 を書き出し直す。
   - C（60 秒のまま）なら、GATE-8 は 60 秒以内で署名する別の実運用の署名者を待つ。
+- [ ] **エージェント用の Cloudflare アカウントへ移す**（DEPLOY.md §5.2、人間がやると決めた）。済んだら Claude に伝える。Claude がプレビューを新しいアカウントに出し直し、WEB-1 を回す。
+- [ ] **`privacy@ludion.ai` でメールが届くようにする**（Cloudflare の Email Routing、人間がやる）。登録フォームの告知が、削除の宛先として案内している。
 - [ ] **ludion.ai を新しいサイトに切り替える**（docs/DEPLOY.md §3、15分、クリック単位）。旧は Worker `ludion` のカスタムドメイン。`ludion-site` を作って付け替える。
 - [ ] **旧資源の削除**（docs/DEPLOY.md §1.3、Ludion の16件だけ）。消す前に：
   - 提供元で秘密を失効させる：`ludion-api` の OpenAI と楽天のキー、`ludion-fallback-relay` の `PROVIDER_API_KEY`、`ludion` の GitHub OAuth アプリ。Worker を消してもキーは生きている。
@@ -78,7 +82,8 @@
 - [ ] 判断：WEB-8 は「プレビューで送信すると」を、プレビューに出す成果物（`site/edge`）を手元の workerd（`wrangler dev`）で動かして測った。通知先はスタブ。
   - プレビューは WEB-1 のトークン待ちで出せない。
   - これを PASS と読んでよいか。だめなら、プレビューが出たあとに同じ検査をプレビューの URL に向ける。そのためには、プレビュー用の webhook（観測できる通知先）が要る。
-- [ ] 本番公開の前に：登録フォームの文面を読む（`site/src/signup/strings.mjs`、トップの「先行登録」の節）。
+- [x] 登録フォームの文面：2026-10-01 に人間が承認した（保存は「先行登録のご案内が終わるまでか、削除のご依頼を受けるまで」、削除の宛先は privacy@ludion.ai）。
+- [ ] （以下は承認前のメモ）登録フォームの文面を読む（`site/src/signup/strings.mjs`、トップの「先行登録」の節）。
   - 「入力された内容は Ludion のチームに届き、Ludion についてのご連絡に使います」は、個人情報の利用目的の表示にあたる。会社としての約束になる。
   - プライバシーポリシーはまだない（spec §21）。
 - [ ] 商標の調査（区分 9、42、45）
@@ -170,6 +175,14 @@
 
 ## 直近のセッション
 
+- 2026-10-01 昼（Claude Code）：トップページの文面を人間が承認した。
+  - 一番上に三つの問い（誰の代理か、何を許されているか、壊したら誰が払うか）と、具体的な一文。導線は /scan の1本だけ。
+  - Gate errors は末尾の「開発者の方へ」に移した。「3行以内」は Gate の入れ方へリンクし、出所（MISSION.md）を小さく添えた（WEB-2 のため）。
+  - タイトルは「Ludion — …」（「Ludion | Ludion」を直した）。
+  - /scan から `npx ludion scan` を外した（npm に公開するまで）。結果の下に次の一歩（先行登録、Gate を入れる）を置いた。
+  - 登録フォームの告知に、保存期間と削除の宛先（privacy@ludion.ai）を足した。
+  - /e/<code> の `npx ludion init` は残す（WEB-3。npm の公開で動くようになる）。
+  - DEPLOY.md §5：エージェントのトークンは本番の Worker も書き換えられる。対策はエージェント用のアカウント（人間がやる）。ガードは `site/test/deploy-guard.test.mjs` で固定した。
 - 2026-10-01 朝（Claude Code、1本のレーン）：今日の spec「ludion.ai を新しいサイトにして、ブラウザ版 scan を誰でも使えるようにする」。
   - **プレビュー**：https://ludion-site-preview.ludion.workers.dev 。`npm run deploy:preview`（`site/deploy.mjs`）はプレビューの名前にしか出さない。
     - WEB-1 PASS：プレビューがこのチェックアウトのビルドを配り（`/_build.json`）、全28ページが手元のビルドとバイト単位で一致し、Lighthouse（モバイル）の4項目が全ページで95以上。トークンが要るので CI では SKIP。
