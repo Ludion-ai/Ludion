@@ -5,5 +5,8 @@
   "params": {
     "variant": "pre-dated-long-lived"
   },
+  "classes": [
+    "SPOOFED"
+  ],
   "added": "2026-09-30"
 }

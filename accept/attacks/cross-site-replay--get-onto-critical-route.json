@@ -5,5 +5,8 @@
   "params": {
     "variant": "get-onto-critical-route"
   },
+  "classes": [
+    "SPOOFED"
+  ],
   "added": "2026-09-30"
 }

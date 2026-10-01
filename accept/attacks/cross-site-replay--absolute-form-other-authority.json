@@ -5,5 +5,8 @@
   "params": {
     "variant": "absolute-form-other-authority"
   },
+  "classes": [
+    "SPOOFED"
+  ],
   "added": "2026-09-30"
 }

@@ -5,5 +5,8 @@
   "params": {
     "variant": "appended-bytes"
   },
+  "classes": [
+    "SPOOFED"
+  ],
   "added": "2026-10-01"
 }

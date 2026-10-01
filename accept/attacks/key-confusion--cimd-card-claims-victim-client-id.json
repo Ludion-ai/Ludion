@@ -5,5 +5,8 @@
   "params": {
     "variant": "cimd-card-claims-victim-client-id"
   },
+  "classes": [
+    "UNVERIFIED"
+  ],
   "added": "2026-09-30"
 }

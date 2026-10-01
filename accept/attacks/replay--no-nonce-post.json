@@ -8,5 +8,8 @@
     "nonce": false,
     "delayS": 5
   },
+  "classes": [
+    "SPOOFED"
+  ],
   "added": "2026-09-30"
 }

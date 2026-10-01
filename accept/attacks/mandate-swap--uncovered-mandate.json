@@ -5,5 +5,8 @@
   "params": {
     "variant": "uncovered-mandate"
   },
+  "classes": [
+    "SPOOFED"
+  ],
   "added": "2026-10-01"
 }

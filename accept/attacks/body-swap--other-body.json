@@ -5,5 +5,8 @@
   "params": {
     "variant": "other-body"
   },
+  "classes": [
+    "SPOOFED"
+  ],
   "added": "2026-10-01"
 }

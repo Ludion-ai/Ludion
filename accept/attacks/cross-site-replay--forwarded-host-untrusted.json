@@ -5,5 +5,8 @@
   "params": {
     "variant": "forwarded-host-untrusted"
   },
+  "classes": [
+    "SPOOFED"
+  ],
   "added": "2026-09-30"
 }

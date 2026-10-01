@@ -12,6 +12,9 @@ import { fileURLToPath } from "node:url";
 import { runCase, registerConformance } from "../../packages/gate-core/test/portable/conformance.mjs";
 import { exportText } from "./export.mjs";
 import { std2Titles } from "./std2.mjs";
+import { Readable } from "node:stream";
+import { ludionGate } from "@ludion/gate-node";
+import { generateSiteKey } from "@ludion/gate-core";
 
 const DIR = path.dirname(fileURLToPath(import.meta.url));
 const ATTACKS = path.resolve(DIR, "../attacks");
@@ -74,6 +77,66 @@ test("GATE-10: the TypeScript Gate passes every case from the data alone", async
   const attacks = V.cases.reduce((n, c) => n + c.steps.filter((s) => s.expect === "rejected").length, 0);
   const n = (src) => V.cases.filter((c) => c.source === src).length;
   console.log(`GATE-10: ${V.cases.length} cases (${n("GATE-7")} attacks, ${n("STD-2")} STD-2 groups, ${n("STD-1")} WG vectors), ${steps} steps (${attacks} refused) from accept/conformance/vectors.json on Node; Deno and workerd in NEUT-1`);
+});
+
+// Codex audit #9: a reference recorded from the Gate is not an expectation. Every refusal names the
+// class it must get, declared apart from the Gate (STD-2's in std2.mjs, the corpus's in each attack's
+// "classes"); the export refuses a Gate that disagrees, and the runner holds every Gate to it.
+test("GATE-10: every refusal names its class, declared apart from the Gate (the corpus's own for each attack)", () => {
+  const corpus = new Map(fs.readdirSync(ATTACKS).filter((f) => f.endsWith(".json")).map((f) => { const a = JSON.parse(fs.readFileSync(path.join(ATTACKS, f), "utf8")); return [a.id, a]; }));
+  const problems = [];
+  for (const c of V.cases) for (const [i, st] of c.steps.entries()) {
+    if (st.expect !== "rejected") continue;
+    if (!Array.isArray(st.classes) || !st.classes.length) { problems.push(`${c.id} step ${i}: a refusal without its class`); continue; }
+    if (c.source === "GATE-7" && canon(st.classes) !== canon(corpus.get(c.id)?.classes)) problems.push(`${c.id} step ${i}: classes differ from the corpus entry`);
+    if (st.reference && !st.classes.includes(st.reference.class)) problems.push(`${c.id} step ${i}: the reference answer ${st.reference.class} is outside ${st.classes.join("/")}`);
+  }
+  assert.deepEqual(problems, []);
+});
+
+// Codex audit #9: raw steps are requests as a Node server receives them. The portable runner sends
+// them through a model of the adapter (it must run on Deno and workerd too); here they go through
+// the product itself, @ludion/gate-node's middleware, and must give the recorded answer.
+test("GATE-10: every raw step through the real @ludion/gate-node adapter gives the reference answer", async () => {
+  const d = V.defaults;
+  const problems = [];
+  let n = 0;
+  for (const c of V.cases.filter((x) => x.steps.some((st) => st.raw))) {
+    let t = c.now ?? d.now;
+    const docs = new Map((c.world.documents ?? []).map((x) => [x.url, x]));
+    const fetch = async (url) => { const x = docs.get(String(url)); return x ? new Response(JSON.stringify(x.body), { status: 200, headers: { "content-type": x.contentType } }) : new Response("", { status: 404 }); };
+    const gates = {};
+    for (const [id, g] of Object.entries(c.gates)) {
+      if (g.adapter !== "node") continue;
+      const mw = await ludionGate({ siteId: d.siteId, siteKey: (await generateSiteKey()).privateJwk, pressure: d.pressure, routes: d.routes, now: () => t,
+        authorities: g.authorities, ...(g.trustProxy ? { trustProxy: true } : {}), resolver: { fetch },
+        ...(c.world.registry?.keys?.length ? { registryKeys: { keys: c.world.registry.keys }, registryIssuer: c.world.registry.issuer } : {}) });
+      for (const dir of g.directories ?? []) await mw.gate.resolver.prime({ type: "directory", uri: dir.uri }, { keys: dir.keys });
+      gates[id] = mw;
+    }
+    for (const [i, st] of c.steps.entries()) {
+      if (!st.raw) continue;
+      t = (c.now ?? d.now) + st.atS * 1000;
+      const mw = gates[st.gate];
+      if (!mw) { problems.push(`${c.id} step ${i}: raw step on a gate that is not a node adapter`); continue; }
+      const raw = st.raw, headers = {};
+      for (let k = 0; k < raw.rawHeaders.length; k += 2) { const name = raw.rawHeaders[k].toLowerCase(); headers[name] = name in headers ? `${headers[name]}, ${raw.rawHeaders[k + 1]}` : raw.rawHeaders[k + 1]; }
+      const req = Object.assign(Readable.from(raw.body != null ? [Buffer.from(raw.body)] : []), { method: raw.method, url: raw.target, rawHeaders: raw.rawHeaders, headers, socket: { encrypted: !!raw.tls, remoteAddress: raw.remoteAddress } });
+      const out = await new Promise((resolve, reject) => {
+        const res = { statusCode: 200, h: {}, setHeader(k, v) { this.h[k.toLowerCase()] = v; }, end() { resolve({ reachedApp: false, r: req.ludion }); } };
+        Promise.resolve(mw(req, res, () => resolve({ reachedApp: true, r: req.ludion }))).catch(reject);
+      });
+      n++;
+      const got = { class: out.r.cls.class, action: out.r.decision.action, error: out.r.decision.error, reachedApp: out.reachedApp };
+      const ref = st.reference;
+      if (got.class !== ref.class || got.action !== ref.action || (got.error ?? undefined) !== (ref.error ?? undefined) || got.reachedApp !== ref.reachedApp) {
+        problems.push(`${c.id} step ${i}: gate-node answered ${JSON.stringify(got)}, the reference ${JSON.stringify(ref)}`);
+      }
+    }
+  }
+  assert.deepEqual(problems, []);
+  assert.ok(n >= 20, `raw steps through gate-node: ${n}`);
+  console.log(`# GATE-10 raw: ${n} raw steps through @ludion/gate-node`);
 });
 
 test("GATE-10: the runner refuses wrong vectors", async () => {

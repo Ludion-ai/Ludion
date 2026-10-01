@@ -11,5 +11,8 @@
     ],
     "ua": "Mozilla/5.0 (compatible; ChatGPT-User/1.0; +https://openai.com/bot)"
   },
+  "classes": [
+    "DECLARED"
+  ],
   "added": "2026-09-30"
 }

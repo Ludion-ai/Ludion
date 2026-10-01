@@ -5,5 +5,8 @@
   "params": {
     "variant": "host-of-origin-site"
   },
+  "classes": [
+    "SPOOFED"
+  ],
   "added": "2026-09-30"
 }

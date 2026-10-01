@@ -3,24 +3,28 @@ on:
   pull_request:
   push:
     branches: [main]
+# Least privilege for every job: read the repository, nothing else (Codex audit #10). Third-party
+# actions are pinned to full commit SHAs; the comment names the release the SHA is.
+permissions:
+  contents: read
 jobs:
   loop:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with: { fetch-depth: 0 }
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with: { node-version: 22, cache: npm }
       - run: npm ci
       - name: Scoreboard — ratchet read from the base branch, so a PR cannot loosen it
-        run: node scripts/scoreboard.mjs --base "origin/${{ github.base_ref || 'main' }}"
+        run: node scripts/scoreboard.mjs --base "origin/${{ github.base_ref || 'main' }}" --job loop
       - name: Verifier diff — the only part a human must read
         if: github.event_name == 'pull_request'
         run: |
           {
-            echo "## Verifier diff (accept/, docs/MISSION.md, .claude/)"
+            echo "## Verifier diff (accept/, docs/MISSION.md, scripts/, .github/, .claude/)"
             echo '```'
-            git diff --stat "origin/${{ github.base_ref }}...HEAD" -- accept docs/MISSION.md .claude || true
+            git diff --stat "origin/${{ github.base_ref }}...HEAD" -- accept docs/MISSION.md scripts .github .claude || true
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
   # Same loop on the platform the agent actually runs on. Caught: Node ≥23 test reporter,
@@ -28,9 +32,29 @@ jobs:
   loop-windows:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with: { fetch-depth: 0 }
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with: { node-version: 24, cache: npm }
       - run: npm ci
-      - run: node scripts/scoreboard.mjs --base "origin/${{ github.base_ref || 'main' }}"
+      - run: node scripts/scoreboard.mjs --base "origin/${{ github.base_ref || 'main' }}" --job loop
+  # The oracles that need the live preview (WEB-1): deploy this checkout's site to the preview
+  # Worker on the agent-only Cloudflare account, then run them. The token can edit Workers in that
+  # account and nothing else; the deploy refuses one that reaches any other account (docs/DEPLOY.md
+  # §5). One run at a time, so a deploy is never checked against another run's build.
+  preview:
+    runs-on: ubuntu-latest
+    concurrency: { group: preview-deploy, cancel-in-progress: false }
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_PREVIEW_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_PREVIEW_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with: { fetch-depth: 0 }
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - name: Deploy this checkout's site to the preview
+        run: npm run deploy:preview
+      - name: Scoreboard — the preview job's oracles, ratchet from the base branch
+        run: node scripts/scoreboard.mjs --base "origin/${{ github.base_ref || 'main' }}" --job preview

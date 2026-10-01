@@ -136,6 +136,9 @@ npm run deploy:preview
   - デプロイのあと、Worker の秘密の名前を読み返して確かめる。値は表示しない。
   - 無いあいだ、フォームは「送信できませんでした」（503）と答える。受け取ったふりはしない。
   - `npx wrangler secret put` を手で使わない。wrangler は `cloudflare.env` を読まないので、別の資格情報で別のアカウントに入れてしまう。
+- **CI**：ワークフローの `preview` ジョブが、PR ごとと main への push ごとに、同じ `npm run deploy:preview` を回してから WEB-1 を回す（一度に1本。別の実行のビルドと取り違えない）。
+  - トークンは GitHub の secret `CLOUDFLARE_PREVIEW_API_TOKEN` と `CLOUDFLARE_PREVIEW_ACCOUNT_ID`。`Ludion Agents` の Workers Scripts の編集だけのトークンを、人間が作って登録する。他のアカウントに届くトークンなら、ここでもデプロイが止まる。
+  - secret が無いあいだ（フォークからの PR も）、`preview` ジョブは赤になる。
 - 確かめ方：`npm run scoreboard` の WEB-1。
   - プレビューが今のビルドを配っていること（`/_build.json`）。
   - 全ページのバイトがビルドと一致すること。

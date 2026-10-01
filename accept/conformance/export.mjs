@@ -108,8 +108,13 @@ async function exportAttack(spec) {
     w.t = NOW_MS + s.atS * 1000;
     const res = s.node ? await throughNode(s.node, s.req) : { result: await (s.gate ?? w.gate).inspect(s.req) };
     const r = res.result;
+    // The class an attack must get is the corpus's (reviewed against spec §10.8), not this Gate's
+    // answer: an export whose reference disagrees is refused, so it cannot be regenerated around.
+    if (s.expect === "rejected" && !spec.classes?.includes(r.cls.class)) {
+      throw new Error(`${spec.id}: the reference Gate answered ${r.cls.class}, the corpus declares ${spec.classes?.join(" or ") ?? "nothing"}`);
+    }
     out.push({
-      gate, atS: s.atS, expect: s.expect, ...serializeRequest(s),
+      gate, atS: s.atS, expect: s.expect, ...(s.expect === "rejected" ? { classes: spec.classes } : {}), ...serializeRequest(s),
       reference: { class: r.cls.class, action: r.decision.action, ...(r.decision.error ? { error: r.decision.error } : {}), ...(s.node ? { reachedApp: res.reachedApp } : {}) },
     });
   }
@@ -147,7 +152,7 @@ function wgVectors() {
     { id: "wg-e2-1--one-flipped-byte", source: "STD-1", title: "WG -00 App. E.2.1 with one signature byte flipped does not verify", now: 1735689601000, world, gates: {},
       steps: [{ atS: 0, expect: "invalid", signature: { request: tampered, directories: [directory] } }] },
     { id: "wg-e2-1--gate-holds-to-60s", source: "STD-1", title: "WG -00 App. E.2.1 through a Gate: valid, but alive for decades, so SPOOFED (spec §10.4)", now: 1735689601000, world, gates: { main: gate },
-      steps: [{ gate: "main", atS: 0, expect: "rejected", core: E21, reference: { class: "SPOOFED", action: "allow" } }] },
+      steps: [{ gate: "main", atS: 0, expect: "rejected", classes: ["SPOOFED"], core: E21, reference: { class: "SPOOFED", action: "allow" } }] },
   ];
 }
 

@@ -13,7 +13,7 @@
     "node": ">=20"
   },
   "scripts": {
-    "test": "node --test packages/*/test/*.test.mjs services/*/test/*.test.mjs accept/std4/drafts.test.mjs accept/conformance/gate10.test.mjs reference/test/harness.test.mjs site/test/build.test.mjs site/test/egress.test.mjs site/test/links.test.mjs site/test/copy.test.mjs site/test/signup.test.mjs site/test/deploy-guard.test.mjs",
+    "test": "node --test packages/*/test/*.test.mjs services/*/test/*.test.mjs accept/std4/drafts.test.mjs accept/conformance/gate10.test.mjs reference/test/harness.test.mjs site/test/build.test.mjs site/test/egress.test.mjs site/test/links.test.mjs site/test/copy.test.mjs site/test/signup.test.mjs site/test/deploy-guard.test.mjs accept/loop/ratchet.test.mjs accept/loop/pairs.test.mjs",
     "e2e": "node examples/e2e.mjs",
     "scoreboard": "node scripts/scoreboard.mjs",
     "ratchet": "node scripts/scoreboard.mjs --update-ratchet",
