@@ -16,7 +16,7 @@ How much automation touched your checkout, login, signup and forms? How much of 
 - **Signed (UNVERIFIED)**: requests that carried a Web Bot Auth signature. A log keeps neither the key nor what was signed, so nothing here can verify it. A Gate can.
 - **Critical routes**: checkout, login, signup and account pages, and any write (POST, PUT, PATCH, DELETE), such as a form submission. From a log, no automated request on them can be tied to whose agent it was, what it was allowed to do, and who answers for it.
 
-The counting is exactly that of `npx ludion scan` in a terminal: the same code runs on this page.
+The counting is Ludion's open-source scan code ([packages/scan](https://github.com/Ludion-ai/Ludion/tree/main/packages/scan)), running in this page.
 
 ## Your log is not sent anywhere
 

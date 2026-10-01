@@ -57,8 +57,10 @@ function draw(out, r, t, fmt) {
       ...r.unrecognized.map((f) => [f.name, t.unrecognized, "", ""]),
     ], (i) => i > 1));
 
-  out.append(el("h3", {}, t.nextTitle), el("p", {}, t.next, " ", el("a", { href: t.gate }, t.nextLink)),
-    el("p", {}, t.cli, " ", el("code", {}, "npx ludion scan access.log")));
+  // Right under the results: the next step, two ways (early access, the Gate).
+  out.append(el("h3", {}, t.nextTitle), el("ul", { class: "scan-next" },
+    el("li", {}, el("a", { href: t.signup }, t.signupLink), " ", t.signupNext),
+    el("li", {}, el("a", { href: t.gate }, t.nextLink), " ", t.next)));
 
   const text = renderText(r), json = JSON.stringify(r, null, 2);
   const copy = el("button", { type: "button", class: "scan-button" }, t.copy);

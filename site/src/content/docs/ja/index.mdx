@@ -1,25 +1,21 @@
 ---
 title: Ludion
-description: AIエージェントの「責任」を検証する、中立の関所。Web Bot Auth（RFC 9421）の上に建てる。
+description: 誰の代理か。何を許されているか。壊したら、誰が払うか。アクセスログを落とすだけで、未検証の自動化が決済やログインに何回触れたかが分かる。ログは外に出ない。
 template: splash
+head:
+  - tag: title
+    content: Ludion — AIエージェントの責任を検証する関所
 hero:
-  tagline: AIエージェントの「責任」を検証する、中立の関所。
+  title: 誰の代理か。何を許されているか。壊したら、誰が払うか。
+  tagline: アクセスログを落とすだけで、未検証の自動化が決済やログインに何回触れたかが分かる。ログは外に出ない。
   actions:
-    - text: アクセスログをスキャンする
+    - text: アクセスログを落とす
       link: /ja/scan
       icon: right-arrow
-    - text: Gate のエラー
-      link: /ja/e
-      icon: right-arrow
-      variant: secondary
-    - text: GitHub のソース
-      link: https://github.com/Ludion-ai/Ludion
-      icon: external
-      variant: minimal
 ---
 import SignupForm from "../../../components/SignupForm.astro";
 
-- **サイトには**、[コード3行以内](https://github.com/Ludion-ai/Ludion/blob/main/docs/MISSION.md#m1-gate)で入る無料でオープンソースの関所（Gate）。まず「どのエージェントが来て、何に触れたか」を見せます。
+- **サイトには**、[コード3行以内](/ja/gate)（[測った値](https://github.com/Ludion-ai/Ludion/blob/main/docs/MISSION.md#m1-gate)）で入る無料でオープンソースの関所（Gate）。まず「どのエージェントが来て、何に触れたか」を見せます。
 - **エージェントには**、無料の身分証（Diver）。署名・状態・委任を、一度の登録で持ち運べます。
 - **何かが壊れたとき**、誰が応答するかを Ballast が裏打ちします。Ludion が検証するのは、検知でも身元でもなく、責任です。
 
@@ -28,3 +24,7 @@ import SignupForm from "../../../components/SignupForm.astro";
 サイトを運営していて、どのエージェントが来ているかを見たい方。エージェントを作っていて、身分証が欲しい方。メールアドレスを残してください。
 
 <SignupForm lang="ja" />
+
+## 開発者の方へ
+
+[Gate の入れ方](/ja/gate) · [Gate のエラー](/ja/e) · [GitHub のソース](https://github.com/Ludion-ai/Ludion)

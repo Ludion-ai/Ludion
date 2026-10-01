@@ -8,7 +8,7 @@ export const STRINGS = {
     roles: { site: "サイトを運営している", agent: "AI エージェントを作っている", other: "その他" },
     site: "サイトかエージェントの URL（任意）",
     submit: "先行登録する",
-    note: "入力された内容は Ludion のチームに届き、Ludion についてのご連絡に使います。",
+    note: "入力された内容は Ludion のチームに届き、Ludion についてのご連絡に使います。保存するのは、先行登録のご案内が終わるまでか、削除のご依頼を受けるまでです。削除のご依頼は privacy@ludion.ai へお送りください。",
     states: {
       sending: "送信しています…",
       done: "受け付けました。ありがとうございます。",
@@ -23,7 +23,7 @@ export const STRINGS = {
     roles: { site: "I run a site", agent: "I build an AI agent", other: "Something else" },
     site: "Site or agent URL (optional)",
     submit: "Request early access",
-    note: "What you enter is sent to the Ludion team and used to contact you about Ludion.",
+    note: "What you enter is sent to the Ludion team and used to contact you about Ludion. We keep it until early access ends or until you ask us to delete it. To have it deleted, write to privacy@ludion.ai.",
     states: {
       sending: "Sending…",
       done: "Received. Thank you.",

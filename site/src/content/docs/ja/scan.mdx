@@ -16,7 +16,7 @@ import ScanDrop from "../../../components/ScanDrop.astro";
 - **署名付き（UNVERIFIED）**：Web Bot Auth の署名を持っていたリクエスト。ログには鍵も署名の対象も残らないので、ここでは検証できません。検証できるのは Gate だけです。
 - **重要な経路**：決済、ログイン、登録、アカウントのページと、あらゆる書き込み（POST、PUT、PATCH、DELETE。フォームの送信など）。ログからは、ここに触れた自動化のどれについても、「誰の、何を許された、誰が責任を負う」エージェントかは分かりません。
 
-数え方は、ターミナル版の `npx ludion scan` とまったく同じです。同じコードがこのページで動いています。
+数えているのは、Ludion のオープンソースの scan のコード（[packages/scan](https://github.com/Ludion-ai/Ludion/tree/main/packages/scan)）です。それがこのページで動いています。
 
 ## ログはどこにも送られません
 

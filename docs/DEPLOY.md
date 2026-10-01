@@ -18,7 +18,9 @@
 - **プレビュー：https://ludion-site-preview.ludion.workers.dev**（2026-10-01 09:05 にデプロイ、WEB-1 PASS）。
   - 全28ページ（英日）が手元のビルドとバイト単位で一致。Lighthouse（モバイル）の4項目は全ページ 96 以上。
   - 登録フォームの通知先（`SIGNUP_WEBHOOK_URL`）はまだ無いので、送信すると「送信できませんでした」と答える。
-- **トークン**（1.1）：09:00 に置いたトークン（期限 2026-11-03）は、このアカウントのどの API も 401 だった。Account Resources にこのアカウントが入っていないと思われる。棚卸しとデプロイは、前からあるトークン（期限 2026-10-17）で行った。
+- **トークン**（1.1、5）：棚卸しとデプロイは、ターミナルの環境変数にある「前からある方」のトークン（期限 2026-10-17）で行った。
+  - 09:00 に置いたトークン（`~/.config/ludion/cloudflare.env`、期限 2026-11-03）は、使い始めが **2026-10-03 09:00 JST**（`not_before`）なので、今はどの API も 401 になる。権限の誤りではない。
+  - **このトークンは本番の Worker の中身も書き換えられる。** 対策は 5。
 
 ## 1. 旧 Ludion の棚卸し（読むだけ）
 
@@ -32,9 +34,9 @@
    - Zone → **Workers Routes**、**DNS** → **Read**
    - DNS の **Edit** は付けない。本番の DNS は人間だけが触る。
 4. **Account Resources**：Include → ludion.ai があるアカウント（`Haya0910oasis@gmail.com's Account`）。**Zone Resources**：Include → Specific zone → `ludion.ai`。
-   - ここが外れていると、トークンは「有効」なのに、どの API も `401 Authentication error` になる（09:00 のトークンがそうだった）。
-   - 作ったあと、**API Tokens** の一覧でそのトークンの **…** → **Edit** → Account Resources を見直せる。
-5. **TTL**：今日から数日。
+5. **TTL**：**Start Date は今日**、End Date は数日後。
+   - Start Date を未来の日にすると、その日まで「有効」なのにどの API も `401 Authentication error` になる（09:00 のトークンは Start Date が 10/3 だった）。
+   - 棚卸しはもう済んだ。これから作るのは 5 のエージェント用の1本だけでよい。
 6. **Continue to summary** → **Create Token**。表示されたトークンを控える。
 7. **アカウント ID**：ダッシュボードの左の **Workers & Pages** → 右側の **Account ID** の横のコピー。
 8. 手元に1つのファイルを置く。Claude はこのファイルを読んで、棚卸しとプレビューのデプロイを行う。
@@ -213,3 +215,47 @@ curl -s https://ludion.ai/_build.json              # {"site":"…"}：新しい�
      - 名前を1段目に寄せる：`dvr-x.ludion.ai`。この場合は spec の変更が要る。
      - Card Host を別のドメインに置く。
    - 決めるまで、Card Host は `*.workers.dev` か、利用者自身のドメインで動かす（DIV-2 はそれで PASS している）。
+
+## 5. エージェントのトークンと本番（2026-10-01 に確かめた事実と対策）
+
+### 5.1 事実
+
+- **Worker は分かれている。** プレビューは `ludion-site-preview`、本番は今は `ludion`、切り替えの後は `ludion-site`。
+  - `npm run deploy:preview`（`site/deploy.mjs`）は `ludion-site-preview` にしか出さない。名前、ルート、環境を見て止まる（`site/test/deploy-guard.test.mjs` で固定）。
+- **ただし、アカウントは1つで、トークンの権限はアカウント全体に効く。**
+  - Cloudflare の Workers Scripts の権限は、アカウント単位でしか付けられない。1つの Worker に絞れない。
+  - 今日デプロイに使ったトークン（ターミナルの環境変数、期限 2026-10-17）は、新しい Worker をデプロイできた。本番の `ludion` の設定も読めた。だから、**このトークンは ludion.ai を配っている Worker の中身を置き換えられる。** 切り替えの後の `ludion-site` も同じ。
+  - このトークンは、ludion.ai のルートと DNS を読むことも変えることもできない（403）。名前の付け替えはできないが、中身は変えられる。
+  - `deploy.mjs` の名前の検査は、私たちのスクリプトの中の約束にすぎない。トークンを持つプロセスなら、`wrangler deploy --name ludion-site` で本番を書き換えられる。
+- **この機械には wrangler のログインも残っている**（2026-09-24、`%APPDATA%\xdg.config\.wrangler\config\default.enc`）。
+  - 環境変数のトークンが無いとき、wrangler はこちらを使う。範囲はトークンより広い。
+- 「前からある方」のトークンは wrangler のログインではない。人間が作った API トークン（`cfut_` で始まる）で、ターミナルの環境変数から渡っている。設定ファイル、シェルのプロファイル、レジストリには無い。
+  - 試して分かった権限：Workers Scripts の編集、Workers のカスタムドメインの読み取り、Pages・KV・D1・アカウントの読み取り、ゾーン `ludion.ai` の読み取り（一覧だけ）。R2、ルート、DNS は無い。自分の権限を一覧する権限（API Tokens の読み取り）も無い。
+
+### 5.2 対策：エージェント用のアカウントを分ける（人間、15分）
+
+エージェントが持つ資格情報で、本番に届かないようにする。安全の境界を、スクリプトの検査ではなく、渡す資格情報の範囲で引く（MISSION.md §6）。
+
+1. **エージェント用のアカウントを作る**（お金はかからない）。
+   - ダッシュボードの左上のアカウント名 → **Add account**（または **Create account**）→ 名前は `Ludion Agents`。
+   - そのアカウントの **Workers & Pages** を一度開くと、`*.workers.dev` のサブドメインを決める画面が出る。決める（例：`ludion-agents`）。
+2. **そのアカウントだけに効くトークンを1本作る**（1.1 の手順で、中身だけ次のとおり）。
+   - Permissions：Account → **Workers Scripts** → **Edit**。これだけ。
+   - Account Resources：Include → `Ludion Agents` だけ。Zone Resources は無し。
+   - TTL：Start Date は今日。
+3. **`C:\Users\haya0\.config\ludion\cloudflare.env` を書き換える。**
+   - `CLOUDFLARE_API_TOKEN` は 2 のトークン。
+   - `CLOUDFLARE_ACCOUNT_ID` は `Ludion Agents` の Account ID。
+4. **Claude に「エージェント用アカウントに移した」と伝える。**
+   - Claude がプレビューを新しいアカウントに出し直す。URL は `https://ludion-site-preview.<決めたサブドメイン>.workers.dev` に変わる。
+   - WEB-1 は新しい URL で回る。
+5. **古いものを消す。**
+   - 今の2本のトークンを失効させる。**My Profile** → **API Tokens** → それぞれの **…** → **Delete**。
+     - ターミナルの「前からある方」（期限 2026-10-17）。
+     - 09:00 に置いたもの（期限 2026-11-03）。
+   - 本番のアカウントの `ludion-site-preview` を消す（5.1 のとおり、もう要らない）。**Workers & Pages** → `ludion-site-preview` → **Settings** → **Delete**。
+   - この機械の wrangler のログインを消す：`cd site/edge && npx wrangler logout`。
+   - ターミナルの環境変数からも外す：その窓を閉じる（設定ファイルやレジストリには無い）。
+6. **本番を触るとき**（3 の切り替えなど）は、人間がその場で `npx wrangler login` し、終わったら `npx wrangler logout` する。本番に効く資格情報を、この機械に置いたままにしない。
+
+5 が済むまでは、5.1 のとおり、エージェントのトークンで本番の Worker の中身を書き換えられる状態が続く。

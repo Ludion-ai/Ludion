@@ -1,25 +1,21 @@
 ---
 title: Ludion
-description: A neutral checkpoint that verifies AI agents' accountability, on Web Bot Auth (RFC 9421).
+description: Whose agent is it? What is it allowed to do? Who pays when it breaks something? Drop an access log to see how often unverified automation touched your checkout and login. The log never leaves your device.
 template: splash
+head:
+  - tag: title
+    content: Ludion — accountability for AI agents
 hero:
-  tagline: A neutral checkpoint that verifies AI agents' accountability.
+  title: Whose agent is it? What is it allowed to do? Who pays when it breaks something?
+  tagline: Drop an access log to see how often unverified automation touched your checkout and login. The log never leaves your device.
   actions:
-    - text: Scan your access logs
+    - text: Drop your access log
       link: /scan
       icon: right-arrow
-    - text: Gate errors
-      link: /e
-      icon: right-arrow
-      variant: secondary
-    - text: Source on GitHub
-      link: https://github.com/Ludion-ai/Ludion
-      icon: external
-      variant: minimal
 ---
 import SignupForm from "../../components/SignupForm.astro";
 
-- **For sites:** a free, open-source checkpoint (the Gate) that installs with [3 lines of your code or fewer](https://github.com/Ludion-ai/Ludion/blob/main/docs/MISSION.md#m1-gate) and first shows which agents came, and what they touched.
+- **For sites:** a free, open-source checkpoint (the Gate) that installs with [3 lines of your code or fewer](/gate) ([measured](https://github.com/Ludion-ai/Ludion/blob/main/docs/MISSION.md#m1-gate)) and first shows which agents came, and what they touched.
 - **For agents:** a free identity (the Diver). Signature, status and delegation, carried everywhere after one registration.
 - **When something breaks:** Ballast backs who answers. What Ludion verifies is not detection or identity, but accountability.
 
@@ -28,3 +24,7 @@ import SignupForm from "../../components/SignupForm.astro";
 Run a site and want to see which agents come? Build an agent and want an identity? Leave your email.
 
 <SignupForm lang="en" />
+
+## For developers
+
+[Install the Gate](/gate) · [Gate errors](/e) · [Source on GitHub](https://github.com/Ludion-ai/Ludion)
