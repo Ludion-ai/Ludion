@@ -13,9 +13,23 @@ export async function sqliteLedger(file, { busyTimeoutMs = 5000 } = {}) {
   const { DatabaseSync } = await import("node:sqlite");
   const db = new DatabaseSync(file);
   db.exec(`PRAGMA busy_timeout = ${Number(busyTimeoutMs) | 0}`);
-  db.exec("PRAGMA journal_mode = WAL");
-  db.exec("CREATE TABLE IF NOT EXISTS ludion_mandate_charges (jti TEXT NOT NULL, at INTEGER NOT NULL)");
-  db.exec("CREATE INDEX IF NOT EXISTS ludion_mandate_charges_jti_at ON ludion_mandate_charges (jti, at)");
+  // A site starts its Gate processes together: they all open a new file at once. The schema goes in
+  // under the write lock, retried while another process holds it (the default rollback journal: a
+  // journal_mode switch needs the file to itself and fails at once instead of waiting).
+  const deadline = Date.now() + busyTimeoutMs;
+  for (;;) {
+    try {
+      db.exec("BEGIN IMMEDIATE");
+      db.exec("CREATE TABLE IF NOT EXISTS ludion_mandate_charges (jti TEXT NOT NULL, at INTEGER NOT NULL)");
+      db.exec("CREATE INDEX IF NOT EXISTS ludion_mandate_charges_jti_at ON ludion_mandate_charges (jti, at)");
+      db.exec("COMMIT");
+      break;
+    } catch (e) {
+      try { db.exec("ROLLBACK"); } catch { /* nothing begun */ }
+      if (!/locked|busy/i.test(String(e?.message)) || Date.now() > deadline) throw e;
+      await new Promise((r) => setTimeout(r, 10 + Math.random() * 40));
+    }
+  }
   const count = db.prepare("SELECT COUNT(*) AS n FROM ludion_mandate_charges WHERE jti = ? AND at > ?");
   const record = db.prepare("INSERT INTO ludion_mandate_charges (jti, at) VALUES (?, ?)");
   const expire = db.prepare("DELETE FROM ludion_mandate_charges WHERE at <= ?");
