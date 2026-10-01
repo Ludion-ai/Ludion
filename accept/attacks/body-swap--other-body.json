@@ -1,0 +1,9 @@
+{
+  "id": "body-swap--other-body",
+  "family": "body-swap",
+  "title": "Keep a captured POST's signed headers and Content-Digest, send another body (a larger amount)",
+  "params": {
+    "variant": "other-body"
+  },
+  "added": "2026-10-01"
+}

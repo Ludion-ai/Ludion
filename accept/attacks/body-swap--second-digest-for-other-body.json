@@ -1,0 +1,9 @@
+{
+  "id": "body-swap--second-digest-for-other-body",
+  "family": "body-swap",
+  "title": "Sign a Content-Digest whose sha-256 is the body's and whose sha-512 is another body's",
+  "params": {
+    "variant": "second-digest-for-other-body"
+  },
+  "added": "2026-10-01"
+}

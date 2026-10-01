@@ -87,9 +87,13 @@ test("mandate: a delegation the request was not given is SPOOFED; one that does 
   assert.ok(inSkew.cls.mandate, "30 s of clock skew, as for Staples");
 });
 
-test("mandate: the audience is the site's own authorities, or a category it declares", async () => {
+test("mandate: the audience is the site the request is for (not any authority the Gate holds), or a category it declares", async () => {
   const pinned = await world({ authorities: ["shop.example", "www.shop.example"] });
-  assert.ok((await pinned.send(await mandateOf(pinned.registry, { aud: "https://www.shop.example" }))).cls.mandate, "another host of the same site");
+  assert.ok((await pinned.send(await mandateOf(pinned.registry))).cls.mandate, "the site the request is for");
+  // Codex audit #6: a Gate with several authorities used to accept a Mandate for any of them.
+  assert.equal((await pinned.send(await mandateOf(pinned.registry, { aud: "https://www.shop.example" }))).cls.mandateError, "audience", "another authority of the same Gate");
+  assert.ok((await pinned.send(await mandateOf(pinned.registry, { aud: "https://www.shop.example" }), { url: "https://www.shop.example/checkout/1" })).cls.mandate, "…which holds when the request is for it");
+  assert.equal((await pinned.send(await mandateOf(pinned.registry), { url: "https://www.shop.example/checkout/1" })).cls.mandateError, "audience", "and the other way round");
   assert.equal((await pinned.send(await mandateOf(pinned.registry, { aud: "https://shop.example/" }))).cls.mandateError, "audience", "an origin, exactly");
   assert.equal((await pinned.send(await mandateOf(pinned.registry, { aud: "https://evil.shop.example" }))).cls.mandateError, "audience");
   assert.equal((await pinned.send(await mandateOf(pinned.registry, { aud: "cat:ecommerce" }))).cls.mandateError, "audience", "a category the site does not declare");
