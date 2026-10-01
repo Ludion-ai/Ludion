@@ -10,7 +10,7 @@
 // trusted proxy, X-Forwarded-Host; the path of an absolute-form target; deny answers, anything
 // else reaches the app). A step must meet its expectation, and on this, the reference
 // implementation, give exactly the reference answer recorded in the file.
-import { createGate, createResolver, generateSiteKey, originForm } from "@ludion/gate-core";
+import { createGate, createResolver, generateSiteKey, originForm, bodyNeeded } from "@ludion/gate-core";
 import { verify } from "web-bot-auth";
 
 const first = (v) => String(v).split(",")[0].trim();
@@ -25,7 +25,11 @@ async function throughAdapter(gate, spec, raw) {
   const proto = trust && headers["x-forwarded-proto"] ? first(headers["x-forwarded-proto"]) : raw.tls ? "https" : "http";
   const host = trust && headers["x-forwarded-host"] ? first(headers["x-forwarded-host"]) : headers.host ?? "localhost";
   const ip = trust && headers["x-forwarded-for"] ? first(headers["x-forwarded-for"]) : raw.remoteAddress;
-  const result = await gate.inspect({ kind: "request", method: raw.method, targetUri: `${proto}://${host}${originForm(raw.target)}`, fields }, { ip });
+  const desc = { kind: "request", method: raw.method, targetUri: `${proto}://${host}${originForm(raw.target)}`, fields };
+  // The adapter reads the body only for a signed Content-Digest; HTTP framing says whether there is one.
+  const framed = Number(headers["content-length"] ?? 0) > 0 || headers["transfer-encoding"] !== undefined;
+  if (bodyNeeded(desc)) desc.body = framed ? (raw.body ?? "") : "";
+  const result = await gate.inspect(desc, { ip });
   return { result, reachedApp: result.decision.action !== "deny" };
 }
 
@@ -72,7 +76,7 @@ export async function runCase(c, d) {
     if (!g) throw new Error(`step ${i}: no gate ${s.gate}`);
     let r, reachedApp;
     if (s.raw) ({ result: r, reachedApp } = await throughAdapter(g.gate, g.spec, s.raw));
-    else r = await g.gate.inspect({ kind: "request", method: s.core.method, targetUri: s.core.targetUri, fields: s.core.fields });
+    else r = await g.gate.inspect({ kind: "request", method: s.core.method, targetUri: s.core.targetUri, fields: s.core.fields, ...(s.core.body != null ? { body: s.core.body } : {}) });
     const got = `${r.cls.class} ${r.decision.action}${r.decision.error ? ` ${r.decision.error}` : ""}${s.raw ? (reachedApp ? " reached" : " stopped") : ""}`;
     const at = `step ${i} (${s.expect}): got ${got}`;
     if (s.expect === "verified" && r.cls.class !== "VERIFIED") throw new Error(`${at}, expected VERIFIED`);

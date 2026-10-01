@@ -10,4 +10,6 @@ const gate = await createGate({ siteId: "site-my-shop", siteKey, authorities: ["
 const { cls, decision, headers } = await gate.inspect(requestDescriptor);
 ```
 
+Writing your own adapter: when `bodyNeeded(requestDescriptor)` is true (a signature covers `content-digest`), set `requestDescriptor.body` to the bytes that arrived, or `{ unavailable: "<reason>" }` if you could not read them. Without it, such a request is not `VERIFIED`. `readWebBody(request)` does this for a Web `Request` without consuming it.
+
 Docs: https://ludion.ai · License: Apache-2.0

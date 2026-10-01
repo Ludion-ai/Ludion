@@ -304,7 +304,8 @@
         "name": "signature",
         "value": "sig1=:nhs7EitGN26sqwby2mSVW+i33Qxjej3mwI4PjhgGHKxSP2u2CbE/pzqNjrQQ7CgIScO5rY2PMQs33/v34oF2Dw==:"
        }
-      ]
+      ],
+      "body": "{\"sku\":1}"
      },
      "reference": {
       "class": "VERIFIED",
@@ -510,7 +511,8 @@
         "name": "content-digest",
         "value": "sha-256=:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=:"
        }
-      ]
+      ],
+      "body": "{\"sku\":1}"
      },
      "reference": {
       "class": "SPOOFED",
@@ -550,7 +552,8 @@
         "name": "signature",
         "value": "sig1=:vlr2k+pJucpFH8qU4slNf0mNlopliQU5ToNvWAUEoM4t30Zmixx3RpH+ppcWXTznsN0jI0ECrYwgDej29JDnBQ==:"
        }
-      ]
+      ],
+      "body": "{\"sku\":1}"
      },
      "reference": {
       "class": "SPOOFED",
@@ -590,7 +593,8 @@
         "name": "signature",
         "value": "sig1=:vlr2k+pJucpFH8qU4slNf0mNlopliQU5ToNvWAUEoM4t30Zmixx3RpH+ppcWXTznsN0jI0ECrYwgDej29JDnBQ==:"
        }
-      ]
+      ],
+      "body": "{\"sku\":1}"
      },
      "reference": {
       "class": "SPOOFED",
@@ -2184,6 +2188,695 @@
    ]
   },
   {
+   "id": "body-swap--appended-bytes",
+   "source": "GATE-7",
+   "family": "body-swap",
+   "title": "Keep a captured POST's signed headers, append bytes to its body",
+   "params": {
+    "variant": "appended-bytes"
+   },
+   "world": {
+    "registry": {
+     "issuer": "https://registry.ludion.ai",
+     "keys": [
+      {
+       "kty": "OKP",
+       "crv": "Ed25519",
+       "x": "b3X8CoIHDQ1PpzYPQhJbJOq18xikh37YxWO-G_sdkls",
+       "kid": "NK1GC6nd2bT9uPLtingBOAIZE_PBY57CceAmT8eRPMo"
+      }
+     ]
+    },
+    "documents": []
+   },
+   "gates": {
+    "main": {
+     "adapter": "core",
+     "authorities": [
+      "shop.example"
+     ],
+     "directories": [
+      {
+       "uri": "https://agent.example",
+       "keys": [
+        {
+         "kty": "OKP",
+         "crv": "Ed25519",
+         "x": "q6XyPpO5Wm5gUWV3sHufS0iFTJS4Mc_wkDwn45FiM84",
+         "kid": "jCVl54xP08opofWfckqRQ67YmPCHKAViHNnhwghW5gQ",
+         "use": "sig"
+        },
+        {
+         "kty": "OKP",
+         "crv": "Ed25519",
+         "x": "8ioA5Kxz2UGSJQHKvCawZ72miz00nZWnonmhL5cACJE",
+         "kid": "xjk_Sjt9ajSxjh8lvvhDBLh_5qmsU_ZNai0gZSMi3DM",
+         "use": "sig"
+        }
+       ]
+      },
+      {
+       "uri": "https://attacker.example",
+       "keys": [
+        {
+         "kty": "OKP",
+         "crv": "Ed25519",
+         "x": "_d7_9uveJ3c8n7Psqq0oCiBog0Hz7OGUpjhAV4u_cOM",
+         "kid": "_vbfnLn3q-z_v0zw9Sp-aIcLY_7dAfiMVuk8Gv8vc2A",
+         "use": "sig"
+        }
+       ]
+      }
+     ]
+    }
+   },
+   "steps": [
+    {
+     "gate": "main",
+     "atS": 0,
+     "expect": "verified",
+     "core": {
+      "method": "POST",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://agent.example\""
+       },
+       {
+        "name": "content-digest",
+        "value": "sha-256=:1K/E6SJw5pfgkCyg4x7uJK8wbX0m8ON3ja6LKVLLAAk=:"
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\" \"@method\" \"@path\" \"content-digest\");created=1800000000;keyid=\"jCVl54xP08opofWfckqRQ67YmPCHKAViHNnhwghW5gQ\";alg=\"ed25519\";expires=1800000060;nonce=\"aqGyyG+bDYW4A7jY4nrDZHsAPxfX5z6eZuEDaijHNj0m+rrN7tId71xqb3jN0g4xuLqeyPCyCHyG2VjAZiiscw==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:bfI0Iy09G199PoI4tnl+SzQqmmAcaWkEXuMlp43i0j88EmMhOZed2RoJb2LRk9WlHFhiAMSa0BYUkwDjGVAzBA==:"
+       }
+      ],
+      "body": "{\"sku\":1,\"amount\":100}"
+     },
+     "reference": {
+      "class": "VERIFIED",
+      "action": "allow"
+     }
+    },
+    {
+     "gate": "main",
+     "atS": 0,
+     "expect": "rejected",
+     "core": {
+      "method": "POST",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://agent.example\""
+       },
+       {
+        "name": "content-digest",
+        "value": "sha-256=:1K/E6SJw5pfgkCyg4x7uJK8wbX0m8ON3ja6LKVLLAAk=:"
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\" \"@method\" \"@path\" \"content-digest\");created=1800000000;keyid=\"jCVl54xP08opofWfckqRQ67YmPCHKAViHNnhwghW5gQ\";alg=\"ed25519\";expires=1800000060;nonce=\"URk/q8nkho3+F9bCYEePOGz6ujtRJ84gdh/OJzazgoW5+J62qt0J6pLwSKJmx4mGDLXC5P/S1KpS2KJF/v2c6Q==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:fRW6FRefyD9HFy6WjjpSrht4blFFeH1dufAnW9OqWrB/vp4i9SiXu8jcB7Q8FjNQ6kjnpRkjnoR6H986sYKmDQ==:"
+       }
+      ],
+      "body": "{\"sku\":1,\"amount\":100}\n"
+     },
+     "reference": {
+      "class": "SPOOFED",
+      "action": "deny",
+      "error": "invalid_signature"
+     }
+    }
+   ]
+  },
+  {
+   "id": "body-swap--empty-body",
+   "source": "GATE-7",
+   "family": "body-swap",
+   "title": "Keep a captured POST's signed headers, send it with no body at all",
+   "params": {
+    "variant": "empty-body"
+   },
+   "world": {
+    "registry": {
+     "issuer": "https://registry.ludion.ai",
+     "keys": [
+      {
+       "kty": "OKP",
+       "crv": "Ed25519",
+       "x": "wubVu8IbHb6WCj9lEasoMrEXgOt9_0eFZdv099pFTwI",
+       "kid": "i4O1FoIfKBn7UdmQcTpP9d6W6p8DAObDJh4juc5LfgQ"
+      }
+     ]
+    },
+    "documents": []
+   },
+   "gates": {
+    "main": {
+     "adapter": "core",
+     "authorities": [
+      "shop.example"
+     ],
+     "directories": [
+      {
+       "uri": "https://agent.example",
+       "keys": [
+        {
+         "kty": "OKP",
+         "crv": "Ed25519",
+         "x": "kDiEG5Z7E59NaZYwdyP6VgMTXCMgvB9KvMuzqgPGCxI",
+         "kid": "FuX-fOekZVc5ac_jGaM4gh3AWH4n6hGvGA_rWR5uTmU",
+         "use": "sig"
+        },
+        {
+         "kty": "OKP",
+         "crv": "Ed25519",
+         "x": "jit-O8BEp0k3OFwsmaL20RpJuPdD8jsRIRijghU7t2o",
+         "kid": "EiPceUnitOdpe5kmZ5w7UYRCy2sDnSvUCuRYz5Ttskc",
+         "use": "sig"
+        }
+       ]
+      },
+      {
+       "uri": "https://attacker.example",
+       "keys": [
+        {
+         "kty": "OKP",
+         "crv": "Ed25519",
+         "x": "oz4QLXLwXfpwVM4SN_wX4BV9rfz1zO0me288P5fuFd0",
+         "kid": "VeKGC4NKtD1CzAL4UqzoaRnmdE3TUpayPX9r0j2fbwo",
+         "use": "sig"
+        }
+       ]
+      }
+     ]
+    }
+   },
+   "steps": [
+    {
+     "gate": "main",
+     "atS": 0,
+     "expect": "verified",
+     "core": {
+      "method": "POST",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://agent.example\""
+       },
+       {
+        "name": "content-digest",
+        "value": "sha-256=:1K/E6SJw5pfgkCyg4x7uJK8wbX0m8ON3ja6LKVLLAAk=:"
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\" \"@method\" \"@path\" \"content-digest\");created=1800000000;keyid=\"FuX-fOekZVc5ac_jGaM4gh3AWH4n6hGvGA_rWR5uTmU\";alg=\"ed25519\";expires=1800000060;nonce=\"b62ReUxao8t2OFbnI3GdECTGFCRvw/tOaFqRTUXA3Xa7PSfpZpdBNT3rv7ZpBoFpliVSH2FrJhMnYPOpBvKtiw==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:2JPgtyngIC6u7t+lP1BgLurxGg5BQnHxiB9tne2sRa0A5Z0CDcDZEDUrmxqI+E7WIjgtj/0JfhTy0OAx38wQBw==:"
+       }
+      ],
+      "body": "{\"sku\":1,\"amount\":100}"
+     },
+     "reference": {
+      "class": "VERIFIED",
+      "action": "allow"
+     }
+    },
+    {
+     "gate": "main",
+     "atS": 0,
+     "expect": "rejected",
+     "core": {
+      "method": "POST",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://agent.example\""
+       },
+       {
+        "name": "content-digest",
+        "value": "sha-256=:1K/E6SJw5pfgkCyg4x7uJK8wbX0m8ON3ja6LKVLLAAk=:"
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\" \"@method\" \"@path\" \"content-digest\");created=1800000000;keyid=\"FuX-fOekZVc5ac_jGaM4gh3AWH4n6hGvGA_rWR5uTmU\";alg=\"ed25519\";expires=1800000060;nonce=\"PiaJrBXE8hROP0cZGmI8A8T9yADpNV0E7rleHoJIImiX+6Hl+miEDRkklerJb6+Tg7haY9gIFeXXRmoZfI5f0Q==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:+d+mK+YCdzR1K646hb6vzOCf7GuAQb6BnqL0SrBLc8SHx78iyBQsV0WodhKnA3iH6rATrFaDBC/ee100QIwNAg==:"
+       }
+      ],
+      "body": ""
+     },
+     "reference": {
+      "class": "SPOOFED",
+      "action": "deny",
+      "error": "invalid_signature"
+     }
+    }
+   ]
+  },
+  {
+   "id": "body-swap--other-body",
+   "source": "GATE-7",
+   "family": "body-swap",
+   "title": "Keep a captured POST's signed headers and Content-Digest, send another body (a larger amount)",
+   "params": {
+    "variant": "other-body"
+   },
+   "world": {
+    "registry": {
+     "issuer": "https://registry.ludion.ai",
+     "keys": [
+      {
+       "kty": "OKP",
+       "crv": "Ed25519",
+       "x": "S8yQfpqKfmJiBz65RbjwpDNrRjzcGBFUZ-I7hqta1pQ",
+       "kid": "CdDG89bqTCIZurbRRLxCtr7hTfFhwm7OflgdAjdAnws"
+      }
+     ]
+    },
+    "documents": []
+   },
+   "gates": {
+    "main": {
+     "adapter": "core",
+     "authorities": [
+      "shop.example"
+     ],
+     "directories": [
+      {
+       "uri": "https://agent.example",
+       "keys": [
+        {
+         "kty": "OKP",
+         "crv": "Ed25519",
+         "x": "7Ukw40dTMWY3sGxbPxQca_0CHAZTwv7kTgh27loCvMY",
+         "kid": "71k-J62QnlY7_B3iU_3qR7_jVBy0yZrO4RhKhfAtP6E",
+         "use": "sig"
+        },
+        {
+         "kty": "OKP",
+         "crv": "Ed25519",
+         "x": "6JOy42xSyQA0ukAydQUVsIV47luIo_t5zn4pnCfCek8",
+         "kid": "XkdpcUFDHJ7ZsmXrYZfEkBBeW7zigzVvaBfFH8YCWhs",
+         "use": "sig"
+        }
+       ]
+      },
+      {
+       "uri": "https://attacker.example",
+       "keys": [
+        {
+         "kty": "OKP",
+         "crv": "Ed25519",
+         "x": "vufsdJZ_D0Xdo5uhK_5AUtg__ZWgNQ1-nFAFMdJ37Ls",
+         "kid": "okexP6memR4_5I5lG94_DkjA3YNujYRQSNbe0ws4IVA",
+         "use": "sig"
+        }
+       ]
+      }
+     ]
+    }
+   },
+   "steps": [
+    {
+     "gate": "main",
+     "atS": 0,
+     "expect": "verified",
+     "core": {
+      "method": "POST",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://agent.example\""
+       },
+       {
+        "name": "content-digest",
+        "value": "sha-256=:1K/E6SJw5pfgkCyg4x7uJK8wbX0m8ON3ja6LKVLLAAk=:"
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\" \"@method\" \"@path\" \"content-digest\");created=1800000000;keyid=\"71k-J62QnlY7_B3iU_3qR7_jVBy0yZrO4RhKhfAtP6E\";alg=\"ed25519\";expires=1800000060;nonce=\"Wb2JouJN+oK/k4i7+TY/nOPWEiY7v7UTdnN8CWjPqSp1OSs55AXzFLtb5STP0RsyXac+fs+ImkTXT2OT3a05Ig==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:ljbjh9C5+QF2o169TOJDiMo9yOBRtZNE9G0Ad4whPfU9lzae+rih+TxiM1swGHYUkiLboS47Zgn8UhI81OjxCQ==:"
+       }
+      ],
+      "body": "{\"sku\":1,\"amount\":100}"
+     },
+     "reference": {
+      "class": "VERIFIED",
+      "action": "allow"
+     }
+    },
+    {
+     "gate": "main",
+     "atS": 0,
+     "expect": "rejected",
+     "core": {
+      "method": "POST",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://agent.example\""
+       },
+       {
+        "name": "content-digest",
+        "value": "sha-256=:1K/E6SJw5pfgkCyg4x7uJK8wbX0m8ON3ja6LKVLLAAk=:"
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\" \"@method\" \"@path\" \"content-digest\");created=1800000000;keyid=\"71k-J62QnlY7_B3iU_3qR7_jVBy0yZrO4RhKhfAtP6E\";alg=\"ed25519\";expires=1800000060;nonce=\"YxNfTZ3mnEZ40yIEazUZXuqhT8Bu6nHpYzXZSx/t/fkAlg4Pt84uERJYOPvNXgY1U6bI5Fkxa1cL/G+4yi8LSA==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:Ir7YlKsj5u1EfbRUlLKCjLtcLdsY67j6Hq488p3ptYoGRluwqbD0mDLyXvsFE97D15yi5i3jdlN8a6vRi+aEAw==:"
+       }
+      ],
+      "body": "{\"sku\":1,\"amount\":900}"
+     },
+     "reference": {
+      "class": "SPOOFED",
+      "action": "deny",
+      "error": "invalid_signature"
+     }
+    }
+   ]
+  },
+  {
+   "id": "body-swap--second-digest-for-other-body",
+   "source": "GATE-7",
+   "family": "body-swap",
+   "title": "Sign a Content-Digest whose sha-256 is the body's and whose sha-512 is another body's",
+   "params": {
+    "variant": "second-digest-for-other-body"
+   },
+   "world": {
+    "registry": {
+     "issuer": "https://registry.ludion.ai",
+     "keys": [
+      {
+       "kty": "OKP",
+       "crv": "Ed25519",
+       "x": "GEXXHoSc3bTfUdUCBXqzx5JBbEmtgDScAN6NkhPp-SY",
+       "kid": "1572oT_E9gk-pUQZ_uA6x1Pq2fRwV-iyxmab2_0mkxI"
+      }
+     ]
+    },
+    "documents": []
+   },
+   "gates": {
+    "main": {
+     "adapter": "core",
+     "authorities": [
+      "shop.example"
+     ],
+     "directories": [
+      {
+       "uri": "https://agent.example",
+       "keys": [
+        {
+         "kty": "OKP",
+         "crv": "Ed25519",
+         "x": "QUXNg-kGIsHIcgR9Dxpqe7NHoa23kwIKBlJngsRjf6g",
+         "kid": "whoE3yu4rLNtE5_Yd5QyYPFdlbMR6poDST9oVB7i1Rg",
+         "use": "sig"
+        },
+        {
+         "kty": "OKP",
+         "crv": "Ed25519",
+         "x": "bkC8movKXvxajbK2qMlNU5XbNke3V6wvKqw_iJ3UNPE",
+         "kid": "AN4rVd6LFBuYZUjE2G42E5aUjalNjSxIMMHnVj64L2c",
+         "use": "sig"
+        }
+       ]
+      },
+      {
+       "uri": "https://attacker.example",
+       "keys": [
+        {
+         "kty": "OKP",
+         "crv": "Ed25519",
+         "x": "3q1B12sHgd9aomrLTZ9sdtkGW7bsJITLK_wyvbPQXjY",
+         "kid": "jwbuq56L_XUa1CmhCfqfRgbSLAGRN9wGVdYMoCZ-3ek",
+         "use": "sig"
+        }
+       ]
+      }
+     ]
+    }
+   },
+   "steps": [
+    {
+     "gate": "main",
+     "atS": 0,
+     "expect": "verified",
+     "core": {
+      "method": "POST",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "content-digest",
+        "value": "sha-256=:1K/E6SJw5pfgkCyg4x7uJK8wbX0m8ON3ja6LKVLLAAk=:, sha-512=:RcbzLrtzjtdqOmSZB99yRDTmFRryrpgsKnKWDM+K0qN8bZxPerB/NrVFWiKdSXGBYfn6fq3ZwQVzcVm4zLI/zg==:"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://agent.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\" \"@method\" \"@path\" \"content-digest\");created=1800000000;keyid=\"whoE3yu4rLNtE5_Yd5QyYPFdlbMR6poDST9oVB7i1Rg\";alg=\"ed25519\";expires=1800000060;nonce=\"xFK3ftU1IzqImCuqqyIqdXFs71SImkRqEhFEVomLju9FM2du6Ldxv9xPX0hvI/vwyLhAxzM+SpxZZBIknQHotw==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:Mo+VxZDeduIzUBtvWMENpc5S5iqUdpus69LqK2FHly95/Yq3w2eyWbc5FZ6TmXaCH39G1S4iCGzB21vywW77Bg==:"
+       }
+      ],
+      "body": "{\"sku\":1,\"amount\":100}"
+     },
+     "reference": {
+      "class": "VERIFIED",
+      "action": "allow"
+     }
+    },
+    {
+     "gate": "main",
+     "atS": 0,
+     "expect": "rejected",
+     "core": {
+      "method": "POST",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "content-digest",
+        "value": "sha-256=:1K/E6SJw5pfgkCyg4x7uJK8wbX0m8ON3ja6LKVLLAAk=:, sha-512=:PDm0rf46FcvlWHk+Lb/CO3g9sEK2vuCdn7d3NcovRoFUCAPAcpyaPPskpwZ1RGXxjpB23bPlCzLFqnXwDVeVuw==:"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://agent.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\" \"@method\" \"@path\" \"content-digest\");created=1800000000;keyid=\"whoE3yu4rLNtE5_Yd5QyYPFdlbMR6poDST9oVB7i1Rg\";alg=\"ed25519\";expires=1800000060;nonce=\"CxBRqfwJ4qBY7ScSQig9l2vCjsw6WZJIW3GIJ1YIjhuCGicMQcXIsKh4H51VT8iC8DGFoCnxpNHkMvodUT3BBQ==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:chhEBMki2JLrLH045mZcJb1CaeSE7WDrNNxZ0Y8giFKqstplFalB5Lh2severVCi1Ed8SmkQ5V0p0ALCXKTdBQ==:"
+       }
+      ],
+      "body": "{\"sku\":1,\"amount\":100}"
+     },
+     "reference": {
+      "class": "SPOOFED",
+      "action": "deny",
+      "error": "invalid_signature"
+     }
+    }
+   ]
+  },
+  {
+   "id": "body-swap--through-node",
+   "source": "GATE-7",
+   "family": "body-swap",
+   "title": "Through the real Node adapter: the signed headers of a captured POST with another body on the wire",
+   "params": {
+    "variant": "through-node"
+   },
+   "world": {
+    "registry": {
+     "issuer": "https://registry.ludion.ai",
+     "keys": [
+      {
+       "kty": "OKP",
+       "crv": "Ed25519",
+       "x": "S7ddkFdXYBIlgeAkfVPA-EGrYytN_iR6gjJr0U-Txvg",
+       "kid": "nT2F3dbHwQxtX1KC578gyBtloUXMlGyigiIyNIkP8nI"
+      }
+     ]
+    },
+    "documents": []
+   },
+   "gates": {
+    "g0": {
+     "adapter": "node",
+     "authorities": [
+      "shop.example"
+     ],
+     "directories": [
+      {
+       "uri": "https://agent.example",
+       "keys": [
+        {
+         "kty": "OKP",
+         "crv": "Ed25519",
+         "x": "80r3eHzCp4bYv9MUZKsORdMg_GffZosHv4J4NF_OaOA",
+         "kid": "kYjMn2n_4Aq0BtUZIjpPKrR9WR2JDHMmvI5ck79y3AU",
+         "use": "sig"
+        },
+        {
+         "kty": "OKP",
+         "crv": "Ed25519",
+         "x": "kZuJa7dUlnd9S3rWRu9PRHv3sNusrp_LVt8nQ04CdkI",
+         "kid": "1vMMgLdk7aXQn9xkxk-suFsjYche-G9xMraN0XU1Hp4",
+         "use": "sig"
+        }
+       ]
+      },
+      {
+       "uri": "https://attacker.example",
+       "keys": [
+        {
+         "kty": "OKP",
+         "crv": "Ed25519",
+         "x": "2bUw23aTzmJdmgmcnW0lx6yRfdy7hUlmqdxXfG3SIw0",
+         "kid": "OiAN2pJvOX1J8qAMvpfL3azsvGFhW3sLUAMycLjgER4",
+         "use": "sig"
+        }
+       ]
+      }
+     ]
+    }
+   },
+   "steps": [
+    {
+     "gate": "g0",
+     "atS": 0,
+     "expect": "verified",
+     "raw": {
+      "method": "POST",
+      "target": "/checkout/1",
+      "rawHeaders": [
+       "host",
+       "shop.example",
+       "user-agent",
+       "ExampleAgent/1.0",
+       "signature-agent",
+       "sig1=\"https://agent.example\"",
+       "content-digest",
+       "sha-256=:1K/E6SJw5pfgkCyg4x7uJK8wbX0m8ON3ja6LKVLLAAk=:",
+       "signature-input",
+       "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\" \"@method\" \"@path\" \"content-digest\");created=1800000000;keyid=\"kYjMn2n_4Aq0BtUZIjpPKrR9WR2JDHMmvI5ck79y3AU\";alg=\"ed25519\";expires=1800000060;nonce=\"lZ4bQwg7PTP81V3i2uml6zW1wryxUqaE41GUQbtyMgz7to6sRPJhi53OrikhGaWFGcOqP9BVDcbHEMmgTz/7Vw==\";tag=\"web-bot-auth\"",
+       "signature",
+       "sig1=:L6soyAEwjvsXr4nvHzxbsNDG+DFkTHJoWZ9U63cCcCMuiYrXGnJbQneo4SCjAolS62g1ufJNWpw1ubjSJSlDCQ==:",
+       "content-length",
+       "22"
+      ],
+      "tls": true,
+      "remoteAddress": "203.0.113.7",
+      "body": "{\"sku\":1,\"amount\":100}"
+     },
+     "reference": {
+      "class": "VERIFIED",
+      "action": "allow",
+      "reachedApp": true
+     }
+    },
+    {
+     "gate": "g0",
+     "atS": 0,
+     "expect": "rejected",
+     "raw": {
+      "method": "POST",
+      "target": "/checkout/1",
+      "rawHeaders": [
+       "host",
+       "shop.example",
+       "user-agent",
+       "ExampleAgent/1.0",
+       "signature-agent",
+       "sig1=\"https://agent.example\"",
+       "content-digest",
+       "sha-256=:1K/E6SJw5pfgkCyg4x7uJK8wbX0m8ON3ja6LKVLLAAk=:",
+       "signature-input",
+       "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\" \"@method\" \"@path\" \"content-digest\");created=1800000000;keyid=\"kYjMn2n_4Aq0BtUZIjpPKrR9WR2JDHMmvI5ck79y3AU\";alg=\"ed25519\";expires=1800000060;nonce=\"hVUo41upUkQWFmbKFmf3ffv2d5k2YmKQm8F5OLBc1ztdpWqPn3iyLRBbpL5s/AkQaNLcnkmD2eerX+YnnNTwiA==\";tag=\"web-bot-auth\"",
+       "signature",
+       "sig1=:Fq2lA8xTBSUutvKH7S87J4nxKNkmuOpdVyib/m164w3Mmy6H/Hu3TriH+vNnxYrMqYvOoHVhSRlZiIZj/gunBg==:",
+       "content-length",
+       "22"
+      ],
+      "tls": true,
+      "remoteAddress": "203.0.113.7",
+      "body": "{\"sku\":1,\"amount\":900}"
+     },
+     "reference": {
+      "class": "SPOOFED",
+      "action": "deny",
+      "error": "invalid_signature",
+      "reachedApp": false
+     }
+    }
+   ]
+  },
+  {
    "id": "clock-skew--future-created",
    "source": "GATE-7",
    "family": "clock-skew",
@@ -3177,10 +3870,13 @@
        "signature-input",
        "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\" \"@method\" \"@path\" \"content-digest\");created=1800000000;keyid=\"A2dQn25fNg8XM53xM-2BySe-OTQKMqC8BQokFNx0Xfw\";alg=\"ed25519\";expires=1800000060;nonce=\"O6ey9vdzz6+flDxZwzmwnCuvFm7+ZlXt2FeNsUO2SIrfsGxMyrkDBX/Vf3/ofV3hnor6ZQ+ahyTUdhvNXKEZbQ==\";tag=\"web-bot-auth\"",
        "signature",
-       "sig1=:sAzsd5lrf3DG7TQZnvJrZyI4ZKpJRjC5NMxe5Z3LF1OP4vre0H0txQYgkmgT3sCjMHMYQVl1P7oAhMaKEX84CA==:"
+       "sig1=:sAzsd5lrf3DG7TQZnvJrZyI4ZKpJRjC5NMxe5Z3LF1OP4vre0H0txQYgkmgT3sCjMHMYQVl1P7oAhMaKEX84CA==:",
+       "content-length",
+       "9"
       ],
       "tls": true,
-      "remoteAddress": "203.0.113.7"
+      "remoteAddress": "203.0.113.7",
+      "body": "{\"sku\":1}"
      },
      "reference": {
       "class": "VERIFIED",
@@ -3207,10 +3903,13 @@
        "signature-input",
        "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\" \"@method\" \"@path\" \"content-digest\");created=1800000000;keyid=\"A2dQn25fNg8XM53xM-2BySe-OTQKMqC8BQokFNx0Xfw\";alg=\"ed25519\";expires=1800000060;nonce=\"qvIXMdhl9GqlNH2Ldvyc8MzMNKCb75jqr4kw5Yo135yUmIIFcq2K2hvbgB6mmOtDdIhAvAdAZi6663wse8DxEg==\";tag=\"web-bot-auth\"",
        "signature",
-       "sig1=:MwkzCWgBv9qan+ybRNRbpJGueyzgJus02CziUegtKkaG7RlgkqmgQTCf/BKNWeYJPhW5srNwV8YlNZZKQFHcBw==:"
+       "sig1=:MwkzCWgBv9qan+ybRNRbpJGueyzgJus02CziUegtKkaG7RlgkqmgQTCf/BKNWeYJPhW5srNwV8YlNZZKQFHcBw==:",
+       "content-length",
+       "9"
       ],
       "tls": true,
-      "remoteAddress": "203.0.113.7"
+      "remoteAddress": "203.0.113.7",
+      "body": "{\"sku\":1}"
      },
      "reference": {
       "class": "SPOOFED",
@@ -3304,10 +4003,13 @@
        "signature-input",
        "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\" \"@method\" \"@path\" \"content-digest\");created=1800000000;keyid=\"VS3DmEYKHoeZPrrjTsNncWpbPKoW6m8xufTwiTsnJLI\";alg=\"ed25519\";expires=1800000060;nonce=\"s7EYphzHl8u+AlJdUYcJcKijfRlE6C0IABQI+i22xoyjUTKN54N8dtg1gGPWnKGIFHxyFCZa3u8mWxPZHWRLqQ==\";tag=\"web-bot-auth\"",
        "signature",
-       "sig1=:e/n+e3lO9p4pTCe544LXAM/Z3PIb1AkVJaYVkVtTnl2CWmvlz1pk5zGbyacN8fsrIPCB9RLhI00CGchPyUmJBw==:"
+       "sig1=:e/n+e3lO9p4pTCe544LXAM/Z3PIb1AkVJaYVkVtTnl2CWmvlz1pk5zGbyacN8fsrIPCB9RLhI00CGchPyUmJBw==:",
+       "content-length",
+       "9"
       ],
       "tls": true,
-      "remoteAddress": "203.0.113.7"
+      "remoteAddress": "203.0.113.7",
+      "body": "{\"sku\":1}"
      },
      "reference": {
       "class": "VERIFIED",
@@ -3338,10 +4040,13 @@
        "x-forwarded-host",
        "shop-a.example",
        "x-forwarded-proto",
-       "https"
+       "https",
+       "content-length",
+       "9"
       ],
       "tls": true,
-      "remoteAddress": "203.0.113.7"
+      "remoteAddress": "203.0.113.7",
+      "body": "{\"sku\":1}"
      },
      "reference": {
       "class": "SPOOFED",
@@ -3436,10 +4141,13 @@
        "signature-input",
        "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\" \"@method\" \"@path\" \"content-digest\");created=1800000000;keyid=\"UEhjiYRcQTUgAF6INOOkEfvqBHPAIYNB6-kw5S68snM\";alg=\"ed25519\";expires=1800000060;nonce=\"Pe3OYvqn8ZZgfCVaAsbBEylkZvEcsb/O1XOqlhZj4oUko7v2sOgz3x11XBRsSkRceBXm4LPVYtEoyvJb/UQs7w==\";tag=\"web-bot-auth\"",
        "signature",
-       "sig1=:q9tN7OWDIkR1LxwfnGAJZdNl66c6PVh6IqR5TdPXYQUH7vFULPTkSWluhCZWLUGMvkomNN+iYKCYg1hhh8beCw==:"
+       "sig1=:q9tN7OWDIkR1LxwfnGAJZdNl66c6PVh6IqR5TdPXYQUH7vFULPTkSWluhCZWLUGMvkomNN+iYKCYg1hhh8beCw==:",
+       "content-length",
+       "9"
       ],
       "tls": true,
-      "remoteAddress": "203.0.113.7"
+      "remoteAddress": "203.0.113.7",
+      "body": "{\"sku\":1}"
      },
      "reference": {
       "class": "VERIFIED",
@@ -3470,10 +4178,13 @@
        "x-forwarded-host",
        "shop-a.example",
        "x-forwarded-proto",
-       "https"
+       "https",
+       "content-length",
+       "9"
       ],
       "tls": true,
-      "remoteAddress": "203.0.113.7"
+      "remoteAddress": "203.0.113.7",
+      "body": "{\"sku\":1}"
      },
      "reference": {
       "class": "SPOOFED",
@@ -3705,7 +4416,8 @@
         "name": "signature",
         "value": "sig1=:artqelwl+M5IwtdjepSzQ88FVZa7K20HHa4V+IfagStxQjbp3talFQ4U0DBzd3G2U2N8FqOOMwpztWSrzOWkBQ==:"
        }
-      ]
+      ],
+      "body": "{\"sku\":1}"
      },
      "reference": {
       "class": "VERIFIED",
@@ -3740,7 +4452,8 @@
         "name": "signature",
         "value": "sig1=:qJAiNCVC8d0KfJjBUPeH+B9ogRrns65dLx/SIhKJOu0UnIjcYSxnzYRacBalgowuXf4+YNqxEnUG6SjafyQfBA==:"
        }
-      ]
+      ],
+      "body": "{\"sku\":1}"
      },
      "reference": {
       "class": "SPOOFED",
@@ -3842,7 +4555,8 @@
         "name": "signature",
         "value": "sig1=:Hz55/4a5d6E2XA6Xk03XktxgmOZqbPGhFDB4S7XP5o369idKlxvU6gocU6Bz7keW9O6Q/ItdgFoabg+cqcOyCA==:"
        }
-      ]
+      ],
+      "body": "{\"sku\":1}"
      },
      "reference": {
       "class": "VERIFIED",
@@ -3877,7 +4591,8 @@
         "name": "signature",
         "value": "sig1=:n+SNtkkPobGpn7s3f+2Z5kYeMq6TlBgeh0xdGiveKMcSelOXwQ7U3LiJZVq1B5zNKjnbzT5gbLvmxeS5KxbwBg==:"
        }
-      ]
+      ],
+      "body": "{\"sku\":1}"
      },
      "reference": {
       "class": "SPOOFED",
@@ -3979,7 +4694,8 @@
         "name": "signature",
         "value": "sig1=:MDQZKWaNUte3ixxmK4PPeC16/S+7m2E1Qmh0z+lDVUkveT5Joe3KphXBhzkIOpC9Kyxysfk4wcXQBG01Y2drDw==:"
        }
-      ]
+      ],
+      "body": "{\"sku\":1}"
      },
      "reference": {
       "class": "VERIFIED",
@@ -4014,7 +4730,8 @@
         "name": "signature",
         "value": "sig1=:2TCVc8ILOk3QHwd4CjKXFVcOkuF942TAPT4M9PpU5ijo7YOISHO1zCYSPKYHbrzw6ZWsCtkaXIia4AQhY9i+BA==:"
        }
-      ]
+      ],
+      "body": "{\"sku\":1}"
      },
      "reference": {
       "class": "SPOOFED",
@@ -4133,7 +4850,8 @@
         "name": "signature",
         "value": "sig1=:c5xoJKbscRVbvaCJm24+cV+XmfWAFKFGd1PrNze8UpGb4C47YjvqylU/KykB1QXp/uEs25OdFeD4FTbSYM9VDw==:"
        }
-      ]
+      ],
+      "body": "{\"sku\":1}"
      },
      "reference": {
       "class": "SUSPECTED",
@@ -16672,7 +17390,8 @@
         "name": "signature",
         "value": "sig1=:uKaO1H9F8Wz9pEm0bIVcytJOCHsYrMGzLMZmOfqi5803MaRKRRs2xUg3ONAPnh2RqbQXDDwouU6ZYjkyK1RSCQ==:"
        }
-      ]
+      ],
+      "body": "{\"sku\":1}"
      },
      "reference": {
       "class": "VERIFIED",
@@ -16814,7 +17533,8 @@
         "name": "signature",
         "value": "sig1=:ZVxidm2AKL5hBwoZVkGu0+Kg02WaNRG7mdtY5yt+VgmyX95mq51Ym/alXLnSgOACGNzYPc3kAulqLiLq2RCTDQ==:"
        }
-      ]
+      ],
+      "body": "{\"sku\":1}"
      },
      "reference": {
       "class": "VERIFIED",
@@ -16849,7 +17569,8 @@
         "name": "signature",
         "value": "sig1=:acHiWW75+PUmrJOvTE4uF870ShG/zVoGuR1En3VAnIbU5iiJygjpV/x6/NDFFvg5e48/7rrv6hvBpy7QtoxCDQ==:"
        }
-      ]
+      ],
+      "body": "{\"sku\":1}"
      },
      "reference": {
       "class": "SPOOFED",
@@ -16965,7 +17686,8 @@
         "name": "signature",
         "value": "sig1=:RvDWpW+ikcie+6bhLzFImXgIjYzVD6GwienxUJCJbpmKjj/5heXvVdrAxI7gApdtpWFVlh2ehPcO5nJlhVznAw==:"
        }
-      ]
+      ],
+      "body": "{\"sku\":1}"
      },
      "reference": {
       "class": "VERIFIED",
@@ -17119,7 +17841,8 @@
         "name": "signature",
         "value": "sig1=:vG4S82xa0AD7lB4E9xFQGFHIk8DPwvN2cEAfic2kbeTzJp73/6TAEACkc1hpMkhukvFvgggYCsjl64Hex1qZCg==:"
        }
-      ]
+      ],
+      "body": "{\"sku\":1}"
      },
      "reference": {
       "class": "VERIFIED",
@@ -17267,7 +17990,8 @@
         "name": "signature",
         "value": "sig1=:KTUN6QrdbyHPVJlLDhD0MISNxXbC9cdLojL7lECA24e5c44hqfqgBk8nW4fPb0ZfCXyxvhgsjBerm1iNIsLABw==:"
        }
-      ]
+      ],
+      "body": "{\"sku\":1}"
      },
      "reference": {
       "class": "VERIFIED",
@@ -17302,7 +18026,8 @@
         "name": "signature",
         "value": "sig1=:gkAXL9VrhxF6+Y0DLscpqtaj/gvdRDwPpIkh9Y08gjW5xyFzNOK63dcckUIwBoS5QjMVrp6FAumTTc545ZgyAA==:"
        }
-      ]
+      ],
+      "body": "{\"sku\":1}"
      },
      "reference": {
       "class": "SPOOFED",
@@ -17415,7 +18140,8 @@
         "name": "signature",
         "value": "sig1=:Y0/93xDIoCji57zMHjn1woudljZFhb6QLXsvgIzorDyrFiScM9LgjRw/S4zyQRjB+9WeqUcY9Kv0t9yjzFl6Cg==:"
        }
-      ]
+      ],
+      "body": "{\"sku\":1}"
      },
      "reference": {
       "class": "VERIFIED",
@@ -17450,7 +18176,8 @@
         "name": "signature",
         "value": "sig1=:ftY8KmbI+HPTshmiPBfg838CJrd/H5N2/nJD1eCeWE+mntAURwjdmaEGV3tjy4yBQI9kVqOnDatZ7HJGKKI9Ag==:"
        }
-      ]
+      ],
+      "body": "{\"sku\":1}"
      },
      "reference": {
       "class": "SPOOFED",
@@ -17563,7 +18290,8 @@
         "name": "signature",
         "value": "sig1=:+W8kd+aiY01kzDFiuWywD9A/x3rZsy24acRttS1yAmcHKFLqETyB2Rb3CLGJNNIELpxUfHqYejLmUJhUb4rcBQ==:"
        }
-      ]
+      ],
+      "body": "{\"sku\":1}"
      },
      "reference": {
       "class": "VERIFIED",
@@ -17598,7 +18326,8 @@
         "name": "signature",
         "value": "sig1=:BjKYscB3VvlFKoxRyZW/4VNsE++vpXwm6ARre/WrA1smI6lY1va3YUaAaVUHAyzKfwR+MzcITretWsvUJIO2Cg==:"
        }
-      ]
+      ],
+      "body": "{\"sku\":1}"
      },
      "reference": {
       "class": "SPOOFED",
@@ -17712,7 +18441,8 @@
         "name": "signature",
         "value": "sig1=:YtNh2OdjdBaOgOjwprefD8K66pvCrsO/pDMZB88hSBSY3Hy2shMZiTbo00LofPlzXCgOSxPbBCUFX8Sst47CDw==:"
        }
-      ]
+      ],
+      "body": "{\"sku\":1}"
      },
      "reference": {
       "class": "VERIFIED",
@@ -17747,7 +18477,8 @@
         "name": "signature",
         "value": "sig1=:n8qy9XpNTWjuKTDkQCnGBuiYadQ0e0v/E0Vx6X/pv42Nwg+H7YHIoHL37PNl0r995EdLSwMt1v8CYOgFo1xnCQ==:"
        }
-      ]
+      ],
+      "body": "{\"sku\":1}"
      },
      "reference": {
       "class": "SPOOFED",
@@ -18111,7 +18842,8 @@
         "name": "signature",
         "value": "sig1=:X3wYD6Pb1KQYZ2l5Pfutzj7eSf9Hv45PmyTCuoNQVi4WXPmLjvn1MuS0tq7Jej08S+I7Qd3UDFiR7fqgMNI6Aw==:"
        }
-      ]
+      ],
+      "body": "{\"sku\":1}"
      },
      "reference": {
       "class": "VERIFIED",
@@ -18146,7 +18878,8 @@
         "name": "signature",
         "value": "sig1=:X3wYD6Pb1KQYZ2l5Pfutzj7eSf9Hv45PmyTCuoNQVi4WXPmLjvn1MuS0tq7Jej08S+I7Qd3UDFiR7fqgMNI6Aw==:"
        }
-      ]
+      ],
+      "body": "{\"sku\":1}"
      },
      "reference": {
       "class": "SPOOFED",
@@ -18380,7 +19113,8 @@
         "name": "signature",
         "value": "sig1=:5n4AZPMg/3fVSYvyyJYUN3JEKkA/yyPOlCesapUj3O5odE9AFquVt9hXlN4EQS+ZHpAWo7dNVEFjiT/r6EViAw==:"
        }
-      ]
+      ],
+      "body": "{\"sku\":1}"
      },
      "reference": {
       "class": "VERIFIED",
@@ -18415,7 +19149,8 @@
         "name": "signature",
         "value": "sig1=:5n4AZPMg/3fVSYvyyJYUN3JEKkA/yyPOlCesapUj3O5odE9AFquVt9hXlN4EQS+ZHpAWo7dNVEFjiT/r6EViAw==:"
        }
-      ]
+      ],
+      "body": "{\"sku\":1}"
      },
      "reference": {
       "class": "SPOOFED",

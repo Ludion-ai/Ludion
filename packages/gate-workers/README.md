@@ -33,6 +33,7 @@ Pressure 0 only observes. Nothing changes for anyone until you raise it. `nodejs
 
 ## Notes
 
+- **Signed bodies.** When an agent signs a request's `Content-Digest`, the Gate reads a clone of the body (up to 1 MiB) to check it. Your handler still gets the whole body.
 - **Other handlers are kept.** `scheduled`, `queue` and any other members of your default export keep working.
 - **Events outlive the response.** Classified events are handed to `ctx.waitUntil`, so they are delivered after the response is returned.
 - **Immutable headers.** A response with immutable headers, such as one passed through from `fetch()`, is copied with its body stream intact. Only `Ludion-*` headers are added.

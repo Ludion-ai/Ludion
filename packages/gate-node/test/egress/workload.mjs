@@ -119,6 +119,7 @@ async function build(i) {
 /** A Node IncomingMessage as the http module builds it, with the body still unread. */
 function incoming({ method, target, body, headers, clientIp }) {
   const req = Readable.from(body == null ? [] : [Buffer.from(body)]);
+  if (body != null) headers = [...headers, ["Content-Length", String(Buffer.byteLength(body))]]; // the framing a real request carries
   req.method = method; req.url = target; req.httpVersion = "1.1";
   req.rawHeaders = headers.flat();
   req.headers = {};

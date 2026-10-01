@@ -56,6 +56,8 @@ export async function signed({
       expires: expires === null ? undefined : expires ?? created + lifetime, nonce: nonce ?? undefined, tag: tag ?? undefined },
   });
   req.fields.push({ name: "signature-input", value: out.signatureInput }, { name: "signature", value: out.signature });
+  // The bytes an adapter would hand the Gate to check the Content-Digest against (GATE-11).
+  if (body != null) req.body = body;
   return req;
 }
 

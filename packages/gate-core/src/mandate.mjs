@@ -51,10 +51,10 @@ export function audienceHost(aud) {
 /**
  * Verify the Mandate a request carries.
  * @param {string} compact  the Ludion-Mandate header
- * @param {{ stapleVerifier: { verifyStatement: Function }, staple: object|null, authority: string,
- *           authorities?: { pinned: boolean, allows: (a: string) => boolean }, categories?: string[],
- *           revocations?: { match: Function }, now: number, skewS?: number }} ctx
- *   staple: the verified Staple of this request (null if none); authority: the request's.
+ * @param {{ stapleVerifier: { verifyStatement: Function }, staple: object|null, authority: string|null,
+ *           categories?: string[], revocations?: { match: Function }, now: number, skewS?: number }} ctx
+ *   staple: the verified Staple of this request (null if none); authority: the request's
+ *   (requestAuthority; a pinned Gate has already refused one that is not its own).
  * @returns {Promise<object>} the payload
  */
 export async function verifyMandate(compact, ctx) {
@@ -77,10 +77,12 @@ export async function verifyMandate(compact, ctx) {
   if (!ctx.staple) throw new MandateError("a mandate is attributed through the Staple, and there is none", "no_staple");
   if (p.sub !== ctx.staple.sub) throw new MandateError("mandate delegated to another Diver", "subject");
 
-  // Where: this site (one of its authorities), or a category the site declares.
+  // Where: the site this request is for (its authority, which a pinned Gate has already held to its
+  // own), or a category the site declares. Not any other authority the same Gate holds: a Mandate
+  // for shop.example says nothing about admin.example behind the same Gate.
   const host = audienceHost(p.aud);
   const here = host != null
-    ? (ctx.authorities?.pinned ? ctx.authorities.allows(host) : host === String(ctx.authority).toLowerCase())
+    ? ctx.authority != null && host === String(ctx.authority).toLowerCase()
     : typeof p.aud === "string" && CATEGORY.test(p.aud) && (ctx.categories ?? []).includes(p.aud.slice(4));
   if (!here) throw new MandateError("mandate is for another site", "audience");
 

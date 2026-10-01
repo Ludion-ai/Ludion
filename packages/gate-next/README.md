@@ -28,6 +28,8 @@ Then `next build && next start` as usual. Pressure 0 only observes. Nothing chan
 ## Notes
 
 - **Where it runs.** Next.js 16 runs `proxy.js` on the Node.js runtime, before routing, for every request, including `public/` files and `/_next/static`. The Gate classifies them all.
+- **Key discovery stays off your network.** The Gate fetches an agent's public keys through a transport that resolves the name once, refuses every non-public address and connects to exactly the address it checked (the same one `@ludion/gate-node` uses). It never uses the runtime's plain `fetch`.
+- **Signed bodies.** When an agent signs a request's `Content-Digest`, the Gate reads a clone of the body (up to 1 MiB) to check it. Your route handler still gets the whole body.
 - **Config redirects bypass the Gate.** Redirects declared in `next.config.js` (`redirects()`) run *before* the proxy. The Gate never sees requests they answer.
 - **Changed chunk names.** Adding the Gate renames a couple of content-hashed client chunks. The bundler numbers modules across the whole build, and the Gate adds server-only modules. The client code itself is the same; GATE-1 checks this chunk by chunk. Browsers download the renamed chunks once, as after any deploy.
 - **Existing `proxy.js`.** If you already have one, call the Gate from it:

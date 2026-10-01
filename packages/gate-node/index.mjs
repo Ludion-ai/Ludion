@@ -7,10 +7,52 @@
 // the decision. Humans are never affected: decisions apply only to requests the
 // Gate classified as automation, and Pressure 0 (default) only observes.
 
-import { createGate, originForm } from "@ludion/gate-core";
-import { createSafeFetch } from "./safe-fetch.mjs";
+import { createGate, originForm, bodyNeeded, DEFAULT_MAX_BODY_BYTES, DEFAULT_BODY_TIMEOUT_MS } from "@ludion/gate-core";
+import { createSafeFetch } from "@ludion/gate-core/safe-fetch";
 
 export { createSafeFetch };
+
+/**
+ * The body of an IncomingMessage, for the Gate to check a signed Content-Digest (GATE-11), handed
+ * back to the stream before the app sees it: read in paused mode, then unshifted in the same tick
+ * as the last read, so 'end' cannot fire in between and the app's parser reads every byte. Past
+ * `maxBytes`, or after `timeoutMs`, what was read goes back and the body is left unchecked (never
+ * VERIFIED). A body already read before the Gate ran cannot be checked. Never throws.
+ * @returns {Promise<Uint8Array | { unavailable: string }>}
+ */
+export function readBody(req, { maxBytes = DEFAULT_MAX_BODY_BYTES, timeoutMs = DEFAULT_BODY_TIMEOUT_MS } = {}) {
+  const announced = Number(req.headers["content-length"] ?? 0) > 0 || req.headers["transfer-encoding"] !== undefined;
+  if (!announced) return Promise.resolve(new Uint8Array(0)); // HTTP framing says there is no body
+  // Read (or being read) before the Gate ran: a body parser mounted first. Nothing left to check.
+  if (req.readableEnded || req.readableFlowing === true || req._body) return Promise.resolve({ unavailable: "body_consumed" });
+  return new Promise((resolve) => {
+    const chunks = [];
+    let n = 0, done = false;
+    const finish = (out) => {
+      if (done) return;
+      done = true;
+      clearTimeout(timer);
+      req.off("readable", onReadable); req.off("error", onError); req.off("aborted", onAbort);
+      if (chunks.length) req.unshift(chunks.length === 1 ? chunks[0] : Buffer.concat(chunks));
+      resolve(out);
+    };
+    const onReadable = () => {
+      let c;
+      while ((c = req.read()) !== null) {
+        chunks.push(c); n += c.length;
+        if (n > maxBytes) return finish({ unavailable: "body_too_large" });
+      }
+      // IncomingMessage marks the message complete before it pushes the end; other streams only internally.
+      if (req.complete === true || req._readableState?.ended === true) finish(new Uint8Array(Buffer.concat(chunks)));
+    };
+    const onError = () => finish({ unavailable: "body_error" });
+    const onAbort = () => finish({ unavailable: "body_error" });
+    const timer = setTimeout(() => finish({ unavailable: "body_timeout" }), timeoutMs);
+    timer.unref?.();
+    req.on("readable", onReadable); req.on("error", onError); req.on("aborted", onAbort);
+    onReadable();
+  });
+}
 
 /**
  * Key discovery on Node goes through createSafeFetch unless `resolver.fetch` is given: every
@@ -40,10 +82,14 @@ export async function ludionGate(config) {
     return req.socket?.remoteAddress;
   }
 
+  const bodyLimits = { maxBytes: config.maxBodyBytes, timeoutMs: config.bodyTimeoutMs };
   const middleware = async function ludionMiddleware(req, res, next) {
     let result;
     try {
-      result = await gate.inspect(describe(req), { ip: clientIp(req), country: req.headers["cf-ipcountry"] ?? req.headers["x-vercel-ip-country"] });
+      const desc = describe(req);
+      // Only a signature that covers content-digest makes the Gate read the body (to check it).
+      if (bodyNeeded(desc)) desc.body = await readBody(req, bodyLimits);
+      result = await gate.inspect(desc, { ip: clientIp(req), country: req.headers["cf-ipcountry"] ?? req.headers["x-vercel-ip-country"] });
     } catch (e) {
       result = gate.failSafe(req.url, e); // inspect never throws; this is the last line, and it still honours fail_mode
     }
