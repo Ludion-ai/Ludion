@@ -93,7 +93,9 @@ export async function handleSignup(request, { webhook, client = "", limiter, fet
   try {
     const r = await send(webhook, {
       method: "POST", headers: { "content-type": "application/json" },
-      body: JSON.stringify({ text, content: text, allowed_mentions: { parse: [] }, record }),
+      // The site field is a URL the person typed: no notifier fetches or previews it (Discord flags 4 =
+      // SUPPRESS_EMBEDS; Slack unfurl off), and no one is pinged.
+      body: JSON.stringify({ text, content: text, allowed_mentions: { parse: [] }, flags: 4, unfurl_links: false, unfurl_media: false, record }),
       signal: AbortSignal.timeout(NOTIFY_TIMEOUT_MS),
     });
     if (!r.ok) return json(502, { error: "notify" });
