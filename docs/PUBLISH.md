@@ -23,6 +23,29 @@ Claude Code は publish しない。ここにある手順は、人間がなぞ�
 - 版はすべて `0.0.1`。上げる場合は8つとも同じ版にし、内部依存の版も合わせる。PUB-2 が食い違いを落とす。
 - `@ludion/card-host` と `@ludion/registry` は今回は出さない（顧客が入れるものではない）。
 
+## 0.5 `ludion` だけを先に出す（2026-10-01 の人間の判断）
+
+`@ludion/gate-*` はまだ出さず、CLI（`npx ludion`）だけを先に出せる。
+
+- `ludion` の tarball は、CLI のコード（`@ludion/diver`、`@ludion/scan`、`@ludion/report`、`@ludion/gate-core`）を `lib/` に同梱する。
+  - 同梱は `npm publish` の `prepack` で `packages/ludion/build.mjs` が行い、`postpack` で消す。リポジトリには残らない。
+  - npm に `@ludion/*` が一つもなくても入る（PUB-3 が、`@ludion` の取得を全部拒むレジストリの下で確かめる）。
+- 依存は第三者のもの（`web-bot-auth`、`http-message-sig`、`jsonwebkey-thumbprint`）だけ。
+- スコープ `@ludion` の組織は、`ludion` だけなら要らない（無印の名前なので）。
+
+手順（人間、OTP を入れる）：
+
+```sh
+git switch main && git pull && npm ci
+npm run scoreboard                       # PUB-1、PUB-2、PUB-3 が PASS
+cd packages/ludion && npm publish --dry-run   # Tarball Contents に bin/、lib/@ludion/…、README.md、LICENSE、package.json だけ
+npm publish --otp=<OTP>
+```
+
+確かめ方：空のディレクトリで `npx --yes ludion@0.0.1 scan <手元の access.log>`。
+
+あとで `@ludion/*` を出すときは、1 から 4 の順に出す。そのとき `ludion` は出し直さなくてよい（同梱のまま動く）。版を上げるときは、8つとも同じ版にする。
+
 ## 1. 最初に一度だけ（人間）
 
 1. npm にログインする：`npm login`。2段階認証が有効なアカウントで行う。

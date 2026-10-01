@@ -22,3 +22,4 @@ SCOREBOARD.json
 .env
 .env.*
 *.env
+packages/ludion/lib/
