@@ -26,16 +26,30 @@ export function npm(args, cwd, { env = {}, timeout = 300_000 } = {}) {
 
 export const manifest = (dir) => JSON.parse(fs.readFileSync(path.join(ROOT, "packages", dir, "package.json"), "utf8"));
 
+/**
+ * Run one package's pack the way `npm publish` does: its prepack script, the pack, its postpack
+ * script (ludion vendors the CLI's code at prepack and removes it at postpack). Other lifecycle
+ * scripts stay off (--ignore-scripts on the pack itself).
+ */
+function withLifecycle(dir, pack) {
+  const cwd = path.join(ROOT, "packages", dir);
+  npm(["run", "prepack", "--if-present"], cwd);
+  try { return pack(cwd); } finally { npm(["run", "postpack", "--if-present"], cwd); }
+}
+
 /** `npm pack --dry-run --json` for one package: the exact file list npm would publish. */
 export function packList(dir) {
-  const [info] = JSON.parse(npm(["pack", "--dry-run", "--json", "--ignore-scripts"], path.join(ROOT, "packages", dir)));
+  const [info] = withLifecycle(dir, (cwd) => JSON.parse(npm(["pack", "--dry-run", "--json", "--ignore-scripts"], cwd)));
   return { name: info.name, version: info.version, files: info.files.map((f) => f.path.replace(/\\/g, "/")) };
+}
+
+/** Pack one package of the set into `dest`; returns the tarball path. */
+export function packOne(dir, dest = fs.mkdtempSync(path.join(os.tmpdir(), "ludion-pub-"))) {
+  const [info] = withLifecycle(dir, (cwd) => JSON.parse(npm(["pack", "--json", "--ignore-scripts", "--pack-destination", dest], cwd)));
+  return path.join(dest, info.filename);
 }
 
 /** Pack every package in the set into `dest`; returns the tarball paths in publish order. */
 export function packAll(dest = fs.mkdtempSync(path.join(os.tmpdir(), "ludion-pub-"))) {
-  return SET.map((dir) => {
-    const [info] = JSON.parse(npm(["pack", "--json", "--ignore-scripts", "--pack-destination", dest], path.join(ROOT, "packages", dir)));
-    return path.join(dest, info.filename);
-  });
+  return SET.map((dir) => packOne(dir, dest));
 }

@@ -201,6 +201,10 @@ export const ORACLES = [
       metric: (out) => (/^# PUB-1: (.+)$/m.exec(out) ?? [])[1] }) },
   { id: "PUB-2", m: "M2", kind: "-", level: 1, property: "published-tarball", title: "each tarball ships only its declared files (no tests, fixtures, keys, env, identities) and is publishable as is",
     run: nodeTest(["accept/publish/pub2.test.mjs"], "^PUB-2:", { metric: (out) => (/^# PUB-2: (.+)$/m.exec(out) ?? [])[1] }) },
+  // The CLI first, alone (the human's order, 2026-10-01): its tarball installs with every @ludion/*
+  // fetch refused, and works as the repo's CLI does. Packed as npm publish packs (prepack, postpack).
+  { id: "PUB-3", m: "M2", kind: "+", level: 1, pair: "PUB-2", property: "published-tarball", title: "the ludion tarball alone installs into a clean project with no @ludion/* on npm; the CLI works (scan, report equal the repo's; init + sign)",
+    timeoutMs: 900_000, run: nodeTest(["accept/publish/pub3.test.mjs"], "^PUB-3:", { timeoutMs: 880_000 }) },
   { id: "DIV-4", m: "M2", kind: "±", level: 1, title: "session key rotation keeps the identifier; old key stops, new key works",
     run: nodeTest(["packages/diver/test/div4.test.mjs"], "^DIV-4:") },
 

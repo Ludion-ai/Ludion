@@ -25,13 +25,20 @@
   },
   "files": [
     "bin/",
+    "lib/",
     "README.md",
     "LICENSE"
   ],
+  "scripts": {
+    "prepack": "node build.mjs",
+    "postpack": "node build.mjs --clean"
+  },
   "engines": {
     "node": ">=20"
   },
   "dependencies": {
-    "@ludion/diver": "0.0.1"
+    "http-message-sig": "0.3.0",
+    "jsonwebkey-thumbprint": "0.1.0",
+    "web-bot-auth": "0.2.0"
   }
 }
