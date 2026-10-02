@@ -129,6 +129,8 @@ test("WEB-8: a person's submission on / and /ja reaches the notifier through the
       assert.equal(got[0].method, "POST");
       assert.match(got[0].headers["content-type"], /^application\/json/);
       assert.ok(got[0].body.text.includes(address) && got[0].body.content === got[0].body.text, "Slack's text and Discord's content");
+      assert.ok((got[0].body.flags & 4) === 4 && got[0].body.unfurl_links === false && got[0].body.unfurl_media === false,
+        "no preview of the URL the person typed (Discord SUPPRESS_EMBEDS, Slack unfurl off)");
 
       // The page's one request for it: a POST to its own origin, with the person's fields and an empty honeypot.
       assert.deepEqual(requests.map((r) => `${r.method} ${r.url}`), [`POST ${edge.origin}${ENDPOINT}`], `${urlPath}: requests on submit`);

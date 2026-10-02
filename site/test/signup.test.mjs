@@ -49,6 +49,10 @@ test("signup: a person's submission reaches the notifier, and only then is answe
     assert.equal(body.text, "New Ludion signup: ana@shop.example (site, https://shop.example, ja)");
     assert.equal(body.content, body.text, "Discord reads content");
     assert.deepEqual(body.allowed_mentions, { parse: [] }, "Discord pings no one");
+    // The person's site is a URL they typed: the notifier must not fetch it or show its preview.
+    assert.equal(body.flags & 4, 4, "Discord: SUPPRESS_EMBEDS (no preview of the URL)");
+    assert.equal(body.unfurl_links, false, "Slack: no link preview");
+    assert.equal(body.unfurl_media, false, "Slack: no media preview");
   }
 });
 
