@@ -1,14 +1,15 @@
 # STATE
 
-最終更新：2026-10-01 11:15（Claude Code、1本のレーン。プレビューをエージェント用のアカウントへ移した。main は 298309a、#66 まで。#67 は引き継ぎの PR）
+最終更新：2026-10-02（Claude Code、1本のレーン。Codex の監査の10件と人間の項目1〜6を、#69〜#76 で片づけた）
 
 ## 現在地
 
-- 段：M0（ループ）と M4（SCAN-1〜4、RPT-1）は完了。
+- 段：M4（SCAN-1〜4、RPT-1）は完了。
+  - M0：LOOP-2（CI を10分以内）だけが残り。
   - M1：残りは STD-3、GATE-8、GATE-9。
-  - M2：DIV-2/3/4 まで。
+  - M2：DIV-2/3/4 と PUB-1/2/3 まで（DIV-1 が残り）。
   - M3：REG-2/4 まで。
-  - M5：PRS-1、PRS-2、CRY-1 まで。
+  - M5：PRS-1〜4、NEUT-1/2、CRY-1 まで。
 - 2026-10-01 から、進め方は**このセッション1本**。夜勤のループと2本の並走はやめた（人間の指示）。人間が spec を渡し、区切りのいいところで PR を1本出す。
   - 夜勤（`C:Usershaya0ludion-night`、`.loop/NIGHT.md`）は 2026-10-01 08:48 に終わった。もう動かない。
 - **サイト**：プレビュー https://ludion-site-preview.ludion-agents.workers.dev （エージェント用のアカウント `Ludion Agents`、WEB-1 PASS）。本番（ludion.ai）への切り替えは人間（docs/DEPLOY.md §3）。
@@ -19,20 +20,22 @@
 - リポジトリは https://github.com/Ludion-ai/Ludion （public）。main は保護されている：PR 必須、`loop` チェック必須、strict、enforce_admins、auto-merge 可。
   - strict なので、main が先に進んだ PR は `gh pr update-branch` しないとマージされない。
   - `loop-windows` は必須チェックではない。
+  - CI のジョブは3つ：`loop`（必須）、`loop-windows`、`preview`（プレビューに出してから WEB-1。人間が secret を登録するまで赤。人間待ち）。
+  - ラチェット済みのオラクルは PASS 以外すべて退行（LOOP-4）。読めないベースは止まる（LOOP-3）。
 - 数字は `npm run scoreboard` が正。ここには書き写さない。
 
 ## 次の一手
 
 次のセッションは、この順に進める。
 
-1. **Codex のセキュリティの指摘 4 件**（人間の指示で、これが最初）。
-   - 中身はこのリポジトリにも、このセッションの記録にもない。2026-10-01 の朝、別のセッション（[7a873d]、すでに閉じた）とのやり取りで出たもの。**最初に人間から4件の中身を受け取る。**
-2. **GATE-8 の案 A を仕上げて push する**（下の「進行中」）。条件 a と b を満たしてから。
-3. 目録の残り（人間待ちでないもの）：WEB-7（ドキュメントをテストに）、LOOP-2、PRIV-1/2 の強化（既定の `createSafeFetch` 経由でも回す）。
-4. 棚上げ（ブランチに残してある。再開は人間の判断）：
+1. **GATE-8 の案 A を仕上げて push する**（下の「進行中」）。条件 a と b を満たしてから。
+2. **対のない正のオラクルに、同じ性質の負のオラクルを足す**（LOOP-5 の表示で UNPAIRED）：GATE-3（入れ方）、SCAN-1（パース率）、SCAN-4（速さ）、WEB-4（ブラウザ版 scan）。
+3. **WEB-9 の CI の揺れ**：2026-10-01 に Linux と Windows で4回落ちた。#74 から、落ちたら Lighthouse の低い監査項目がログに出る。次に出たら、それを見て直す（閾値は下げない）。
+4. 目録の残り（人間待ちでないもの）：WEB-7（ドキュメントをテストに）、LOOP-2（`preview` ジョブが増えた）、PRIV-1/2 の強化（既定の `createSafeFetch` 経由でも回す）、Mandate の共有の記録の複数の機械の参照実装（Durable Object か DB）。
+5. 棚上げ（ブランチに残してある。再開は人間の判断）：
    - **B1**（scoreboard の並列化、PR #63 は下書き）：`loop-windows` で GATE-3 が新しい上限 7 分を越え、REG-1 も落ちた。直すなら、`prepare` を並列の前に直列で回すか、上限を戻す。
    - **A と B2**（ラチェットのファイル化、CI の分割）：`fast-loop-shelf`。A は deny ルール（PR #60）を人間が当てるまで入れない。
-   - **fail-closed**（`--base` が読めないときに通さない）：`fast-loop-failclosed`。B1 と独立。
+   - **fail-closed**（`--base` が読めないときに通さない）：#70 の LOOP-3 で入った。`fast-loop-failclosed` はもう要らない。
    - **STD-3 と DIV-1**（`interop/std3-div1`）：CI に setup-python を足す差分の了承待ち。
    - GATE-9 は道具（PHP か `@php-wasm/node`）待ち。
 
@@ -41,7 +44,8 @@
 - **案 A**：Gate が受け入れる寿命は 3600 秒まで。60 秒を超える署名は nonce が必須。Diver が付ける寿命は 60 秒のまま。
 - **ブランチ**：`proposal/gate8-lifetime`。
   - ローカルだけで、まだ push していない。#59 の上に 2 コミット（`8032f6c`、`7fa09ac`）。
-  - main はその後 #61、#62、#64、#65、#66 と進んだ。rebase して、`node accept/conformance/export.mjs` で GATE-10 を書き出し直す。
+  - main はその後 #61〜#76 と進んだ。rebase して、`node accept/conformance/export.mjs` で GATE-10 を書き出し直す。
+  - #70 から、コーパスの攻撃は `classes`（spec §10.8 の分類）が要る。案 A の新しい攻撃2つにも書く。書き出しは、Gate の答えが `classes` の外なら止まる。
   - 中身：STD-2、GATE-7（`clock-skew--long-lived` を 3601 秒へ、攻撃を 2 つ追加）、SEED-1（WG のベクタ E.2.2 が VERIFIED）を向け直す。消したオラクルはない。spec §10.4、§15.2、MISSION.md の STD-2、`/e/invalid_signature`（英日）も直してある。詳細は docs/adr/2026-10-01-real-chatgpt-agent-signs-for-an-hour.md。
 - **条件 a**（未着手）：本物の ChatGPT agent の 2 件（`accept/gate8/`）で、nonce が違うかを確かめて、人間に報告する。
   - 同じ署名（同じ nonce）を使い回す運用なら、push の前に人間に相談する。
@@ -58,7 +62,9 @@
   - 資格情報は `~/.config/ludion/cloudflare.env`（`Ludion Agents` のトークンと Account ID）。登録フォームの通知先は `~/.config/ludion/signup.env` から、デプロイと一緒に入る。
   - `npx wrangler secret put` を手で使わない。wrangler は `cloudflare.env` を読まないので、ターミナルの別の資格情報で別のアカウントに入れてしまう。
   - Claude はプレビュー（`ludion-site-preview`）以外にデプロイしない。本番、ludion.ai の付け替え、DNS、削除は人間。
-- **WEB-1 の注意**：WEB-1 はラチェット済み。サイト（`site/` の下のファイル。`site/deploy.mjs` も含む）を変えたら、プレビューを出し直すまで、手元の scoreboard では WEB-1 が「古い」で落ちる。CI ではトークンが無いので SKIP。
+- **WEB-1 の注意**：WEB-1 はラチェット済み。サイト（`site/` の下のファイル。`site/deploy.mjs` も含む）を変えたら、プレビューを出し直すまで、手元の scoreboard では WEB-1 が「古い」で落ちる。CI では `preview` ジョブがデプロイしてから回す（`loop` では ELSEWHERE）。
+  - プレビューは1つなので、別のブランチのビルドで出したあとは、手元の WEB-1 が落ちる。PR の前に、そのブランチで出し直してから scoreboard を回す。
+- GATE-7 に攻撃を足すときは、JSON に `classes`（spec §10.8 の分類）を書く。
 
 - 新しい ADR には番号を付けない。`docs/adr/YYYY-MM-DD-<slug>.md` にする。
 - サイトの PR は、`loop-windows` が緑になってからマージする（#45 の教訓）。
@@ -68,6 +74,10 @@
 
 ## 人間待ち
 
+- [ ] **CI の `preview` ジョブの secret**（人間がトークンを作って登録すると決めた）：`CLOUDFLARE_PREVIEW_API_TOKEN`（`Ludion Agents` の Workers Scripts の編集だけ）と `CLOUDFLARE_PREVIEW_ACCOUNT_ID`。登録したら、`preview` を main の必須チェックに足す。それまで `preview` は赤で、WEB-1 は CI で強制されない（前も SKIP で強制されていなかった）。
+- [ ] 確認（#69）：ルートの重なりの読み。「一番厳しいものが勝つ」を、一致する全てのルートの最高の Pressure と、要件の全部を合わせる（Depth は最大、Ballast、scope は全部）と読んだ。一つを選ぶより厳しくなる場合がある。違うなら ADR（2026-10-01-codex-audit-security-fixes）に書いて差し戻す。
+- [ ] 確認（#71）：「上限付きの Mandate を受け付けない」を、数える上限（`per_day`）のある Mandate の決済を拒否する、と読んだ。`checkout_max` と通貨は記録なしでどの Gate でも効く。違うなら ADR（2026-10-01-mandate-limits-are-the-sites）に。
+- [x] Codex の検証器の監査（10件）：全部採用。#69（5、6、7、8）、#70（1、2、3、9、10、対の意味）、#71（4）、#73 と #76（4 の実装の CI で見つけたバグ）。追加のオラクル案7件も採用（LOOP-3、LOOP-4、STD-5、PRS-3、GATE-11、GATE-12、PRS-4）。
 - [x] 判断（GATE-8）：2026-10-01 朝、人間が案 A を条件付きで承認した。条件 a・b と進め方は「次の一手」の「進行中：GATE-8 の案 A」。
 - [x] **エージェント用の Cloudflare アカウントへ移す**（DEPLOY.md §5.2 の 1〜4）：2026-10-01 11:00。プレビューは https://ludion-site-preview.ludion-agents.workers.dev 、WEB-1 PASS。境界は §5.3。
 - [ ] **移したあとの後始末**（DEPLOY.md §5.2 の手順 5、人間）：
@@ -81,7 +91,9 @@
   - 提供元で秘密を失効させる：`ludion-api` の OpenAI と楽天のキー、`ludion-fallback-relay` の `PROVIDER_API_KEY`、`ludion` の GitHub OAuth アプリ。Worker を消してもキーは生きている。
   - D1 3つ、KV 2つ、R2 2つの中身を書き出す。提出物や登録者の情報なら、残すか消すかを決める。
   - `chat-app-relay`（Worker）は Ludion のものか判断できなかった。リストに入れていない。
-- [ ] **npm の publish**（docs/PUBLISH.md、人間が 2026-10-01 にやると言った）：先に npm で組織 `ludion` を作る。PUB-1 と PUB-2 が PASS。8パッケージを表の順に、OTP を入れて出す。
+- [ ] **npm の publish**（docs/PUBLISH.md、人間が 2026-10-01 にやると言った）
+  - **`ludion` だけを先に出せる**（#75、PUB-3）：tarball が CLI のコードを同梱し、`@ludion/*` が npm に一つもなくても入る。組織 `@ludion` も要らない。手順は PUBLISH.md §0.5。
+  - `@ludion/gate-*` は、セキュリティの4件（#69）が入ったので出せる状態。出すかは人間の判断。出すときは先に組織 `ludion` を作り、表の順に出す。
 - [ ] npm `ludion` と `@ludion`、PyPI `ludion` の確保（2026-09-30 時点で全て空き。匂わせ投稿の前に）
 - [x] リポジトリの公開設定の判断 → public、`Ludion-ai/Ludion`（2026-09-30）
 - [x] main のブランチ保護：PR 必須、`loop` チェック必須、auto-merge 許可（2026-09-30。strict と enforce_admins も付けた）
@@ -138,10 +150,13 @@
 
 - Gate は、寿命が 60 秒を超える本物の署名を SPOOFED にする。ChatGPT agent は 2025-08 の時点で 3600 秒だった（公開された捕獲 3 件。GATE-8 が FAIL）。今の値は未確認。判断は人間待ちに書いた。
 - `ludion doctor` の時計チェックは未実装（ローカル時刻を表示するだけ）。
+- 署名された本文（GATE-11）：Node の読み取りは IncomingMessage の `complete`（他のストリームは内部の `_readableState.ended`）に頼る。HTTP/2 の互換 API と Fastify では確かめていない。chunked で0バイトの本文は、Node では `'end'` が先に出る。本文の上限 1 MiB は gate-node だけ変えられる。
+- WEB-9 が CI でときどき落ちる（2026-10-01：main の #68 と #70 の push の Windows、#72 の Windows、#74 の Linux）。手元では通る。Lighthouse の点の揺れと見ているが、原因は未確認。#74 で詳細が出る。
+- GATE-1 が、手元のフルの実行で一度落ちた（2026-10-01 夜、6件中1件、詳細なし）。単体では6件とも通った。
 - プレビューのデプロイの境界の確認（`site/deploy.mjs`）が試せるのは、トークンに見えるアカウントだけ。一覧に出ないのに届くアカウントがあっても気づけない。本番の ID を名指しする確認は、2026-10-01 に手で一度だけ行った（DEPLOY.md §5.3）。書き込みは試していない。
 - 登録フォームの受け口（`site/edge/signup.mjs`）のレート制限はメモリ内で、インスタンス（isolate）ごと。拠点や isolate に散った連打は、それぞれの枠で数えられる。分散した総当たりはハニーポット頼み。
 - 登録フォームは JS がないと送れない（ボタンが押せない）。`<form action>` を置くと WEB-5 のリンクの規則に掛かるため。
-- resolver の SSRF 対策はホスト名の検査だけ。解決先 IP の検査（DNS リバインディング）は GATE-6 で（進行中）。
+- 鍵の発見の SSRF 対策：Node の上のアダプタ（gate-node、gate-next）は、解決先の全アドレスを確かめて固定する（GATE-6、GATE-12）。gate-core を直接使うコードと Deno は、ホスト名の検査だけ（既定の fetch）。Workers はランタイムの fetch。
 - Session の秘密鍵は v0 の CLI では `ludion.json` に平文で置いている（spec はメモリのみ）。Root は封をした（ADR-019）が、KMS や OS のキーチェーンのバックエンドはまだない。
 - §11.6「P0〜1 では初回の鍵取得を待たない」は未実装。今は timeoutMs の範囲で待つ。
 - sink の promise は溜まり続ける。背圧がない。
@@ -177,12 +192,12 @@
 - STD-4 は、datatracker が読めないと落ちる（3 回まで試す）。CI の再実行で済む。
 - `loop-windows` で NEUT-1 が一度落ちた（#59 の初回、2026-10-01）。Node、Deno、workerd はすべて 109/109 を報告したあとで、詳細は `}` だけ。再実行では通った。
   - 見立て：wrangler dev の停止（`server.stop()`）が投げた例外が、トップレベルまで抜けた。確かめてはいない。
-  - また起きたら、`accept/neutral/runtimes.mjs` の出力全体を取る。scoreboard は末尾の 3 行しか見せない。
+  - また起きたら、`accept/neutral/runtimes.mjs` の出力全体を取る。#74 から、scoreboard は FAIL や Error の行を優先して見せる。
 - Mandate v0（PRS-2）で未カバーの部分：
   - 同意ページ（ludion.ai）はまだない。PRS-2 のパスキーはソフトウェアの認証器（WebAuthn と同じバイト列を作る）。本物のブラウザ（Chromium の仮想認証器）では、まだ通していない。
   - 発行した Mandate をエージェントに渡す道は決めていない。
   - `charge()` を呼べるのは Node（`req.ludion.charge`）と Workers（`ludion(request).charge`）。Next.js にはまだ道がない（proxy とルートのハンドラが別の場所で動く）。
-  - `per_day` は Gate のプロセスごとに数える。複数のインスタンスや拠点では、それぞれの枠になる。
+  - `per_day` はサイトの共有の記録で数える（#71、PRS-3）。参照実装は1台の機械まで（メモリ、SQLite）。複数の機械や Workers は、サイトが同じ契約で自分の DB か Durable Object を渡す（README だけで、参照実装はない）。2つの Gate にそれぞれ `"memory"` を書くと、それぞれで数えてしまう（Gate からは見分けられない）。
   - 購読していない Gate への取り消しは、Staple の `mrev`（最大 32 件）で届く。それより多く取り消した Diver では、古いものが Staple から落ちる（その分は Mandate の期限まで）。
   - Principal の仮名の鍵は Registry の状態ファイルに平文。パスキーの attestation は見ていない。
 - DIV-2 で未カバーの部分：
@@ -190,6 +205,30 @@
   - web-bot-auth@0.2.0 のパーサが registry-03 に準拠しているか
 
 ## 直近のセッション
+
+- 2026-10-01 夜〜10-02（Claude Code）：Codex の検証器の監査（10件）と、人間の項目1〜6。全部採用し、先に今の main で落ちるオラクルを足してから直した。
+  - **#69 セキュリティの4件**：
+    - 本文の digest（GATE-11、GATE-7 の `body-swap`）：署名が覆う Content-Digest を、届いた本文と照合する。Node、Workers、Next の実アダプタで。
+    - Next の SSRF（GATE-12）：安全な取得関数を `@ludion/gate-core/safe-fetch` に移し、gate-next も使う。
+    - Mandate の aud（PRS-2 を強化）：今のリクエスト先と照合する。
+    - ルートの重なり（PRS-4、PRS-1 を強化）：一番厳しいものが勝つ。
+    - 人間の規則で裏返した期待：GATE-7 の carve-out と、mandate.test の別ホスト。
+  - **#70 検証器の健全性**：
+    - LOOP-3（読めないベースは止まる）。
+    - LOOP-4（ラチェット済みは PASS だけ。WEB-1 は `preview` ジョブへ）。
+    - STD-1 の測り方と STD-5。
+    - 攻撃の `classes` の宣言と、GATE-10 の raw を本物の gate-node に通す。
+    - Actions の SHA 固定と `permissions`。
+    - LOOP-5（対は同じ性質の裏表）。
+  - **#71 Mandate の上限はサイトのもの**（PRS-3）：共有の原子的な記録。記録がなければ数える上限は拒否。
+    - #73 と #76：CI の `loop-windows` で、SQLite の記録を多くのプロセスが同時に開くと `database is locked` で落ちる製品のバグが出た。速いテストに降ろしてから直した（2回目で Windows の CI も緑）。
+  - **#72 Discord の通知**：`flags: 4`（埋め込みを出さない）と Slack の unfurl オフ（WEB-8 を強化）。
+  - **#74**：赤いオラクルが、落ちたテストの名前とエラーを CI のログに出す（WEB-9 の揺れの診断のため）。
+  - **#75 npm の `ludion` だけを先に**（PUB-3）：tarball が CLI のコードを `lib/` に同梱する（prepack で組み、postpack で消す）。
+  - 教訓：
+    - Bash のヒアドキュメントはバックスラッシュを潰す。正規表現を含む編集は Write か Edit で（メモリに書いた）。
+    - プレビューは1つなので、別のブランチで出すと手元の WEB-1 が落ちる。
+  - scoreboard（ローカル、#75 のブランチ）：PASS 53 / FAIL 1（GATE-8）/ PENDING 8。ラチェットは 44 → 53（GATE-11、GATE-12、PRS-4、LOOP-3、LOOP-4、LOOP-5、STD-5、PRS-3、PUB-3）。
 
 - 2026-10-01 11:00（Claude Code）：プレビューをエージェント用のアカウント `Ludion Agents` へ移した（人間の指示 3 つ）。
   - **境界**：最初に渡されたトークンは、本番のアカウントにも届いていた。
