@@ -17,6 +17,8 @@ The Ludion Gate at Pressure 0 in front of [tracecheck.dev](https://tracecheck.de
 | `src/daily.mjs` | Yesterday's report, the pilot's extras, the webhook |
 | `test/pilot.test.mjs` | Node, with D1 on `node:sqlite` (in `npm test`) |
 | `test/workerd.test.mjs` | The deployable Worker in workerd in front of a stub site (PILOT-1) |
+| `summary.mjs` | A span of days, for the launch |
+| `live.mjs` | PILOT-2: the last 7 days of the deployed pilot |
 
 ## Deploy
 
@@ -28,3 +30,12 @@ A person deploys it, into the Cloudflare account that holds the tracecheck.dev z
 npx wrangler d1 execute ludion-tracecheck --remote --command "SELECT class, count(*) AS n FROM events GROUP BY class"
 npx wrangler d1 execute ludion-tracecheck --remote --command "SELECT date, subject FROM reports WHERE lang = 'ja' ORDER BY date DESC LIMIT 7"
 ```
+
+Over a span of days (the week before a launch), with the daily report's counting:
+
+```sh
+npx wrangler d1 execute ludion-tracecheck --remote --json --command "SELECT * FROM events" > rows.json
+node summary.mjs --from 2026-10-04 --to 2026-10-10 --rows rows.json
+```
+
+`live.mjs` (PILOT-2) and `summary.mjs` without `--rows` read D1 through the Cloudflare API instead, with a read-only token of the tracecheck.dev account (`TRACECHECK_D1_READ_TOKEN`, `TRACECHECK_ACCOUNT_ID`, `TRACECHECK_D1_ID`).

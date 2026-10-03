@@ -283,3 +283,28 @@ test("the store pages through a long day without losing or repeating a row", asy
   assert.equal(new Set(got.map((g) => g.rid)).size, 12_345);
   assert.equal((await st.events(ts + 3, ts + 4)).length, Math.ceil((12_345 - 3) / 7));
 });
+
+test("the span summary: the daily report's counting over the week, each day's totals adding up to it, rows from wrangler's --json", async () => {
+  const { summarizeSpan, rowsOf, renderSummary } = await import("../summary.mjs");
+  const rows = [
+    row({ ts: at("2026-10-03T23:59:59+09:00") }), // the day before: out
+    row({ ts: at("2026-10-04T00:00:00+09:00") }),
+    row({ ts: at("2026-10-05T12:00:00+09:00"), class: "VERIFIED", diver: "https://chatgpt.com", operator: null, token: null, sig_agent: "chatgpt.com", sig_lifetime: 3600, sig_nonce: 1 }),
+    row({ ts: at("2026-10-06T08:00:00+09:00"), method: "POST", route: "/login", class: "SUSPECTED", operator: null, token: "curl/" }),
+    row({ ts: at("2026-10-06T23:59:59+09:00"), site: "other.example" }), // another site: out
+    row({ ts: at("2026-10-07T00:00:00+09:00") }), // after the span: out
+  ];
+  const wrangler = JSON.stringify([{ results: rows, success: true, meta: {} }]);
+  assert.deepEqual(rowsOf(wrangler), rows);
+  assert.throws(() => rowsOf('{"x":1}'), TypeError);
+  const s = summarizeSpan(rowsOf(wrangler), { from: "2026-10-04", to: "2026-10-06" });
+  assert.equal(s.events, 3);
+  assert.deepEqual(s.days.map((d) => d.events), [1, 1, 1]);
+  assert.equal(s.days.reduce((n, d) => n + d.critical_unverified, 0), s.critical.unverified);
+  assert.equal(s.critical.unverified, 1);
+  assert.deepEqual(s.top_agents, [{ agent: "chatgpt.com", actions: 1 }]);
+  assert.deepEqual(s.pilot.lifetimes, { 3600: 1 });
+  const text = renderSummary(s);
+  assert.match(text, /^tracecheck\.dev：2026-10-04〜2026-10-06/);
+  assert.match(text, /検証済みのエージェント：chatgpt\.com 1/);
+});
