@@ -103,6 +103,32 @@ test("WEB-4: 'Try it with a sample log' reads the shipped nginx corpus file like
   assert.deepEqual(errors, [], "page errors");
 });
 
+test("WEB-4: 'Try it with a sample log' reads the shipped nginx corpus file like a dropped one, and says it is a sample", async () => {
+  const corpusFile = path.join(CORPUS, "nginx-access.log");
+  assert.deepEqual(fs.readFileSync(path.join(ROOT, "site/public/samples/nginx-access.log")), fs.readFileSync(corpusFile), "the sample is the corpus file");
+  const want = cli([corpusFile]);
+  for (const [urlPath, locale] of [["/scan", "en-US"], ["/ja/scan", "ja-JP"]]) {
+    const context = await browser.newContext();
+    const page = await context.newPage();
+    page.on("pageerror", (e) => errors.push(`${urlPath}: ${e.message}`));
+    try {
+      await page.goto(site.url + urlPath);
+      await page.waitForSelector('.ludion-scan[data-state="idle"]', { state: "attached" });
+      await page.click("#scan-sample");
+      await page.waitForSelector('.ludion-scan[data-state="done"], .ludion-scan[data-state="error"]', { state: "attached", timeout: 60_000 });
+      assert.equal(await page.getAttribute(".ludion-scan", "data-state"), "done", `${urlPath}: ${await page.textContent("#scan-status")}`);
+      assert.deepEqual(JSON.parse(await page.textContent("#scan-json")), want, `${urlPath}: the sample's report differs from the CLI's`);
+      assert.equal((await page.textContent("#scan-critical")).trim(), want.critical.unverified_automation.toLocaleString(locale));
+      assert.ok(await page.isVisible("#scan-sample-shown"), `${urlPath}: the result says it is the sample's`);
+      // Then the visitor's own log: the sample note is gone.
+      await page.setInputFiles("#scan-input", [path.join(CORPUS, "apache-combined.log")]);
+      await page.waitForFunction(() => document.querySelector(".ludion-scan")?.dataset.sample === "false" && document.querySelector(".ludion-scan")?.dataset.state === "done");
+      assert.equal(await page.$("#scan-sample-shown"), null, `${urlPath}: a dropped log is not called a sample`);
+    } finally { await context.close(); }
+  }
+  assert.deepEqual(errors, [], "page errors");
+});
+
 // ── 200 MiB ────────────────────────────────────────────────────────────────────────────────
 const UAS = [
   ["Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36", "UNKNOWN", 50],

@@ -1,4 +1,4 @@
-// SCAN-1 (+, pair SCAN-3): ≥99% of request records parse, per format and overall, detected
+// SCAN-1 (+, pair SCAN-5, property parse-rate): ≥99% of request records parse, per format and overall, detected
 // without flags. "Parsed" means the fields the scan uses (method, target, status, User-Agent)
 // equal the ground truth; the denominator is every request record (broken ones included),
 // never format directives, build logs or other non-request lines.
