@@ -14,11 +14,20 @@
 
 ## 現在地
 
-- `pilots/tracecheck/`：Worker、D1、毎朝の cron、テスト、手順（`DEPLOY.md`）。PR は `lane2/tracecheck-pilot`。
-  - 速いテスト（`pilot.test.mjs`、`npm test` に入れた）：11 件。仕込んだ 6 つの故障をすべて捕まえた。
-    - 人を記録する、ヘッダーを足す、本文を読まない、passThroughOnException を外す、レポートの日を間違える、生の User-Agent を残す。
-  - workerd（`workerd.test.mjs`）：本物の `wrangler.jsonc` と束ねた Worker を `wrangler dev` で、スタブのサイトの前に立てた。人にもエージェントにも、サイトのバイトとヘッダーがそのまま返る。サイトには本文の全バイトが届く。D1 には自動化だけが入り、cron がレポートを Webhook に送る。
-  - オラクル（PILOT-1）はまだ registry に入れていない。レーン 2 のオラクルをまとめる PR で入れる。
+- **tracecheck.dev の計測**：仕組みは main に入った（#81）。デプロイは人間待ち（下）。
+  - `pilots/tracecheck/`：Worker、D1、毎朝の cron、テスト、手順（`DEPLOY.md`）。
+  - デプロイ用のチェックアウト `C:Usershaya0ludion-tracecheck`（`npm ci` 済み）を人間に渡した。
+  - 速いテスト（`pilot.test.mjs`、`npm test`）：仕込んだ 6 つの故障をすべて捕まえた（人を記録する、ヘッダーを足す、本文を読まない、passThroughOnException を外す、レポートの日を間違える、生の User-Agent を残す）。
+  - workerd：本物の `wrangler.jsonc` と束ねた Worker を `wrangler dev` で、スタブのサイトの前に立てた。サイトのバイトとヘッダーがそのまま返り、D1 には自動化だけが入り、cron がレポートを送る。
+- **ローンチの文書**（PR は `loop-windows` の緑を待ってマージ）：
+  - README（#83）：リポジトリに README がなかった。
+  - /scan のサンプル（#82）：SCAN の nginx のコーパスと同じファイルを配り、ドロップと同じ道で読む。WEB-4 を強化した。
+  - クイックスタート（#84）：`/quickstart` と `/ja/quickstart`。サイト（Express と Gate、受領証で DECLARED と UNKNOWN）とエージェント（init、sign、VERIFIED）。
+- **オラクル**（`lane2/oracles`、#81〜#84 のマージ待ち。まとめて 1 回の PR）：
+  - WEB-10（±、L1）：クイックスタートのページが書いてあるとおりに動く。ページのブロックを順に、公開セットの tarball で実行し、出力がページと一致する。エージェントの署名は、init が書いたディレクトリを持つ Gate で VERIFIED。仕込んだページの故障 3 つ（違う出力、Gate の行を消す、sign の行を変える）を捕まえた。WEB-7 は開いたまま（Next.js、Workers、FastAPI、WordPress、Python の分が残る）。
+  - PILOT-1（±、L1）：パイロットの Node のテストと workerd。
+  - PILOT-2（+、L2）：tracecheck.dev の直近 7 日。人間の読み取り用トークン待ち（`pilots/tracecheck/live.mjs`）。
+  - ラチェットは、#82〜#84 がマージされてから、main の上で scoreboard を回して固める（WEB-1 のためにプレビューを出し直す）。
 
 ## 決めたこと
 
@@ -37,6 +46,11 @@
 - [ ] 手順 0 の数字 2 つ：Workers のプラン（Free か Paid か）、tracecheck.dev の 1 日のリクエスト数。
   - Free で 1 日 10 万を超えるなら、静的ファイルの経路をルートから外す（`/_astro/*` などに Worker なしのルート）か、Paid にする（お金なので人間の判断）。
 - [ ] （任意）毎朝のレポートの Discord の Webhook（`REPORT_WEBHOOK_URL`）。
+- [ ] PILOT-2 のトークン：tracecheck のアカウントで、D1 を読むだけの API トークン（`TRACECHECK_D1_READ_TOKEN`）、Account ID（`TRACECHECK_ACCOUNT_ID`）、D1 の ID（`TRACECHECK_D1_ID`。`npx wrangler d1 info ludion-tracecheck`）。ローンチの前に 7 日分を確かめる。
+- [ ] `SECURITY.md` を読む（会社の約束が入っている。前からある文で、レーン 2 は変えていない）。
+  - `docs/THREATS.md` を指しているが、そのファイルはない。
+  - `security@ludion.ai` で「24 時間以内に返事」と約束している。`privacy@ludion.ai` と同じく、メールが届く設定がまだない。
+  - 「72 時間以内に事後報告」「Gate が 1,000 を超えたらバグ報奨金」。
 
 ## 既知の問題
 
@@ -45,6 +59,7 @@
 
 ## 次の一手
 
-1. 人間がデプロイしたら、D1 に行が入っているかを一緒に確かめる。
-2. ローンチの文書：README、docs のクイックスタート、/scan の「サンプルのログで試す」ボタン。
-3. レーン 2 のオラクルをまとめた PR：PILOT-1（workerd）、tracecheck の 7 日分（LIVE、人間のトークンが要る）、ローンチの文書。
+1. 人間がデプロイしたら、D1 に行が入っているかを一緒に確かめる（手順 5 の結果をもらう）。
+2. #82〜#84 を、`loop-windows` が緑になってからマージする（README の #83 は auto-merge）。
+3. `lane2/oracles` を main に合わせ、プレビューを出し直し、scoreboard を回し、`npm run ratchet`（WEB-10、PILOT-1）を入れて PR にする。
+4. 対のない正のオラクルに負を足す（STATE.md の「次の一手」2）のうち、レーン 2 の範囲のもの：WEB-4（ブラウザ版 scan）。
