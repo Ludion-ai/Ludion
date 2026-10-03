@@ -143,9 +143,12 @@ export const ORACLES = [
     timeoutMs: 1_800_000, run: nodeTest(["reference/test/harness.test.mjs", "reference/test/gate1.test.mjs"], "^GATE-1:", { timeoutMs: 1_750_000 }) },
   { id: "GATE-2", m: "M1", kind: "-", level: 1, property: "pressure-on-automation", title: "pressure bites: 100% of denials carry Ludion-Error + help Link (+Accept-Signature)",
     run: nodeTest(["packages/gate-node/test/gate2.test.mjs"], "^GATE-2:") },
-  { id: "GATE-3", m: "M1", kind: "+", level: 1, title: "install ≤3 app lines, ≤1 config file, first classified event ≤60s (3 reference apps)",
+  { id: "GATE-3", m: "M1", kind: "+", level: 1, pair: "GATE-13", property: "install-effort", title: "install ≤3 app lines, ≤1 config file, first classified event ≤60s (3 reference apps)",
     timeoutMs: 1_800_000, run: nodeTest(["reference/test/gate3.test.mjs"], "^GATE-3:", { timeoutMs: 1_750_000,
       metric: (out) => [...out.matchAll(/^# (express|next|workers): (\d+) app lines, (\d+) config file, first event ([^\n]+)$/gm)].map((m) => `${m[1]} ${m[2]}L/${m[3]}cfg/${m[4]}`).join(", ") }) },
+  // GATE-3's other side: its measures (reference/gate3-measure.mjs) catch planted installs and events.
+  { id: "GATE-13", m: "M1", kind: "-", level: 0, property: "install-effort", title: "GATE-3's measures cannot be passed by a bigger install or a Gate that does not deliver: planted installs (more lines, edits beside the install, a second config, a hand-edited package.json, a line the README does not show, nothing changed) and planted first events (none, not JSON, late, another site, unclassified, the raw path) are caught",
+    run: nodeTest(["reference/test/gate13.test.mjs"], "^GATE-13:", { metric: (out) => (/^# GATE-13: (.+)$/m.exec(out) ?? [])[1] }) },
   { id: "GATE-4", m: "M1", kind: "+", level: 1, pair: "GATE-5", property: "added-latency", title: "added latency p99 ≤2ms warm (10k mixed requests)", timeoutMs: 180_000, run: async () => {
     // The real gate-node middleware timed per request, keys cached, every class in the mix; see the script.
     const r = sh(process.execPath, ["packages/gate-node/bench/gate4.mjs"], 170_000);
@@ -317,12 +320,15 @@ export const ORACLES = [
       metric: (out) => (/^# WEB-3: (.+)$/m.exec(out) ?? [])[1] }) },
   // Headless Chromium: playwright-core from the site's lockfile, its pinned browser build installed on
   // first use into Playwright's cache (site/test/browser.mjs). The page runs packages/scan's own core.
-  { id: "WEB-4", m: "M7", kind: "+", level: 1, title: "in-browser scan at /scan equals the CLI on SCAN fixtures; 200 MB in ≤30s (headless Chromium)",
+  { id: "WEB-4", m: "M7", kind: "+", level: 1, pair: "WEB-10", property: "browser-scan", title: "in-browser scan at /scan equals the CLI on SCAN fixtures; 200 MB in ≤30s (headless Chromium)",
     timeoutMs: 900_000, run: nodeTest(["site/test/web4.test.mjs"], "^WEB-4:", { timeoutMs: 880_000,
       metric: (out) => (/^# WEB-4: (.+)$/m.exec(out) ?? [])[1] }) },
   // The allowlist is the site's own origin. Every page of the real build, desktop and mobile, is used
   // in Chromium behind the egress watch; links are checked in the files and in the live DOM
   // (site/test/links.mjs); links out are asked on the network, and breakage planted must be caught.
+  // WEB-4's other side: its judge of the page (site/test/scan-page.mjs) catches planted pages.
+  { id: "WEB-10", m: "M7", kind: "-", level: 1, property: "browser-scan", title: "a /scan page that shows other numbers than the CLI fails WEB-4: planted in the worker's report (a count off, a file left out, classes swapped), in what is drawn (headline, class table, file table) or as a page error, each is caught; the real page passes",
+    timeoutMs: 600_000, run: nodeTest(["site/test/web10.test.mjs"], "^WEB-10:", { timeoutMs: 580_000, metric: (out) => (/^# WEB-10: (.+)$/m.exec(out) ?? [])[1] }) },
   { id: "WEB-5", m: "M7", kind: "-", level: 1, property: "site-integrity", title: "0 broken links, 0 console errors, 0 requests outside the allowlist",
     timeoutMs: 900_000, run: nodeTest(["site/test/web5.test.mjs"], "^WEB-5:", { timeoutMs: 880_000,
       metric: (out) => (/^# WEB-5: (.+)$/m.exec(out) ?? [])[1] }) },

@@ -1,7 +1,8 @@
-// WEB-4 (+, pair WEB-6): the in-browser scan at /scan gives exactly the CLI's numbers. The site is
+// WEB-4 (+, pair WEB-10, property browser-scan): the in-browser scan at /scan gives exactly the CLI's numbers. The site is
 // built for real and served the way a static host serves it; headless Chromium drops every SCAN
 // fixture on the page (one by one, then all at once, in English and in Japanese) and the report
-// the page shows must equal `ludion scan --json` on the same files, field for field. Then 200 MiB
+// the page shows must equal `ludion scan --json` on the same files, field for field, and so must
+// the headline and the class and file tables a person reads (./scan-page.mjs). Then 200 MiB
 // of nginx logs must be read in ≤30 s, every line counted and classed as written.
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
@@ -9,23 +10,16 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import zlib from "node:zlib";
-import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { buildSite } from "../build.mjs";
 import { serve } from "../serve.mjs";
 import { launchChromium } from "./browser.mjs";
+import { cli, drop as dropOn, pageProblems } from "./scan-page.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const CORPUS = path.join(ROOT, "accept/fixtures/logs/corpus");
-const CLI = path.join(ROOT, "packages/diver/bin/ludion.mjs");
 const BIG = 200 * 1024 ** 2, LIMIT_S = 30;
 
-/** `ludion scan <args> --json`, the real CLI in a child process (exit 1 = read no request, still a report). */
-function cli(args) {
-  const r = spawnSync(process.execPath, [CLI, "scan", ...args, "--json"], { cwd: ROOT, encoding: "utf8", maxBuffer: 64e6, timeout: 180_000 });
-  assert.ok(r.status === 0 || (r.status === 1 && r.stdout.startsWith("{")), `exit ${r.status}: ${r.stderr}`);
-  return JSON.parse(r.stdout);
-}
 
 let site, browser, tmp;
 const errors = [];
@@ -41,30 +35,8 @@ after(async () => {
   if (tmp) fs.rmSync(tmp, { recursive: true, force: true });
 });
 
-/** Open /scan (or /ja/scan), drop files on it, and read what the page shows. */
-async function drop(urlPath, files, { timeout = 120_000 } = {}) {
-  const context = await browser.newContext();
-  const page = await context.newPage();
-  page.on("pageerror", (e) => errors.push(`${urlPath}: ${e.message}`));
-  page.on("console", (m) => { if (m.type() === "error") errors.push(`${urlPath}: console: ${m.text()}`); });
-  try {
-    const res = await page.goto(site.url + urlPath);
-    assert.equal(res.status(), 200, urlPath);
-    await page.waitForSelector('.ludion-scan[data-state="idle"]', { state: "attached" });
-    const t0 = Date.now();
-    await page.setInputFiles("#scan-input", files);
-    await page.waitForSelector('.ludion-scan[data-state="done"], .ludion-scan[data-state="error"]', { state: "attached", timeout });
-    const ms = Date.now() - t0;
-    const state = await page.getAttribute(".ludion-scan", "data-state");
-    assert.equal(state, "done", `${urlPath}: ${await page.textContent("#scan-status")}`);
-    return {
-      report: JSON.parse(await page.textContent("#scan-json")),
-      shown: (await page.textContent("#scan-critical")).trim(),
-      lang: await page.getAttribute("html", "lang"),
-      ms,
-    };
-  } finally { await context.close(); }
-}
+/** Open /scan (or /ja/scan), drop files on it, and read what the page shows (./scan-page.mjs). */
+const drop = (urlPath, files, opts = {}) => dropOn(browser, site.url + urlPath, files, { ...opts, errors });
 
 const fixtures = fs.readdirSync(CORPUS).filter((f) => !f.startsWith(".")).sort();
 
@@ -78,6 +50,7 @@ test("WEB-4: every SCAN fixture dropped on /scan gives the CLI's report, field f
     assert.ok(want.totals.records > 0, `${f}: the CLI read nothing`);
     assert.deepEqual(got.report, want, `${f}: the page's report differs from the CLI's`);
     assert.equal(got.shown, want.critical.unverified_automation.toLocaleString("en-US"), `${f}: the headline number`);
+    assert.deepEqual(pageProblems(got, want, "en"), [], `${f}: what the page shows (report, headline, class and file tables)`);
     if (want.files[0]?.gzip) gz++;
   }
   assert.ok(gz >= 2, `gzip fixtures exercised: ${gz}`);
@@ -101,6 +74,7 @@ test("WEB-4: edge inputs read like the CLI: concatenated gzip members, BOM + CRL
     const want = cli([file]);
     const got = await drop("/scan", [file]);
     assert.deepEqual(got.report, want, `${name}: the page's report differs from the CLI's`);
+    assert.deepEqual(pageProblems(got, want, "en"), [], `${name}: what the page shows`);
   }
   assert.deepEqual(errors, [], "page errors");
 });
@@ -115,6 +89,7 @@ test("WEB-4: the whole corpus dropped at once, on /scan and /ja/scan, equals `lu
     assert.equal(got.lang, lang, `${urlPath}: <html lang>`);
     assert.deepEqual(got.report, want, `${urlPath}: the page's report differs from the CLI's`);
     assert.equal(got.shown, want.critical.unverified_automation.toLocaleString(locale), `${urlPath}: the headline number`);
+    assert.deepEqual(pageProblems(got, want, lang), [], `${urlPath}: what the page shows`);
   }
   assert.deepEqual(errors, [], "page errors");
 });
