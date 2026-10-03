@@ -50,12 +50,13 @@ export function createPilot({ log = console } = {}) {
     return createGate({ ...config, sink: undefined, sendMetadata: false });
   };
 
-  async function observe(request, desc, body, env) {
+  async function observe(request, desc, body, env, status) {
     let g;
     try { g = await (gate ??= boot(env)); }
     catch (e) { complain("gate disabled", e); return; } // the rejection stays cached: one boot per isolate
     if (body) desc.body = await body;
-    const row = eventRow(await g.inspect(desc), request);
+    const result = await g.inspect(desc);
+    const row = eventRow(result, request, { status: await status });
     if (!row) return;
     try { await store(env.EVENTS).insert(row); }
     catch (e) { complain("d1 insert", e); }
@@ -64,14 +65,17 @@ export function createPilot({ log = console } = {}) {
   return {
     fetch(request, env, ctx) {
       ctx.passThroughOnException();
+      let desc = null, body = null;
       try {
-        const desc = describe(request);
+        desc = describe(request);
         // A signature that covers content-digest needs the body: a copy, taken before the request
         // goes on, so the site still gets every byte (readWebBody clones synchronously).
-        const body = bodyNeeded(desc) ? readWebBody(request) : null;
-        ctx.waitUntil(observe(request, desc, body, env).catch((e) => complain("observe", e)));
-      } catch (e) { complain("observe", e); }
-      return fetch(request);
+        body = bodyNeeded(desc) ? readWebBody(request) : null;
+      } catch (e) { desc = null; complain("observe", e); }
+      const response = fetch(request);
+      // The status is read off a promise of its own; the Response the site sent goes back untouched.
+      if (desc) ctx.waitUntil(observe(request, desc, body, env, response.then((r) => r.status, () => null)).catch((e) => complain("observe", e)));
+      return response;
     },
 
     async scheduled(controller, env) {

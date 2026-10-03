@@ -1,4 +1,4 @@
-// WEB-4 (+, pair WEB-6): the in-browser scan at /scan gives exactly the CLI's numbers. The site is
+// WEB-4 (+, pair WEB-11): the in-browser scan at /scan gives exactly the CLI's numbers. The site is
 // built for real and served the way a static host serves it; headless Chromium drops every SCAN
 // fixture on the page (one by one, then all at once, in English and in Japanese) and the report
 // the page shows must equal `ludion scan --json` on the same files, field for field. Then 200 MiB
@@ -9,23 +9,12 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import zlib from "node:zlib";
-import { spawnSync } from "node:child_process";
-import { fileURLToPath } from "node:url";
 import { buildSite } from "../build.mjs";
 import { serve } from "../serve.mjs";
 import { launchChromium } from "./browser.mjs";
+import { ROOT, CORPUS, cli, drop as dropOn, clickSample, assertSameAsCli } from "./scan-check.mjs";
 
-const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
-const CORPUS = path.join(ROOT, "accept/fixtures/logs/corpus");
-const CLI = path.join(ROOT, "packages/diver/bin/ludion.mjs");
 const BIG = 200 * 1024 ** 2, LIMIT_S = 30;
-
-/** `ludion scan <args> --json`, the real CLI in a child process (exit 1 = read no request, still a report). */
-function cli(args) {
-  const r = spawnSync(process.execPath, [CLI, "scan", ...args, "--json"], { cwd: ROOT, encoding: "utf8", maxBuffer: 64e6, timeout: 180_000 });
-  assert.ok(r.status === 0 || (r.status === 1 && r.stdout.startsWith("{")), `exit ${r.status}: ${r.stderr}`);
-  return JSON.parse(r.stdout);
-}
 
 let site, browser, tmp;
 const errors = [];
@@ -41,30 +30,8 @@ after(async () => {
   if (tmp) fs.rmSync(tmp, { recursive: true, force: true });
 });
 
-/** Open /scan (or /ja/scan), drop files on it, and read what the page shows. */
-async function drop(urlPath, files, { timeout = 120_000 } = {}) {
-  const context = await browser.newContext();
-  const page = await context.newPage();
-  page.on("pageerror", (e) => errors.push(`${urlPath}: ${e.message}`));
-  page.on("console", (m) => { if (m.type() === "error") errors.push(`${urlPath}: console: ${m.text()}`); });
-  try {
-    const res = await page.goto(site.url + urlPath);
-    assert.equal(res.status(), 200, urlPath);
-    await page.waitForSelector('.ludion-scan[data-state="idle"]', { state: "attached" });
-    const t0 = Date.now();
-    await page.setInputFiles("#scan-input", files);
-    await page.waitForSelector('.ludion-scan[data-state="done"], .ludion-scan[data-state="error"]', { state: "attached", timeout });
-    const ms = Date.now() - t0;
-    const state = await page.getAttribute(".ludion-scan", "data-state");
-    assert.equal(state, "done", `${urlPath}: ${await page.textContent("#scan-status")}`);
-    return {
-      report: JSON.parse(await page.textContent("#scan-json")),
-      shown: (await page.textContent("#scan-critical")).trim(),
-      lang: await page.getAttribute("html", "lang"),
-      ms,
-    };
-  } finally { await context.close(); }
-}
+/** Open /scan (or /ja/scan), drop files on it, and read what the page shows (scan-check.mjs, shared with WEB-11). */
+const drop = (urlPath, files, opts = {}) => dropOn(browser, site.url, urlPath, files, { errors, ...opts });
 
 const fixtures = fs.readdirSync(CORPUS).filter((f) => !f.startsWith(".")).sort();
 
@@ -76,8 +43,7 @@ test("WEB-4: every SCAN fixture dropped on /scan gives the CLI's report, field f
     const want = cli([file]);
     const got = await drop("/scan", [file]);
     assert.ok(want.totals.records > 0, `${f}: the CLI read nothing`);
-    assert.deepEqual(got.report, want, `${f}: the page's report differs from the CLI's`);
-    assert.equal(got.shown, want.critical.unverified_automation.toLocaleString("en-US"), `${f}: the headline number`);
+    assertSameAsCli(got, want, "en-US", f);
     if (want.files[0]?.gzip) gz++;
   }
   assert.ok(gz >= 2, `gzip fixtures exercised: ${gz}`);
@@ -113,8 +79,26 @@ test("WEB-4: the whole corpus dropped at once, on /scan and /ja/scan, equals `lu
   for (const [urlPath, lang, locale] of [["/scan", "en", "en-US"], ["/ja/scan", "ja", "ja-JP"]]) {
     const got = await drop(urlPath, files);
     assert.equal(got.lang, lang, `${urlPath}: <html lang>`);
-    assert.deepEqual(got.report, want, `${urlPath}: the page's report differs from the CLI's`);
-    assert.equal(got.shown, want.critical.unverified_automation.toLocaleString(locale), `${urlPath}: the headline number`);
+    assertSameAsCli(got, want, locale, urlPath);
+  }
+  assert.deepEqual(errors, [], "page errors");
+});
+
+test("WEB-4: 'Try it with a sample log' reads the shipped nginx corpus file like a dropped one, and says it is a sample", async () => {
+  const corpusFile = path.join(CORPUS, "nginx-access.log");
+  assert.deepEqual(fs.readFileSync(path.join(ROOT, "site/public/samples/nginx-access.log")), fs.readFileSync(corpusFile), "the sample is the corpus file");
+  const want = cli([corpusFile]);
+  for (const [urlPath, locale] of [["/scan", "en-US"], ["/ja/scan", "ja-JP"]]) {
+    const got = await clickSample(browser, site.url, urlPath, { errors });
+    const { page, context } = got;
+    try {
+      assertSameAsCli(got, want, locale, `${urlPath} (sample)`);
+      assert.ok(got.sampleNoted, `${urlPath}: the result says it is the sample's`);
+      // Then the visitor's own log: the sample note is gone.
+      await page.setInputFiles("#scan-input", [path.join(CORPUS, "apache-combined.log")]);
+      await page.waitForFunction(() => document.querySelector(".ludion-scan")?.dataset.sample === "false" && document.querySelector(".ludion-scan")?.dataset.state === "done");
+      assert.equal(await page.$("#scan-sample-shown"), null, `${urlPath}: a dropped log is not called a sample`);
+    } finally { await context.close(); }
   }
   assert.deepEqual(errors, [], "page errors");
 });

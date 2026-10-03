@@ -2,14 +2,17 @@
 // plus a few fields that say *why* it was classified so (the agent a User-Agent names, the reason
 // a signature failed, the signature's lifetime). Every extra field is a word from a fixed
 // vocabulary, a host name or a number; nothing a person typed or sent can reach a row. Humans
-// (UNKNOWN) are never kept. The rows stay in the site's own D1.
+// (UNKNOWN) are never kept, with one exception: a request for a path on the probe list (/.env,
+// /wp-login.php, …; probes.mjs) is kept whatever its User-Agent says, under the list's own label,
+// since scanners often say they are browsers. The rows stay in the site's own D1.
 import { metadataEvent, routePath, AUTOMATION } from "@ludion/gate-core";
 import { agentName, UNNAMED } from "@ludion/report";
+import { probeOf } from "./probes.mjs";
 
 /** Columns of one row, in order (store.mjs writes them, the report reads a subset). */
 export const COLUMNS = [
   "rid", "ts", "site", "method", "route", "class", "decision", "error", "pressure", "diver", "country",
-  "operator", "token", "reason", "code", "sig_agent", "sig_lifetime", "sig_nonce",
+  "operator", "token", "reason", "code", "sig_agent", "sig_lifetime", "sig_nonce", "probe", "status",
 ];
 
 const WORD = /^[A-Za-z0-9_.-]{1,48}$/;
@@ -39,10 +42,13 @@ export function signatureFacts(input) {
  * the Gate could not inspect).
  * @param {{ cls: any, receipt: any }} result   gate.inspect()'s result
  * @param {Request} request
+ * @param {{ status?: number|null }} [response]  the status the site answered with
  */
-export function eventRow(result, request) {
+export function eventRow(result, request, { status = null } = {}) {
   const cls = result?.cls, receipt = result?.receipt;
-  if (!receipt || !AUTOMATION.has(cls?.class)) return null;
+  if (!receipt) return null;
+  const probe = probeOf(new URL(request.url).pathname);
+  if (!AUTOMATION.has(cls?.class) && !probe) return null;
   const e = metadataEvent({ receipt, path: routePath(request.url), country: request.cf?.country });
   const facts = signatureFacts(request.headers.get("signature-input"));
   return {
@@ -53,5 +59,6 @@ export function eventRow(result, request) {
     reason: word(cls.reason), code: word(cls.code),
     sig_agent: agentHost(request.headers.get("signature-agent")),
     sig_lifetime: facts.lifetime, sig_nonce: facts.nonce,
+    probe, status: Number.isInteger(status) && status >= 100 && status <= 599 ? status : null,
   };
 }

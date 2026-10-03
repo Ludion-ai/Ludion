@@ -7,11 +7,12 @@ import { startPilot, stubServer } from "./workerd.mjs";
 
 const SECRET = "taro.yamada@example.jp";
 const CHROME = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36";
+const NOT_FOUND = /^\/(missing|\.env)/; // paths the stub site does not have
 const HOP = new Set(["date", "connection", "keep-alive", "transfer-encoding", "content-length"]);
 
 test("PILOT-1 (workerd): the site's response, untouched; automation recorded; a report posted", { timeout: 240_000 }, async () => {
   const site = await stubServer((req, body) => ({
-    status: req.url.startsWith("/missing") ? 404 : 200,
+    status: NOT_FOUND.test(req.url) ? 404 : 200,
     headers: { "content-type": "text/html; charset=utf-8", "set-cookie": ["a=1; Path=/", "b=2; Path=/; HttpOnly"], etag: '"abc"', "cache-control": "public, max-age=0, must-revalidate", "x-site": "tracecheck" },
     body: `<html>${req.method} ${req.url} ${body.length}</html>`,
   }));
@@ -21,6 +22,7 @@ test("PILOT-1 (workerd): the site's response, untouched; automation recorded; a 
     const cases = [
       { name: "person", path: `/compare?who=${encodeURIComponent(SECRET)}`, headers: { "user-agent": CHROME, cookie: "s=1" } },
       { name: "person 404", path: "/missing/page", headers: { "user-agent": CHROME } },
+      { name: "scanner as a browser", path: "/.env", headers: { "user-agent": CHROME } },
       { name: "GPTBot", path: "/compare/claude-code", headers: { "user-agent": "Mozilla/5.0 (compatible; GPTBot/1.2; +https://openai.com/gptbot)" } },
       { name: "script POST", path: `/api/u/${encodeURIComponent(SECRET)}`, method: "POST", headers: { "user-agent": "python-requests/2.32", "content-type": "text/plain" }, body: SECRET.repeat(5000) },
       { name: "no UA", path: "/feed.xml", headers: { "user-agent": "" } },
@@ -37,7 +39,7 @@ test("PILOT-1 (workerd): the site's response, untouched; automation recorded; a 
       assert.equal(got.body.toString(), c.body ?? "", `${c.name}: every byte of the body`);
       if (c.headers.cookie) assert.equal(got.headers.cookie, c.headers.cookie);
       assert.equal(text, `<html>${c.method ?? "GET"} ${c.path} ${(c.body ?? "").length}</html>`, `${c.name}: the site's body`);
-      assert.equal(res.status, c.path.startsWith("/missing") ? 404 : 200, c.name);
+      assert.equal(res.status, NOT_FOUND.test(c.path) ? 404 : 200, c.name);
       assert.deepEqual(res.headers.getSetCookie(), ["a=1; Path=/", "b=2; Path=/; HttpOnly"], c.name);
       const names = [...new Set(res.headers.keys())].filter((k) => !HOP.has(k)).sort();
       assert.deepEqual(names, ["cache-control", "content-type", "etag", "set-cookie", "x-site"], `${c.name}: no header added or lost`);
@@ -58,10 +60,11 @@ test("PILOT-1 (workerd): the site's response, untouched; automation recorded; a 
     await site.close(); await hook.close();
   }
   try {
-    const rows = pilot.d1("SELECT class, method, route, operator, token, site, pressure, decision FROM events ORDER BY rowid");
+    const rows = pilot.d1("SELECT class, method, route, operator, token, site, pressure, decision, probe, status FROM events ORDER BY rowid");
     assert.deepEqual(rows.map((r) => [r.class, r.method, r.operator, r.token]), [
-      ["DECLARED", "GET", "OpenAI", "GPTBot"], ["SUSPECTED", "POST", null, "python-requests"], ["SUSPECTED", "GET", null, "missing-user-agent"],
-    ], "automation only, people never");
+      ["UNKNOWN", "GET", null, null], ["DECLARED", "GET", "OpenAI", "GPTBot"], ["SUSPECTED", "POST", null, "python-requests"], ["SUSPECTED", "GET", null, "missing-user-agent"],
+    ], "automation and probes; a person's pages never");
+    assert.deepEqual(rows.map((r) => [r.probe, r.status]), [["/.env", 404], [null, 200], [null, 200], [null, 200]], "the probe's label and every status");
     for (const r of rows) {
       assert.equal(r.site, "tracecheck.dev"); assert.equal(r.pressure, 0); assert.equal(r.decision, "allow");
       assert.ok(!JSON.stringify(r).includes("taro"), JSON.stringify(r));
