@@ -105,6 +105,7 @@
 | PUB-1 | + | 1 | npm の公開セット（`ludion` と `@ludion/*`）を `npm pack` した tarball だけで、クリーンな環境（新しいディレクトリ、新しい npm キャッシュ、workspace なし）に入る。`ludion` の CLI（`.bin` へのリンク、scan と report はリポジトリの CLI と出力が完全に一致、init と sign）と、gate-node・gate-workers・gate-next を通した自分のエージェント → 自分の Gate → VERIFIED が、公開される名前の import だけで動く | PUB-2 |
 | PUB-2 | − | 1 | 公開セットの各 tarball に、宣言した `files` と package.json・README・LICENSE 以外が0件（テスト、ベンチ、フィクスチャ、鍵、`.env`、`ludion.json` が0件）。license、repository、engines、スコープ付きの `publishConfig.access: public`、bin の shebang、export 先の同梱、内部依存がセット内の同じ版であること。検査器は先に仕込みで試す | |
 | PUB-3 | + | 1 | `ludion` だけを先に出せる。`ludion` の tarball だけを、`@ludion/*` の取得が全て拒否されるレジストリの下で、クリーンな環境に入れられる（npm に `@ludion` のパッケージが一つもなくても入る）。入った CLI は `.bin` にリンクされ、scan と report はリポジトリの CLI と出力が完全に一致し、init と sign が Web Bot Auth の署名を作る。tarball は `npm publish` と同じ手順（prepack、pack、postpack）で作る | PUB-2 |
+| PUB-4 | ± | 0 | npm への公開は release ワークフローだけ。人が main で起動し、environment `npm` で人が承認し、npm の trusted publishing（OIDC。npm のトークンはどこにも無い）で、公開セットの順に、PUB-1〜3 のあとで出す。npm がまだ知らないパッケージは拒否（最初の版は人が手で出す）。最初の失敗で残りを止める。他のワークフローは公開も OIDC の発行もできない。検査器は仕込んだワークフローで先に試す | |
 
 ### M3 Registry
 
