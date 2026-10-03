@@ -46,10 +46,10 @@ test("WEB-1: Lighthouse mobile ≥95 in all four categories on every page of the
   lh = await lighthouseRunner();
   const failing = [], low = [];
   for (const f of htmlFiles(dist)) {
-    const r = await lh.audit(preview.url + urlOf(f));
+    const r = await lh.auditMedian(preview.url + urlOf(f), 3); // the median of three runs per page
     low.push(Math.min(...Object.values(r.scores)));
     for (const x of r.failing) failing.push(`${urlOf(f)}: ${x}`);
   }
   assert.deepEqual(failing, [], `below ${MIN_SCORE}`);
-  console.log(`WEB-1: ${preview.url}; ${low.length} pages (en + ja), lowest score ${Math.min(...low)}`);
+  console.log(`WEB-1: ${preview.url}; ${low.length} pages (en + ja), lowest median score ${Math.min(...low)} (3 runs each)`);
 });

@@ -32,6 +32,13 @@ Codex の監査 #4 の指摘：PRS-2 は、日ごとの上限を別の Gate で�
 - **設定ファイル**：`"mandate_ledger": "memory"` か `{ "sqlite": "<file>" }`。
 - **`charge()` は Promise を返すようにした**（`await req.ludion.charge(...)`）。まだ公開していない API なので、互換は問わない。
 
+## 人間の確認（2026-10-02）
+
+- 読みは正しい。数えるのは per_day で、1回あたりの上限と通貨は記録なしでどの Gate でも効く。
+- 加えて：期間の中で累計する上限（1日の合計金額など）があれば、回数と同じく記録が要る。記録が無い構成では、同じく受け付けない側に倒す。
+- 実装：v0 の Gate が持てる上限は `checkout_max`、`currency`、`per_day` だけ（`LIMIT_KEYS`）。それ以外の上限を持つ Mandate の決済は、記録があってもなくても `mandate_scope`（理由 `unenforceable_limit`）で拒否する。累計の上限を足すときは、契約（ledger の `charge`）に金額を渡し、その上限を `LIMIT_KEYS` に足す。
+- 今の main では、`day_total_max` を持つ Mandate の決済が通っていた（強制できない上限を黙って無視していた）。PRS-3 に足したテストが、それを落とす。
+
 ## 結果
 
 - **PRS-3（監査の PRS-2D）**

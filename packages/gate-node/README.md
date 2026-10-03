@@ -92,7 +92,7 @@ A Mandate's `per_day` is your site's, counted once across all of its Gates over 
 - `"mandate_ledger": { "sqlite": "ludion-ledger.db" }`: several processes on one machine. Every one names the same file (Node 22.13 or later).
 - More machines: pass your own `{ shared: true, async charge(mandate, { at }) }` to `ludionGate({ mandateLedger })`. It must check and record in one atomic step, in a database all your Gates reach.
 
-Without a ledger, a charge on a Mandate with `per_day` is refused (`mandate_scope`, reason `no_shared_ledger`): nothing could count it for the whole site. The Registry never holds what anyone spends.
+Without a ledger, a charge on a Mandate with `per_day` is refused (`mandate_scope`, reason `no_shared_ledger`): nothing could count it for the whole site. A Mandate with a limit this Gate cannot enforce (anything but `checkout_max`, `currency` and `per_day`, such as a daily total) is refused too (reason `unenforceable_limit`), with a ledger or without. The Registry never holds what anyone spends.
 
 ## Lower level
 

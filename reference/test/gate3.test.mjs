@@ -111,9 +111,11 @@ for (const app of ["express", "next", "workers"]) {
       await server?.stop();
       await sink.close();
       fs.rmSync(cfgFile, { force: true });
-      if (app === "next" && fs.existsSync(path.join(B, ".next"))) {
-        // Leave B as prepare() built it (GATE-1 serves it): same build, same pinned mtimes.
-        for (const f of walk(path.join(B, ".next"))) fs.utimesSync(path.join(B, ".next", f), BUILD_MTIME, BUILD_MTIME);
+      if (app === "next") {
+        // Leave B as prepare() built it (GATE-1 serves it): a whole build, same pinned mtimes. A build
+        // this test stopped half way is made again, outside the clock (the cache is shared).
+        if (!fs.existsSync(path.join(B, ".next", "BUILD_ID"))) node(B, ["node_modules/next/dist/bin/next", "build"], { NEXT_TELEMETRY_DISABLED: "1" });
+        if (fs.existsSync(path.join(B, ".next"))) for (const f of walk(path.join(B, ".next"))) fs.utimesSync(path.join(B, ".next", f), BUILD_MTIME, BUILD_MTIME);
       }
     }
   });
