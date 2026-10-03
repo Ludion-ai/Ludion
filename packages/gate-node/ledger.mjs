@@ -13,10 +13,11 @@ const LOCKED = /locked|busy/i;
 export async function sqliteLedger(file, { busyTimeoutMs = 10_000 } = {}) {
   const { DatabaseSync } = await import("node:sqlite");
   /**
-   * Run `step` until it is not refused for a lock another process holds, up to busyTimeoutMs.
-   * SQLite's own busy handler does not cover every case (a brand-new file's schema, a lock it will
-   * not wait for to avoid deadlock), and a slow machine with many processes starting together hits
-   * them (PRS-3, found on loop-windows). A refused step has done nothing: its transaction rolled back.
+   * Run `step` until it is not refused for a lock another process holds, up to busyTimeoutMs. The
+   * waiting happens here, between attempts, never inside SQLite: node:sqlite is synchronous, and a
+   * busy_timeout would stand the whole process still while one charge waited (every other request
+   * timed out as a Gate fault, PRS-3 on loop-windows). A refused step has done nothing: its
+   * transaction rolled back.
    */
   async function retrying(step) {
     const deadline = Date.now() + busyTimeoutMs;
@@ -29,7 +30,7 @@ export async function sqliteLedger(file, { busyTimeoutMs = 10_000 } = {}) {
     }
   }
   const db = new DatabaseSync(file);
-  db.exec(`PRAGMA busy_timeout = ${Number(busyTimeoutMs) | 0}`);
+  db.exec("PRAGMA busy_timeout = 0"); // refuse at once; retrying() waits without blocking the event loop
   // A site starts its Gate processes together: they all open a new file at once. The schema goes in
   // under the write lock (the default rollback journal: a journal_mode switch needs the file to
   // itself and fails at once instead of waiting).

@@ -36,3 +36,27 @@ test("PRS-3: eight Gate processes opening one new ledger file at once all open i
     }
   } finally { try { fs.rmSync(dir, { recursive: true, force: true }); } catch { /* Windows may hold a file a moment */ } }
 });
+
+test("PRS-3: a charge waiting for another writer's lock never stalls this process", async () => {
+  // Seen on loop-windows (#79): SQLite's busy_timeout waits inside the synchronous call, so every
+  // other request in the process stood still while one charge waited, and timed out as a Gate fault.
+  const { sqliteLedger } = await import("@ludion/gate-node");
+  const { DatabaseSync } = await import("node:sqlite");
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "ludion-ledger-wait-"));
+  const file = path.join(dir, "ledger.db");
+  const ledger = await sqliteLedger(file);
+  const holder = new DatabaseSync(file);
+  let release;
+  try {
+    holder.exec("BEGIN IMMEDIATE"); // another writer holds the lock…
+    release = setTimeout(() => holder.exec("COMMIT"), 300); // …and lets go a moment later
+    let maxGap = 0, last = Date.now();
+    const tick = setInterval(() => { const n = Date.now(); maxGap = Math.max(maxGap, n - last); last = n; }, 10);
+    const t0 = Date.now();
+    let r;
+    try { r = await ledger.charge({ jti: "mdt-lock-wait", limits: { per_day: 5 } }, { at: Date.now() }); } finally { clearInterval(tick); }
+    assert.equal(r.ok, true, "the charge went through once the lock was released");
+    assert.ok(Date.now() - t0 < 3000, `it waited ${Date.now() - t0} ms`);
+    assert.ok(maxGap < 200, `the process stood still for ${maxGap} ms while the charge waited`);
+  } finally { clearTimeout(release); try { holder.close(); ledger.close(); fs.rmSync(dir, { recursive: true, force: true }); } catch { /* Windows may hold a file a moment */ } }
+});

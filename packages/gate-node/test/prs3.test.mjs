@@ -118,7 +118,8 @@ test("PRS-3: twelve charges racing over both processes — exactly per_day pass,
     const all = await Promise.all(await Promise.all(Array.from({ length: 12 }, async (_, i) => post(i % 2 ? A : B, await checkoutHeaders(m)))));
     const ok = all.filter(passed).length;
     assert.equal(ok, 3, `round ${round}: ${ok} passed — ${JSON.stringify(all.map((r) => r.status))}`);
-    assert.ok(all.filter((r) => !passed(r)).every((r) => r.status === 403 && r.reason === "per_day"), "the rest are per_day refusals");
+    const odd = all.filter((r) => !passed(r) && !(r.status === 403 && r.reason === "per_day"));
+    assert.deepEqual(odd, [], `round ${round}: the rest are per_day refusals`);
   }
 });
 
