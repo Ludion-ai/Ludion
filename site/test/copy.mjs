@@ -1,5 +1,5 @@
 // The copy check for the site oracle WEB-2. It reads text and markup, never a browser.
-// Rule 1, the legal line (spec §14, §21): no text says that Ludion sells or brokers insurance,
+// Rule 1, the legal line (spec §15, §22): no text says that Ludion sells or brokers insurance,
 //   guarantees a payment, or promises absolute safety. A word on that line may appear only where
 //   it is denied ("Ballast v0 is not insurance"), and the denial must be attached to that word:
 //   in English a negator a few words before it in the same clause, in Japanese a negative

@@ -14,8 +14,8 @@ Your request carried a Web Bot Auth signature, the Gate found your key, and the 
 
 - the request changed after signing (a proxy rewrote a header, the body changed);
 - the signature was made for another host: `@authority` must be this site;
-- the clock: `created` is in the future, or `expires` has passed, beyond ±30 seconds of skew ([spec §10.4](https://github.com/Ludion-ai/Ludion/blob/main/docs/ludion-spec.md#104-リクエストの署名));
-- the lifetime `expires − created` is longer than 3600 seconds, or longer than 60 seconds without a `nonce` ([spec §10.4](https://github.com/Ludion-ai/Ludion/blob/main/docs/ludion-spec.md#104-リクエストの署名));
+- the clock: `created` is in the future, or `expires` has passed, beyond ±30 seconds of skew ([spec §11.4](https://github.com/Ludion-ai/Ludion/blob/main/docs/ludion-spec.md#114-リクエストの署名));
+- the lifetime `expires − created` is longer than 3600 seconds, or longer than 60 seconds without a `nonce` ([spec §11.4](https://github.com/Ludion-ai/Ludion/blob/main/docs/ludion-spec.md#114-リクエストの署名));
 - `tag` is not `web-bot-auth`, or the `Signature-Agent` dictionary key does not match the signature label;
 - the same signature (or nonce) was sent again: a signature cannot be reused.
 
@@ -26,7 +26,7 @@ A signature is only worth something if a forged or replayed one never passes. Th
 ## How to fix it
 
 - Make a new signature for every request, just before sending it, and change nothing afterwards.
-- Sign for the host you are calling, and keep the lifetime at 60 seconds or less ([spec §10.4](https://github.com/Ludion-ai/Ludion/blob/main/docs/ludion-spec.md#104-リクエストの署名)).
+- Sign for the host you are calling, and keep the lifetime at 60 seconds or less ([spec §11.4](https://github.com/Ludion-ai/Ludion/blob/main/docs/ludion-spec.md#114-リクエストの署名)).
 - Sync your clock (NTP). `npx ludion doctor` shows the time it signs with.
 - For POST, PUT, PATCH and DELETE, also cover `@method`, `@path` and `content-digest`. `npx ludion sign` does this for you.
 

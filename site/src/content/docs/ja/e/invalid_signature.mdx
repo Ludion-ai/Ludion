@@ -14,8 +14,8 @@ import VerifyPath from "../../../../partials/verify-path.ja.mdx";
 
 - 署名の後でリクエストが変わった（プロキシがヘッダーを書き換えた、本文が変わった）
 - 別のホスト宛ての署名だった。`@authority` はこのサイトでなければなりません
-- 時計。`created` が未来にある、または `expires` を過ぎている（±30秒のずれは許します。[仕様 §10.4](https://github.com/Ludion-ai/Ludion/blob/main/docs/ludion-spec.md#104-リクエストの署名)）
-- 寿命 `expires − created` が3600秒を超えている。または60秒を超えているのに `nonce` がない（[仕様 §10.4](https://github.com/Ludion-ai/Ludion/blob/main/docs/ludion-spec.md#104-リクエストの署名)）
+- 時計。`created` が未来にある、または `expires` を過ぎている（±30秒のずれは許します。[仕様 §11.4](https://github.com/Ludion-ai/Ludion/blob/main/docs/ludion-spec.md#114-リクエストの署名)）
+- 寿命 `expires − created` が3600秒を超えている。または60秒を超えているのに `nonce` がない（[仕様 §11.4](https://github.com/Ludion-ai/Ludion/blob/main/docs/ludion-spec.md#114-リクエストの署名)）
 - `tag` が `web-bot-auth` でない、または `Signature-Agent` の辞書のキーと署名のラベルが一致しない
 - 同じ署名（または nonce）をもう一度送った。署名は使い回せません
 
@@ -26,7 +26,7 @@ import VerifyPath from "../../../../partials/verify-path.ja.mdx";
 ## 直し方
 
 - リクエストごとに、送る直前に新しい署名を作り、その後は何も変えないでください。
-- 呼び出すホストに対して署名し、寿命は60秒以内にします（[仕様 §10.4](https://github.com/Ludion-ai/Ludion/blob/main/docs/ludion-spec.md#104-リクエストの署名)）。
+- 呼び出すホストに対して署名し、寿命は60秒以内にします（[仕様 §11.4](https://github.com/Ludion-ai/Ludion/blob/main/docs/ludion-spec.md#114-リクエストの署名)）。
 - 時計を合わせます（NTP）。`npx ludion doctor` が署名に使う時刻を表示します。
 - POST、PUT、PATCH、DELETE では `@method`、`@path`、`content-digest` も対象に含めます。`npx ludion sign` はこれを自動で行います。
 

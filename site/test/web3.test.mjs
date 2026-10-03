@@ -2,7 +2,7 @@
 // English and in Japanese, saying what happened, why the site asks, how to fix it, and the
 // three-minute path to VERIFIED. The list of codes is not typed in here: it is read from the Gate
 // (decide() driven through every input shape, and every error literal in the adapters) and from
-// spec §10.11. The site is built for real and served the way a static host serves it.
+// the spec's error table (エラー応答, §11.12 in v2.0). The site is built for real and served the way a static host serves it.
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
@@ -54,10 +54,16 @@ function literalErrors() {
   return out;
 }
 
-/** The error table in spec §10.11: code → status. */
+/**
+ * The spec's error table (the section titled エラー応答: §10.11 in v1, §11.12 in v2.0): code → status.
+ * Found by its title, not its number, so a renumbered spec is still read (an empty table fails below).
+ */
 function specErrors() {
   const md = fs.readFileSync(path.join(ROOT, "docs/ludion-spec.md"), "utf8");
-  const sec = md.slice(md.indexOf("### 10.11"), md.indexOf("### 10.12"));
+  const at = md.search(/^### [\d.]+ エラー応答\s*$/m);
+  if (at < 0) return new Map();
+  const next = md.indexOf("\n### ", at + 1);
+  const sec = md.slice(at, next < 0 ? undefined : next);
   return new Map([...sec.matchAll(/^\|\s*(\d{3})\s*\|\s*`([a-z_]+)`\s*\|/gm)].map((m) => [m[2], Number(m[1])]));
 }
 
@@ -87,8 +93,8 @@ test("WEB-3: the Gate's error list is exactly what decide() returns, and every l
   assert.deepEqual([...gateErrors.keys()].sort(), Object.keys(ERRORS).sort(), "ERRORS drifted from decide()");
   for (const [code, status] of gateErrors) assert.equal(ERRORS[code], status, `${code}: status`);
   for (const code of literals) assert.ok(code in ERRORS, `a Gate package returns "${code}", which is not in ERRORS`);
-  for (const [code, status] of spec) if (code in ERRORS) assert.equal(ERRORS[code], status, `${code}: spec §10.11 says ${status}`);
-  assert.ok(spec.size >= Object.keys(ERRORS).length, "spec §10.11 table not found or shorter than the Gate's list");
+  for (const [code, status] of spec) if (code in ERRORS) assert.equal(ERRORS[code], status, `${code}: the spec's error table says ${status}`);
+  assert.ok(spec.size >= Object.keys(ERRORS).length, "the spec's error table (エラー応答) not found or shorter than the Gate's list");
 });
 
 async function page(url) {
@@ -137,7 +143,7 @@ test("WEB-3: every code has /e/<code> in English and Japanese, at the URL the Ga
     checkPage("ja", code, status, `/ja/e/${code}`, ja.html);
     n += 2;
   }
-  console.log(`WEB-3: ${codes.size} codes × 2 languages = ${n} pages (Gate ${Object.keys(ERRORS).length}, spec §10.11 ${spec.size})`);
+  console.log(`WEB-3: ${codes.size} codes × 2 languages = ${n} pages (Gate ${Object.keys(ERRORS).length}, spec §11.12 ${spec.size})`);
 });
 
 test("WEB-3: the error index lists every code, in both languages", async () => {

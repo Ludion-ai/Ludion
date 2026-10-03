@@ -14,7 +14,7 @@ Ludion は Web Bot Auth を置き換えません。[Web Bot Auth](https://datatr
 
 2. 書き出された公開ファイルを、`Signature-Agent` のオリジンに HTTPS で置きます。`.well-known/http-message-signatures-directory`（鍵。`application/http-message-signatures-directory+json` で返す）と `card`（名乗り）です。自分のドメインで構いません。登録の受付が始まれば `dvr-….agents.ludion.ai` にも置けます。
 
-3. リクエストごとに署名します。次のコマンドは `Signature-Agent`、`Signature-Input`、`Signature` を付けた `curl` をそのまま出力します。署名の寿命は 60 秒なので（[仕様 §10.4](https://github.com/Ludion-ai/Ludion/blob/main/docs/ludion-spec.md#104-リクエストの署名)）、毎回作り直してください。
+3. リクエストごとに署名します。次のコマンドは `Signature-Agent`、`Signature-Input`、`Signature` を付けた `curl` をそのまま出力します。署名の寿命は 60 秒なので（[仕様 §11.4](https://github.com/Ludion-ai/Ludion/blob/main/docs/ludion-spec.md#114-リクエストの署名)）、毎回作り直してください。
 
    ```sh
    npx ludion sign GET https://shop.example/checkout --curl

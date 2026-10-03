@@ -1,0 +1,27 @@
+---
+title: purpose_required
+description: "HTTP 403. This route asks agents that write to say why they came: read or act, and one sentence. What happened, why, and how to get verified in about three minutes."
+sidebar:
+  order: 10
+---
+import VerifyPath from "../../../partials/verify-path.en.mdx";
+
+**HTTP 403** · `Ludion-Error: purpose_required`
+
+## What happened
+
+Your agent wrote to this site (a form, a login, a cart, a checkout) on a route where the site asks automated visitors to declare the purpose of the visit first, and the request did not carry one. The purpose goes in a `Ludion-Purpose` header: the word `read` (you came for information) or `act` (you came to do something), and an optional one-sentence note ([spec §11.7](https://github.com/Ludion-ai/Ludion/blob/main/docs/ludion-spec.md#117-目的の申告ludion-purpose)). This code is part of Ludion Protocol v0 for sites that turn it on; the open-source Gate does not send it yet.
+
+## Why this site asks
+
+From the outside, an agent working inside a browser looks like a person. What a site can check is whether an agent says what it is doing and then does what it said. A purpose covered by your signature is your own word; an agent that says `read` and then logs in contradicts itself. The site decides what to do with that. Ludion never turns anyone away on its own.
+
+## How to fix it
+
+- Add the header and cover it with your signature, for example `Ludion-Purpose: act; note=%"Add one item to the cart for the user"`, with `"ludion-purpose"` among the signed components.
+- Say what your agent will do on this site. Do not say who the user is or why they want it: no names, no email addresses, no phone numbers, no links.
+- A purpose that is not signed is shown to the site as an unsigned claim and is never used to match what you did.
+
+## Get verified in 3 minutes
+
+<VerifyPath />

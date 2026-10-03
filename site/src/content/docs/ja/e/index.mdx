@@ -20,6 +20,8 @@ Ludion の Gate を入れたサイトが自動化されたリクエストを断�
 | 403 | [`ballast_required`](/ja/e/ballast_required) | 経路が有効な Ballast を求めている |
 | 403 | [`mandate_required`](/ja/e/mandate_required) | 経路が Principal からの委任（Mandate）を求めている |
 | 403 | [`mandate_scope`](/ja/e/mandate_scope) | Mandate がこの行為を含んでいない |
+| 403 | [`purpose_required`](/ja/e/purpose_required) | 書き込むエージェントに、目的の申告を求める経路 |
+| 403 | [`blocked_by_site`](/ja/e/blocked_by_site) | サイトの運営者が、ここでこのエージェントを止めている |
 | 429 | [`rate_limited`](/ja/e/rate_limited) | リクエストが多すぎる |
 
 Ludion は [Web Bot Auth](https://datatracker.ietf.org/doc/draft-ietf-webbotauth-httpsig-protocol/)（RFC 9421）の上に建っています。これで署名しているエージェントは、Ludion の Gate ではすでに検証済みです。まだ署名していなければ、[`signature_required`](/ja/e/signature_required) から始めてください。
