@@ -63,7 +63,8 @@ export function pack(pkgs, dest) {
 
 export const APPS = {
   express: { packages: ["gate-core", "gate-node"] },
-  next: { packages: ["gate-core", "gate-next"], build: (dir) => { node(dir, ["node_modules/next/dist/bin/next", "build"], { NEXT_TELEMETRY_DISABLED: "1" }); pinMtimes(path.join(dir, ".next")); } },
+  next: { packages: ["gate-core", "gate-next"], build: (dir) => { node(dir, ["node_modules/next/dist/bin/next", "build"], { NEXT_TELEMETRY_DISABLED: "1" }); pinMtimes(path.join(dir, ".next")); },
+    built: (dir) => fs.existsSync(path.join(dir, ".next", "BUILD_ID")) },
   workers: { packages: ["gate-core", "gate-workers"] },
 };
 /** Build outputs get one fixed mtime. `next start` derives Last-Modified and ETag of build files
@@ -77,6 +78,16 @@ function pinMtimes(dir) {
 }
 export function node(cwd, args, env = {}) {
   return execFileSync(process.execPath, args, { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], timeout: 600_000, env: { ...process.env, ...env } });
+}
+
+/**
+ * Is a prepared install still whole? GATE-3 rebuilds the shared Next.js install's .next inside its
+ * clock; stopped half way, it left no production build behind and GATE-1 failed every run after
+ * (2026-10-02). An app with a build step is whole only while both of its builds are there.
+ */
+export function intact(app, dirs) {
+  const built = APPS[app]?.built;
+  return !built || (built(dirs.A) && built(dirs.B));
 }
 
 /**
@@ -94,7 +105,12 @@ export function prepare(app) {
   const key = h.digest("hex").slice(0, 16);
   const base = path.join(CACHE, `${app}-${key}`);
   const out = { A: path.join(base, "A"), B: path.join(base, "B"), key };
-  if (fs.existsSync(path.join(base, ".ready"))) { fs.rmSync(tmpPack, { recursive: true, force: true }); return out; }
+  if (fs.existsSync(path.join(base, ".ready"))) {
+    fs.rmSync(tmpPack, { recursive: true, force: true });
+    // Ready once, but another oracle may have rebuilt part of it and been stopped: build again what is missing.
+    if (!intact(app, out)) for (const d of [out.A, out.B]) if (!spec.built(d)) spec.build(d);
+    return out;
+  }
 
   // Prune other keys only once they are stale: a key that is not ours may belong to another
   // worktree's scoreboard running right now (or still building, with no .ready yet).

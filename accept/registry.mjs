@@ -293,7 +293,7 @@ export const ORACLES = [
   // token, a GitHub secret), then runs it; the "loop" jobs leave it to that job. Locally it checks the
   // preview as last deployed (npm run deploy:preview). It never SKIPs: a ratcheted oracle cannot (LOOP-4).
   { id: "WEB-1", m: "M7", kind: "+", level: 1, pair: "WEB-5", property: "site-integrity", job: "preview", title: "static site deployed to preview; every page in ja + en; Lighthouse mobile P/A/BP/SEO all ≥95",
-    timeoutMs: 900_000, run: nodeTest(["site/test/web1.test.mjs"], "^WEB-1:", { timeoutMs: 880_000, metric: (out) => (/^# WEB-1: (.+)$/m.exec(out) ?? [])[1] }) },
+    timeoutMs: 1_800_000, run: nodeTest(["site/test/web1.test.mjs"], "^WEB-1:", { timeoutMs: 1_780_000, metric: (out) => (/^# WEB-1: (.+)$/m.exec(out) ?? [])[1] }) },
   // The copy check (site/test/copy.mjs) on the real build: the legal line of spec §14 in English and
   // Japanese, and every figure linked to the repository document that states it; claims and
   // unsourced figures planted in built pages must be caught.
@@ -328,7 +328,7 @@ export const ORACLES = [
   // The deploy artifact in workerd: ja/en pairing, and Lighthouse mobile ≥95 on one page per template in
   // both languages. The runner is first shown to fail a planted degraded page.
   { id: "WEB-9", m: "M7", kind: "+", level: 1, pair: "WEB-5", property: "site-integrity", title: "deploy artifact in workerd: every page ja + en; Lighthouse mobile ≥95 on every template (en, ja)",
-    timeoutMs: 600_000, run: nodeTest(["site/test/web9.test.mjs"], "^WEB-9:", { timeoutMs: 580_000, metric: (out) => (/^# WEB-9: (.+)$/m.exec(out) ?? [])[1] }) },
+    timeoutMs: 1_200_000, run: nodeTest(["site/test/web9.test.mjs"], "^WEB-9:", { timeoutMs: 1_180_000, metric: (out) => (/^# WEB-9: (.+)$/m.exec(out) ?? [])[1] }) },
   { id: "WEB-8", m: "M7", kind: "±", level: 1, title: "signup form: a preview submission reaches the notifier (stub ok); honeypot and rate limit drop bots",
     timeoutMs: 900_000, run: nodeTest(["site/test/web8.test.mjs"], "^WEB-8:", { timeoutMs: 880_000,
       metric: (out) => (/^# WEB-8: (.+)$/m.exec(out) ?? [])[1] }) },

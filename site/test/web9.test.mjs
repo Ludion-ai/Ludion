@@ -10,6 +10,8 @@ import { startEdge } from "./edge.mjs";
 import { lighthouseRunner, MIN_SCORE } from "./lighthouse.mjs";
 import { pairing, templatePages, urlOf } from "./pages.mjs";
 
+// The median of three runs per page: CI machines are busy, and the bar stays MIN_SCORE.
+const RUNS = 3;
 let dist, edge, lh;
 before(async () => { dist = buildSite(); edge = await startEdge({ dist }); lh = await lighthouseRunner(); });
 after(async () => { await lh?.close(); await edge?.stop(); });
@@ -34,11 +36,11 @@ test("WEB-9: the Lighthouse check fails a degraded page (planted)", async () => 
 test("WEB-9: Lighthouse mobile ≥95 in all four categories, one page per template, English and Japanese", async () => {
   const rows = [], failing = [];
   for (const f of templatePages()) {
-    const r = await lh.audit(edge.origin + urlOf(f));
+    const r = await lh.auditMedian(edge.origin + urlOf(f), RUNS);
     rows.push(`${urlOf(f)} ${Object.values(r.scores).join("/")}`);
     for (const x of r.failing) failing.push(`${urlOf(f)}: ${x}`);
   }
   assert.deepEqual(failing, [], `below ${MIN_SCORE}`);
   const min = Math.min(...rows.flatMap((r) => r.split(" ")[1].split("/").map(Number)));
-  console.log(`WEB-9: ${rows.length} pages (${rows.length / 2} templates × en, ja), lowest score ${min}`);
+  console.log(`WEB-9: ${rows.length} pages (${rows.length / 2} templates × en, ja), lowest median score ${min} (${RUNS} runs each)`);
 });

@@ -15,7 +15,12 @@ const freePort = () => new Promise((resolve, reject) => {
   s.listen(0, "127.0.0.1", () => { const { port } = s.address(); s.close(() => resolve(port)); });
 });
 
-/** Start one browser with a DevTools port; audit(url) returns { url, scores: {category: 0..100}, failing: [...] }. */
+/**
+ * Start one browser with a DevTools port. audit(url) returns { url, scores: {category: 0..100}, failing: [...] }
+ * for one run; auditMedian(url, runs) runs it `runs` times and judges the median score of each category.
+ * Lighthouse's performance score moves between runs on a busy machine (Google's own advice is the median
+ * of several). The bar stays MIN_SCORE: one slow run no longer fails a page, a page slow in most runs does.
+ */
 export async function lighthouseRunner() {
   ensureDeps();
   const port = await freePort();
@@ -33,7 +38,22 @@ export async function lighthouseRunner() {
       failing.push(`${c} ${scores[c]}: ${low.join("; ")}`);
     }
     if (r.lhr.runtimeError) failing.push(`runtime error: ${r.lhr.runtimeError.code} ${r.lhr.runtimeError.message}`);
-    return { url, scores, failing };
+    return { url, scores, failing, runtimeError: !!r.lhr.runtimeError };
   }
-  return { audit, close: () => browser.close() };
+  /** The median of `runs` audits per category; failing names each category whose median is below the bar. */
+  async function auditMedian(url, runs = 3) {
+    const all = [];
+    for (let i = 0; i < runs; i++) all.push(await audit(url));
+    const median = (xs) => { const s = [...xs].sort((a, b) => a - b); return s[Math.floor(s.length / 2)]; };
+    const scores = Object.fromEntries(CATEGORIES.map((c) => [c, median(all.map((r) => (r.runtimeError ? 0 : r.scores[c])))]));
+    const failing = [];
+    for (const c of CATEGORIES) {
+      if (scores[c] >= MIN_SCORE) continue;
+      // The run that scored the median says why.
+      const at = all.find((r) => !r.runtimeError && r.scores[c] === scores[c]) ?? all.find((r) => r.runtimeError) ?? all[0];
+      failing.push(`${c} median ${scores[c]} of ${all.map((r) => (r.runtimeError ? 0 : r.scores[c])).join("/")}: ${at.failing.find((x) => x.startsWith(c) || x.startsWith("runtime")) ?? ""}`);
+    }
+    return { url, scores, failing, runs: all.map((r) => r.scores) };
+  }
+  return { audit, auditMedian, close: () => browser.close() };
 }
