@@ -17,12 +17,12 @@ Pressure 0 only observes: nothing changes for anyone until you raise it. A new E
 
 ```sh
 npm init -y
-npm install express @ludion/gate-node
+npm install express ludion
 ```
 
 ```js title="server.mjs"
 import express from "express";
-import { ludion } from "@ludion/gate-node";
+import { ludion } from "ludion/gate/node";
 
 const app = express();
 app.use(await ludion());
@@ -68,7 +68,7 @@ DECLARED
 
 ### Every morning
 
-Point `report.endpoint` in `ludion.config.json` at a collector you run, and when an hour closes the Gate posts that hour's counts there: per route template, method, class, decision and operator. No visit leaves your site, so no times, IPs, bodies, cookies or query values; each visit's record stays on the site for 7 days and is then deleted ([spec §12.9](https://github.com/Ludion-ai/Ludion/blob/main/docs/ludion-spec.md#129-性能プライバシー配布)). [`ludion report`](https://github.com/Ludion-ai/Ludion/tree/main/packages/report) turns either into the daily report, in English or Japanese. The settings are in [the `@ludion/gate-node` README](https://github.com/Ludion-ai/Ludion/blob/main/packages/gate-node/README.md#configuration).
+Point `report.endpoint` in `ludion.config.json` at a collector you run, and when an hour closes the Gate posts that hour's counts there: per route template, method, class, decision and operator. No visit leaves your site, so no times, IPs, bodies, cookies or query values; each visit's record stays on the site for 7 days and is then deleted ([spec §12.9](https://github.com/Ludion-ai/Ludion/blob/main/docs/ludion-spec.md#129-性能プライバシー配布)). [`ludion report`](https://github.com/Ludion-ai/Ludion/tree/main/packages/report) turns either into the daily report, in English or Japanese. The settings are in [the `ludion/gate/node` README](https://github.com/Ludion-ai/Ludion/blob/main/packages/gate-node/README.md#configuration).
 
 ## For an agent: sign your requests
 
@@ -100,4 +100,4 @@ npx ludion sign GET http://localhost:3000/ --curl
 
 It prints a `curl` command with the signature headers: `Signature-Agent` (where your directory is), `Signature-Input` and `Signature`. Run it with `-sI` against the site you set up above. Its receipt now says `VERIFIED`, and names your directory. Sign each request anew: a signature expires quickly, and a Gate takes one it has seen before for a replay.
 
-`ludion sign` prints headers for any HTTP client. From code, `@ludion/diver` signs requests for you (`ludionFetch`).
+`ludion sign` prints headers for any HTTP client. From code, `ludion/diver` signs requests for you (`ludionFetch`).

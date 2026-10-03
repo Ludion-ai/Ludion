@@ -62,10 +62,11 @@ export function pack(pkgs, dest) {
 }
 
 export const APPS = {
-  express: { packages: ["gate-core", "gate-node"] },
-  next: { packages: ["gate-core", "gate-next"], build: (dir) => { node(dir, ["node_modules/next/dist/bin/next", "build"], { NEXT_TELEMETRY_DISABLED: "1" }); pinMtimes(path.join(dir, ".next")); },
+  // The one package on npm (ADR-036): the Gate comes inside `ludion`, as ludion/gate/<runtime>.
+  express: { packages: ["ludion"] },
+  next: { packages: ["ludion"], build: (dir) => { node(dir, ["node_modules/next/dist/bin/next", "build"], { NEXT_TELEMETRY_DISABLED: "1" }); pinMtimes(path.join(dir, ".next")); },
     built: (dir) => fs.existsSync(path.join(dir, ".next", "BUILD_ID")) },
-  workers: { packages: ["gate-core", "gate-workers"] },
+  workers: { packages: ["ludion"] },
 };
 /** Build outputs get one fixed mtime. `next start` derives Last-Modified and ETag of build files
  *  from their mtimes, and A and B are two builds made seconds apart; one real deploy has one build. */

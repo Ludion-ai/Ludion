@@ -12,6 +12,8 @@ import { createSafeFetch } from "@ludion/gate-core/safe-fetch";
 import { sqliteLedger } from "./ledger.mjs";
 
 export { createSafeFetch, sqliteLedger };
+// The site's Glass receipt key (LUDION_SITE_KEY): `ludion/gate/node` is the only Gate import a Node site needs.
+export { generateSiteKey } from "@ludion/gate-core";
 
 /**
  * The body of an IncomingMessage, for the Gate to check a signed Content-Digest (GATE-11), handed

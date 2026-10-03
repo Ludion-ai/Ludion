@@ -1,6 +1,7 @@
 {
   "name": "@ludion/scan",
   "version": "0.0.1",
+  "private": true,
   "description": "Ludion scan: the log-first Gate. Reads access logs (nine formats, gzip ok), counts what automation touched, prints the unverified-automation-on-critical-routes number. Zero network.",
   "license": "Apache-2.0",
   "homepage": "https://ludion.ai",
@@ -26,9 +27,6 @@
   ],
   "engines": {
     "node": ">=20"
-  },
-  "publishConfig": {
-    "access": "public"
   },
   "dependencies": {
     "@ludion/gate-core": "0.0.1"

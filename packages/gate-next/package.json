@@ -1,6 +1,7 @@
 {
   "name": "@ludion/gate-next",
   "version": "0.0.1",
+  "private": true,
   "description": "Ludion Gate for Next.js (proxy.js).",
   "license": "Apache-2.0",
   "homepage": "https://ludion.ai",
@@ -26,9 +27,6 @@
   ],
   "engines": {
     "node": ">=20"
-  },
-  "publishConfig": {
-    "access": "public"
   },
   "dependencies": {
     "@ludion/gate-core": "0.0.1"

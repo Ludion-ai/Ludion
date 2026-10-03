@@ -1,6 +1,6 @@
 // Reference shop on Cloudflare Workers, in the shape `npm create cloudflare` starts from.
 // Deterministic on purpose (no random session IDs), so GATE-1 can compare bytes.
-import { withLudion } from "@ludion/gate-workers";
+import { withLudion } from "ludion/gate/workers";
 const PRODUCTS = { 1: ["Lamp", 4900], 2: ["Kettle", 3200], 3: ["Chair", 12900] };
 const CSS = "body { font-family: system-ui, sans-serif; margin: 2rem; color: #1b1f24; }\na { color: #0f766e; }\n.price { font-variant-numeric: tabular-nums; }\n";
 const LOGO = Uint8Array.from(atob("iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAIAAACQkWg2AAAAFklEQVR4nGPgL8sjCTGMahjVMHw1AADRzfMB5Ye3vAAAAABJRU5ErkJggg=="), (c) => c.charCodeAt(0));

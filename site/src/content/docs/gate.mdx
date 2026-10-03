@@ -10,13 +10,13 @@ Start at Pressure 0. Pressure 0 only observes: nothing changes for anyone until 
 ## Express and other Node.js servers
 
 ```sh
-npm install @ludion/gate-node
+npm install ludion
 ```
 
 Add two lines to your server:
 
 ```js
-import { ludion } from "@ludion/gate-node";
+import { ludion } from "ludion/gate/node";
 app.use(await ludion());
 ```
 
@@ -34,13 +34,13 @@ Anything that takes `(req, res, next)` middleware, such as Connect, works the sa
 ## Next.js 16+
 
 ```sh
-npm install @ludion/gate-next
+npm install ludion
 ```
 
 Create `proxy.js` in the project root. It is one line:
 
 ```js
-export { proxy } from "@ludion/gate-next";
+export { proxy } from "ludion/gate/next";
 ```
 
 `ludion.config.json` is the same as for Express. Then `next build && next start` as usual.
@@ -50,13 +50,13 @@ Redirects declared in `next.config.js` (`redirects()`) run before the proxy, so 
 ## Cloudflare Workers
 
 ```sh
-npm install @ludion/gate-workers
+npm install ludion
 ```
 
 Wrap your default export:
 
 ```js
-import { withLudion } from "@ludion/gate-workers";
+import { withLudion } from "ludion/gate/workers";
 export default withLudion({
   async fetch(request, env, ctx) {
     // your Worker, unchanged
@@ -80,4 +80,4 @@ The Gate runs in your own Cloudflare account.
 
 On a route where you raise the Pressure, the Gate can refuse agents it cannot verify. Every refusal links to [a page that says what happened and how to fix it](/e), and from there an agent's operator has a path to VERIFIED, with a target of three minutes ([DIV-1](https://github.com/Ludion-ai/Ludion/blob/main/docs/MISSION.md#m2-diver)).
 
-The settings (per-route Pressure, `fail_mode`, `authorities`, where reports go) are in [the `@ludion/gate-node` README](https://github.com/Ludion-ai/Ludion/blob/main/packages/gate-node/README.md#configuration). The source is on [GitHub](https://github.com/Ludion-ai/Ludion).
+The settings (per-route Pressure, `fail_mode`, `authorities`, where reports go) are in [the `ludion/gate/node` README](https://github.com/Ludion-ai/Ludion/blob/main/packages/gate-node/README.md#configuration). The source is on [GitHub](https://github.com/Ludion-ai/Ludion).

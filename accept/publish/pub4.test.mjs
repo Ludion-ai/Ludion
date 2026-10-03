@@ -15,6 +15,9 @@ import { SET, ROOT } from "./set.mjs";
 import { plan, refusals, oneVersion, publishAll, WORKFLOW, MIN_NPM } from "../../scripts/release.mjs";
 
 const manifestOf = (dir) => ({ name: dir === "ludion" ? "ludion" : `@ludion/${dir}`, version: "0.0.2" });
+// The driver's behaviour over several packages (order, skip, refusal, stop) on a synthetic set: the
+// real set is `ludion` alone (ADR-036), which plan() holds below.
+const DIRS = ["gate-core", "scan", "report", "diver", "ludion", "gate-node", "gate-next", "gate-workers"];
 /** A fake npm: `seen` maps a name to its versions on npm (absent: never published); `breaks` fails a publish. */
 function fakeNpm({ seen = {}, breaks = [], viewDown = [] } = {}) {
   const calls = [];
@@ -32,23 +35,23 @@ function fakeNpm({ seen = {}, breaks = [], viewDown = [] } = {}) {
   };
   return { npm, calls, publishes: () => calls.filter((c) => c.args[0] === "publish") };
 }
-const allSeen = (extra = {}) => Object.fromEntries(SET.map((d) => [manifestOf(d).name, ["0.0.1"]]).concat(Object.entries(extra)));
+const allSeen = (extra = {}) => Object.fromEntries(DIRS.map((d) => [manifestOf(d).name, ["0.0.1"]]).concat(Object.entries(extra)));
 
 test("PUB-4: packages go out in the set's order; a version npm already has is skipped", () => {
   const f = fakeNpm({ seen: allSeen({ "@ludion/scan": ["0.0.1", "0.0.2"] }) });
-  const { ok, rows } = publishAll(plan("all"), { npm: f.npm, manifestOf });
+  const { ok, rows } = publishAll(DIRS, { npm: f.npm, manifestOf });
   assert.equal(ok, true);
-  assert.deepEqual(rows.map((r) => r.dir), SET);
+  assert.deepEqual(rows.map((r) => r.dir), DIRS);
   assert.equal(rows.find((r) => r.dir === "scan").action, "skipped");
-  assert.deepEqual(f.publishes().map((c) => c.cwd), SET.filter((d) => d !== "scan").map((d) => `packages/${d}`));
+  assert.deepEqual(f.publishes().map((c) => c.cwd), DIRS.filter((d) => d !== "scan").map((d) => `packages/${d}`));
   assert.ok(f.publishes().every((c) => c.args.join(" ") === "publish --access public"), "a real run never passes --dry-run, a token or a tag");
-  assert.deepEqual(plan("gate-node,gate-core"), ["gate-core", "gate-node"], "a subset keeps the set's order");
+  assert.deepEqual(plan("ludion"), ["ludion"]);
 });
 
 test("PUB-4: a package npm has never seen is refused (its first version is published by hand), and a real run stops there", () => {
   const seen = allSeen(); delete seen["@ludion/report"];
   const f = fakeNpm({ seen });
-  const { ok, rows } = publishAll(plan("all"), { npm: f.npm, manifestOf });
+  const { ok, rows } = publishAll(DIRS, { npm: f.npm, manifestOf });
   assert.equal(ok, false);
   assert.deepEqual(rows.map((r) => `${r.dir} ${r.action}`), ["gate-core published", "scan published", "report refused"]);
   assert.match(rows.at(-1).detail, /publish its first version by hand/);
@@ -57,12 +60,12 @@ test("PUB-4: a package npm has never seen is refused (its first version is publi
 
 test("PUB-4: the first failure stops the rest (later packages depend on earlier ones), and so does npm being unreachable", () => {
   const f = fakeNpm({ seen: allSeen(), breaks: ["diver"] });
-  const r = publishAll(plan("all"), { npm: f.npm, manifestOf });
+  const r = publishAll(DIRS, { npm: f.npm, manifestOf });
   assert.equal(r.ok, false);
   assert.deepEqual(r.rows.map((x) => x.action), ["published", "published", "published", "failed"]);
   assert.equal(f.publishes().length, 4);
   const down = fakeNpm({ seen: allSeen(), viewDown: ["@ludion/gate-core"] });
-  const r2 = publishAll(plan("all"), { npm: down.npm, manifestOf });
+  const r2 = publishAll(DIRS, { npm: down.npm, manifestOf });
   assert.equal(r2.ok, false);
   assert.equal(down.publishes().length, 0, "npm view failing is not read as 'not published yet'");
 });
@@ -70,9 +73,9 @@ test("PUB-4: the first failure stops the rest (later packages depend on earlier 
 test("PUB-4: a dry run sends nothing and looks at every package, refused ones included", () => {
   const seen = allSeen(); delete seen.ludion;
   const f = fakeNpm({ seen, breaks: ["gate-next"] });
-  const { ok, rows } = publishAll(plan("all"), { npm: f.npm, manifestOf, dryRun: true });
+  const { ok, rows } = publishAll(DIRS, { npm: f.npm, manifestOf, dryRun: true });
   assert.equal(ok, false, "a dry run still says what a real run would stop at");
-  assert.deepEqual(rows.map((r) => r.dir), SET);
+  assert.deepEqual(rows.map((r) => r.dir), DIRS);
   assert.ok(f.publishes().every((c) => c.args.includes("--dry-run")), "every publish call is a dry run");
 });
 
@@ -107,7 +110,8 @@ test("PUB-4: a real publish is refused outside the release workflow on main, wit
 });
 
 test("PUB-4: only packages of the set, and one version across it", () => {
-  assert.throws(() => plan("gate-core,card-host"), /not in the publish set: card-host/);
+  for (const internal of ["gate-core", "gate-node", "diver", "card-host"]) assert.throws(() => plan(internal), new RegExp(`not in the publish set: ${internal}`), `${internal} is bundled in ludion, never published alone`);
+  assert.deepEqual(SET, ["ludion"], "ADR-036: npm gets one package");
   assert.throws(() => plan(","), /no package named/);
   assert.deepEqual(plan("all"), SET);
   assert.equal(oneVersion([{ name: "a", version: "1.0.0" }, { name: "b", version: "1.0.0" }]), "1.0.0");

@@ -21,11 +21,11 @@ Web Bot Auth lets an agent sign its requests, and that tells a site which operat
 **Put the Gate in front, at Pressure 0.** Pressure 0 only observes: nothing changes for anyone until you raise it.
 
 ```sh
-npm install @ludion/gate-node
+npm install ludion
 ```
 
 ```js
-import { ludion } from "@ludion/gate-node";
+import { ludion } from "ludion/gate/node";
 app.use(await ludion());
 ```
 

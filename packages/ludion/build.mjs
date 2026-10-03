@@ -1,8 +1,9 @@
 #!/usr/bin/env node
-// `ludion` installs alone (PUB-3): at prepack, the CLI's code — @ludion/diver and what it uses
-// (@ludion/scan, @ludion/report, @ludion/gate-core) — is copied into lib/@ludion/<name>/ (each
+// `ludion` is the one package on npm (ADR-036) and installs alone (PUB-3): at prepack, the CLI's
+// code and the Gate's — the packages in vendored.mjs — are copied into lib/@ludion/<name>/ (each
 // package's declared `files`), and every `@ludion/...` import in it is rewritten to the relative
-// path of the file that package's `exports` names. The tarball then needs no @ludion/* from npm.
+// path of the file that package's `exports` names. The tarball then needs no @ludion/* from npm;
+// its `exports` give `ludion/diver` and `ludion/gate/{node,next,workers}`.
 // At postpack (`--clean`) lib/ is removed: the repository never holds a copy (CRY-1 and REG-4 see
 // the sources only). Fails, and packs nothing, if an internal import cannot be resolved, or if the
 // copied code needs a third-party package that `ludion` does not depend on.
@@ -14,7 +15,8 @@ import { fileURLToPath } from "node:url";
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const PACKAGES = path.resolve(HERE, "..");
 const LIB = path.join(HERE, "lib");
-export const VENDORED = ["diver", "scan", "report", "gate-core"];
+import { VENDORED } from "./vendored.mjs";
+export { VENDORED };
 
 if (process.argv.includes("--clean")) { fs.rmSync(LIB, { recursive: true, force: true }); process.exit(0); }
 
@@ -62,6 +64,7 @@ for (const file of walk(LIB).filter((f) => f.endsWith(".mjs"))) {
   if (/["']@ludion\//.test(out.replace(/\/\/.*$/gm, ""))) throw new Error(`${path.relative(HERE, file)}: an @ludion import left unresolved`);
   if (out !== src) fs.writeFileSync(file, out);
 }
-const missing = [...needed].filter((d) => !own.dependencies?.[d]);
+// A peer (next for ludion/gate/next) comes from the app; anything else must be a dependency.
+const missing = [...needed].filter((d) => !own.dependencies?.[d] && !own.peerDependencies?.[d]);
 if (missing.length) { fs.rmSync(LIB, { recursive: true, force: true }); throw new Error(`the vendored code needs ${missing.join(", ")}: add to ludion's dependencies`); }
 console.error(`ludion: vendored ${[...pkgs.keys()].join(", ")} into lib/ (${walk(LIB).length} files)`);

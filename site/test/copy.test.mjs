@@ -146,7 +146,7 @@ test("copy: a repository link reads the file, or the section under the heading i
   assert.match(repoSourceText(encodeURI(`${SPEC}#15-ballast責任`), ROOT), /24時間で応じる/, "a percent-encoded fragment");
   assert.equal(repoSourceText(`${SPEC}#no-such-heading`, ROOT), null);
   assert.equal(repoSourceText("https://example.com/docs/MISSION.md", ROOT), null);
-  assert.ok(repoSourceText(`${REPO}/tree/main/packages/gate-node`, ROOT).includes("gate-node"), "a directory reads its README");
+  assert.ok(repoSourceText(`${REPO}/tree/main/packages/gate-node`, ROOT).startsWith("# ludion/gate/node"), "a directory reads its README");
 });
 
 test("copy: code, anchors and captions are not prose; alt and label texts are read", () => {

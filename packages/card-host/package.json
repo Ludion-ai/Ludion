@@ -1,6 +1,7 @@
 {
   "name": "@ludion/card-host",
   "version": "0.0.1",
+  "private": true,
   "description": "Ludion Card Host: serves a Diver's HTTP Message Signatures Directory and Signature Agent Card (CIMD). Fetch API only.",
   "license": "Apache-2.0",
   "type": "module",
