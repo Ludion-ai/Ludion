@@ -1,0 +1,12 @@
+{
+  "id": "clock-skew--nonceless-long-lived",
+  "family": "clock-skew",
+  "title": "alive for an hour without a nonce, so a replay inside the window could not be told apart",
+  "params": {
+    "variant": "nonceless-long-lived"
+  },
+  "classes": [
+    "SPOOFED"
+  ],
+  "added": "2026-10-03"
+}

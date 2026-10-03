@@ -1,0 +1,12 @@
+{
+  "id": "nonce-flood--hour-long-full",
+  "family": "nonce-flood",
+  "title": "Fill the nonce cache from many owners with hour-long signatures; a new hour-long signature cannot be remembered, so it is never VERIFIED",
+  "params": {
+    "variant": "hour-long-full"
+  },
+  "classes": [
+    "UNVERIFIED"
+  ],
+  "added": "2026-10-03"
+}
