@@ -11,7 +11,7 @@
 import fs from "node:fs";
 import { pathToFileURL } from "node:url";
 import { readEvent, count, dayWindow, addDays, isValidDate, fmt } from "@ludion/report";
-import { extras } from "./src/daily.mjs";
+import { extras, probeLines } from "./src/daily.mjs";
 import { COLUMNS } from "./src/observe.mjs";
 
 const TZ = "Asia/Tokyo", SITE = "tracecheck.dev";
@@ -57,6 +57,7 @@ export function renderSummary(s) {
     `署名してきたエージェント：${list(s.pilot.signers)}`,
     `検証できなかった署名：${list(s.pilot.unverified)}`,
     `署名の寿命（秒）：${Object.entries(s.pilot.lifetimes).map(([k, v]) => `${k} ${fmt(v)}`).join("、") || "なし"}`,
+    ...probeLines(s.pilot.probes, "ja"),
     "",
     "日ごと（自動化 / VERIFIED / DECLARED / SUSPECTED / 重要経路の未検証）：",
     ...s.days.map((d) => `  ${d.date}  ${fmt(d.events)} / ${fmt(d.verified)} / ${fmt(d.declared)} / ${fmt(d.suspected)} / ${fmt(d.critical_unverified)}`),

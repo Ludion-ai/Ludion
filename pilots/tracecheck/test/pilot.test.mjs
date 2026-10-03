@@ -7,7 +7,8 @@ import assert from "node:assert/strict";
 import { createPilot, observeOnly } from "../src/worker.mjs";
 import { eventRow, agentHost, signatureFacts, COLUMNS } from "../src/observe.mjs";
 import { store } from "../src/store.mjs";
-import { daily, extras, notify } from "../src/daily.mjs";
+import { daily, extras, notify, withProbes } from "../src/daily.mjs";
+import { probeOf, probeKind } from "../src/probes.mjs";
 import { buildReport, renderHtml } from "@ludion/report";
 import { keypair, signed } from "../../../packages/gate-core/test/support.mjs";
 import { d1, world, context, ENV, quietLog } from "./support.mjs";
@@ -224,7 +225,8 @@ test("the morning report is @ludion/report over exactly yesterday in Tokyo, save
 
   const saved = db.rows("SELECT * FROM reports ORDER BY lang");
   assert.deepEqual(saved.map((s) => s.lang), ["en", "ja"]);
-  assert.equal(saved[1].html, renderHtml(expected, "ja"));
+  assert.equal(saved[1].html, withProbes(renderHtml(expected, "ja"), r.extras.probes, "ja"));
+  assert.equal(withoutProbes(saved[1].html), renderHtml(expected, "ja"), "the report's own HTML, untouched but for the one section");
   assert.equal(JSON.parse(saved[0].summary).pilot.long_lived, 1);
 
   assert.deepEqual(r.extras.declared, [{ key: "OpenAI", count: 1 }]);
@@ -240,7 +242,7 @@ test("the morning report is @ludion/report over exactly yesterday in Tokyo, save
   assert.match(payload.content, /寿命が 60 秒を超えるもの 1 件/);
   const file = form.get("files[0]");
   assert.equal(file.name, "ludion-tracecheck.dev-2026-10-04.html");
-  assert.equal(await file.text(), renderHtml(expected, "ja"));
+  assert.equal(await file.text(), saved[1].html);
 
   assert.equal(db.rows("SELECT * FROM events WHERE ts < " + at("2026-07-01T00:00:00Z")).length, 0, "pruned past retention");
   assert.equal(db.rows().length, rows.length, "nothing else pruned");
@@ -270,7 +272,8 @@ test("an empty day is still a report; Slack gets text without markup", async () 
   assert.equal(posts.length, 1);
   assert.equal(posts[0].unfurl_links, false);
   assert.ok(!/[<>]/.test(posts[0].text));
-  assert.deepEqual(extras([]), { declared: [], suspected: [], signers: [], unverified: [], long_lived: 0 });
+  assert.deepEqual(extras([]), { declared: [], suspected: [], signers: [], unverified: [], long_lived: 0,
+    probes: { requests: 0, kinds: { secret: 0, admin: 0, exploit: 0 }, as_browser: 0, paths: [], answered_2xx: [] } });
   await assert.rejects(notify("https://discord.com/api/webhooks/1/x", { content: "x", html: "", filename: "a.html" }, { fetch: async () => new Response("", { status: 400 }) }), /400/);
 });
 
@@ -307,4 +310,91 @@ test("the span summary: the daily report's counting over the week, each day's to
   const text = renderSummary(s);
   assert.match(text, /^tracecheck\.dev：2026-10-04〜2026-10-06/);
   assert.match(text, /検証済みのエージェント：chatgpt\.com 1/);
+});
+
+/** The report's HTML without the pilot's section. */
+const withoutProbes = (html) => html.replace(/<tr><td data-section="probes"[\s\S]*?\n<\/td><\/tr>\n/, "");
+
+// ── the hunt for secrets and admin pages ─────────────────────────────────────────────────────
+test("probes: the list names what scanners look for, by the list's own label; ordinary paths are not probes", () => {
+  for (const [path, label, kind] of [
+    ["/.env", "/.env", "secret"], ["/.ENV", "/.env", "secret"], ["/.env.production", "/.env.production", "secret"],
+    ["/api/.env", "…/.env*", "secret"], ["/backend/.env.save2", "…/.env*", "secret"], ["/.git/config", "/.git/config", "secret"],
+    ["/app/.git/HEAD", "…/.git/*", "secret"], ["/.aws/credentials", "/.aws/credentials", "secret"], ["/wp-config.php.swp", "config files (config.*, secrets.* …)", "secret"],
+    ["/backup-2026.sql", "backups and dumps (*.sql, *.bak, *.zip …)", "secret"], ["/cert/server.pem", "keys (*.pem, *.key …)", "secret"],
+    ["/wp-login.php", "/wp-login.php", "admin"], ["/blog/wp-admin/admin-ajax.php", "WordPress (other)", "admin"], ["/phpMyAdmin/", "/phpmyadmin/", "admin"],
+    ["/xmlrpc.php", "/xmlrpc.php", "admin"], ["/actuator/env", "/actuator/env", "admin"],
+    ["/vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php", "/vendor/phpunit/phpunit/src/util/php/eval-stdin.php", "exploit"],
+    ["/alfa.php", "/alfa.php", "exploit"], ["/random-shell.php", "scripts (*.php, *.asp, *.jsp …)", "exploit"], ["/cgi-bin/luci", "/cgi-bin/luci", "exploit"],
+    ["/static/%2e%2e/%2e%2e/etc/passwd", "path traversal", "exploit"],
+  ]) {
+    assert.equal(probeOf(path), label, path);
+    assert.equal(probeKind(label), kind, label);
+  }
+  for (const path of ["/", "/compare/claude-code", "/ja/", "/feed.xml", "/environment", "/blog/.envoy", "/github", "/git-guide", "/favicon.svg",
+    "/_astro/index.abc123.css", "/robots.txt", "/sitemap-index.xml", "/compare?x=.env", "/%E0%A4%A"]) {
+    assert.equal(probeOf(path), null, path);
+  }
+});
+
+test("probes: a request for one is kept whatever its User-Agent claims, with the list's label and the site's status, and nothing it sent", async () => {
+  const db = d1(), w = world({ origin: async (req) => new Response("no", { status: new URL(req.url).pathname === "/" ? 200 : 404 }) });
+  try {
+    const pilot = createPilot({ log: quietLog() });
+    const env = ENV(db);
+    const browser = { "user-agent": CHROME };
+    await serve(pilot, new Request(`${SITE}/.env`, { headers: browser }), env);
+    await serve(pilot, new Request(`${SITE}/u/${encodeURIComponent(SECRET)}/.env?token=${SECRET}`, { headers: browser }), env);
+    await serve(pilot, new Request(`${SITE}/wp-login.php`, { headers: { "user-agent": "python-requests/2.32" } }), env);
+    await serve(pilot, new Request(`${SITE}/`, { headers: browser }), env);
+    await serve(pilot, new Request(`${SITE}/compare/cursor`, { headers: browser }), env);
+    const rows = db.rows();
+    assert.deepEqual(rows.map((r) => [r.class, r.probe, r.status]), [["UNKNOWN", "/.env", 404], ["UNKNOWN", "…/.env*", 404], ["SUSPECTED", "/wp-login.php", 404]],
+      "probes are kept, a person's ordinary pages are not");
+    for (const r of rows) assert.ok(!JSON.stringify(r).includes("taro"), JSON.stringify(r));
+  } finally { w.restore(); }
+});
+
+test("probes: the morning report gains one section (paths, kinds, browsers, any 2xx), and the report's own sections are untouched", async () => {
+  const db = d1(), st = store(db);
+  const day = (h) => at(`2026-10-04T${h}:00:00+09:00`);
+  for (const r of [
+    row({ ts: day("01"), class: "UNKNOWN", operator: null, token: null, probe: "/.env", status: 404 }),
+    row({ ts: day("02"), class: "UNKNOWN", operator: null, token: null, probe: "/.env", status: 404 }),
+    row({ ts: day("03"), class: "SUSPECTED", operator: null, token: "curl/", probe: "/wp-login.php", status: 404 }),
+    row({ ts: day("04"), class: "UNKNOWN", operator: null, token: null, probe: "…/.git/*", status: 200 }),
+    row({ ts: day("05") }),
+  ]) await st.insert(r);
+  const posts = [];
+  const r = await daily({ db, site: "tracecheck.dev", tz: "Asia/Tokyo", now: Date.parse("2026-10-04T22:00:00Z"), webhook: "https://discord.com/api/webhooks/1/x",
+    fetch: async (url, init) => { posts.push(init.body); return new Response(""); } });
+  const p = r.extras.probes;
+  assert.deepEqual([p.requests, p.kinds, p.as_browser], [4, { secret: 3, admin: 1, exploit: 0 }, 3]);
+  assert.deepEqual(p.paths, [{ key: "/.env", count: 2 }, { key: "/wp-login.php", count: 1 }, { key: "…/.git/*", count: 1 }]);
+  assert.deepEqual(p.answered_2xx, [{ key: "…/.git/*", count: 1 }]);
+  assert.equal(r.summary.events, 2, "the report's own numbers count automation only, as before");
+  const content = JSON.parse(posts[0].get("payload_json")).content;
+  assert.match(content, /秘密や管理画面を探しに来た自動化：4 件（秘密 3、管理画面 1、脆弱性の探索 0。うちブラウザを名乗ったもの 3 件）/);
+  assert.match(content, /パス：\/\.env 2、\/wp-login\.php 1、…\/\.git\/\* 1/);
+  assert.match(content, /⚠ 成功（2xx）で応答したもの：…\/\.git\/\* 1。中身が外に出ていないか確かめてください。/);
+  for (const lang of ["ja", "en"]) {
+    const [saved] = db.rows(`SELECT html, text FROM reports WHERE lang = '${lang}'`);
+    assert.match(saved.html, /data-section="probes"/);
+    assert.match(saved.html, /data-probe="2xx"/);
+    assert.equal(withoutProbes(saved.html), renderHtml(r.summary, lang), `${lang}: the report's own HTML`);
+    assert.ok(saved.text.indexOf("■ ") < saved.text.lastIndexOf("/.env 2") && saved.text.lastIndexOf("/.env 2") < saved.text.lastIndexOf("\n—\n"), `${lang}: the section sits before the footer`);
+  }
+});
+
+test("probes: a database made before them gains the columns on first use, and its rows still read", async () => {
+  const db = d1();
+  await db.prepare(`CREATE TABLE events (rid TEXT NOT NULL, ts INTEGER NOT NULL, site TEXT NOT NULL, method TEXT NOT NULL, route TEXT NOT NULL,
+    class TEXT NOT NULL, decision TEXT NOT NULL, error TEXT, pressure INTEGER NOT NULL, diver TEXT, country TEXT,
+    operator TEXT, token TEXT, reason TEXT, code TEXT, sig_agent TEXT, sig_lifetime INTEGER, sig_nonce INTEGER)`).run();
+  await db.prepare("INSERT INTO events (rid, ts, site, method, route, class, decision, pressure) VALUES ('old', ?, 'tracecheck.dev', 'GET', '/', 'SUSPECTED', 'allow', 0)").bind(at("2026-10-04T09:00:00+09:00")).run();
+  const st = store(db);
+  await st.insert(row({ rid: "new", probe: "/.env", status: 404 }));
+  const got = await st.events(at("2026-10-04T00:00:00+09:00"), at("2026-10-05T00:00:00+09:00"));
+  assert.deepEqual(got.map((g) => [g.rid, g.probe, g.status]), [["old", null, null], ["new", "/.env", 404]]);
+  await store(d1()).ensure(); // a fresh database: created with the columns, nothing to add
 });

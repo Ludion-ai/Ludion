@@ -6,12 +6,15 @@ export const SCHEMA = [
   `CREATE TABLE IF NOT EXISTS events (
     rid TEXT NOT NULL, ts INTEGER NOT NULL, site TEXT NOT NULL, method TEXT NOT NULL, route TEXT NOT NULL,
     class TEXT NOT NULL, decision TEXT NOT NULL, error TEXT, pressure INTEGER NOT NULL, diver TEXT, country TEXT,
-    operator TEXT, token TEXT, reason TEXT, code TEXT, sig_agent TEXT, sig_lifetime INTEGER, sig_nonce INTEGER)`,
+    operator TEXT, token TEXT, reason TEXT, code TEXT, sig_agent TEXT, sig_lifetime INTEGER, sig_nonce INTEGER, probe TEXT, status INTEGER)`,
   "CREATE INDEX IF NOT EXISTS events_ts ON events (ts)",
   `CREATE TABLE IF NOT EXISTS reports (
     site TEXT NOT NULL, date TEXT NOT NULL, lang TEXT NOT NULL, subject TEXT NOT NULL, text TEXT NOT NULL,
     html TEXT NOT NULL, summary TEXT NOT NULL, created INTEGER NOT NULL, PRIMARY KEY (site, date, lang))`,
 ];
+
+/** Columns added after the first deploy, for a database made by an earlier version (2026-10-03: probes). */
+export const ADDED = [["probe", "TEXT"], ["status", "INTEGER"]];
 
 const INSERT = `INSERT INTO events (${COLUMNS.join(", ")}) VALUES (${COLUMNS.map(() => "?").join(", ")})`;
 const PAGE = 5000;
@@ -25,7 +28,13 @@ export function store(db) {
   let s = stores.get(db);
   if (s) return s;
   let ready;
-  const ensure = () => (ready ??= db.batch(SCHEMA.map((q) => db.prepare(q))).catch((e) => { ready = undefined; throw e; }));
+  const ensure = () => (ready ??= (async () => {
+    await db.batch(SCHEMA.map((q) => db.prepare(q)));
+    for (const [name, type] of ADDED) {
+      try { await db.prepare(`ALTER TABLE events ADD COLUMN ${name} ${type}`).run(); }
+      catch (e) { if (!/duplicate column/i.test(String(e?.message ?? e))) throw e; } // already there
+    }
+  })().catch((e) => { ready = undefined; throw e; }));
   s = {
     ensure,
     async insert(row) {

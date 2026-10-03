@@ -349,7 +349,7 @@ export const ORACLES = [
   // ── M8 pilots: the Gate in front of real sites ─────────────────────────────────────────
   // tracecheck.dev (pilots/tracecheck): a zone-route Worker a person deploys. In Node (D1 on node:sqlite,
   // planted faults) and in workerd (the deployable bundle in front of a stub site).
-  { id: "PILOT-1", m: "M8", kind: "±", level: 1, title: "tracecheck.dev pilot: every response is the site's own (bytes and headers); only automation is recorded, with no query, address or free text; the morning report is posted; faults never reach a visitor",
+  { id: "PILOT-1", m: "M8", kind: "±", level: 1, title: "tracecheck.dev pilot: every response is the site's own (bytes and headers); only automation (and requests for probe paths, as the list's label) is recorded, with no query, address or free text; the morning report is posted, with the hunt for secrets and admin pages; faults never reach a visitor",
     timeoutMs: 600_000, run: nodeTest(["pilots/tracecheck/test/pilot.test.mjs", "pilots/tracecheck/test/workerd.test.mjs"], undefined, { timeoutMs: 580_000, requires: [
       "PILOT-1 (workerd): the site's response, untouched; automation recorded; a report posted",
       "faults stay in the pilot: a dead D1, a refused config, a throwing Gate never touch the response",

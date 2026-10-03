@@ -105,6 +105,22 @@ npx wrangler d1 execute ludion-tracecheck --remote --command "SELECT datetime(ts
 npx wrangler d1 execute ludion-tracecheck --remote --command "SELECT date, subject FROM reports WHERE lang = 'ja' ORDER BY date DESC LIMIT 7"
 ```
 
+## 新しい版を出す
+
+このフォルダの中身が変わったら（例：2026-10-03 の「秘密や管理画面を探しに来た自動化」の欄）、手順 1 の窓で次を回す。
+
+```powershell
+cd <このリポジトリのチェックアウト>
+git pull
+npm ci
+cd pilots\tracecheck
+npm ci
+npx wrangler deploy
+```
+
+- D1 の表は、新しい版の最初のリクエストで足りない列を足す。手で何かする必要はない。前の行はそのまま読める。
+- 出したあと、手順 5 の `d1 execute` に `probe, status` を足すと、新しい列が見える。
+
 ## 戻し方
 
 - **すぐ外す**：ダッシュボードで `tracecheck.dev/*` のルートを消す。すぐにサイトへ直接届くようになる。
