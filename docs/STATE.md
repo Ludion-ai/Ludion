@@ -1,6 +1,6 @@
 # STATE
 
-最終更新：2026-10-03（Claude Code、1本のレーン。揺れの直し #78 と #80、GATE-8 の案 A #79）
+最終更新：2026-10-03（Claude Code、1本目のレーン。GATE-8 の案 A #79 のあと、CI の分割と夜間のジョブ、LOOP-2 の配線）
 
 ## 現在地
 
@@ -10,17 +10,19 @@
   - M2：DIV-2/3/4 と PUB-1/2/3 まで（DIV-1 が残り）。
   - M3：REG-2/4 まで。
   - M5：PRS-1〜4、NEUT-1/2、CRY-1 まで。
-- 2026-10-01 から、進め方は**このセッション1本**。夜勤のループと2本の並走はやめた（人間の指示）。人間が spec を渡し、区切りのいいところで PR を1本出す。
-  - 夜勤（`C:Usershaya0ludion-night`、`.loop/NIGHT.md`）は 2026-10-01 08:48 に終わった。もう動かない。
+- 2026-10-03 から、レーンは2本（人間の指示）。ぶつからないように担当を分けている。
+  - **1本目**（このファイル、作業ツリー `C:\Users\haya0\ludion`）：GATE-8 → CI を10分以内（B1、LOOP-2）と夜間のジョブ → npm の公開の仕組み → `@ludion/gate-*` の公開。夜間のジョブ（Windows）の面倒も見る。
+  - **2本目**（`docs/STATE.lane2.md`、作業ツリー `C:\Users\haya0\ludion-lane2`）：tracecheck.dev の計測、ローンチの文書（README、クイックスタート、/scan のサンプル）。
+  - プレビューは1つを2本で共有する。どちらかが出し直すと、もう片方の手元の WEB-1 は「古い」で落ちる。
+  - 夜勤（`C:\Users\haya0\ludion-night`、`.loop/NIGHT.md`）は 2026-10-01 08:48 に終わった。もう動かない。
 - **サイト**：プレビュー https://ludion-site-preview.ludion-agents.workers.dev （エージェント用のアカウント `Ludion Agents`、WEB-1 PASS）。本番（ludion.ai）への切り替えは人間（docs/DEPLOY.md §3）。
   - **Claude はプレビュー以外にデプロイしない**（2026-10-01、人間の決定）。本番への最初のデプロイ、ludion.ai の付け替え、DNS、旧資源の削除は人間がやる。
   - エージェントのトークン（`~/.config/ludion/cloudflare.env`）は `Ludion Agents` にしか効かない。本番のアカウントは読み取りでも 403（DEPLOY.md §5.3）。
   - `npm run deploy:preview` は、デプロイの前に毎回この境界を確かめ、外れていれば止まる（DEPLOY.md §2）。
-- ループの仕組みは Linux/Node 22 と Windows/Node 24 の両方で回る。
-- リポジトリは https://github.com/Ludion-ai/Ludion （public）。main は保護されている：PR 必須、`loop` チェック必須、strict、enforce_admins、auto-merge 可。
-  - strict なので、main が先に進んだ PR は `gh pr update-branch` しないとマージされない。
-  - `loop-windows` は必須チェックではない。
-  - CI のジョブは3つ：`loop`（必須）、`loop-windows`、`preview`（プレビューに出してから WEB-1。人間が secret を登録するまで赤。人間待ち）。
+- ループの仕組みは Linux/Node 22 と Windows/Node 24 の両方で回る。Windows は夜間（03:00 JST）だけ。
+- リポジトリは https://github.com/Ludion-ai/Ludion （public）。main は保護されている：PR 必須、`loop` チェック必須、enforce_admins、auto-merge 可。strict は 2026-10-03 に人間が外した（main に追従しなくてもマージされる）。
+  - push と PR の CI：`loop-shard (1/4)`〜`(4/4)`（`loop` のオラクルを4つに分けて並列）、`loop`（必須。分割を統合して、ベースのラチェットで判定）、`preview`（プレビューに出してから WEB-1。人間が secret を登録するまで赤。人間待ち）。
+  - 夜間（schedule と手動の workflow_dispatch）：`nightly-windows`（同じ `loop` を Windows/Node 24 で）、`nightly`（LOOP-2：main の最新の push の実行を測る）。
   - ラチェット済みのオラクルは PASS 以外すべて退行（LOOP-4）。読めないベースは止まる（LOOP-3）。
 - 数字は `npm run scoreboard` が正。ここには書き写さない。
 
@@ -28,17 +30,27 @@
 
 次のセッションは、この順に進める。
 
-1. **対のない正のオラクルに、同じ性質の負のオラクルを足す**（LOOP-5 の表示で UNPAIRED）：GATE-3（入れ方）、SCAN-1（パース率）、SCAN-4（速さ）、WEB-4（ブラウザ版 scan）。
-2. **揺れの見張り**：WEB-1 と WEB-9 は Lighthouse を各ページ3回の中央値で測るようにした（閾値は95のまま）。GATE-1 の失敗は揺れではなく、共有のキャッシュの壊れだった（直した）。CI でまた赤くなったら、#74 の詳細で原因を見て、測り方を直す。
-3. 目録の残り（人間待ちでないもの）：WEB-7（ドキュメントをテストに）、LOOP-2（`preview` ジョブが増えた）、PRIV-1/2 の強化（既定の `createSafeFetch` 経由でも回す）、Mandate の共有の記録の複数の機械の参照実装（Durable Object か DB）。
-4. 棚上げ（ブランチに残してある。再開は人間の判断）：
-   - **B1**（scoreboard の並列化、PR #63 は下書き）：`loop-windows` で GATE-3 が新しい上限 7 分を越え、REG-1 も落ちた。直すなら、`prepare` を並列の前に直列で回すか、上限を戻す。
+1. **LOOP-2**（CI のフル実行が10分以内）：分割と夜間のジョブを入れた（下の「直近のセッション」）。残りは2つ。
+   - 分割の重み（`scripts/shard-weights.json`）を、CI の実測（`node scripts/shard.mjs --weights shard-*.json`）に置き換える。
+   - `preview` ジョブ：WEB-1 だけで手元 9 分（28ページ × Lighthouse 3回）。secret が入ると LOOP-2 を越える。測り方の決めは人間待ち。
+2. **npm の公開の仕組み**（人間の割り振り）：Trusted Publishing（GitHub Actions の OIDC）のワークフロー。npm は、まだないパッケージに Trusted Publisher を設定できないので、各パッケージの最初の1回は人間が手で出す。
+3. **対のない正のオラクルに、同じ性質の負のオラクルを足す**（LOOP-5 の表示で UNPAIRED）：GATE-3（入れ方）、SCAN-1（パース率）、SCAN-4（速さ）、WEB-4（ブラウザ版 scan）。
+4. **揺れの見張り**：WEB-1 と WEB-9 は Lighthouse を各ページ3回の中央値で測るようにした（閾値は95のまま）。GATE-1 の失敗は揺れではなく、共有のキャッシュの壊れだった（直した）。CI でまた赤くなったら、#74 の詳細で原因を見て、測り方を直す。
+5. 目録の残り（人間待ちでないもの）：WEB-7（ドキュメントをテストに）、PRIV-1/2 の強化（既定の `createSafeFetch` 経由でも回す）、Mandate の共有の記録の複数の機械の参照実装（Durable Object か DB）。
+6. 棚上げ（ブランチに残してある。再開は人間の判断）：
+   - **B1** は 2026-10-03 に人間の指示で再開し、CI の分割として入れた。PR #63（下書き）は閉じた。プロセス内の並列（`--jobs`）とプロセスツリーの kill は入れていない（理由は「直近のセッション」）。
    - **A と B2**（ラチェットのファイル化、CI の分割）：`fast-loop-shelf`。A は deny ルール（PR #60）を人間が当てるまで入れない。
    - **fail-closed**（`--base` が読めないときに通さない）：#70 の LOOP-3 で入った。`fast-loop-failclosed` はもう要らない。
    - **STD-3 と DIV-1**（`interop/std3-div1`）：CI に setup-python を足す差分の了承待ち。
    - GATE-9 は道具（PHP か `@php-wasm/node`）待ち。
 
 ### いつもの決まり
+
+- **待ち時間を減らす決まり**（人間、2026-10-03）：
+  1. 必須は `loop` だけ。Windows は待たない（夜間のジョブ。担当は1本目）。
+  2. strict は外した。マージの後の main の CI が赤になったら、それを最優先で直す（ラチェットが守る）。夜間のジョブの赤も同じ。
+  3. PR はまとめる。関連する変更は1本にし、1つのレーンで同時に開く PR は2本まで。
+  4. auto-merge を付けたら、CI を待たずに次の仕事に進む。結果は次の区切りで見る（`gh pr checks`、main の `gh run list --branch main`、夜間の `gh run list --event schedule`）。
 
 - **プレビューのデプロイ**：`npm run deploy:preview` だけ。ホームの差し替えなどの回避策は要らない（2026-10-01 11:00 にやめた）。
   - 資格情報は `~/.config/ludion/cloudflare.env`（`Ludion Agents` のトークンと Account ID）。登録フォームの通知先は `~/.config/ludion/signup.env` から、デプロイと一緒に入る。
@@ -49,7 +61,6 @@
 - GATE-7 に攻撃を足すときは、JSON に `classes`（spec §10.8 の分類）を書く。
 
 - 新しい ADR には番号を付けない。`docs/adr/YYYY-MM-DD-<slug>.md` にする。
-- サイトの PR は、`loop-windows` が緑になってからマージする（#45 の教訓）。
 - GATE-7 に攻撃を足したら `node accept/conformance/export.mjs` を回す（GATE-10）。STD-2 にテストを足したときも同じ。
 - 同じ作業ツリーで、複数のセッションを動かさない（2026-10-01 朝の事故）。
 - 揺れるオラクルは、壊れているのと同じ扱い（人間の決定、2026-10-02）。赤を無視する癖を作るから。閾値は下げず、測り方（中央値、単独で回す、Windows で回さない、共有の状態を壊さない）を直す。
@@ -57,6 +68,11 @@
 - 秘密のファイルはリポジトリの外（`~/.config/ludion/`）に置く。`*.env` は `.gitignore` にある。
 
 ## 人間待ち
+
+- [ ] **判断（LOOP-2 と `preview` ジョブ）**：WEB-1 は手元で 9 分（28ページ × Lighthouse 3回、プレビューの URL へ）。secret が入ると、`preview` ジョブだけで LOOP-2 の10分を越える。Lighthouse を同じ機械で並べると揺れるので、分けるなら別のランナー。ただしプレビューは1つの Worker なので、デプロイとその検査を、複数のジョブにまたがって1つの鍵で守る必要がある。
+  - 案 B（推す）：`preview` は main への push の後だけで回し、WEB-1 の Lighthouse を3つのランナーに分ける（ワークフロー単位の鍵）。プレビューはいつも main を見せる。PR では、同じ成果物を workerd で測る WEB-9 が守る。決まり2（マージ後の赤は最優先）と同じ形。「secret が入ったら `preview` を PR の必須チェックにする」の予定は取り下げになる。
+  - 案 A：PR でも回し、同じく分ける。両レーンの PR がプレビューの鍵を待ち合い、その待ちが main の LOOP-2 に入る日がある（揺れる）。
+  - どちらにしても、LOOP-2 が PASS するのは secret が入ってから。
 
 - [ ] **CI の `preview` ジョブの secret**（人間がトークンを作って登録すると決めた）：`CLOUDFLARE_PREVIEW_API_TOKEN`（`Ludion Agents` の Workers Scripts の編集だけ）と `CLOUDFLARE_PREVIEW_ACCOUNT_ID`。登録したら、`preview` を main の必須チェックに足す。それまで `preview` は赤で、WEB-1 は CI で強制されない（前も SKIP で強制されていなかった）。
 - [x] 確認（#69、2026-10-02 に人間が確認）：ルートの重なりの読み。「一番厳しいものが勝つ」を、一致する全てのルートの最高の Pressure と、要件の全部を合わせる（Depth は最大、Ballast、scope は全部）と読んだ。一つを選ぶより厳しくなる場合がある。この読みで正しい（Pressure と Depth は最大、Ballast はどれかが求めれば必須、scope は全部）。
@@ -189,6 +205,18 @@
   - web-bot-auth@0.2.0 のパーサが registry-03 に準拠しているか
 
 ## 直近のセッション
+
+- 2026-10-03 午後（Claude Code、1本目）：人間の「待ち時間を減らす」決まり1〜4と、B1 の再開、LOOP-2。
+  - **CI の分割**（B1 の移植。#63 は #59 の上にあり、#61〜#85 の scoreboard と食い違うので、rebase せずに持ってきた）：
+    - `--job loop --shard i/n --out f`：ジョブのオラクルを、記録した時間の長い順に4つへ振り分け、自分の分だけを1つずつ回して書き出す。判定はしない。
+    - `--job loop --merge f…`：何も回さない。ジョブの全オラクルがちょうど1回ずつ、同じコミット（`git rev-parse HEAD`）と同じ検証器（registry、MISSION.md、scoreboard、ratchet、分割の指紋）から戻ったかを確かめ、欠け・重複・食い違いは退行にする。あとはいつものラチェット。
+    - 必須の `loop` は統合のジョブ（`if: always()`。落ちた分割は「欠け」として名指しで落ちる。skip は緑に数えられるので使わない）。
+    - これを LOOP-4 の速いテスト（`accept/loop/shard.test.mjs`）に入れた：本物の registry の分割を本物の scoreboard で統合し、1つ欠けたオラクル、届かなかった分割、別のコミットを、それぞれ退行で落とす。
+    - プロセス内の並列（B1 の `--jobs`）は入れなかった：B1 の実測で 302 秒 → 258 秒と小さく、Lighthouse や遅延のオラクルを同じ機械で並べると揺れる。プロセスツリーの kill も、Windows が夜間に移ったので後回し。
+  - **Windows は夜間**（`nightly-windows`、03:00 JST と手動）。PR と push では回らない。
+  - **LOOP-2 を配線した**（`accept/loop/ci-time.mjs`、夜間の `nightly` ジョブ）：main の最新の完了した push の実行で、skip でない全ジョブが緑、かつ最初の開始から最後の完了まで10分以内。PR の実行では測らない（PR は main の過去の実行を変えられないし、遅い main がその直しの PR を止めてはいけない）。
+    - MISSION.md の LOOP-2 の文から「Windows も含む」を外した（人間の指示で Windows を push から外したため）。代わりに「全ジョブが緑」を足した。
+    - 今の main（#85）では FAIL：16:41（Windows を含む旧構成）、`preview` が赤（secret 待ち）。
 
 - 2026-10-02〜10-03（Claude Code）：人間の確認への対応と GATE-8。
   - #78：揺れるオラクルを、閾値を下げずに安定させた。

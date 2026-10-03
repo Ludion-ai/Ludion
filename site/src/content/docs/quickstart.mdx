@@ -1,0 +1,103 @@
+---
+title: Quickstart
+description: See which agents come to your site, with the Gate at Pressure 0. Then give your own agent an identity and sign its requests.
+---
+
+If you run a site, start here. If you build an agent, go to [For an agent](#for-an-agent-sign-your-requests).
+
+## For a site: see which agents come
+
+### Count what already came
+
+Drop an access log on [the scan page](/scan). It counts how much unverified automation touched your checkout, login, signup and forms, and the log never leaves your device. No log at hand? Try the sample there.
+
+### Put the Gate in front, at Pressure 0
+
+Pressure 0 only observes: nothing changes for anyone until you raise it. A new Express app, from an empty directory:
+
+```sh
+npm init -y
+npm install express @ludion/gate-node
+```
+
+```js title="server.mjs"
+import express from "express";
+import { ludion } from "@ludion/gate-node";
+
+const app = express();
+app.use(await ludion());
+app.get("/", (req, res) => res.send("Hello from my shop\n"));
+app.listen(3000, () => console.log("http://localhost:3000"));
+```
+
+```json title="ludion.config.json"
+{ "site_id": "site-my-shop", "pressure": 0 }
+```
+
+```sh
+node server.mjs
+```
+
+Already have an app? Add the import and `app.use(await ludion())` before your routes and body parsers. Next.js and Cloudflare Workers are on [Install the Gate](/gate).
+
+### Check that it classifies
+
+In another terminal, ask the way a crawler would:
+
+```sh
+curl -sI -A "Mozilla/5.0 (compatible; GPTBot/1.2; +https://openai.com/gptbot)" http://localhost:3000/ | grep -i '^ludion-'
+```
+
+```text
+Ludion-Version: 0
+Ludion-Receipt: eyJ2IjowLCJyaWQiOiJyY3At…
+```
+
+The receipt is signed JSON. Read its class:
+
+```sh
+curl -sI -A "Mozilla/5.0 (compatible; GPTBot/1.2; +https://openai.com/gptbot)" http://localhost:3000/ \
+  | node -e 'const r = require("fs").readFileSync(0, "utf8").match(/^ludion-receipt: *(\S+)/im)[1]; console.log(JSON.parse(Buffer.from(r, "base64url")).class)'
+```
+
+```text
+DECLARED
+```
+
+`DECLARED`: it named a published agent in its User-Agent, but did not sign, so anyone could have said it. A browser gets `UNKNOWN`, and the page it gets is the same. Only a valid Web Bot Auth signature makes a request `VERIFIED`.
+
+### Every morning
+
+Point `report.endpoint` in `ludion.config.json` at a collector you run, and the Gate posts an event there for each automated request: metadata only, never bodies, cookies or query values. [`ludion report`](https://github.com/Ludion-ai/Ludion/tree/main/packages/report) turns them into the daily report, in English or Japanese. The settings are in [the `@ludion/gate-node` README](https://github.com/Ludion-ai/Ludion/blob/main/packages/gate-node/README.md#configuration).
+
+## For an agent: sign your requests
+
+### Create an identity
+
+```sh
+npx ludion init --name "My Agent" --contact mailto:ops@example.com --domain agent.example.com
+```
+
+`--domain` is a host you control, where you will publish your keys. `init` asks for a passphrase that seals your Root key, then writes these files:
+
+- `ludion.json`: your keys. Keep it private.
+- `.well-known/http-message-signatures-directory`: your public key directory.
+- `card`: who runs the agent and how to reach them.
+
+### Publish the directory and the card
+
+Serve the public files at `https://agent.example.com/.well-known/http-message-signatures-directory` and `https://agent.example.com/card` from any static host. Then check that they can be reached:
+
+```sh
+npx ludion doctor
+```
+
+### Sign a request
+
+```sh
+npx ludion sign GET http://localhost:3000/ --curl
+```
+
+It prints a `curl` command with the signature headers: `Signature-Agent` (where your directory is), `Signature-Input` and `Signature`. Run it with `-sI` against the site you set up above. Its receipt now says `VERIFIED`, and names your directory. Sign each request anew: a signature expires quickly, and a Gate takes one it has seen before for a replay.
+
+`ludion sign` prints headers for any HTTP client. From code, `@ludion/diver` signs requests for you (`ludionFetch`).

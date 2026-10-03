@@ -3,21 +3,55 @@ on:
   pull_request:
   push:
     branches: [main]
+  # Nightly (03:00 JST): Windows, and the oracles that measure CI itself (LOOP-2). Not on pushes:
+  # waiting for Windows on every PR cost more than it caught (the human's decision, 2026-10-03).
+  schedule:
+    - cron: "0 18 * * *"
+  workflow_dispatch:
 # Least privilege for every job: read the repository, nothing else (Codex audit #10). Third-party
 # actions are pinned to full commit SHAs; the comment names the release the SHA is.
 permissions:
   contents: read
 jobs:
-  loop:
+  # The `loop` job's oracles, split over parallel runners (scripts/shard.mjs; LOOP-2: a full run in
+  # 10 minutes). Each shard runs its oracles one at a time, as a full run does, so an oracle with a
+  # latency or Lighthouse threshold never shares its machine. A shard gives no verdict.
+  loop-shard:
+    if: github.event_name == 'pull_request' || github.event_name == 'push'
+    name: loop-shard (${{ matrix.shard }}/4)
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with: { fetch-depth: 0 }
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with: { node-version: 22, cache: npm }
       - run: npm ci
-      - name: Scoreboard — ratchet read from the base branch, so a PR cannot loosen it
-        run: node scripts/scoreboard.mjs --base "origin/${{ github.base_ref || 'main' }}" --job loop
+      - name: Scoreboard — shard ${{ matrix.shard }} of the loop job's oracles
+        run: node scripts/scoreboard.mjs --base "origin/${{ github.base_ref || 'main' }}" --job loop --shard ${{ matrix.shard }}/4 --out shard-${{ matrix.shard }}.json
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with: { name: "shard-${{ matrix.shard }}", path: "shard-${{ matrix.shard }}.json", if-no-files-found: error, retention-days: 7 }
+  # The required check. It runs whatever the shards did (`always()`: a shard that crashed or never
+  # uploaded is a missing shard, which fails the merge; a skipped job would count as green). Every
+  # oracle of the job must come back exactly once, from this commit and this verifier; then the
+  # ratchet, read from the base branch, judges as before.
+  loop:
+    needs: loop-shard
+    if: always() && (github.event_name == 'pull_request' || github.event_name == 'push')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with: { fetch-depth: 0 }
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with: { node-version: 22 }
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        continue-on-error: true # nothing to download is the merge's to report, by name
+        with: { pattern: "shard-*", path: shards, merge-multiple: true }
+      - name: Scoreboard — the shards merged, ratchet read from the base branch, so a PR cannot loosen it
+        run: node scripts/scoreboard.mjs --base "origin/${{ github.base_ref || 'main' }}" --job loop --merge shards/shard-*.json
       - name: Verifier diff — the only part a human must read
         if: github.event_name == 'pull_request'
         run: |
@@ -27,22 +61,12 @@ jobs:
             git diff --stat "origin/${{ github.base_ref }}...HEAD" -- accept docs/MISSION.md scripts .github .claude || true
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
-  # Same loop on the platform the agent actually runs on. Caught: Node ≥23 test reporter,
-  # Windows path separators in CRY-1. Not a required check (the required one is `loop`).
-  loop-windows:
-    runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
-        with: { fetch-depth: 0 }
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
-        with: { node-version: 24, cache: npm }
-      - run: npm ci
-      - run: node scripts/scoreboard.mjs --base "origin/${{ github.base_ref || 'main' }}" --job loop
   # The oracles that need the live preview (WEB-1): deploy this checkout's site to the preview
   # Worker on the agent-only Cloudflare account, then run them. The token can edit Workers in that
   # account and nothing else; the deploy refuses one that reaches any other account (docs/DEPLOY.md
   # §5). One run at a time, so a deploy is never checked against another run's build.
   preview:
+    if: github.event_name == 'pull_request' || github.event_name == 'push'
     runs-on: ubuntu-latest
     concurrency: { group: preview-deploy, cancel-in-progress: false }
     env:
@@ -58,3 +82,32 @@ jobs:
         run: npm run deploy:preview
       - name: Scoreboard — the preview job's oracles, ratchet from the base branch
         run: node scripts/scoreboard.mjs --base "origin/${{ github.base_ref || 'main' }}" --job preview
+  # The same loop on the platform the agent actually runs on, nightly on main. Caught before: the
+  # Node ≥23 test reporter, Windows path separators, EXDEV and EPERM renames, SQLite's busy wait.
+  # A red night is fixed first (the human's rule, 2026-10-03).
+  nightly-windows:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with: { fetch-depth: 0 }
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with: { node-version: 24, cache: npm }
+      - run: npm ci
+      - run: node scripts/scoreboard.mjs --base origin/main --job loop
+  # Oracles about CI itself (LOOP-2 reads main's latest push run). Nightly, never in a PR's run:
+  # a PR cannot change the run main already had, and a slow main must not block its own fix.
+  nightly:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+    env:
+      GITHUB_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with: { fetch-depth: 0 }
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with: { node-version: 22 }
+      - run: node scripts/scoreboard.mjs --base origin/main --job nightly

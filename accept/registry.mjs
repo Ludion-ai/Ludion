@@ -98,12 +98,14 @@ export const ORACLES = [
   { id: "LOOP-3", m: "M0", kind: "±", level: 0, title: "the ratchet's base: an existing ref yields its ratchet and IDs; a missing or broken one stops the scoreboard (non-zero) before any oracle runs",
     run: nodeTest(["accept/loop/ratchet.test.mjs"], "^LOOP-3:") },
   { id: "LOOP-4", m: "M0", kind: "±", level: 0, title: "a ratcheted oracle is held to PASS: FAIL, PENDING, SKIP for a missing input, a removal are regressions; every CI job an oracle names is run",
-    run: nodeTest(["accept/loop/ratchet.test.mjs"], "^LOOP-4:") },
+    run: nodeTest(["accept/loop/ratchet.test.mjs", "accept/loop/shard.test.mjs"], "^LOOP-4:") },
   // Pairs are the two sides of one property (MISSION.md §1.4); the catalog says what the registry says.
   { id: "LOOP-5", m: "M0", kind: "~", level: 0, title: "every pair is a − or ± oracle of the same property; MISSION.md's ± and 対 columns equal the registry",
     run: nodeTest(["accept/loop/pairs.test.mjs"], "^LOOP-5:", { metric: (out) => (/^# LOOP-5: (.+)$/m.exec(out) ?? [])[1] }) },
-  // Measured in CI only (the whole workflow run, every job, wall clock); not yet wired: PENDING.
-  { id: "LOOP-2", m: "M0", kind: "~", level: 1, title: "full CI run (all jobs incl. Windows, first start → last finish) ≤10 min, without dropping or loosening any oracle" },
+  // The latest push run on main, read from the GitHub API (accept/loop/ci-time.mjs). In the nightly
+  // job: a PR cannot change the run main already had, and a slow main must not block its own fix.
+  { id: "LOOP-2", m: "M0", kind: "~", level: 1, job: "nightly", title: "full CI run (every job a push to main starts, first start → last finish, all green) ≤10 min, without dropping or loosening any oracle; Windows runs the same oracles nightly",
+    run: allOf(nodeTest(["accept/loop/ci-time.test.mjs"], "^LOOP-2:"), nodeScript("accept/loop/ci-time.mjs", [], { metric: (out) => (/^# LOOP-2: (.+)$/m.exec(out) ?? [])[1] })) },
   { id: "SEED-1", m: "M0", kind: "~", level: 0, title: "seed unit tests green", retireWhen: ["STD-1", "STD-2", "GATE-6", "REG-2", "PRS-1", "DIV-2", "DIV-3"],
     run: nodeTest(["packages/gate-core/test/core.test.mjs", "packages/diver/test/diver.test.mjs"]) },
   { id: "SEED-2", m: "M0", kind: "~", level: 0, title: "seed e2e: my agent → my Gate → VERIFIED", retireWhen: ["GATE-2", "GATE-7", "GATE-8", "PRIV-1", "DIV-1"],
