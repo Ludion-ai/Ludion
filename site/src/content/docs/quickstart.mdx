@@ -68,7 +68,7 @@ DECLARED
 
 ### Every morning
 
-Point `report.endpoint` in `ludion.config.json` at a collector you run, and the Gate posts an event there for each automated request: metadata only, never bodies, cookies or query values. [`ludion report`](https://github.com/Ludion-ai/Ludion/tree/main/packages/report) turns them into the daily report, in English or Japanese. The settings are in [the `@ludion/gate-node` README](https://github.com/Ludion-ai/Ludion/blob/main/packages/gate-node/README.md#configuration).
+Point `report.endpoint` in `ludion.config.json` at a collector you run, and when an hour closes the Gate posts that hour's counts there: per route template, method, class, decision and operator. No visit leaves your site, so no times, IPs, bodies, cookies or query values; each visit's record stays on the site for 7 days and is then deleted ([spec §12.9](https://github.com/Ludion-ai/Ludion/blob/main/docs/ludion-spec.md#129-性能プライバシー配布)). [`ludion report`](https://github.com/Ludion-ai/Ludion/tree/main/packages/report) turns either into the daily report, in English or Japanese. The settings are in [the `@ludion/gate-node` README](https://github.com/Ludion-ai/Ludion/blob/main/packages/gate-node/README.md#configuration).
 
 ## For an agent: sign your requests
 

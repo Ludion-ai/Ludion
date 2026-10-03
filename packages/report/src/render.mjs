@@ -40,7 +40,8 @@ export function model(s, lang) {
     rows: s.top_agents.map((a, i) => [{ name: a.agent, nameKey: `top_agents.${i}.agent` }, num(`top_agents.${i}.actions`, a.actions)]) });
   sections.push({ id: "routes", title: L.routes.title, head: L.routes.head, none: L.routes.none,
     rows: s.top_critical_routes.map((r, i) => [{ name: r.route, nameKey: `top_critical_routes.${i}.route`, code: true }, num(`top_critical_routes.${i}.count`, r.count)]) });
-  sections.push(s.pressure1.applies
+  // From hourly counts alone the Pressure is not known (ADR-038): say nothing rather than guess.
+  if (!s.pressure1.unknown) sections.push(s.pressure1.applies
     ? { id: "pressure1", title: L.pressure1.title, lead: L.pressure1.lead, rows: [
       [L.pressure1.friction, num("pressure1.friction", s.pressure1.friction)],
       [L.pressure1.exempt, num("pressure1.exempt", s.pressure1.exempt)],

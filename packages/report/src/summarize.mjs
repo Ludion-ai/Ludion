@@ -31,20 +31,51 @@ export function readEvent(e) {
   };
 }
 
+const HOURLY = "ludion.hourly";
+
 /**
- * NDJSON (one event per line; a JSON array is accepted too). Blank lines are ignored; every
- * other line that is not an automation event is counted as skipped, never as traffic.
+ * An hourly batch (what a Gate sends out, ADR-038) as weighted events: one per row, `n` its count,
+ * at the hour's start, with no pressure (a batch does not carry it). Null when it is not a batch.
+ */
+export function readBatch(b) {
+  if (!b || typeof b !== "object" || b.kind !== HOURLY) return null;
+  if (typeof b.site !== "string" || !Number.isInteger(b.hour) || b.hour % 3600 !== 0 || !Array.isArray(b.rows)) return null;
+  const out = [];
+  for (const r of b.rows) {
+    if (!r || !AUTOMATION.has(r.class) || !DECISIONS.has(r.decision) || !Number.isInteger(r.count) || r.count < 1) return null;
+    out.push({
+      site: b.site, ts: b.hour * 1000,
+      method: typeof r.method === "string" ? r.method.toUpperCase() : "OTHER",
+      route: typeof r.route === "string" ? r.route : "",
+      class: r.class, decision: r.decision, pressure: null,
+      diver: typeof r.operator === "string" && r.operator !== "none" ? r.operator : null,
+      n: r.count,
+    });
+  }
+  return out;
+}
+
+/**
+ * NDJSON (one event per line; a JSON array is accepted too): the site's per-visit records, or the
+ * hourly batches a Gate sends out (one line per batch). Blank lines are ignored; every other line
+ * that is neither is counted as skipped, never as traffic.
  * @returns {{ events: object[], skipped: number }}
  */
 export function parseEvents(text) {
   const events = [];
   let skipped = 0;
+  const take = (e) => {
+    const rows = readBatch(e);
+    if (rows) { events.push(...rows); return; }
+    const ev = readEvent(e);
+    if (ev) events.push(ev); else skipped++;
+  };
   const t = text.replace(/^﻿/, "");
   if (/^\s*\[/.test(t)) {
     let arr;
     try { arr = JSON.parse(t); } catch { arr = null; }
     if (Array.isArray(arr)) {
-      for (const e of arr) { const ev = readEvent(e); if (ev) events.push(ev); else skipped++; }
+      for (const e of arr) take(e);
       return { events, skipped };
     }
   }
@@ -53,8 +84,7 @@ export function parseEvents(text) {
     if (!line) continue;
     let e;
     try { e = JSON.parse(line); } catch { skipped++; continue; }
-    const ev = readEvent(e);
-    if (ev) events.push(ev); else skipped++;
+    take(e);
   }
   return { events, skipped };
 }
@@ -72,6 +102,8 @@ const IPV4 = /^\d{1,3}(?:\.\d{1,3}){3}$/;
 export function agentName(diver) {
   if (typeof diver !== "string") return UNNAMED;
   if (DIVER_ID.test(diver)) return diver;
+  // An hourly count names a non-Ludion signer by the bare host of its identifier (ADR-038).
+  if (/^[a-z0-9-]+(?:\.[a-z0-9-]+)*\.[a-z]{2,}$/i.test(diver) && !IPV4.test(diver)) return diver.toLowerCase();
   let u;
   try { u = new URL(diver); } catch { return UNNAMED; }
   if (u.protocol !== "https:" && u.protocol !== "http:") return UNNAMED;
@@ -89,30 +121,36 @@ export function count(events) {
   const kinds = {}, agents = new Map(), routes = new Map();
   const critical = { unverified: 0, allowed: 0, friction: 0, denied: 0 };
   const pressure1 = { friction: 0, exempt: 0, applies: false };
+  let total = 0, pressureKnown = false;
   for (const e of events) {
-    classes[e.class]++;
-    decisions[e.decision]++;
+    const n = e.n ?? 1; // an hourly row stands for n visits; a per-visit record for one
+    total += n;
+    classes[e.class] += n;
+    decisions[e.decision] += n;
     const kind = routeKind(e.method, e.route);
     const k = (kinds[kind] ??= { automation: 0, verified: 0, denied: 0 });
-    k.automation++;
-    if (e.class === "VERIFIED") { k.verified++; const a = agentName(e.diver); agents.set(a, (agents.get(a) ?? 0) + 1); }
-    if (e.decision === "deny") k.denied++;
+    k.automation += n;
+    if (e.class === "VERIFIED") { k.verified += n; const a = agentName(e.diver); agents.set(a, (agents.get(a) ?? 0) + n); }
+    if (e.decision === "deny") k.denied += n;
     if (e.class !== "VERIFIED" && kind !== "malformed" && isCritical(e.method, kind)) {
-      critical.unverified++;
-      critical[{ allow: "allowed", friction: "friction", deny: "denied" }[e.decision]]++;
+      critical.unverified += n;
+      critical[{ allow: "allowed", friction: "friction", deny: "denied" }[e.decision]] += n;
       const r = displayRoute(e.route);
-      if (r) routes.set(r, (routes.get(r) ?? 0) + 1);
+      if (r) routes.set(r, (routes.get(r) ?? 0) + n);
     }
     // What Pressure 1 would do to what is at Pressure 0 today: the Gate's own rule (spec §11.3).
+    // Only per-visit records carry the pressure; hourly counts do not (ADR-038).
+    if (e.pressure != null) pressureKnown = true;
     if (e.pressure === 0) {
       pressure1.applies = true;
       const d = decide({ class: e.class }, { pressure: 1 });
-      if (d.action === "friction") pressure1.friction++;
-      else if (d.exempt) pressure1.exempt++;
+      if (d.action === "friction") pressure1.friction += n;
+      else if (d.exempt) pressure1.exempt += n;
     }
   }
+  if (!pressureKnown && events.length) pressure1.unknown = true;
   return {
-    events: events.length, classes, decisions,
+    events: total, classes, decisions,
     verified_actions: classes.VERIFIED,
     verified_agents: [...agents.keys()].filter((a) => a !== UNNAMED).length,
     critical,

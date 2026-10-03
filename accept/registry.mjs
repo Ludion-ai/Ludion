@@ -190,7 +190,8 @@ export const ORACLES = [
     run: nodeTest(["services/registry/test/priv3.test.mjs"], "^PRIV-3:", {
       metric: (out) => (/^# PRIV-3: (.+)$/m.exec(out) ?? [])[1] }) },
   // spec v2.0 §23.4: added PENDING (2026-10-03). Wired when built; until then they are the backlog.
-  { id: "PRIV-4", m: "M1", kind: "-", level: 1, title: "only hourly aggregates leave the Gate (route template, method kind, class, decision, operator → count); no per-visit time, IP hash or country; per-visit records stay on the site 7 days (ADR-038)" },
+  { id: "PRIV-4", m: "M1", kind: "-", level: 1, title: "only hourly aggregates leave the Gate (route template, method kind, class, decision, operator → count); no per-visit time, IP hash or country; per-visit records stay on the site 7 days (ADR-038)",
+    run: nodeTest(["packages/gate-node/test/priv4.test.mjs"], "^PRIV-4:", { metric: (out) => (/^# PRIV-4: (.+)$/m.exec(out) ?? [])[1] }) },
   { id: "PRIV-5", m: "M1", kind: "-", level: 1, title: "Card Host keeps no IP, UA or time of whoever fetches a card or a key directory, anywhere" },
 
   // ── M2 diver ───────────────────────────────────────────────────────────────────

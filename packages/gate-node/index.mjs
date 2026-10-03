@@ -110,6 +110,10 @@ export async function ludionGate(config) {
     return next();
   };
   middleware.gate = gate;
+  // Hourly counts are sent when an hour closes (ADR-038). The Gate sends them on the next request;
+  // this sends them on a quiet site too. It never keeps the process alive.
+  const flusher = setInterval(() => gate.flush(), 60_000);
+  flusher.unref?.();
   return middleware;
 }
 

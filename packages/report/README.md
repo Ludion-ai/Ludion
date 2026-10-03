@@ -3,7 +3,7 @@
 The daily report (spec §11.8): what automation did on your site yesterday, and how much of it
 touched checkout, login and account routes without anyone being able to say whose agent it was.
 
-It reads the Gate's metadata events (spec §11.7) and nothing else, and it writes. It does not send
+It reads the site's per-visit records (gate-core `metadataEvent`) or the hourly counts a Gate sends out (ADR-038), and nothing else, and it writes. It does not send
 mail, and it makes no network calls.
 
 ```bash

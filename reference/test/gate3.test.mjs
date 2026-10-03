@@ -4,16 +4,17 @@
 //     lines of application code, measured with `git diff --no-index`, and at most 1 config file;
 //     nothing else is touched (the dependency itself arrives with `npm install`);
 //   - the lines the founder shows (the adapter's README) are exactly the lines this test installs;
-//   - from process start (for Next.js: from `next build`) to the first classified event arriving
-//     at the site's report endpoint takes at most 60 s. Dependency download is excluded: the
-//     install happens in prepare(), before the clock starts.
+//   - from process start (for Next.js: from `next build`) to the first classified record takes at
+//     most 60 s: the Glass receipt (Ludion-Receipt) the site returns for an automated request. No
+//     visit leaves for the report endpoint: only hourly counts may (ADR-038, PRIV-4). Dependency
+//     download is excluded: the install happens in prepare(), before the clock starts.
 import { test, after } from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import http from "node:http";
 import path from "node:path";
 import { execFileSync } from "node:child_process";
-import { REF, ROOT, prepare, start, freePort, stopAll, raw, node, BUILD_MTIME } from "../harness.mjs";
+import { REF, ROOT, prepare, start, freePort, stopAll, raw, node, BUILD_MTIME, receiptOf } from "../harness.mjs";
 
 after(stopAll); // a timed-out test skips its finally; no server may outlive the file
 import { automationRequest } from "../requests.mjs";
@@ -92,15 +93,20 @@ for (const app of ["express", "next", "workers"]) {
       }
       server = await start(app, B, port, { env, ready: false });
       const deadline = t0 + LIMIT_S * 1000;
-      while (!sink.events.length && performance.now() < deadline) {
+      let first = null;
+      while (!first && performance.now() < deadline) {
         if (server.child.exitCode != null) throw new Error(`server exited: ${server.log.slice(-1500)}`);
-        try { await raw(port, automationRequest("shop.example", { path: "/products/2", ua: "curl/8.7.1" }), { timeoutMs: 5_000 }); } catch { /* not listening yet */ }
-        if (!sink.events.length) await new Promise((r) => setTimeout(r, 200));
+        try {
+          const r = await raw(port, automationRequest("shop.example", { path: "/products/2", ua: "curl/8.7.1" }), { timeoutMs: 5_000 });
+          const rc = receiptOf(r);
+          if (rc && rc.class !== "UNKNOWN") first = { at: performance.now(), event: rc };
+        } catch { /* not listening yet */ }
+        if (!first) await new Promise((r) => setTimeout(r, 200));
       }
-      const first = sink.events[0];
-      assert.ok(first, `${app}: no classified event within ${LIMIT_S}s\n${server.log.slice(-1500)}`);
+      assert.ok(first, `${app}: no classified record within ${LIMIT_S}s\n${server.log.slice(-1500)}`);
       const seconds = (first.at - t0) / 1000;
-      assert.ok(first.event, `${app}: the sink got something that is not JSON: ${first.bad}`);
+      // Nothing of a visit went to the report endpoint; at most an hourly count, if an hour closed.
+      for (const e of sink.events) assert.equal(e.event?.kind, "ludion.hourly", `${app}: the report endpoint got a visit: ${JSON.stringify(e.event ?? e.bad).slice(0, 200)}`);
       assert.equal(first.event.site, cfg.site_id);
       assert.equal(first.event.class, "SUSPECTED");
       assert.equal(first.event.route, "/products/:id");

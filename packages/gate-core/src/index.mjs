@@ -19,6 +19,8 @@ import { routeKind, isCritical, pathOf, originForm, routeCandidates, queryKeys, 
 import { verifyMandate, chargeProblem, LIMIT_KEYS, MandateError, MANDATE_TYP, SCOPES, CHARGE_SCOPE, DEFAULT_MANDATE_LIFETIME_S, MAX_MANDATE_LIFETIME_S } from "./mandate.mjs";
 import { memoryLedger, isLedger } from "./ledger.mjs";
 import { bodyNeeded, checkContentDigest, parseContentDigest, readWebBody, DEFAULT_MAX_BODY_BYTES, DEFAULT_BODY_TIMEOUT_MS } from "./digest.mjs";
+import { createHourly, operatorOf, HOUR_S, BATCH_KIND, ROW_KEYS, MAX_ROWS_PER_HOUR } from "./hourly.mjs";
+import { memoryRecords, RECORD_DAYS } from "./records.mjs";
 
 export {
   createResolver, createStapleVerifier, issueStaple, classify, createPolicy, createNonceCache, decide, compileRoute, CLASSES,
@@ -28,6 +30,7 @@ export {
   routeKind, isCritical, pathOf, originForm, routeCandidates, queryKeys, templateSegment, publicTemplateSegment, publicTemplatePath, isRouteWord, ROUTE_KINDS, CRITICAL_KINDS, WRITE_METHODS,
   verifyMandate, chargeProblem, LIMIT_KEYS, MandateError, MANDATE_TYP, SCOPES, CHARGE_SCOPE, DEFAULT_MANDATE_LIFETIME_S, MAX_MANDATE_LIFETIME_S, memoryLedger, isLedger,
   bodyNeeded, checkContentDigest, parseContentDigest, readWebBody, DEFAULT_MAX_BODY_BYTES, DEFAULT_BODY_TIMEOUT_MS,
+  createHourly, operatorOf, HOUR_S, BATCH_KIND, ROW_KEYS, MAX_ROWS_PER_HOUR, memoryRecords, RECORD_DAYS,
 };
 
 export const LUDION_VERSION = "0";
@@ -72,8 +75,11 @@ export function denialHeaders(decision) {
  *           one, a charge on a Mandate with per_day is refused (fail closed); per-charge limits still hold.
  * @property {number} [timeoutMs]                 the most the Gate may add to one request; default 3000
  * @property {object} [resolver]                  options for createResolver
- * @property {(event: object) => void|Promise<void>} [sink]  metadata sink; never awaited, never blocks
+ * @property {(batch: object) => void|Promise<void>} [sink]  where the hourly counts go (ADR-038: one batch
+ *           per closed hour, never a visit); never awaited, never blocks
  * @property {boolean} [sendMetadata]             spec report.send_metadata; default: true iff a sink is set
+ * @property {{ put(record: object): void|Promise<void> }} [records]  where per-visit records stay, on the
+ *           site, for 7 days (ADR-038); default memoryRecords(). Never awaited, never blocks
  * @property {string} [ipSalt]                    per-site salt for IP hashing
  * @property {boolean} [requireNonce]
  * @property {{ maxEntries?: number, perOwnerMax?: number }} [nonceCache]  replay cache bounds; default
@@ -171,14 +177,17 @@ export async function createGate(config) {
   const receipts = createReceipts({ siteId: config.siteId, siteKey, now });
   const ipSalt = config.ipSalt ?? config.siteId;
   const sendMetadata = config.sendMetadata ?? (config.sink != null);
+  const records = config.records ?? memoryRecords({ now });
 
-  /** Hand an event to the sink without waiting: a slow or broken sink costs the request nothing. */
-  function emit(event) {
+  /** Call a site hook without waiting: a slow or broken one costs the request nothing. */
+  const quietly = (fn, arg) => {
     try {
-      const r = config.sink(event);
+      const r = fn(arg);
       if (r && typeof r.then === "function") r.then(undefined, () => {});
     } catch { /* never block the request */ }
-  }
+  };
+  // Only hourly counts leave the Gate (ADR-038): one batch per closed hour, never a visit.
+  const hourly = sendMetadata && config.sink ? createHourly({ siteId: config.siteId, now, emit: (batch) => quietly(config.sink, batch) }) : null;
 
   /** A fault inside the Gate: open on Pressure 0–1, fail_mode on 2–3 (spec §11.4). */
   function faultClass(route, e) {
@@ -232,9 +241,13 @@ export async function createGate(config) {
       receipt = await receipts.issue({ method: req.method, path, cls, decision, pressure: route.pressure, signature: sigField });
       headers["Ludion-Receipt"] = receipts.toHeader(receipt);
     } catch (e) { gateError ??= e; } // a receipt is evidence, not the decision: losing it never changes the response
-    if (receipt && sendMetadata && config.sink && AUTOMATION.has(cls.class)) {
-      emit(metadataEvent({ receipt, path, ip: meta.ip, ipSalt, country: meta.country }));
+    if (receipt && AUTOMATION.has(cls.class)) {
+      // The visit's record stays on the site (7 days); outside, it is one more in its hour's count.
+      const record = metadataEvent({ receipt, path, ip: meta.ip, ipSalt, country: meta.country });
+      quietly((r) => records.put(r), record);
+      if (hourly) { try { hourly.add(record, operatorOf(cls)); } catch { /* counting never fails a request */ } }
     }
+    if (hourly) { try { hourly.flushClosed(); } catch { /* idem */ } }
     return { cls, decision, receipt, headers, route, ...(gateError ? { gateError: String(gateError?.message ?? gateError).slice(0, 200) } : {}) };
   }
 
@@ -288,6 +301,10 @@ export async function createGate(config) {
 
   return {
     inspect, failSafe, charge, resolver, receipts, policy, health, timeoutMs, revocations, siteKey: { kid: siteKey.kid, publicKey: siteKey.publicKey },
+    /** The site's per-visit records (7 days). */
+    records,
+    /** Send the hours that have closed; with { all: true }, the current one too (shutdown). */
+    flush({ all = false } = {}) { if (hourly) { if (all) hourly.flushAll(); else hourly.flushClosed(); } },
     /** Stop background work (the revocation subscription). The Gate keeps classifying from what it holds. */
     close() { revocationFeed?.stop(); },
   };
