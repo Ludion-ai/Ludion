@@ -1,6 +1,6 @@
-# Ludion — 作成spec v2.0（完全版）
+# Ludion — 作成spec v2.0.1（完全版）
 
-版：v2.0（2026-10-03）｜置き場所：`docs/ludion-spec.md`（このファイル）とプロジェクトのナレッジ｜v1.0.1 を置き換える
+版：v2.0.1（2026-10-03）｜置き場所：`docs/ludion-spec.md`（このファイル）とプロジェクトのナレッジ｜v1.0.1 を置き換える
 
 > **Claude Code へ**：実装の合否は `docs/MISSION.md` のオラクルで決まる（ADR-017）。本ファイルとオラクルが食い違ったら、勝手に直さず、差分を `docs/outbox/` に書いて人間に上げる。【要確認】の付いた事実は、実装や公開の根拠にする前に一次情報で確かめる。
 
@@ -385,7 +385,7 @@ Ludion Cloud（任意）は、Gate からメタデータだけを受け取り、
 3. **委任（任意）**：Principal が同意画面でパスキー認証し、Mandate を発行させる。
 4. **リクエスト**：エージェントは Session 鍵で署名し、Staple・Mandate・目的の申告を添える。MCP では名札の URL を client_id として使う。
 5. **判定**：Gate が署名・Staple・Mandate・目的を確かめ、サイトの判断（通す・壁・止める）に従う。
-6. **記録**：Gate は受領証（Glass）を作り、メタデータだけを Cloud に送る。送信はサイトが止められる。
+6. **記録**：Gate は受領証（Glass）を作る。来訪ごとの記録は、サイトの中に7日だけ置いて消す。Cloud に送るのは1時間ごとの集計だけで、送信はサイトが止められる。
 7. **評判**：Cloud が評判イベントを集め、名簿が Depth を更新する。次の Staple に反映される。
 8. **失効**：`npx ludion revoke` で Staple の発行が止まり、失効ストリームで即座に伝わる。遅くとも1時間で、世界中で通らなくなる。
 
@@ -406,7 +406,7 @@ scripts/              scoreboard.mjs・loop.sh
 ```
 
 - コードは Apache-2.0、仕様は CC BY 4.0 で公開する。
-- 公開するパッケージは最小にする。CLI の `ludion` と、Gate を1つ（`@ludion/gate` に node・next・workers のサブパスをまとめる）。
+- npm に出すのは `ludion` の1本だけ。中身は CLI と、サブパスの `ludion/gate/next`・`ludion/gate/node`・`ludion/gate/workers`・`ludion/diver`。リポジトリの中の8パッケージは private のまま、`ludion` に束ねる。
 
 ## 11. Ludion Protocol
 
@@ -696,32 +696,31 @@ decide(class, route, site_choice):
 
 ### 12.7 設定例
 
-```yaml
-# ludion.yaml
-site_id: site-7f3a...
-pressure: 0                 # 0=見るだけ 1=壁 2=止める 3=全面
-report:
-  email: ops@shop.example
-  send_metadata: true       # false ならサイト内で集計し、外に何も出さない
-routes:
-  - match: "/checkout/**"
-    pressure: 2
-    require: { depth: 2, scope: checkout, ballast: active, purpose: act }
-  - match: "/login"
-    pressure: 2
-    require: { depth: 1, scope: account }
-  - match: "/graphql"
-    writes: false           # POST だが、読むだけの経路
-decisions:
-  - who: "dvr-k7q2m6x4pcab3cde"
-    action: block
-    scope: "/checkout/**"
-    until: "7d"
-friction_hook: existing_captcha
-fail_mode:
-  pressure_0_1: open        # Gate に障害があっても通す
-  pressure_2_3: closed      # 重要な経路は閉じる（サイトが選べる）
+設定はサイトのファイル `ludion.config.json` に置く（Workers では `wrangler.toml` の変数 `LUDION` に同じ JSON を入れる。ADR-022）。
+
+```json
+{
+  "site_id": "site-7f3a...",
+  "pressure": 0,
+  "report": { "email": "ops@shop.example", "send_metadata": true },
+  "routes": [
+    { "match": "/checkout/**", "pressure": 2, "require": { "depth": 2, "scope": "checkout", "ballast": "active", "purpose": "act" } },
+    { "match": "/login", "pressure": 2, "require": { "depth": 1, "scope": "account" } },
+    { "match": "/graphql", "writes": false }
+  ],
+  "decisions": [
+    { "who": "dvr-k7q2m6x4pcab3cde", "action": "block", "scope": "/checkout/**", "until": "7d" }
+  ],
+  "friction_hook": "existing_captcha",
+  "fail_mode": { "pressure_0_1": "open", "pressure_2_3": "closed" }
+}
 ```
+
+- `pressure`：0＝見るだけ、1＝壁、2＝止める、3＝全面。
+- `report.send_metadata`：`false` なら、サイトの中で集計し、外に何も出さない。
+- `"writes": false`：POST だが、読むだけの経路。
+- `fail_mode`：Pressure 0〜1 は Gate に障害があっても通す。2〜3 の重要な経路は閉じる（サイトが選べる）。
+- 知らない項目は誤りとして止まる（打ち間違いが Pressure 0 に化けないように）。
 
 ### 12.8 分類
 
@@ -741,9 +740,9 @@ fail_mode:
 ### 12.9 性能・プライバシー・配布
 
 - 追加の遅延は、p99 で2ms未満（鍵の一覧と名簿の鍵がキャッシュ済みの場合）。鍵の一覧の取得は非同期で、初回の取得中は Pressure 0〜1 なら通す。
-- 外に出すのはメタデータだけだ。時刻、経路のテンプレート、メソッド、分類、判定、diver_id、IP から推定した国、切り詰めた IP の塩付きハッシュ（IPv4 は /24、IPv6 は /48、塩は日ごとに交換）。
+- 外に出すのは1時間ごとの集計だけだ。キーは経路のテンプレート・メソッドの種類・分類・判定・運営者（diver_id か名乗りのトークン、なければ none）で、値は件数。来訪ごとの時刻・IP のハッシュ・国は出さない（PRIV-4）。
 - 本文、クッキー、クエリの値、ヘッダーの値（署名関係を除く）、目的の申告の文は送らない（PRIV-1）。`send_metadata: false` なら完全にローカルで動く（PRIV-2）。
-- 利用者の依頼で動く AI の行動は、裏にいる人の行動でもある。来訪ごとの経路は短く持って捨て（例：7日）、外には運営者単位の集計だけを出す（PRIV-4）。
+- 来訪ごとの記録は、サイトの中に7日だけ置いて消す。利用者の依頼で動く AI の行動は、裏にいる人の行動でもある。だから「利用者起点か」は判定せず、全ての来訪を同じに扱う（PRIV-4）。
 - データ処理契約（DPA）の雛形を最初から用意する。
 - 全てのリリースに署名し、来歴（provenance）を付ける。依存は最小限にし、自動更新はしない。セキュリティ修正だけを通知する。
 
@@ -782,7 +781,7 @@ npx ludion init
 ### 13.2 SDK
 
 ```ts
-import { ludionFetch } from "@ludion/diver";
+import { ludionFetch } from "ludion/diver";
 
 const res = await ludionFetch("https://shop.example/api/cart", {
   method: "POST",
@@ -793,6 +792,7 @@ const res = await ludionFetch("https://shop.example/api/cart", {
 ```
 
 - 署名、Staple の更新、Session 鍵の回転、nonce、content-digest、目的の申告を自動で処理する。
+- npm では `ludion` の1本に入る：CLI は `npx ludion`、SDK は `ludion/diver`、Gate は `ludion/gate/node`・`ludion/gate/next`・`ludion/gate/workers`（§10.3）。
 - Python（DIV-1）、Go、Rust の SDK を順に出す。
 - 当面の窓口は fetch のラッパーだ。Playwright、Puppeteer、browser-use、Stagehand の要求に差し込むプラグインと、MCP のクライアント向けの認証ヘルパーを、普及の出口として用意する（§17）。
 
@@ -927,7 +927,7 @@ const res = await ludionFetch("https://shop.example/api/cart", {
 
 **検査の仕組み**
 
-- 攻撃コーパス（`accept/`、82件）を CI で毎回通す。
+- 攻撃コーパス（`accept/attacks/`、89件。増えるだけ）を CI で毎回通す。
 - 外部の目による監査（Codex による10件）は全て修正済み。新しい指摘は、まずオラクルにしてから直す。
 - 鍵・署名・パーサに触る変更は、最も厳しいレビューの対象にする（ADR-017）。
 
@@ -1055,7 +1055,7 @@ const res = await ludionFetch("https://shop.example/api/cart", {
 - [ ] tracecheck.dev の7日分のデータ
 - [ ] README（日英）、ドキュメント、セキュリティの連絡先（security@ が受信できる）
 - [ ] git の秘密情報が0件（gitleaks）
-- [ ] npm に `ludion` を公開済み（Trusted Publishing）
+- [ ] npm に `ludion` を公開済み（初版は手で、2版目から Trusted Publishing）
 
 ### 20.3 当日と翌週
 
@@ -1113,7 +1113,7 @@ const res = await ludionFetch("https://shop.example/api/cart", {
 ### 23.1 ループ
 
 - 正は `docs/MISSION.md` のオラクルだ。状態は PASS／FAIL／PENDING で持つ。`scripts/scoreboard.mjs` が数え、`scripts/loop.sh` が回す。
-- **ラチェット**：PASS の数は下げられない。2026-10-03 時点で54件に固定している。
+- **ラチェット**：PASS の数は下げられない。2026-10-03 時点で58件に固定している。
 - オラクルの追加と強化は、自律で行ってよい。緩和は人間だけが決める。
 - レーン：`docs/STATE.md`（主）と `docs/STATE.lane2.md`（副）で、並行の作業を分ける。
 
@@ -1126,7 +1126,7 @@ const res = await ludionFetch("https://shop.example/api/cart", {
 
 ### 23.3 現在地（2026-10-03 23:00 JST）
 
-- PASS 54／FAIL 0／PENDING 8（全約65件）。
+- PASS 60／FAIL 1／PENDING 23／SKIP 1（全85件）。
 - 人間待ちの PENDING：WEB-7（ドキュメントをテストにする）、LOOP-2（CI が10分以内）、STD-3（相互運用）、DIV-1（Python）、GATE-9（PHP／WordPress）、LIVE-1〜3、PILOT-1／2。
 - 観測中：ChatGPT agent が、1時間のうちに同じ署名を使い回すか（tracecheck.dev）。
 
@@ -1142,14 +1142,14 @@ const res = await ludionFetch("https://shop.example/api/cart", {
 | PUR-4 | `purpose_required` を受けた diver が、申告を付けて自動で出し直す |
 | PUR-5 | `note` の表示はエスケープされ、URL はリンクにならない |
 | PUR-6 | diver は、メールアドレス・電話番号・URL・長い数字を含む `note` を送らない |
-| PRIV-4 | 利用者起点の来訪ごとの経路は、Gate の外に出ない。外に出るのは運営者単位の集計だけ |
+| PRIV-4 | Gate の外に出るのは1時間ごとの集計（キー：経路のテンプレート・メソッドの種類・分類・判定・運営者、値：件数）だけ。来訪ごとの時刻・IP のハッシュ・国は出ない。来訪ごとの記録は、サイトの中に7日だけ置いて消える |
 | PRIV-5 | Card Host は、名札と鍵の一覧を取りに来た相手の IP・UA・時刻を、どこにも残さない |
 | REG-5 | 名簿の丸ごと配布物は署名付きで、配布先の問い合わせを記録しない |
 | BLK-1 | 止める判断は設定1行で効き、1行で戻る。Ludion のサーバーには止める経路がない |
 
 ## 24. 意思決定ログ（ADR）
 
-**v2.0 で7件を加え、2件を置き換えた。** 新しいものが上。ADR-019〜026 は `docs/adr/` の個別ファイルを正とし、ここには載せない。
+**v2.0 で7件を加え、2件を置き換えた。** 新しいものが上。ADR-019 以降の実装上の決定は `docs/adr/` を正とする（欠番と、spec に載らない ADR を含む）。
 
 | ID | 日付 | 決定 | 理由 | 見直す条件 |
 | --- | --- | --- | --- | --- |
@@ -1161,7 +1161,7 @@ const res = await ludionFetch("https://shop.example/api/cart", {
 | ADR-029 | 2026-10-03 | 磨く一点は「AI にアカウントを持たせる1行の体験」。Gate は名札を読む受け口。凍結の一覧を決める（§9.5） | MCP が CIMD を既定にし、名札を読む相手が標準の側から生まれた | 最初の登録者の理由が、Web 中心と分かった時 |
 | ADR-028 | 2026-10-03 | 行動の測定は「申告と行動の差」に絞る。来訪を嘘・不同意・無申告に分け、蹴るのは嘘だけ | 意図は測れないが、約束は測れる | 申告がほとんど集まらない時 |
 | ADR-027 | 2026-10-01 | web-bot-auth など3パッケージを、名前と版で例外として許可する（NEUT-2） | 自作しない方針（ADR-014）と依存最小の両立 | 保守の停止 |
-| ADR-019〜026 | 2026-10-01 | 実装時の決定。`docs/adr/` の個別ファイルを正とする | 1ファイル1決定で残す | 各ファイルによる |
+| ADR-019 以降 | 2026-10-01〜 | 実装上の決定は `docs/adr/` を正とする（欠番と、spec に載らない ADR を含む） | 1ファイル1決定で残す | 各ファイルによる |
 | ADR-018 | 2026-09-30 | 安全の境界は、エージェントに渡す資格情報の範囲で引く。deny ルールは誤操作の防止にすぎない | Bash の deny は、書き方を変えれば迂回できる | なし |
 | ADR-017 | 2026-09-30 | 実装は Claude Code。制約はプロンプトではなく検証器（オラクル）に置く。追加と強化は自律、緩和は人間 | 自律の速度と品質を両立させる唯一の形 | 進捗のないループの停止が週2回以上起きる時 |
 | ADR-016 | 2026-09-30 | 営業の第一手は `ludion scan`（ログ先行）。Observatory は権威づけに回す（ADR-009 を置き換え） | 恐怖の数字を、14日後ではなく15分で出す | scan を見せた20社で、導入の意向が3社未満の時 |
@@ -1183,7 +1183,7 @@ const res = await ludionFetch("https://shop.example/api/cart", {
 
 ## 25. 未決事項
 
-**開いているのは16件。** ローンチ前に決めるのは Q19・Q20・Q23 の3件だ。
+**開いているのは15件。** ローンチ前に決めるのは Q20・Q23 の2件だ。
 
 | ID | 問い | 期限 |
 | --- | --- | --- |
@@ -1199,7 +1199,6 @@ const res = await ludionFetch("https://shop.example/api/cart", {
 | Q15 | 苦情応答の実績を名札で公開することの法務（名誉、競争法） | 段階② |
 | Q16 | Ludion の拡張の登録先：`web_bot_auth` のメンバーとして提案するか、独立に登録するか（WG の issue #27 次第） | 段階③ |
 | Q18 | 目的の申告を IETF に出す時の名前（`Ludion-Purpose` のままか、中立の名前にするか） | ローンチ後3週間 |
-| Q19 | MCP の CIMD での `redirect_uris` と localhost の扱い（CLI で動くエージェントの認可） | ローンチ前（MCP-1） |
 | Q20 | HN のタイトル（アカウント案か、目的の申告案か） | ローンチ前 |
 | Q21 | 名簿に事前登録する各社へ、事前に連絡するか | 事前登録の公開前 |
 | Q23 | ChatGPT agent が1時間のうちに署名を使い回すか（tracecheck で観測中）と、nonce 必須の扱い | ローンチ前 |
@@ -1214,6 +1213,7 @@ const res = await ludionFetch("https://shop.example/api/cart", {
 | ~~Q5~~ | 最初の本投稿は英語（Show HN） |
 | ~~Q6~~ | 新しいドメインにも AI は来る。tracecheck.dev で7日間に OpenAI 559件、Anthropic 251件、Perplexity 121件を観測 |
 | ~~Q17~~ | npm の `ludion` は、Trusted Publishing で CLI だけを公開する（PUBLISH.md §0.5） |
+| ~~Q19~~ | 名札の `redirect_uris` は loopback だけ（`http://127.0.0.1/callback` と `http://[::1]/callback`。ポートは RFC 8252 どおり任意）。`token_endpoint_auth_method` は `private_key_jwt`、`jwks_uri` は鍵の一覧を指す。Keycloak が EdDSA の client assertion を受けなければ、OAuth 専用の jwks（ES256）を別の URL に分ける（MCP-1） |
 
 ## 26. やらないこと
 

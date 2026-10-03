@@ -79,8 +79,8 @@ const swap = (from, to) => (page) => { assert.ok(page.includes(from), `the plant
 
 const PLANTED = [
   ["sells insurance", "legal line", "/", into("<p>Ludion sells insurance for AI agents.</p>")],
-  ["insurance through partners (ja)", "legal line", "/ja/e/depth_insufficient", swap("Ballast v1（Ludion はまだ提供していません）", "保険付きの Ballast（パートナー経由で、提供が始まってから）")],
-  ["an insured Ballast (the first finding)", "legal line", "/e/depth_insufficient", swap("Ballast v1, which Ludion does not offer yet", "an insured Ballast, offered through partners when available")],
+  ["insurance through partners (ja)", "legal line", "/ja/e/depth_insufficient", swap("Ballast v2（Ludion はまだ提供していません）", "保険付きの Ballast（パートナー経由で、提供が始まってから）")],
+  ["an insured Ballast (the first finding)", "legal line", "/e/depth_insufficient", swap("Ballast v2, which Ludion does not offer yet", "an insured Ballast, offered through partners when available")],
   ["guarantees payment", "legal line", "/e/ballast_required", into("<p>We guarantee payment if an agent breaks something.</p>")],
   ["支払いを保証 (ja)", "legal line", "/ja/e/ballast_required", into("<p>エージェントが壊したものの支払いを保証します。</p>")],
   ["100% safe", "legal line", "/gate", into("<p>The Gate makes your site 100% safe.</p>")],
