@@ -33,7 +33,7 @@
 1. **LOOP-2**（CI のフル実行が10分以内）：分割と夜間のジョブを入れた（下の「直近のセッション」）。残りは2つ。
    - 分割の重み（`scripts/shard-weights.json`）を、CI の実測（`node scripts/shard.mjs --weights shard-*.json`）に置き換える。
    - `preview` ジョブ：WEB-1 だけで手元 9 分（28ページ × Lighthouse 3回）。secret が入ると LOOP-2 を越える。測り方の決めは人間待ち。
-2. **npm の公開の仕組み**（人間の割り振り）：Trusted Publishing（GitHub Actions の OIDC）のワークフロー。npm は、まだないパッケージに Trusted Publisher を設定できないので、各パッケージの最初の1回は人間が手で出す。
+2. **npm の公開の仕組み**：release ワークフローと PUB-4 を入れた（直近のセッション）。次は `@ludion/gate-*` の公開の準備（人間が最初の版を出すときに詰まらないように、PUBLISH.md の手順を1本道にする）。
 3. **対のない正のオラクルに、同じ性質の負のオラクルを足す**（LOOP-5 の表示で UNPAIRED）：GATE-3（入れ方）、SCAN-1（パース率）、SCAN-4（速さ）、WEB-4（ブラウザ版 scan）。
 4. **揺れの見張り**：WEB-1 と WEB-9 は Lighthouse を各ページ3回の中央値で測るようにした（閾値は95のまま）。GATE-1 の失敗は揺れではなく、共有のキャッシュの壊れだった（直した）。CI でまた赤くなったら、#74 の詳細で原因を見て、測り方を直す。
 5. 目録の残り（人間待ちでないもの）：WEB-7（ドキュメントをテストに）、PRIV-1/2 の強化（既定の `createSafeFetch` 経由でも回す）、Mandate の共有の記録の複数の機械の参照実装（Durable Object か DB）。
@@ -94,6 +94,9 @@
 - [ ] **npm の publish**（docs/PUBLISH.md、人間が 2026-10-01 にやると言った）
   - **`ludion` だけを先に出せる**（#75、PUB-3）：tarball が CLI のコードを同梱し、`@ludion/*` が npm に一つもなくても入る。組織 `@ludion` も要らない。手順は PUBLISH.md §0.5。
   - `@ludion/gate-*` は、セキュリティの4件（#69）が入ったので出せる状態。出すかは人間の判断。出すときは先に組織 `ludion` を作り、表の順に出す。
+  - **2版目からは release ワークフロー**（PUB-4、PUBLISH.md §6）：最初の版を手で出したあと、パッケージごとに trusted publisher を設定し、GitHub に environment `npm`（承認者＝人間、Prevent self-review、main だけ）を作る。手順は §6.1。
+  - 注意：Claude の `gh` は人間と同じアカウント `Ludion-ai`。environment の承認の関所は、同じアカウントのトークンからは区別できない。切り離すなら、Claude に別のアカウントか、Actions の承認ができない細かいトークンを渡す（PUBLISH.md §6.1）。
+- [ ] **main のブランチ保護の strict**：2026-10-03 に外したと聞いたが、API では `required_status_checks.strict: true` のまま（#86 が BEHIND で auto-merge されずに止まり、`gh pr update-branch` で通した）。ルールセットは無い。外すのは人間（設定は触らない）。
 - [ ] npm `ludion` と `@ludion`、PyPI `ludion` の確保（2026-09-30 時点で全て空き。匂わせ投稿の前に）
 - [x] リポジトリの公開設定の判断 → public、`Ludion-ai/Ludion`（2026-09-30）
 - [x] main のブランチ保護：PR 必須、`loop` チェック必須、auto-merge 許可（2026-09-30。strict と enforce_admins も付けた）
@@ -217,6 +220,12 @@
   - **LOOP-2 を配線した**（`accept/loop/ci-time.mjs`、夜間の `nightly` ジョブ）：main の最新の完了した push の実行で、skip でない全ジョブが緑、かつ最初の開始から最後の完了まで10分以内。PR の実行では測らない（PR は main の過去の実行を変えられないし、遅い main がその直しの PR を止めてはいけない）。
     - MISSION.md の LOOP-2 の文から「Windows も含む」を外した（人間の指示で Windows を push から外したため）。代わりに「全ジョブが緑」を足した。
     - 今の main（#85）では FAIL：16:41（Windows を含む旧構成）、`preview` が赤（secret 待ち）。
+    - #86 の CI：`loop` の道は 11:50 → 4:30（分割 4:21、2:28、2:40、3:10、統合 6 秒）。一番長い分割は WEB-9 だけの1本（239 秒）。オラクルは分割をまたがないので、これより縮めるなら WEB-9 自体を分ける。
+  - **npm の公開の仕組み**（PUB-4、`scripts/release.mjs`、`.github/workflows/release.yml`、PUBLISH.md §6）：
+    - 手動の起動だけ、main だけ、environment `npm` で人間が承認、npm の trusted publishing（OIDC。npm のトークンはどこにも無い。provenance が付く）、PUB-1〜3 のあと、公開セットの順。
+    - npm にある版は飛ばす。npm がまだ知らないパッケージは拒否する（npm は存在しないパッケージに trusted publisher を設定できないので、最初の版は人間が手で出す）。最初の失敗で残りを止める。既定は dry run。
+    - PUB-4 は、偽の npm で順番・飛ばし・拒否・停止を、仕込んだワークフロー11本で関所（手動、main、environment、権限、秘密、式の注入、SHA 固定、PUB の順番）を確かめる。他のワークフローは公開も OIDC の発行もできない。
+    - 手元の dry run（本物の npm）：`ludion` と `@ludion/gate-core` は「npm がまだ知らない」で拒否された（正しい。まだ何も出ていない）。
 
 - 2026-10-02〜10-03（Claude Code）：人間の確認への対応と GATE-8。
   - #78：揺れるオラクルを、閾値を下げずに安定させた。
