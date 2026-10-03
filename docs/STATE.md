@@ -1,9 +1,11 @@
 # STATE
 
-最終更新：2026-10-03（Claude Code、1本目のレーン。GATE-8 の案 A #79 のあと、CI の分割と夜間のジョブ、LOOP-2 の配線）
+最終更新：2026-10-03 夜（Claude Code、1本目のレーン。人間の決定1〜9を受けて spec v2.0.1、CLAUDE.md の芯、ADR-035〜039・041・042）
 
 ## 現在地
 
+- **spec の正は、リポジトリの `docs/ludion-spec.md`（v2.0.1）**（ADR-035）。v1.0.1 は捨てた。人間が承認した修正だけを spec に入れ、他の食い違いは outbox に書く。芯は「AI にアカウント（鍵と名札）を持たせる」。spec と食い違う所は `docs/outbox/spec-v2-diff.md`。
+  - v2.0 のオラクル16件（ONE-1〜5、MCP-1、PUR-1〜6、PRIV-4、PRIV-5、REG-5、BLK-1）は PENDING。新しい段 M9（一点）。
 - 段：M4（SCAN-1〜4、RPT-1）は完了。
   - M0：LOOP-2（CI を10分以内）だけが残り。
   - M1：残りは STD-3、GATE-9（GATE-8 は案 A で PASS）。
@@ -26,23 +28,56 @@
   - ラチェット済みのオラクルは PASS 以外すべて退行（LOOP-4）。読めないベースは止まる（LOOP-3）。
 - 数字は `npm run scoreboard` が正。ここには書き写さない。
 
-## 次の一手
+## いまやること（spec v2.0.1 §9 磨く一点、§20.2 ローンチの条件。人間の順、2026-10-03）
 
-次のセッションは、この順に進める。
+**一点**：1行で、AI が自分の鍵と名前を持つ。MCP でも Web でも同じ名前で通じる。1行で、世界中から消せる。Gate は、この名札を読む受け口（spec §9、ADR-029）。ローンチは 2026-10-13 22:00 JST（Show HN）。
 
-1. **LOOP-2**（CI のフル実行が10分以内）：分割と夜間のジョブを入れた（下の「直近のセッション」）。残りは2つ。
-   - 分割の重み（`scripts/shard-weights.json`）を、CI の実測（`node scripts/shard.mjs --weights shard-*.json`）に置き換える。
-   - `preview` ジョブ：WEB-1 だけで手元 9 分（28ページ × Lighthouse 3回）。secret が入ると LOOP-2 を越える。測り方の決めは人間待ち。
-2. **npm の公開の仕組み**：release ワークフローと PUB-4 を入れた（直近のセッション）。次は `@ludion/gate-*` の公開の準備（人間が最初の版を出すときに詰まらないように、PUBLISH.md の手順を1本道にする）。
-3. **対のない正のオラクルに、同じ性質の負のオラクルを足す**（LOOP-5 の表示で UNPAIRED）：GATE-3（入れ方）、SCAN-1（パース率）、SCAN-4（速さ）、WEB-4（ブラウザ版 scan）。
-4. **揺れの見張り**：WEB-1 と WEB-9 は Lighthouse を各ページ3回の中央値で測るようにした（閾値は95のまま）。GATE-1 の失敗は揺れではなく、共有のキャッシュの壊れだった（直した）。CI でまた赤くなったら、#74 の詳細で原因を見て、測り方を直す。
-5. 目録の残り（人間待ちでないもの）：WEB-7（ドキュメントをテストに）、PRIV-1/2 の強化（既定の `createSafeFetch` 経由でも回す）、Mandate の共有の記録の複数の機械の参照実装（Durable Object か DB）。
-6. 棚上げ（ブランチに残してある。再開は人間の判断）：
-   - **B1** は 2026-10-03 に人間の指示で再開し、CI の分割として入れた。PR #63（下書き）は閉じた。プロセス内の並列（`--jobs`）とプロセスツリーの kill は入れていない（理由は「直近のセッション」）。
-   - **A と B2**（ラチェットのファイル化、CI の分割）：`fast-loop-shelf`。A は deny ルール（PR #60）を人間が当てるまで入れない。
-   - **fail-closed**（`--base` が読めないときに通さない）：#70 の LOOP-3 で入った。`fast-loop-failclosed` はもう要らない。
-   - **STD-3 と DIV-1**（`interop/std3-div1`）：CI に setup-python を足す差分の了承待ち。
-   - GATE-9 は道具（PHP か `@php-wasm/node`）待ち。
+**実装の順**（それぞれ別の PR。上から）
+
+1. **決定4と PRIV-4**（ADR-038）：Gate から外に出すのは1時間ごとの集計だけ。来訪ごとの記録はサイトの中に7日。不変条件15の違反を先に消す。
+2. **決定2のパッケージ化**（ADR-036）と **init の1画面**：
+   - `ludion` 1本に CLI と `ludion/gate/{next,node,workers}`、`ludion/diver` を束ね、PUB-1〜4 をその形に。
+   - 1画面には Web と MCP の例、revoke の一行、バッジ、任意の1問。
+   - オラクルも足す。「断ったら何も送らない」を含める。
+3. **決定6の設定と PRIV-5**（ADR-041）：本番の名簿（`registry.ludion.ai`）と Card Host（`*.agents.ludion.ai`）の Workers の設定、docs/DEPLOY.md の手順。デプロイは人間。
+4. **MCP-1**（ADR-039）：Keycloak は CI の別ジョブで並列に回し、LOOP-2 の10分に入れない。
+5. **ONE-1・ONE-2・ONE-3・BLK-1・ONE-5**。
+6. **PUR-1〜6**。
+7. **日本語の README**。
+
+あいだに入れるもの：#90 の ID の振り直し（GATE-13 と WEB-12）、DIV-1 の setup-python（ADR-042）、gitleaks のオラクル（ADR-042）。
+
+**切る線**
+
+- 10/10 の終わりに MCP-1 が PASS していなければ、HN のタイトルと本文から MCP を外す。
+- 10/11 の終わりに PUR-1・2・3・5 が PASS していなければ、ローンチでは目的の申告に触れない。
+
+**毎日の終わり**：PASS の数と残りを1行で人間に報告する。
+
+**ローンチの条件（§20.2）**。全て満たすまで出さない。
+
+- [ ] scan のサンプル（ludion.ai/scan）：WEB-4。プレビューでは動く。ludion.ai への切り替えは人間（DEPLOY.md §3）。
+- [ ] `npx ludion init` から VERIFIED まで3分以内（新しい環境で3回）：DIV-1、ONE-4
+- [ ] 名札の URL が MCP の client_id として通る：MCP-1
+- [ ] tracecheck.dev の7日分のデータ：PILOT-2（レーン2。デプロイと読み取りのトークンは人間）
+- [ ] README（日英）、ドキュメント、security@ の受信（受信は人間）
+- [ ] git の秘密情報が0件（gitleaks）
+- [ ] npm に `ludion` を公開済み（初版は手で、2版目から Trusted Publishing）
+
+**一点の外で続いていること**
+
+- LOOP-2：push の実行は 4:14〜4:37。FAIL の理由は `preview` ジョブが赤いことだけ（secret と測り方の決めは人間待ち）。
+- 棚上げ（再開は人間の判断）：A と B2（`fast-loop-shelf`）、GATE-9（PHP の道具待ち）。
+
+### やらない（§9.5 の凍結。稼働 Gate 300 まで。画面と宣伝からは消すが、コードは捨てない）
+
+- Ballast（保険・保証）、Mandate の同意画面、Depth の段階（D2〜D4）、Glass の公開ログ
+- 言行一致の格付けの公開、おとりサイトの網、スクレイピング対策
+- 全サイトで共有するブロックリスト、1画面を超えるダッシュボード
+- マイナンバー連携、フォームの勝手口（WebMCP）、ブラウザ標準への提案
+- 「止める」機能への課金
+- tracecheck.dev の宣言台帳と罠の道は、製品の機能ではなく、HN に出す数字として続ける（レーン2）。
+- ほかに §26 の「やらないこと」：独自の暗号、ウォレット、決済のプロトコル、CDN、検知エンジンで大手と戦うこと、Ludion のサーバーから止めること、`note` を機械に読ませること、信用を売ること、保険の引受。
 
 ### いつもの決まり
 
@@ -69,6 +104,9 @@
 
 ## 人間待ち
 
+- [x] **spec v2.0 の判断**（2026-10-03）：決定1〜9（ADR-035〜039、041、042）。spec v2.0.1 と CLAUDE.md の芯を直した。
+- [ ] **本番の名簿と Card Host のデプロイ**（ADR-041）：設定と docs/DEPLOY.md の手順は Claude が用意する（実装の順の3）。デプロイ、秘密の登録、`*.agents.ludion.ai` の証明書（2段目のワイルドカード）は人間。
+- [ ] **npm の初版**：`ludion` の1本（ADR-036、実装の順の2のあと）を、人間が手で出す。2版目から release ワークフロー。
 - [ ] **判断（LOOP-2 と `preview` ジョブ）**：WEB-1 は手元で 9 分（28ページ × Lighthouse 3回、プレビューの URL へ）。secret が入ると、`preview` ジョブだけで LOOP-2 の10分を越える。Lighthouse を同じ機械で並べると揺れるので、分けるなら別のランナー。ただしプレビューは1つの Worker なので、デプロイとその検査を、複数のジョブにまたがって1つの鍵で守る必要がある。
   - 案 B（推す）：`preview` は main への push の後だけで回し、WEB-1 の Lighthouse を3つのランナーに分ける（ワークフロー単位の鍵）。プレビューはいつも main を見せる。PR では、同じ成果物を workerd で測る WEB-9 が守る。決まり2（マージ後の赤は最優先）と同じ形。「secret が入ったら `preview` を PR の必須チェックにする」の予定は取り下げになる。
   - 案 A：PR でも回し、同じく分ける。両レーンの PR がプレビューの鍵を待ち合い、その待ちが main の LOOP-2 に入る日がある（揺れる）。
@@ -91,7 +129,7 @@
   - 提供元で秘密を失効させる：`ludion-api` の OpenAI と楽天のキー、`ludion-fallback-relay` の `PROVIDER_API_KEY`、`ludion` の GitHub OAuth アプリ。Worker を消してもキーは生きている。
   - D1 3つ、KV 2つ、R2 2つの中身を書き出す。提出物や登録者の情報なら、残すか消すかを決める。
   - `chat-app-relay`（Worker）は Ludion のものか判断できなかった。リストに入れていない。
-- [ ] **npm の publish**（docs/PUBLISH.md、人間が 2026-10-01 にやると言った）
+- [ ] ~~**npm の publish**（docs/PUBLISH.md、人間が 2026-10-01 にやると言った）~~ → ADR-036 で置き換え（`ludion` の1本だけ。上の「npm の初版」）。下の2行は旧い前提
   - **`ludion` だけを先に出せる**（#75、PUB-3）：tarball が CLI のコードを同梱し、`@ludion/*` が npm に一つもなくても入る。組織 `@ludion` も要らない。手順は PUBLISH.md §0.5。
   - `@ludion/gate-*` は、セキュリティの4件（#69）が入ったので出せる状態。出すかは人間の判断。出すときは先に組織 `ludion` を作り、表の順に出す。
   - **2版目からは release ワークフロー**（PUB-4、PUBLISH.md §6）：最初の版を手で出したあと、パッケージごとに trusted publisher を設定し、GitHub に environment `npm`（承認者＝人間、Prevent self-review、main だけ）を作る。手順は §6.1。
@@ -208,6 +246,17 @@
   - web-bot-auth@0.2.0 のパーサが registry-03 に準拠しているか
 
 ## 直近のセッション
+
+- 2026-10-03 夜（Claude Code、1本目）：spec v2.0 への差し替え（人間の指示 0〜7）。コミットは1つ（`docs: spec v2.0`）。実装はしていない。
+  - spec を上書きし、全1391行を読んだ。本体は書き換えていない。食い違いは `docs/outbox/spec-v2-diff.md`（条項・現状・提案）。
+  - ADR-028〜034 を `docs/adr/` に1ファイル1決定で足した。同じ番号はなかった（対応表は outbox の E）。
+  - §23.4 のオラクル16件を、MISSION.md と registry に PENDING で足した。
+  - 差し替えで、ラチェット済みの WEB-3 と WEB-2 が落ちた（v1.0.1 の節番号を読んでいた）。spec は変えずに直した。
+    - WEB-3 はエラーの表を見出し「エラー応答」で探す。
+    - 新しい2件（`purpose_required`、`blocked_by_site`）の help のページを英日で足した。
+    - サイトの出所のリンクを v2.0 の節に向け直した。
+    - 緩めたオラクルはない。
+  - 「いまやること」を §9 と §20.2 に合わせ、§9.5 の凍結を「やらない」に入れた。
 
 - 2026-10-03 午後（Claude Code、1本目）：人間の「待ち時間を減らす」決まり1〜4と、B1 の再開、LOOP-2。
   - **CI の分割**（B1 の移植。#63 は #59 の上にあり、#61〜#85 の scoreboard と食い違うので、rebase せずに持ってきた）：

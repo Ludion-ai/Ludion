@@ -1,7 +1,7 @@
 // The rules of the copy check (WEB-2), without a build: the legal line in English and Japanese,
 // what counts as a figure, and how a figure is sourced. And a guard on the site's own sources for
 // what WEB-2 found on its first run: the Depth table said D3 is "an insured Ballast, offered
-// through partners" (保険付きの Ballast、パートナー経由で), which is the line spec §14 draws.
+// through partners" (保険付きの Ballast、パートナー経由で), which is the line spec §15 draws.
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
@@ -111,7 +111,7 @@ const page = ({ desc = "How to get verified in about three minutes.", intro = `<
   `<!doctype html><html lang="en"><head><title>Page | Ludion</title><meta name="description" content="${desc}"></head><body><main>
   <h1 id="_top">Page</h1><p>HTTP 403 · RFC 9421</p>
   <h2 id="a">${h2}<a class="sl-anchor-link" href="#a"><span class="sr-only">Section titled “${h2}”</span></a></h2>${intro}
-  <ol><li><p>A signature lives 60 seconds (<a href="${SPEC}#104-リクエストの署名">spec §10.4</a>). Add ${lines} lines:</p>${code(n)}</li></ol>${body}
+  <ol><li><p>A signature lives 60 seconds (<a href="${SPEC}#114-リクエストの署名">spec §11.4</a>). Add ${lines} lines:</p>${code(n)}</li></ol>${body}
   </main></body></html>`;
 
 test("copy: a figure is sourced by a link, in its block, to the repository document that states it, or by the code block it introduces", () => {
@@ -142,8 +142,8 @@ test("copy: a repository link reads the file, or the section under the heading i
   assert.match(section, /^### M2 Diver/);
   assert.match(section, /180秒/);
   assert.doesNotMatch(section, /### M3/, "stops at the next heading of its level");
-  assert.match(repoSourceText(`${SPEC}#105-staple状態証明`, ROOT), /最長1時間/);
-  assert.match(repoSourceText(encodeURI(`${SPEC}#14-ballast責任`), ROOT), /24時間以内/, "a percent-encoded fragment");
+  assert.match(repoSourceText(`${SPEC}#115-staple状態証明`, ROOT), /最長1時間/);
+  assert.match(repoSourceText(encodeURI(`${SPEC}#15-ballast責任`), ROOT), /24時間で応じる/, "a percent-encoded fragment");
   assert.equal(repoSourceText(`${SPEC}#no-such-heading`, ROOT), null);
   assert.equal(repoSourceText("https://example.com/docs/MISSION.md", ROOT), null);
   assert.ok(repoSourceText(`${REPO}/tree/main/packages/gate-node`, ROOT).includes("gate-node"), "a directory reads its README");

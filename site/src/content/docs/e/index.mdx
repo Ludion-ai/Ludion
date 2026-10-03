@@ -20,6 +20,8 @@ A Gate never sends these to people using a browser. It only acts on requests tha
 | 403 | [`ballast_required`](/e/ballast_required) | The route asks for an active Ballast |
 | 403 | [`mandate_required`](/e/mandate_required) | The route asks for a Mandate from your Principal |
 | 403 | [`mandate_scope`](/e/mandate_scope) | Your Mandate does not cover this action |
+| 403 | [`purpose_required`](/e/purpose_required) | The route asks a writing agent to declare its purpose |
+| 403 | [`blocked_by_site`](/e/blocked_by_site) | The site's operator stopped this agent here |
 | 429 | [`rate_limited`](/e/rate_limited) | Too many requests |
 
 Ludion builds on [Web Bot Auth](https://datatracker.ietf.org/doc/draft-ietf-webbotauth-httpsig-protocol/) (RFC 9421). Any agent that signs with it is already verified by a Ludion Gate; start with [`signature_required`](/e/signature_required) if you have not signed yet.

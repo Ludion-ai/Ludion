@@ -1,4 +1,4 @@
-// WEB-2 (−): the site's copy stays on the legal line of spec §14 and §21, and every figure on it
+// WEB-2 (−): the site's copy stays on the legal line of spec §15 and §22, and every figure on it
 // has its source. The rules are in ./copy.mjs; this runs them on the real build.
 // - The legal line: no page, title, description, alt or label text says that Ludion sells or
 //   brokers insurance, guarantees a payment, or promises absolute safety, in English or Japanese;
@@ -79,8 +79,8 @@ const swap = (from, to) => (page) => { assert.ok(page.includes(from), `the plant
 
 const PLANTED = [
   ["sells insurance", "legal line", "/", into("<p>Ludion sells insurance for AI agents.</p>")],
-  ["insurance through partners (ja)", "legal line", "/ja/e/depth_insufficient", swap("Ballast v1（Ludion はまだ提供していません）", "保険付きの Ballast（パートナー経由で、提供が始まってから）")],
-  ["an insured Ballast (the first finding)", "legal line", "/e/depth_insufficient", swap("Ballast v1, which Ludion does not offer yet", "an insured Ballast, offered through partners when available")],
+  ["insurance through partners (ja)", "legal line", "/ja/e/depth_insufficient", swap("Ballast v2（Ludion はまだ提供していません）", "保険付きの Ballast（パートナー経由で、提供が始まってから）")],
+  ["an insured Ballast (the first finding)", "legal line", "/e/depth_insufficient", swap("Ballast v2, which Ludion does not offer yet", "an insured Ballast, offered through partners when available")],
   ["guarantees payment", "legal line", "/e/ballast_required", into("<p>We guarantee payment if an agent breaks something.</p>")],
   ["支払いを保証 (ja)", "legal line", "/ja/e/ballast_required", into("<p>エージェントが壊したものの支払いを保証します。</p>")],
   ["100% safe", "legal line", "/gate", into("<p>The Gate makes your site 100% safe.</p>")],
@@ -98,13 +98,13 @@ const PLANTED = [
   ["a line count the code block does not have (ja)", "unsourced figure", "/ja/gate", swap("サーバに2行を足します", "サーバに1行を足します")],
   ["a heading its section does not source", "unsourced figure", "/e/revoked", into("<h2>Live in 30 seconds</h2><p>Soon.</p>")],
   ["a figure in the description", "unsourced figure", "/e/revoked", swap("about three minutes", "about 90 seconds")],
-  ["a sourced figure's link removed", "unsourced figure", "/e/staple_expired", swap(`<a href="${encodeURI(`${SPEC}#105-staple状態証明`)}">spec §10.5</a>`, "spec §10.5")],
+  ["a sourced figure's link removed", "unsourced figure", "/e/staple_expired", swap(`<a href="${encodeURI(`${SPEC}#115-staple状態証明`)}">spec §11.5</a>`, "spec §11.5")],
 ];
 const CONTROLS = [
   ["a denial", "/", into("<p>Ballast v0 is not insurance, and Ludion does not sell insurance.</p>")],
   ["a denial (ja)", "/ja", into("<p>Ballast v0 は保険ではなく、Ludion は保険を販売しません。</p>")],
-  ["a sourced figure", "/", into(`<p>A Staple lives at most 1 hour (<a href="${SPEC}#105-staple状態証明">spec §10.5</a>).</p>`)],
-  ["a sourced figure (ja)", "/ja", into(`<p>苦情には24時間以内に応答します（<a href="${SPEC}#14-ballast責任">仕様 §14</a>）。</p>`)],
+  ["a sourced figure", "/", into(`<p>A Staple lives at most 1 hour (<a href="${SPEC}#115-staple状態証明">spec §11.5</a>).</p>`)],
+  ["a sourced figure (ja)", "/ja", into(`<p>苦情には24時間以内に応答します（<a href="${SPEC}#15-ballast責任">仕様 §15</a>）。</p>`)],
   ["names, not figures", "/", into("<p>HTTP 429, RFC 9421, Next.js 16, Pressure 2, D3, §10.4, 2026-10-01.</p>")],
 ];
 

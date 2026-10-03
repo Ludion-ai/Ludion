@@ -189,6 +189,9 @@ export const ORACLES = [
   { id: "PRIV-3", m: "M1", kind: "-", level: 1, title: "Registry receives no site origin/URL/path across the Diver lifecycle",
     run: nodeTest(["services/registry/test/priv3.test.mjs"], "^PRIV-3:", {
       metric: (out) => (/^# PRIV-3: (.+)$/m.exec(out) ?? [])[1] }) },
+  // spec v2.0 §23.4: added PENDING (2026-10-03). Wired when built; until then they are the backlog.
+  { id: "PRIV-4", m: "M1", kind: "-", level: 1, title: "only hourly aggregates leave the Gate (route template, method kind, class, decision, operator → count); no per-visit time, IP hash or country; per-visit records stay on the site 7 days (ADR-038)" },
+  { id: "PRIV-5", m: "M1", kind: "-", level: 1, title: "Card Host keeps no IP, UA or time of whoever fetches a card or a key directory, anywhere" },
 
   // ── M2 diver ───────────────────────────────────────────────────────────────────
   { id: "DIV-1", m: "M2", kind: "+", level: 1, pair: "DIV-3", property: "signing-key", title: "clean container → init → VERIFIED ≤180s (TS and Python)" },
@@ -223,6 +226,8 @@ export const ORACLES = [
       metric: (out) => (/^# REG-3: (.+)$/m.exec(out) ?? [])[1] }) },
   { id: "REG-4", m: "M3", kind: "-", level: 1, title: "no private key material in git history, logs, or build artifacts",
     run: nodeScript("accept/keyscan/run.mjs") },
+  // spec v2.0 §23.4: added PENDING (2026-10-03). Wired when built; until then they are the backlog.
+  { id: "REG-5", m: "M3", kind: "±", level: 1, title: "the registry's bulk distribution is signed, and the recipients' lookups are not recorded" },
 
   // ── M4 fear → number ───────────────────────────────────────────────────────────
   { id: "SCAN-1", m: "M4", kind: "+", level: 1, pair: "SCAN-5", property: "parse-rate", title: "scan parse rate ≥99% across the log-format corpus",
@@ -368,4 +373,22 @@ export const ORACLES = [
   { id: "PILOT-2", m: "M8", kind: "+", level: 2, needs: ["TRACECHECK_D1_READ_TOKEN", "TRACECHECK_ACCOUNT_ID", "TRACECHECK_D1_ID"],
     title: "tracecheck.dev live: each of the last 7 full days (Tokyo) has recorded automation and a saved morning report",
     run: nodeScript("pilots/tracecheck/live.mjs") },
+
+  // ── M9 the one point (spec v2.0 §9.3, §23.4) ─────────────────────────────────────────────
+  // One line gives an AI its own key and name, the same on MCP and the web, and one line erases it;
+  // the Gate reads the name, matches the declared purpose, and a block is one line in the site's
+  // own config. Added PENDING (2026-10-03); wired when built.
+  { id: "ONE-1", m: "M9", kind: "+", level: 1, title: "an empty Next.js and Express app: Gate install → first record visible ≤60s (median of 3)" },
+  { id: "ONE-2", m: "M9", kind: "+", level: 1, title: "the morning report has one headline number and one main decision" },
+  { id: "ONE-3", m: "M9", kind: "±", level: 1, title: "let through / wall / stop take effect with one config line and undo with one; the human path's diff is 0 (GATE-1)" },
+  { id: "ONE-4", m: "M9", kind: "+", level: 1, title: "a stopped agent gets Ludion-Error and the help link; from help, npx ludion init reaches VERIFIED in ≤3 min" },
+  { id: "ONE-5", m: "M9", kind: "±", level: 1, title: "a write by something claiming to be a crawler is reported as a suspected fake (fixed data, 0 misjudged)" },
+  { id: "MCP-1", m: "M9", kind: "+", level: 1, title: "e2e with Keycloak (CIMD on) as the authorization server: the card URL as client_id is authorized" },
+  { id: "PUR-1", m: "M9", kind: "-", level: 0, title: "a purpose not covered by the signature is an unsigned claim and is never used for matching" },
+  { id: "PUR-2", m: "M9", kind: "-", level: 1, title: "the purpose note never leaves the Gate (PRIV-1's canaries)" },
+  { id: "PUR-3", m: "M9", kind: "±", level: 0, title: "a write after declaring read (or claiming to be a crawler) is a contradiction" },
+  { id: "PUR-4", m: "M9", kind: "+", level: 1, title: "a diver that gets purpose_required retries with a purpose on its own" },
+  { id: "PUR-5", m: "M9", kind: "-", level: 0, title: "the note is shown escaped, and URLs in it are not links" },
+  { id: "PUR-6", m: "M9", kind: "-", level: 0, title: "the diver does not send a note holding an email address, a phone number, a URL or a long number" },
+  { id: "BLK-1", m: "M9", kind: "±", level: 1, title: "a block takes effect with one config line and undoes with one; Ludion's servers have no path to block" },
 ];

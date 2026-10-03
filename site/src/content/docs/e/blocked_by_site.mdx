@@ -1,0 +1,27 @@
+---
+title: blocked_by_site
+description: "HTTP 403. The people who run this site decided to stop this agent here. What happened, why, and how to get verified in about three minutes."
+sidebar:
+  order: 11
+---
+import VerifyPath from "../../../partials/verify-path.en.mdx";
+
+**HTTP 403** · `Ludion-Error: blocked_by_site`
+
+## What happened
+
+The operator of this site has chosen to stop your agent, or automation that does not identify itself, on this route. The decision is the site's own: it lives in the site's configuration, and Ludion has no switch on its servers to stop anyone ([spec §12.4](https://github.com/Ludion-ai/Ludion/blob/main/docs/ludion-spec.md#124-通す壁止める)). This code is part of Ludion Protocol v0; the open-source Gate does not send it yet.
+
+## Why this site asks
+
+A site sees what automated visitors do on it: logins, forms, carts, purchases. When what an agent does is not what the site wants, or not what the agent said it would do, the site may stop it, on every write or on a single route, for a while or until it lifts the block. Stopping and letting through go together: a site that stops an agent can still let honest, signed agents in.
+
+## How to fix it
+
+- Ask the site. Only its operator can lift the block or tell you why it was set; Ludion does not decide it and cannot reverse it.
+- If the site stopped automation that does not identify itself, sign your requests, so the site can tell your agent apart from everything else that looks automated.
+- If your agent was named, check what it did on this site against what it said it would do, and fix the difference before you ask.
+
+## Get verified in 3 minutes
+
+<VerifyPath />

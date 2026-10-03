@@ -14,7 +14,7 @@ Three minutes is our target for this path, written down as the check [DIV-1](htt
 
 2. Publish the public files it wrote at your `Signature-Agent` origin over HTTPS: `.well-known/http-message-signatures-directory` (your keys, served as `application/http-message-signatures-directory+json`) and `card` (who you are). Your own domain works; so will `dvr-….agents.ludion.ai` once registration opens.
 
-3. Sign each request. This prints a ready-to-run `curl` with the `Signature-Agent`, `Signature-Input` and `Signature` headers; a signature lives 60 seconds ([spec §10.4](https://github.com/Ludion-ai/Ludion/blob/main/docs/ludion-spec.md#104-リクエストの署名)), so make a new one per request.
+3. Sign each request. This prints a ready-to-run `curl` with the `Signature-Agent`, `Signature-Input` and `Signature` headers; a signature lives 60 seconds ([spec §11.4](https://github.com/Ludion-ai/Ludion/blob/main/docs/ludion-spec.md#114-リクエストの署名)), so make a new one per request.
 
    ```sh
    npx ludion sign GET https://shop.example/checkout --curl
