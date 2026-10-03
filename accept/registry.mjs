@@ -225,13 +225,13 @@ export const ORACLES = [
     run: nodeScript("accept/keyscan/run.mjs") },
 
   // ── M4 fear → number ───────────────────────────────────────────────────────────
-  { id: "SCAN-1", m: "M4", kind: "+", level: 1, title: "scan parse rate ≥99% across the log-format corpus",
+  { id: "SCAN-1", m: "M4", kind: "+", level: 1, pair: "SCAN-5", property: "parse-rate", title: "scan parse rate ≥99% across the log-format corpus",
     run: nodeTest(["packages/scan/test/scan1.test.mjs"], "^SCAN-1:") },
   { id: "SCAN-2", m: "M4", kind: "±", level: 1, title: "scan counts equal ground truth on labelled fixtures (incl. the critical-route number)",
     run: nodeTest(["packages/scan/test/scan2.test.mjs"], "^SCAN-2:") },
   { id: "SCAN-3", m: "M4", kind: "-", level: 1, title: "scan output has no raw IP / query value / untemplated path; zero network",
     run: nodeTest(["packages/scan/test/scan3.test.mjs"], "^SCAN-3:") },
-  { id: "SCAN-4", m: "M4", kind: "+", level: 1, title: "1 GB of logs in ≤60s", timeoutMs: 300_000, run: async () => {
+  { id: "SCAN-4", m: "M4", kind: "+", level: 1, pair: "SCAN-6", property: "scan-throughput", title: "1 GB of logs in ≤60s", timeoutMs: 300_000, run: async () => {
     // 1 GiB generated in a temp dir (untimed), then the real CLI timed end to end; see the script.
     const r = sh(process.execPath, ["packages/scan/bench/scan4.mjs"], 290_000);
     let res;
@@ -239,6 +239,11 @@ export const ORACLES = [
     return { pass: r.code === 0 && res.pass === true, metric: `${res.seconds}s for 1 GiB, ${res.mbps} MB/s`,
       detail: res.problems?.length ? res.problems.join("; ").slice(0, 300) : undefined };
   } },
+  // The other side of SCAN-1 and SCAN-4: a damaged corpus is reported as damaged; planted fast-but-wrong CLIs fail the bench.
+  { id: "SCAN-5", m: "M4", kind: "-", level: 1, property: "parse-rate", title: "the parse rate never flatters: with 3% of records damaged in every format, exactly those are unparsed, the denominator holds, every file reports under 99% (file and CLI); planted lenient parsers are caught",
+    run: nodeTest(["packages/scan/test/scan5.test.mjs"], "^SCAN-5:", { metric: (out) => (/^# SCAN-5: (.+)$/m.exec(out) ?? [])[1] }) },
+  { id: "SCAN-6", m: "M4", kind: "-", level: 1, property: "scan-throughput", title: "SCAN-4's speed cannot be had without the work: its bench fails planted CLIs that count half, skip classifying, run over the limit, print no report or exit non-zero; the real CLI passes the same bench",
+    run: nodeTest(["packages/scan/test/scan6.test.mjs"], "^SCAN-6:", { metric: (out) => (/^# SCAN-6: (.+)$/m.exec(out) ?? [])[1] }) },
   { id: "RPT-1", m: "M4", kind: "±", level: 1, title: "daily report equals ground truth; ja + en, HTML + text",
     run: nodeTest(["packages/report/test/rpt1.test.mjs"], "^RPT-1:") },
 

@@ -1,11 +1,12 @@
 #!/usr/bin/env node
-// SCAN-4 (+, pair SCAN-3): 1 GiB of access logs through `ludion scan` in ≤60 s.
+// SCAN-4 (+, pair SCAN-6, property scan-throughput): 1 GiB of access logs through `ludion scan` in ≤60 s.
 //
 // Generates 1 GiB of nginx `main` lines into a temp dir (not timed, deleted afterwards), then
 // times the real CLI end to end — process start, read, parse, classify, aggregate, render —
 // and checks that it did all the work: every line counted, every class equal to what was
 // written. Paths carry fresh IDs, so route caches do not flatter the number.
-//   node packages/scan/bench/scan4.mjs [--bytes N] [--limit-s 60]
+//   node packages/scan/bench/scan4.mjs [--bytes N] [--limit-s 60] [--cli path]
+// --cli times another CLI in place of ludion's: SCAN-6 plants fakes there to prove these checks bite.
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -15,7 +16,7 @@ import { fileURLToPath } from "node:url";
 const argv = process.argv.slice(2);
 const opt = (f, d) => { const i = argv.indexOf(f); return i >= 0 ? Number(argv[i + 1]) : d; };
 const BYTES = opt("--bytes", 1024 ** 3), LIMIT_S = opt("--limit-s", 60);
-const CLI = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../diver/bin/ludion.mjs");
+const CLI = argv.includes("--cli") ? path.resolve(argv[argv.indexOf("--cli") + 1]) : path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../diver/bin/ludion.mjs");
 
 let a = 0x5ca4;
 const rnd = () => { a = (a + 0x6d2b79f5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
