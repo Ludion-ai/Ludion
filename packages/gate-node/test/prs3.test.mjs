@@ -167,3 +167,24 @@ test("PRS-3: two Workers Gates given one ledger share the count; without one, a 
     assert.equal(r.reason, "no_shared_ledger");
   } finally { globalThis.fetch = realFetch; }
 });
+
+test("PRS-3: a limit the Gate cannot enforce (a total over a period, anything unknown) is refused, with a ledger or without", async () => {
+  // The human's rule (2026-10-02): a limit that adds up over a period needs the record as per_day
+  // does; v0 knows only checkout_max, currency and per_day, so any other limit cannot be held here
+  // and its charge is refused rather than let through unchecked.
+  const withLedger = await inProcessGate({ mandateLedger: (await import("@ludion/gate-core")).memoryLedger() });
+  const without = await inProcessGate();
+  for (const limits of [
+    { checkout_max: 50_000, currency: "JPY", day_total_max: 60_000 },
+    { checkout_max: 50_000, currency: "JPY", per_day: 3, month_total_max: 100_000 },
+    { checkout_max: 50_000, currency: "JPY", per_week: 2 },
+  ]) {
+    for (const [gate, where] of [[withLedger, "with a ledger"], [without, "without a ledger"]]) {
+      const r = await post(gate, await checkoutHeaders(await mandate(limits)));
+      assert.equal(r.status, 403, `${JSON.stringify(limits)} ${where}: ${JSON.stringify(r)}`);
+      assert.equal(r.reason, "unenforceable_limit", `${JSON.stringify(limits)} ${where}`);
+    }
+  }
+  // Control: the limits the Gate does know still pass with the record.
+  assert.ok(passed(await post(withLedger, await checkoutHeaders(await mandate(LIMITS)))), "known limits, with a ledger");
+});
