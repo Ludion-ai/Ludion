@@ -27,7 +27,7 @@
   - そのため、エージェントへの受領証（`Ludion-Receipt`）は付かない。付けると、エージェントへの応答が変わる。計測が目的なので外した。
   - Pressure 0 以外と `report.endpoint` を持つ設定は拒否する（Gate だけが止まり、サイトは動く）。
 - **記録する追加の欄**：DECLARED の運営者、SUSPECTED の兆候、署名が通らなかった理由、Signature-Agent のホスト、署名の寿命、nonce の有無。どれも固定の語、ホスト名、数だけ。
-  - 寿命を残すのは GATE-8 のため。今の Gate は寿命 60 秒超の署名を SPOOFED にする（ChatGPT agent は 3600 秒だった）。GATE-8 が入る前の日の記録も、あとで読み直せる。
+  - 寿命と nonce を残すのは GATE-8 のため。#79（案 A）で、Gate は寿命 1 時間までを、60 秒を超えるものは nonce 付きで受け入れる。本物のエージェントがどの寿命で、nonce を付けて署名してくるかを、tracecheck で見られる。
   - IP のハッシュは残さない。レポートが使わないし、/24 と公開の塩では逆算できる。
 - ルートの Worker が Custom Domain や Pages の前に走ることは、Cloudflare の文書で確かめた（Routes の節：「Routes can fetch() Custom Domains and take precedence if configured on the same hostname」）。
 
@@ -40,7 +40,6 @@
 
 ## 既知の問題
 
-- GATE-8 が main に入るまで、本物の ChatGPT agent の署名は SPOOFED と記録される（`reason` は `invalid_signature`、`sig_lifetime` は 3600）。GATE-8 が入ったら、tracecheck の Worker を出し直す。
 - Free の CPU（10 ms）：Gate は 1 リクエスト約 0.1 ms。毎朝のレポートは、自動化が 1 日 1 万件で約 10 ms（Node で測った値）。超えた日は、データを引いて手元の `ludion report` で作る。
 - `www.tracecheck.dev` は DNS only で Vercel を向き、証明書が切れている（2026-10-03 に外から見た）。Gate は www には立たない。
 

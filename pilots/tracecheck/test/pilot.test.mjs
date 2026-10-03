@@ -84,28 +84,30 @@ test("automation is recorded with route templates and fixed words only: no query
   } finally { w.restore(); }
 });
 
-test("a signed agent: VERIFIED with its directory's host; a one-hour signature is recorded with its lifetime (GATE-8)", async () => {
+test("signed agents: VERIFIED with the directory's host; each signature's lifetime and nonce are kept (GATE-8)", async () => {
   const key = await keypair();
   const db = d1(), w = world({ origin: site(), directories: { [DIRECTORY]: { keys: [{ ...key.publicJwk, use: "sig" }] } } });
   try {
     const pilot = createPilot({ log: quietLog() });
     const env = ENV(db);
     const now = Math.floor(Date.now() / 1000);
-    const ok = await signed({ key, url: `${SITE}/compare/cursor`, agent: AGENT, created: now - 1 });
-    const long = await signed({ key, url: `${SITE}/compare/cursor`, agent: AGENT, created: now - 1, lifetime: 3600 });
-    const r1 = await serve(pilot, toRequest(ok), env);
-    const r2 = await serve(pilot, toRequest(long), env);
-    for (const r of [r1, r2]) assert.equal(await r.response.text(), "<html>/compare/cursor</html>");
-    const [v, s] = db.rows();
-    assert.equal(v.class, "VERIFIED");
-    assert.equal(v.diver, DIRECTORY, "the resolved identifier (draft §4.1)");
-    assert.equal(v.sig_agent, "agent.example");
-    assert.equal(v.sig_lifetime, 60);
-    assert.equal(v.sig_nonce, 1);
-    assert.equal(s.class, "SPOOFED", "the Gate today refuses lifetimes over 60 s (spec §10.4)");
-    assert.equal(s.reason, "invalid_signature");
-    assert.equal(s.sig_lifetime, 3600, "kept so the days before GATE-8 can be read again");
-    assert.equal(s.sig_agent, "agent.example");
+    const minute = await signed({ key, url: `${SITE}/compare/cursor`, agent: AGENT, created: now - 1 });
+    const hour = await signed({ key, url: `${SITE}/compare/cursor`, agent: AGENT, created: now - 1, lifetime: 3600 });
+    const bare = await signed({ key, url: `${SITE}/compare/cursor`, agent: AGENT, created: now - 1, lifetime: 3600, nonce: null });
+    for (const desc of [minute, hour, bare]) {
+      const { response } = await serve(pilot, toRequest(desc), env);
+      assert.equal(await response.text(), "<html>/compare/cursor</html>", "whatever the class, the site's own answer");
+    }
+    const [m, h, b] = db.rows();
+    assert.equal(m.class, "VERIFIED");
+    assert.equal(m.diver, DIRECTORY, "the resolved identifier (draft §4.1)");
+    assert.equal(m.sig_agent, "agent.example");
+    assert.deepEqual([m.sig_lifetime, m.sig_nonce], [60, 1]);
+    assert.equal(h.class, "VERIFIED", "an hour with a nonce (GATE-8, plan A)");
+    assert.deepEqual([h.sig_lifetime, h.sig_nonce], [3600, 1]);
+    assert.equal(b.class, "SPOOFED", "past 60 s without a nonce (spec §10.4)");
+    assert.equal(b.reason, "invalid_signature");
+    assert.deepEqual([b.sig_lifetime, b.sig_nonce, b.sig_agent], [3600, 0, "agent.example"]);
   } finally { w.restore(); }
 });
 
