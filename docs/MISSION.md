@@ -52,9 +52,9 @@
 | ID | ± | L | 合格条件 | 対 |
 |---|---|---|---|---|
 | LOOP-1 | ~ | 0 | この目録と `accept/registry.mjs` の ID が完全に一致する | |
-| LOOP-2 | ~ | 1 | CI のフル実行（1回の push で起動する全ジョブ。Windows も含む。最初のジョブの開始から最後のジョブの完了まで）が10分以内。速さは、オラクルの削除・スキップ・閾値の緩和・層の格下げで稼いではならない | |
+| LOOP-2 | ~ | 1 | CI のフル実行（main への1回の push で起動する全ジョブ。最初のジョブの開始から最後のジョブの完了まで。全ジョブが緑であること）が10分以内。速さは、オラクルの削除・スキップ・閾値の緩和・層の格下げで稼いではならない。Windows は夜間のジョブで同じオラクルを回す（2026-10-03、人間の指示で push から外した） | |
 | LOOP-3 | ± | 0 | ラチェットのベース。存在する ref からは、その ratchet と ID の集合が読める。存在しない ref、壊れた ratchet（JSON でない、`passed` が ID の列でない、空、registry にない ID を含む）、ID のない registry では、scoreboard がオラクルを回す前に非ゼロで止まる。空のラチェットとして読んで通さない | |
-| LOOP-4 | ± | 0 | ラチェット済みのオラクルは PASS でなければならない。FAIL、PENDING、入力の欠けによる SKIP、タイムアウト、削除はすべて退行。例外は、退役（RETIRED）、ワークフローに実在する別の CI ジョブで回るもの、`--fast` でまだ一度も回っていないものだけ。オラクルが名指す CI ジョブは、すべてワークフローが回している。scoreboard はこの判定の関数をそのまま使う | |
+| LOOP-4 | ± | 0 | ラチェット済みのオラクルは PASS でなければならない。FAIL、PENDING、入力の欠けによる SKIP、タイムアウト、削除はすべて退行。例外は、退役（RETIRED）、ワークフローに実在する別の CI ジョブで回るもの、`--fast` でまだ一度も回っていないものだけ。オラクルが名指す CI ジョブは、すべてワークフローが回している。scoreboard はこの判定の関数をそのまま使う。CI がジョブのオラクルを分割して回すとき、統合は、ジョブの全オラクルがちょうど1回ずつ、同じコミットと同じ検証器の分割から戻ったことを確かめ、欠け・重複・食い違いは退行にする | |
 | LOOP-5 | ~ | 0 | 対は同じ性質の裏表。対を持つのは正のオラクルだけで、対の相手は − か ± のオラクル、両者の registry の `property` が同じ。この目録の ± と 対 の列が registry と一致する | |
 | SEED-1 | ~ | 0 | シードの単体テストが全部通る。目録の STD-1、STD-2、GATE-6、REG-2、PRS-1、DIV-2、DIV-3 が全部 PASS したら退役してよい | |
 | SEED-2 | ~ | 0 | シードの E2E（自分のエージェント → 自分の Gate → VERIFIED、リプレイと Staple 差し替えの拒否）が通る。GATE-2、GATE-7、GATE-8、PRIV-1、DIV-1 が全部 PASS したら退役してよい | |
@@ -105,6 +105,7 @@
 | PUB-1 | + | 1 | npm の公開セット（`ludion` と `@ludion/*`）を `npm pack` した tarball だけで、クリーンな環境（新しいディレクトリ、新しい npm キャッシュ、workspace なし）に入る。`ludion` の CLI（`.bin` へのリンク、scan と report はリポジトリの CLI と出力が完全に一致、init と sign）と、gate-node・gate-workers・gate-next を通した自分のエージェント → 自分の Gate → VERIFIED が、公開される名前の import だけで動く | PUB-2 |
 | PUB-2 | − | 1 | 公開セットの各 tarball に、宣言した `files` と package.json・README・LICENSE 以外が0件（テスト、ベンチ、フィクスチャ、鍵、`.env`、`ludion.json` が0件）。license、repository、engines、スコープ付きの `publishConfig.access: public`、bin の shebang、export 先の同梱、内部依存がセット内の同じ版であること。検査器は先に仕込みで試す | |
 | PUB-3 | + | 1 | `ludion` だけを先に出せる。`ludion` の tarball だけを、`@ludion/*` の取得が全て拒否されるレジストリの下で、クリーンな環境に入れられる（npm に `@ludion` のパッケージが一つもなくても入る）。入った CLI は `.bin` にリンクされ、scan と report はリポジトリの CLI と出力が完全に一致し、init と sign が Web Bot Auth の署名を作る。tarball は `npm publish` と同じ手順（prepack、pack、postpack）で作る | PUB-2 |
+| PUB-4 | ± | 0 | npm への公開は release ワークフローだけ。人が main で起動し、environment `npm` で人が承認し、npm の trusted publishing（OIDC。npm のトークンはどこにも無い）で、公開セットの順に、PUB-1〜3 のあとで出す。npm がまだ知らないパッケージは拒否（最初の版は人が手で出す）。最初の失敗で残りを止める。他のワークフローは公開も OIDC の発行もできない。検査器は仕込んだワークフローで先に試す | |
 
 ### M3 Registry
 
