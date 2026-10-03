@@ -1,0 +1,39 @@
+name: release
+# Publishing the npm set (docs/PUBLISH.md §6, PUB-4). Started by hand, from main only, and held at
+# the `npm` environment until a human approves it. npm trusts this workflow (trusted publishing,
+# OIDC): no npm token exists, in secrets or anywhere, and npm attaches provenance. A dry run sends
+# nothing. A package npm has never seen is refused: its first version is published by hand.
+on:
+  workflow_dispatch:
+    inputs:
+      packages:
+        description: "Package directories to publish, comma-separated, or all (the set's order is kept)"
+        required: true
+        default: all
+      dry_run:
+        description: "Dry run: pack and check everything, send nothing"
+        type: boolean
+        default: true
+permissions:
+  contents: read
+jobs:
+  publish:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: npm
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with: { fetch-depth: 0 }
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with: { node-version: 24 }
+      - run: npm ci
+      - name: The tarballs pass PUB-1, PUB-2 and PUB-3 on this commit
+        run: node --test --test-reporter=spec --test-name-pattern="^PUB-[123]:" accept/publish/pub1.test.mjs accept/publish/pub2.test.mjs accept/publish/pub3.test.mjs
+      - name: Publish (or, in a dry run, pack and check) in the set's order
+        env:
+          PACKAGES: ${{ inputs.packages }}
+          DRY_RUN: ${{ inputs.dry_run }}
+        run: node scripts/release.mjs --only "$PACKAGES" $([ "$DRY_RUN" = "true" ] && echo --dry-run)

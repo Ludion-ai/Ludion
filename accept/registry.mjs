@@ -207,6 +207,9 @@ export const ORACLES = [
   // fetch refused, and works as the repo's CLI does. Packed as npm publish packs (prepack, postpack).
   { id: "PUB-3", m: "M2", kind: "+", level: 1, pair: "PUB-2", property: "published-tarball", title: "the ludion tarball alone installs into a clean project with no @ludion/* on npm; the CLI works (scan, report equal the repo's; init + sign)",
     timeoutMs: 900_000, run: nodeTest(["accept/publish/pub3.test.mjs"], "^PUB-3:", { timeoutMs: 880_000 }) },
+  // The one way the set leaves the repository: the release workflow, by hand on main, OIDC only (docs/PUBLISH.md §6).
+  { id: "PUB-4", m: "M2", kind: "±", level: 0, title: "npm publishing goes only through the release workflow: started by hand on main, approved at the npm environment, trusted publishing (OIDC, no npm token anywhere), the set's order, after PUB-1..3; a package npm never saw is refused; the first failure stops the rest",
+    run: nodeTest(["accept/publish/pub4.test.mjs"], "^PUB-4:", { metric: (out) => (/^# PUB-4: (.+)$/m.exec(out) ?? [])[1] }) },
   { id: "DIV-4", m: "M2", kind: "±", level: 1, title: "session key rotation keeps the identifier; old key stops, new key works",
     run: nodeTest(["packages/diver/test/div4.test.mjs"], "^DIV-4:") },
 

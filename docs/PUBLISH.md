@@ -1,6 +1,6 @@
-# PUBLISH — npm への公開（人間が OTP を入れて行う）
+# PUBLISH — npm への公開（最初の版は人間が OTP を入れて、2版目からは人間が release ワークフローを起動して）
 
-Claude Code は publish しない。ここにある手順は、人間がなぞるためのもの。
+Claude Code は publish しない。ここにある手順は、人間がなぞるためのもの。最初の版は §0.5〜§4、2版目からは §6。
 公開の前提は、PUB-1 と PUB-2 が PASS していること（`npm run scoreboard` で確かめる）。
 
 - **PUB-1**：tarball だけから、クリーンな環境に入れて動く。
@@ -108,4 +108,35 @@ npm init -y && npm install @ludion/gate-node@0.0.1 @ludion/gate-workers@0.0.1 @l
 ## 5. 公開しないもの・注意
 
 - `LUDION_ROOT_PASSPHRASE`、`ludion.json`、鍵のファイルは、どの tarball にも入らない。PUB-2 と REG-4 が検査している。
-- CI からは publish しない（トークンを CI に置かない）。公開は人間の手元からだけ行う。
+- npm のトークンは CI に置かない。各パッケージの最初の版は、人間の手元から出す（§0.5、§3）。2版目からは §6 の release ワークフローで出せる。そのワークフローも、人間が起動して承認したときだけ動き、トークンを持たない（OIDC）。
+- Claude は publish しない（本物の release ワークフローも起動しない。dry run だけ）。
+
+## 6. 2版目から：release ワークフロー（trusted publishing）
+
+`.github/workflows/release.yml` が、GitHub Actions から npm の trusted publishing（OIDC）で出す。npm のトークンはどこにも無い。npm は出した版に provenance（どのリポジトリのどのワークフローで作られたか）を自動で付ける。PUB-4 がこの道の形を検査している。
+
+- 起動は手動（Actions → release → Run workflow）だけ。main からだけ。
+- 公開の前に、同じコミットで PUB-1〜3 を回す。落ちたら何も出さない。
+- 出す順は §0 の表の順。npm にすでにある版は飛ばす。最初の失敗で残りを止める。
+- 既定は dry run（何も送らない）。本番は `dry_run` のチェックを外して起動する。
+- npm がまだ知らないパッケージは拒否する。npm は、存在しないパッケージに trusted publisher を設定できないため。最初の版は §3 のとおり手で出す。
+
+### 6.1 最初に一度だけ（人間、パッケージごとに数分）
+
+1. **最初の版を手で出す**（§0.5 か §3）。
+2. **GitHub に environment `npm` を作る**：リポジトリの Settings → Environments → New environment → `npm`。
+   - Required reviewers に自分を入れる。ワークフローは承認まで止まる。
+   - Deployment branches は `main` だけにする。
+3. **npm で、各パッケージに trusted publisher を設定する**：npmjs.com のパッケージ → Settings → Trusted Publisher → GitHub Actions。
+   - Organization or user: `Ludion-ai`
+   - Repository: `Ludion`
+   - Workflow filename: `release.yml`
+   - Environment name: `npm`
+4. **トークンでの公開を止める**：同じ Settings の Publishing access で「Require two-factor authentication and disallow tokens」を選ぶ（npm の推奨）。
+
+### 6.2 版を出すたびに
+
+1. 8つの `package.json` の版を同じ版に上げる（内部の依存の版も）。PR にして main に入れる。PUB-2 が食い違いを落とす。
+2. Actions → release → Run workflow。`packages` は `all`（表の順に全部）か `ludion` などのディレクトリ名。まず `dry_run` のまま回す。
+3. 結果を見て、`dry_run` を外してもう一度起動し、environment `npm` の承認を押す。
+4. §4 のとおり確かめる。npmjs.com の各版に「Provenance」が出ていれば、このワークフローから出たもの。
