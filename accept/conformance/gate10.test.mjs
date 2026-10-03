@@ -37,7 +37,7 @@ test("GATE-10: the vectors are the corpus, one for one, and the WG vectors", () 
   for (const c of V.cases.filter((x) => x.source === "GATE-7")) if (!corpus.some((a) => a.id === c.id)) problems.push(`${c.id}: in the vectors, not in the corpus`);
   assert.deepEqual(problems, []);
   assert.ok(["wg-e2-1--signature-verifies", "wg-e2-1--one-flipped-byte", "wg-e2-1--gate-holds-to-60s"].every((id) => byId.get(id)?.source === "STD-1"),
-    "the WG App. E.2.1 vector: verifies, its tampered twin does not, and a Gate holds it to 60 s");
+    "the WG App. E.2.1 vector: verifies, its tampered twin does not, and a Gate holds it to its lifetime cap");
   assert.equal(V.cases.filter((c) => c.source === "GATE-7").length, corpus.length);
 });
 

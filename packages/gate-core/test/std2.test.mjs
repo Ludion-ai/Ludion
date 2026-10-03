@@ -1,5 +1,5 @@
 // STD-2 (docs/MISSION.md §4): through the Gate path, reject tampering, another key, another
-// authority, expired, future `created`, lifetime > 60s, a wrong tag, and a Signature-Agent
+// authority, expired, future `created`, lifetime > 1h (> 60s without a nonce), a wrong tag, and a Signature-Agent
 // dictionary key that does not match the signature's covered member / label.
 // Every negative case starts from a request that is VERIFIED and changes exactly one thing.
 // Expected classes follow spec §10.8: keyid not in the directory → UNVERIFIED (not attributable),
@@ -82,10 +82,13 @@ test("STD-2: future created → SPOOFED (±30s skew is the only grace)", async (
   await assertVerified(await signed({ key: agent, created: NOW_S + 29 }), "created 29s ahead is inside the skew");
 });
 
-test("STD-2: lifetime over 60s → SPOOFED", async () => {
-  await assertRejected(await signed({ key: agent, lifetime: 61 }), ["SPOOFED"], "61s");
+test("STD-2: lifetime over an hour, or over 60s without a nonce → SPOOFED", async () => {
+  await assertRejected(await signed({ key: agent, lifetime: 3601 }), ["SPOOFED"], "3601s");
   await assertRejected(await signed({ key: agent, lifetime: 86_400 }), ["SPOOFED"], "one day");
-  await assertVerified(await signed({ key: agent, lifetime: 60 }), "60s is the limit");
+  await assertRejected(await signed({ key: agent, lifetime: 61, nonce: null }), ["SPOOFED"], "61s without a nonce");
+  await assertRejected(await signed({ key: agent, lifetime: 3600, nonce: null }), ["SPOOFED"], "an hour without a nonce");
+  await assertVerified(await signed({ key: agent, lifetime: 3600 }), "an hour with a nonce is the limit");
+  await assertVerified(await signed({ key: agent, lifetime: 60, nonce: null }), "60s needs no nonce");
 });
 
 test("STD-2: missing expires / created / tag → SPOOFED", async () => {
