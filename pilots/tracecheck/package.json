@@ -1,0 +1,13 @@
+{
+  "name": "ludion-pilot-tracecheck",
+  "private": true,
+  "type": "module",
+  "description": "The Ludion Gate at Pressure 0 in front of tracecheck.dev, on a zone Worker route: it observes, keeps the automation it sees in the site's own D1, and writes one report every morning. Its own npm project (wrangler only); @ludion/gate-core and @ludion/report come from the monorepo root.",
+  "scripts": {
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev"
+  },
+  "devDependencies": {
+    "wrangler": "4.144.0"
+  }
+}

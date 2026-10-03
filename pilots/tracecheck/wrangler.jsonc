@@ -1,0 +1,32 @@
+// The Ludion Gate at Pressure 0 in front of tracecheck.dev. Deployed by a person, into the
+// Cloudflare account that holds the tracecheck.dev zone (DEPLOY.md). Nothing here is a secret.
+{
+  "name": "ludion-gate-tracecheck",
+  "main": "src/worker.mjs",
+  "compatibility_date": "2026-09-01",
+  // The Gate uses node:crypto (receipt ids, hashing).
+  "compatibility_flags": ["nodejs_compat"],
+
+  // In front of the site, on the zone's own route. No workers.dev URL: the Worker has nothing to
+  // serve by itself, it only passes requests on to the site.
+  "routes": [{ "pattern": "tracecheck.dev/*", "zone_name": "tracecheck.dev" }],
+  "workers_dev": false,
+  "preview_urls": false,
+
+  // Where the automation it sees is kept, in this account. `wrangler deploy` creates the database
+  // the first time (by this name); the schema is created on first use.
+  "d1_databases": [{ "binding": "EVENTS", "database_name": "ludion-tracecheck" }],
+
+  // 22:00 UTC is 07:00 in Tokyo: yesterday's report, every morning.
+  "triggers": { "crons": ["0 22 * * *"] },
+
+  "vars": {
+    // The site config (spec §11.4). Pressure 0: observe only (anything else is refused).
+    "LUDION": { "site_id": "tracecheck.dev", "pressure": 0, "authorities": ["tracecheck.dev"] },
+    // The day the report covers is the day in this time zone.
+    "REPORT_TZ": "Asia/Tokyo",
+    // Events older than this many days are deleted by the morning run (reports are kept).
+    "RETAIN_DAYS": "90"
+  }
+  // Secret (optional): REPORT_WEBHOOK_URL, a Discord or Slack incoming webhook for the report.
+}
