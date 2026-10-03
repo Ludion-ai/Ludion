@@ -202,6 +202,7 @@
     - PRS-3：製品のバグ。SQLite の `busy_timeout` は同期で待つので、ロック待ちの決済1つがプロセス全体を最大10秒止め、他のリクエストが Gate の故障になっていた。`busy_timeout = 0` にして、待ちは非同期の再試行でする。先に main で落ちる速いテスト（`ledger.test.mjs`、待つ間のイベントループの隙間 < 200ms）を足してから直した。
     - WEB-6：検査器の側。テスト用プロキシの accept の待ち行列が浅く、Windows で `ERR_PROXY_CONNECTION_FAILED`。待ち行列を深くし、断られたナビゲーションは3回まで試して数を要約に出す（漏れの判定は変えていない）。
     - #80 の `loop-windows` は、PRS-3、WEB-6、GATE-1、WEB-9 がすべて PASS（WEB-9 の中央値の最低は 100）。
+  - #79 のあとのプレビューの出し直しで、サイトのビルドが Windows のファイルの掴み（`EPERM`、出力の rename）で落ちた。`site/test/build.test.mjs` に降ろしてから、掴まれていればコピーするように直した。プレビューは出し直して WEB-1 PASS。scoreboard（ローカル）：PASS 54 / FAIL 0 / PENDING 8。
 
 - 2026-10-01 夜〜10-02（Claude Code）：Codex の検証器の監査（10件）と、人間の項目1〜6。全部採用し、先に今の main で落ちるオラクルを足してから直した。
   - **#69 セキュリティの4件**：
