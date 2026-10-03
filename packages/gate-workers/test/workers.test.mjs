@@ -36,20 +36,28 @@ test("gate-workers: an unsigned bot on a Pressure-2 route is denied and the app 
   assert.equal(ran, false);
 });
 
-test("gate-workers: sink deliveries are handed to ctx.waitUntil", async () => {
-  const realFetch = globalThis.fetch, posted = [];
+test("gate-workers: no visit is posted; an hour's counts go out when it closes, handed to ctx.waitUntil", async () => {
+  const realFetch = globalThis.fetch, realNow = Date.now, posted = [];
+  let t = Date.UTC(2026, 9, 3, 10, 30);
+  Date.now = () => t;
   globalThis.fetch = async (url, init) => { posted.push([url, JSON.parse(init.body)]); return new Response(null, { status: 204 }); };
   try {
-    const c = ctx();
     const app = { async fetch() { return new Response("ok"); } };
-    await withLudion(app).fetch(new Request("https://shop.example/", { headers: { "user-agent": "curl/8.7.1" } }),
-      { LUDION: { site_id: "s", report: { endpoint: "https://collector.example/e" } } }, c);
-    assert.equal(c.waits.length, 1);
-    await Promise.all(c.waits);
+    const w = withLudion(app), env = { LUDION: { site_id: "s", report: { endpoint: "https://collector.example/e" } } };
+    const c1 = ctx();
+    await w.fetch(new Request("https://shop.example/", { headers: { "user-agent": "curl/8.7.1" } }), env, c1);
+    await Promise.all(c1.waits);
+    assert.equal(posted.length, 0, "the visit itself is not posted (ADR-038)");
+    t += 3_600_000;
+    const c2 = ctx();
+    await w.fetch(new Request("https://shop.example/", { headers: { "user-agent": "Mozilla/5.0" } }), env, c2);
+    assert.equal(c2.waits.length, 1, "the delivery is handed to ctx.waitUntil");
+    await Promise.all(c2.waits);
     assert.equal(posted.length, 1);
     assert.equal(posted[0][0], "https://collector.example/e");
-    assert.equal(posted[0][1].class, "SUSPECTED");
-  } finally { globalThis.fetch = realFetch; }
+    assert.equal(posted[0][1].kind, "ludion.hourly");
+    assert.deepEqual(posted[0][1].rows.map((r) => [r.class, r.count]), [["SUSPECTED", 1]]);
+  } finally { globalThis.fetch = realFetch; Date.now = realNow; }
 });
 
 test("gate-workers: a missing or broken config passes every request through", async () => {

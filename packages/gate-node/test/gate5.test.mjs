@@ -184,9 +184,14 @@ for (const pressure of [0, 1]) {
       "sink hangs forever": never,
     };
     for (const [name, sink] of Object.entries(sinks)) {
-      let calls = 0;
-      const { port, host } = await gated({ pressure, sink: (e) => { calls++; return sink(e); } });
-      problems.push(...await appAnswers(port, await mixed(host), `P${pressure} ${name}`));
+      let calls = 0, late = false;
+      // The sink gets an hour's counts when the hour closes, inside the next request (ADR-038): the
+      // clock closes the hour halfway, so the faulty sink is called on the requests' own path.
+      const { port, host } = await gated({ pressure, now: () => (late ? NOW_MS + 3_600_000 : NOW_MS), sink: (e) => { calls++; return sink(e); } });
+      const requests = await mixed(host), half = Math.ceil(requests.length / 2);
+      problems.push(...await appAnswers(port, requests.slice(0, half), `P${pressure} ${name}`));
+      late = true;
+      problems.push(...await appAnswers(port, requests.slice(half), `P${pressure} ${name} (after the hour closed)`));
       if (!calls) problems.push(`P${pressure} ${name}: the sink was never called, so the fault was not exercised`);
     }
     assert.deepEqual(problems, []);

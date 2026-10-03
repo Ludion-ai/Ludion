@@ -50,7 +50,7 @@ Mount the Gate **before** any body parser (`express.json()`, `multer`, …). Whe
 - **`site_id`** (required): your site's identifier.
 - **`pressure`**: the site-wide Pressure, from 0 (observe) to 3 (everything). Default 0.
 - **`routes`**: per-path overrides. Critical routes usually sit at 2 while the rest of the site stays at 0. `require` may ask for a `depth`, `ballast: "active"`, and a Mandate `scope` (`read`, `account`, `post`, `reserve`, `checkout`, `delete`; see [Mandates](#mandates-payments-on-someones-behalf)).
-- **`report.endpoint`**: where the classified events are POSTed. They carry metadata only (spec §11.7): no bodies, no cookies, no query values, and no raw IPs.
+- **`report.endpoint`**: where the Gate POSTs each closed hour's counts, per route template, method, class, decision and operator (ADR-038). No visit leaves: no times, IP hashes, countries, bodies, cookies or query values. Each visit's record stays on the site for 7 days (`app.use` middleware's `.gate.records`; default in memory).
 - **`report.send_metadata`**: `false` keeps everything on the site.
 - **`fail_mode`**: what a fault inside the Gate does. Pressure 0–1 always stays open. Pressure 2–3 follows `pressure_2_3`.
 - **`authorities`**: your site's own hosts (`host`, `host:port`, `*.subdomain`, or an origin). A signature made for any other site is refused, so it can't be replayed here. Needed before Pressure 2–3 routes let verified agents through; without it, those routes treat a verified request as a Gate fault and follow `fail_mode` (ADR-023).

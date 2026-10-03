@@ -98,9 +98,14 @@ const good = await stapled.headersFor({ method: "GET", url: `${siteUrl}/api/sear
 r = await fetch(`${siteUrl}/api/search`, { headers: { ...good, "ludion-staple": staple.slice(0, -2) + (staple.endsWith("AA") ? "QA" : "AA") } });
 check((await r.json()).class === "SPOOFED", "swapped Staple under a valid signature: SPOOFED");
 
-check(events.length >= 6 && events.every((e) => !("body" in e) && !("cookie" in e) && e.route && !/\d{3}/.test(e.route)),
-  `metadata sink received ${events.length} events: route templates only, no content, no raw IP`);
-console.log("\nsample event:", JSON.stringify(events.find((e) => e.class === "VERIFIED" && e.diver === diverId)));
+// What leaves the Gate is hourly counts (ADR-038): close the hour, then look at everything sent.
+gate.gate.flush({ all: true });
+const rows = events.flatMap((b) => b.rows ?? []);
+const ROW = "class,count,decision,method,operator,route";
+check(events.length >= 1 && events.every((b) => b.kind === "ludion.hourly" && Object.keys(b).sort().join() === "hour,kind,rows,site,v")
+  && rows.reduce((n, x) => n + x.count, 0) >= 6 && rows.every((x) => Object.keys(x).sort().join() === ROW && x.route && !/\d{3}/.test(x.route)),
+  `metadata sink received ${events.length} hourly batch(es), ${rows.reduce((n, x) => n + x.count, 0)} visits counted: route templates only, no visit, no content, no raw IP`);
+console.log("\nsample row:", JSON.stringify(rows.find((x) => x.class === "VERIFIED" && x.operator === diverId)));
 
 cardHost.close(); site.close();
 console.log("\nPHASE 0 EXIT: my agent → my Gate → VERIFIED ✔");

@@ -143,6 +143,8 @@ for (let i = 0; i < N; i++) {
   const key = `${r.kind}>${cls}`;
   tally[key] = (tally[key] ?? 0) + 1;
 }
+// Hourly counts leave when their hour closes (ADR-038); the clock here stands still, so send it now.
+mw.gate.flush({ all: true });
 egress.meta("tally", tally);
 egress.meta("prefix", PREFIX);
 egress.meta("planted", [...planted]);

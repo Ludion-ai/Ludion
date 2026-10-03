@@ -20,13 +20,19 @@ test("config: the spec's shape maps onto GateConfig and builds a Gate", async ()
   assert.equal(cfg.timeoutMs, 1500);
   assert.equal(cfg.trustProxy, true);
   assert.equal(cfg.siteKey.kty, "OKP");
-  const gate = await createGate(cfg);
+  let t = Date.UTC(2026, 9, 3, 10, 30);
+  const gate = await createGate({ ...cfg, now: () => t });
   const r = await gate.inspect({ kind: "request", method: "GET", targetUri: "https://shop.example/checkout/1", fields: [{ name: "user-agent", value: "python-requests/2.32.3" }] });
   assert.equal(r.decision.action, "deny");
   assert.equal(r.route.pressure, 2);
-  assert.equal(sent.length, 1, "the event went to report.endpoint");
+  assert.equal(sent.length, 0, "the visit itself is not sent (ADR-038)");
+  t += 3_600_000; // the hour closes: the next request sends its counts to report.endpoint
+  await gate.inspect({ kind: "request", method: "GET", targetUri: "https://shop.example/", fields: [{ name: "user-agent", value: "Mozilla/5.0" }] });
+  assert.equal(sent.length, 1, "the hour's counts went to report.endpoint");
   assert.equal(sent[0][0], "https://collector.example/events");
-  assert.equal(JSON.parse(sent[0][1].body).class, "SUSPECTED");
+  const batch = JSON.parse(sent[0][1].body);
+  assert.equal(batch.kind, "ludion.hourly");
+  assert.deepEqual(batch.rows.map((x) => [x.class, x.route, x.count]), [["SUSPECTED", "/checkout/:id", 1]]);
 });
 
 test("config: a JSON string works (the Workers --var form); defaults are Pressure 0, nothing sent", async () => {

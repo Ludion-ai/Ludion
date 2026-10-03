@@ -68,7 +68,7 @@ DECLARED
 
 ### 毎朝
 
-`ludion.config.json` の `report.endpoint` を、あなたが動かす受け口に向けると、Gate は自動化のリクエストごとに、イベントをそこへ送ります。送るのはメタデータだけで、本文、クッキー、クエリの値は送りません。[`ludion report`](https://github.com/Ludion-ai/Ludion/tree/main/packages/report) が、そのイベントから日次レポートを日本語か英語で作ります。設定は [`@ludion/gate-node` の README](https://github.com/Ludion-ai/Ludion/blob/main/packages/gate-node/README.md#configuration) にあります。
+`ludion.config.json` の `report.endpoint` を、あなたが動かす受け口に向けると、Gate は1時間が終わるたびに、その1時間の件数をそこへ送ります。件数は、経路のテンプレート・メソッド・分類・判定・運営者ごとです。来訪そのものはサイトの外に出ないので、時刻、IP、本文、クッキー、クエリの値も送りません。来訪ごとの記録はサイトの中に7日だけ残り、その後に消えます（[仕様 §12.9](https://github.com/Ludion-ai/Ludion/blob/main/docs/ludion-spec.md#129-性能プライバシー配布)）。[`ludion report`](https://github.com/Ludion-ai/Ludion/tree/main/packages/report) が、どちらからでも日次レポートを日本語か英語で作ります。設定は [`@ludion/gate-node` の README](https://github.com/Ludion-ai/Ludion/blob/main/packages/gate-node/README.md#configuration) にあります。
 
 ## エージェント：リクエストに署名する
 

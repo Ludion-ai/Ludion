@@ -32,8 +32,8 @@ function pressureOf(v, where) {
 }
 
 /**
- * A metadata sink that POSTs each event as JSON. Never awaited by the Gate (spec §11.7: the event
- * already carries metadata only). `track` receives each pending delivery (Workers: ctx.waitUntil).
+ * The sink that POSTs each hourly batch as JSON (ADR-038: counts only, one batch per closed hour,
+ * never a visit). Never awaited by the Gate. On Workers each delivery is tracked for ctx.waitUntil.
  * @param {string} endpoint
  * @param {{ fetch?: typeof fetch }} [opts]
  */

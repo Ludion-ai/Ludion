@@ -94,8 +94,12 @@ for (const trustProxy of [false, true]) {
     const run = runWorkload({ PRIV_N: "10000", PRIV_TRUST_PROXY: trustProxy ? "1" : "0", PRIV_SEND_METADATA: "1" });
     const seen = classesSeen(run.meta.tally);
     for (const cls of EVERY_CLASS) assert.ok(seen[cls] >= 100, `class ${cls} exercised only ${seen[cls] ?? 0} times: ${JSON.stringify(run.meta.tally)}`);
-    const sinks = run.records.filter((r) => r.ch === "sink").length, fetches = run.records.filter((r) => r.ch === "fetch").length;
-    assert.ok(sinks >= 5000, `only ${sinks} metadata events reached the sink: the egress path is not exercised`);
+    // What reaches the sink is hourly counts (ADR-038): the egress path is exercised when those
+    // counts cover the automation requests, and it is never one delivery per request.
+    const batches = run.records.filter((r) => r.ch === "sink"), fetches = run.records.filter((r) => r.ch === "fetch").length;
+    const counted = batches.reduce((n, b) => n + (b.data?.rows ?? []).reduce((m, row) => m + row.count, 0), 0);
+    assert.ok(counted >= 5000, `only ${counted} requests counted in what reached the sink: the egress path is not exercised`);
+    assert.ok(batches.length >= 1 && batches.length <= 2, `${batches.length} deliveries to the sink: hourly batches, not one per request`);
     assert.ok(fetches >= 1, "no key directory was fetched: the fetch egress path is not exercised");
     assert.ok(run.meta.planted.length >= 10_000, "too few raw IPs planted");
     const { canaries, ips } = leaks(run);
