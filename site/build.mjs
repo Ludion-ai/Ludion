@@ -89,15 +89,19 @@ export function stageDir(dist) {
   return path.join(SITE, ".astro", "out", `${tag}-${process.pid}`);
 }
 
-/** Move a directory tree to `to` (replacing it); copy and delete when a rename cannot cross devices. */
+// Windows refuses to rename a directory while another process (the antivirus, the indexer) holds a
+// file in it open; the files can still be read and copied.
+const COPY_INSTEAD = new Set(["EXDEV", "EPERM", "EBUSY", "EACCES"]);
+
+/** Move a directory tree to `to` (replacing it); copy and delete when a rename cannot cross devices or the tree is held. */
 export function moveDir(from, to, { rename = fs.renameSync } = {}) {
-  fs.rmSync(to, { recursive: true, force: true });
+  fs.rmSync(to, { recursive: true, force: true, maxRetries: 5 });
   fs.mkdirSync(path.dirname(to), { recursive: true });
   try { rename(from, to); }
   catch (e) {
-    if (e.code !== "EXDEV") throw e;
+    if (!COPY_INSTEAD.has(e.code)) throw e;
     fs.cpSync(from, to, { recursive: true });
-    fs.rmSync(from, { recursive: true, force: true });
+    fs.rmSync(from, { recursive: true, force: true, maxRetries: 5 });
   }
 }
 
