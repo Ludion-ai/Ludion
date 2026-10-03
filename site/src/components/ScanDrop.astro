@@ -12,6 +12,10 @@ const t = STRINGS[lang] ?? STRINGS.en;
     <input id="scan-input" type="file" multiple />
   </label>
   <p class="scan-formats">{t.formats}</p>
+  <p class="scan-sample">
+    <button type="button" class="scan-button" id="scan-sample" data-src="/samples/nginx-access.log">{t.sample}</button>
+    <span>{t.sampleNote}</span>
+  </p>
   <p class="scan-privacy">{t.privacy}</p>
   <p id="scan-status" role="status" aria-live="polite"></p>
   <div id="scan-result" hidden></div>
@@ -37,6 +41,8 @@ const t = STRINGS[lang] ?? STRINGS.en;
   .ludion-scan[data-state="reading"] .scan-drop { opacity: 0.6; cursor: progress; }
   .scan-drop input { position: absolute; width: 1px; height: 1px; opacity: 0; overflow: hidden; }
   .scan-formats { font-size: var(--sl-text-sm); color: var(--sl-color-gray-2); }
+  .scan-sample { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 0.75rem; font-size: var(--sl-text-sm); color: var(--sl-color-gray-2); }
+  .ludion-scan :global(.scan-sample-shown) { padding: 0.75rem 1rem; border-inline-start: 4px solid var(--sl-color-gray-3); background: var(--sl-color-gray-6); }
   .scan-privacy { padding: 0.75rem 1rem; border-inline-start: 4px solid var(--sl-color-accent); background: var(--sl-color-gray-6); }
   #scan-status { min-height: 1.5em; font-variant-numeric: tabular-nums; }
   .ludion-scan :global(.scan-hero) { margin-block: 1.5rem; padding: 1.25rem 1.5rem; border-radius: 0.75rem; background: var(--sl-color-gray-6); }
