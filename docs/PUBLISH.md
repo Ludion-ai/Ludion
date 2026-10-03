@@ -126,7 +126,10 @@ npm init -y && npm install @ludion/gate-node@0.0.1 @ludion/gate-workers@0.0.1 @l
 1. **最初の版を手で出す**（§0.5 か §3）。
 2. **GitHub に environment `npm` を作る**：リポジトリの Settings → Environments → New environment → `npm`。
    - Required reviewers に自分を入れる。ワークフローは承認まで止まる。
+   - 「Prevent self-review」を有効にする（起動した人は自分で承認できない）。
    - Deployment branches は `main` だけにする。
+   - environment を作る前に起動すると、GitHub は保護のない `npm` を自動で作ってしまう。先に作る。
+   - 注意：この機械の `gh`（Claude が使う）は、2026-10-03 時点で人間と同じアカウント `Ludion-ai` でログインしている。承認の関所は、同じアカウントのトークンからは区別できない。関所を Claude から切り離すには、Claude に別のアカウントか、Actions の承認ができない細かいトークンを渡す。
 3. **npm で、各パッケージに trusted publisher を設定する**：npmjs.com のパッケージ → Settings → Trusted Publisher → GitHub Actions。
    - Organization or user: `Ludion-ai`
    - Repository: `Ludion`
