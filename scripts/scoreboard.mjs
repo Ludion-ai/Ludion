@@ -4,7 +4,12 @@
 //   … -- --fast                         level-0 only; everything else from the last full run
 //   … -- --brief | --json | --quiet     summary for humans (SessionStart) | for loop.sh | silent
 //   … -- --base origin/main             ratchet and ID set read from <ref> (CI), not the working tree
-//   … -- --job loop|preview             run only the oracles of that CI job (the others: ELSEWHERE)
+//   … -- --job loop|preview|nightly     run only the oracles of that CI job (the others: ELSEWHERE)
+//   … -- --job J --shard i/n --out f    run only shard i of n of job J's oracles (one at a time, as
+//                                       always); write their results to f; no verdict (CI, LOOP-2)
+//   … -- --job J --merge f1 f2 …        run nothing: merge the shard files, then the usual verdict.
+//                                       Every oracle of J must come back exactly once, from shards
+//                                       that ran this commit and this verifier (scripts/shard.mjs)
 //   npm run ratchet                     full run, then append every PASS to accept/ratchet.json
 // Exit 1 when something that once passed no longer does, or an oracle vanished; a ratcheted oracle
 // is held to PASS (scripts/ratchet.mjs, LOOP-4). Exit 2 when the --base cannot be read (LOOP-3).
@@ -14,12 +19,21 @@ import path from "node:path";
 import { execFileSync } from "node:child_process";
 import { ORACLES, ROOT } from "../accept/registry.mjs";
 import { readBase, regressions, ciJobs, workflowText, jobOf } from "./ratchet.mjs";
+import { FORMAT, parseShard, assignShards, fingerprint, mergeShards } from "./shard.mjs";
 
 const argv = process.argv.slice(2);
 const has = (f) => argv.includes(f);
 const val = (f) => { const i = argv.indexOf(f); return i >= 0 ? argv[i + 1] : undefined; };
 const FAST = has("--fast"), BRIEF = has("--brief"), JSON_OUT = has("--json"), QUIET = has("--quiet"), UPDATE = has("--update-ratchet");
 const JOB = val("--job");
+let SHARD = null;
+try { SHARD = has("--shard") ? parseShard(val("--shard")) : null; } catch (e) { console.error(e.message); process.exit(2); }
+const OUT = val("--out");
+// The files after --merge, up to the next flag.
+const MERGE = has("--merge") ? argv.slice(argv.indexOf("--merge") + 1).filter((a, i, all) => !all.slice(0, i + 1).some((x) => x.startsWith("--"))) : null;
+if (SHARD && !OUT) { console.error("--shard needs --out <file>"); process.exit(2); }
+if ((SHARD || MERGE) && (FAST || UPDATE)) { console.error("--shard and --merge are a CI run split in parts: no --fast, no ratchet update"); process.exit(2); }
+if (SHARD && MERGE) { console.error("--shard runs oracles, --merge runs none: one or the other"); process.exit(2); }
 const RATCHET = path.join(ROOT, "accept/ratchet.json"), CACHE = path.join(ROOT, "SCOREBOARD.json");
 const readJSON = (f, d) => { try { return JSON.parse(fs.readFileSync(f, "utf8")); } catch { return d; } };
 
@@ -33,22 +47,52 @@ if (base) {
 function readAt(ref, file) {
   return execFileSync("git", ["show", `${ref}:${file}`], { cwd: ROOT, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], maxBuffer: 64e6 });
 }
-// A scoreboard started by an oracle (LOOP-3 starts one) never runs oracles itself: no recursion.
-if (process.env.LUDION_NESTED_SCOREBOARD) { console.error("nested scoreboard: not running oracles"); process.exit(3); }
+// A scoreboard started by an oracle (LOOP-3, LOOP-4 start one) never runs oracles itself: no
+// recursion. A --merge runs none, so it may; neither writes SCOREBOARD.md over the real one.
+const NESTED = !!process.env.LUDION_NESTED_SCOREBOARD;
+if (NESTED && !MERGE) { console.error("nested scoreboard: not running oracles"); process.exit(3); }
 
 const cache = readJSON(CACHE, { results: {} });
-const results = {};
-for (const o of ORACLES) {
+let results = {};
+const inJob = (o) => !JOB || jobOf(o) === JOB;
+/** The status an oracle gets without running it, or undefined when it must run. */
+function statusWithoutRun(o) {
   const missing = (o.needs ?? []).filter((e) => !process.env[e]);
-  if (!o.run) { results[o.id] = { status: "PENDING", ...(missing.length ? { human: missing } : {}) }; continue; }
-  if (JOB && jobOf(o) !== JOB) { results[o.id] = { status: "ELSEWHERE", job: jobOf(o) }; continue; }
-  if (FAST && (o.level ?? 1) > 0) { results[o.id] = { ...(cache.results?.[o.id] ?? { status: "UNRUN" }), cached: true }; continue; }
-  if (missing.length) { results[o.id] = { status: "SKIP", human: missing }; continue; }
+  if (!o.run) return { status: "PENDING", ...(missing.length ? { human: missing } : {}) };
+  if (!inJob(o)) return { status: "ELSEWHERE", job: jobOf(o) };
+  if (FAST && (o.level ?? 1) > 0) return { ...(cache.results?.[o.id] ?? { status: "UNRUN" }), cached: true };
+  if (missing.length) return { status: "SKIP", human: missing };
+}
+async function runOracle(o) {
   const t = Date.now(), limit = o.timeoutMs ?? 300_000;
   try {
     const r = await Promise.race([o.run(), new Promise((_, rej) => setTimeout(() => rej(new Error(`timeout ${limit}ms`)), limit).unref())]);
-    results[o.id] = { status: r.pass ? "PASS" : "FAIL", metric: r.metric, detail: r.detail, ms: Date.now() - t };
-  } catch (e) { results[o.id] = { status: "FAIL", detail: String(e?.message ?? e).slice(0, 300), ms: Date.now() - t }; }
+    return { status: r.pass ? "PASS" : "FAIL", metric: r.metric, detail: r.detail, ms: Date.now() - t };
+  } catch (e) { return { status: "FAIL", detail: String(e?.message ?? e).slice(0, 300), ms: Date.now() - t }; }
+}
+const headSha = () => { try { return execFileSync("git", ["rev-parse", "HEAD"], { cwd: ROOT, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim(); } catch { return "unknown"; } };
+const line = (o, r) => `${r.status.padEnd(8)} ${o.id.padEnd(7)} ${o.m}  ${o.title}${r.metric ? `  [${r.metric}]` : ""}${r.detail ? `  — ${r.detail}` : ""}${r.ms != null ? `  (${(r.ms / 1000).toFixed(1)}s)` : ""}`;
+
+let mergeProblems = [];
+if (MERGE) {
+  // Nothing runs here: the shards did. The job's oracles come from them, the rest as always.
+  const merged = mergeShards(MERGE, { oracles: ORACLES.filter(inJob), sha: headSha(), print: fingerprint(ROOT), job: JOB ?? null });
+  mergeProblems = merged.problems;
+  for (const o of ORACLES) results[o.id] = inJob(o) ? merged.results[o.id] : statusWithoutRun(o);
+} else if (SHARD) {
+  const startedAt = new Date().toISOString();
+  const weights = readJSON(path.join(ROOT, "scripts/shard-weights.json"), { ms: {} }).ms ?? {};
+  const assigned = assignShards(ORACLES.filter(inJob), SHARD.n, weights);
+  const mine = ORACLES.filter((o) => inJob(o) && assigned[o.id] === SHARD.i);
+  for (const o of mine) results[o.id] = statusWithoutRun(o) ?? await runOracle(o);
+  // A shard gives no verdict: the merge does, over every shard, with the base's ratchet.
+  fs.writeFileSync(OUT, JSON.stringify({ format: FORMAT, sha: headSha(), fingerprint: fingerprint(ROOT), job: JOB ?? null, shard: SHARD,
+    ids: mine.map((o) => o.id), results, startedAt, finishedAt: new Date().toISOString(), platform: process.platform, node: process.version }, null, 1) + "\n");
+  if (!QUIET) for (const o of mine) console.log(line(o, results[o.id]));
+  console.log(`shard ${SHARD.i}/${SHARD.n}${JOB ? ` of job ${JOB}` : ""}: ${mine.length} oracles → ${OUT}`);
+  process.exit(0);
+} else {
+  for (const o of ORACLES) results[o.id] = statusWithoutRun(o) ?? await runOracle(o);
 }
 for (const o of ORACLES.filter((x) => x.retired)) {
   const open = (o.retireWhen ?? []).filter((id) => results[id]?.status !== "PASS");
@@ -56,7 +100,7 @@ for (const o of ORACLES.filter((x) => x.retired)) {
 }
 
 const ids = new Set(ORACLES.map((o) => o.id));
-const regressed = regressions({ ratchet, results, ids, baseIds, fast: FAST, jobs: JOB ? ciJobs(workflowText(ROOT)) : null });
+const regressed = [...mergeProblems, ...regressions({ ratchet, results, ids, baseIds, fast: FAST, jobs: JOB ? ciJobs(workflowText(ROOT)) : null })];
 // MISSION.md §1.4: a positive that passes without its negative (or with none) is not yet trustworthy.
 const warnings = [
   ...ORACLES.filter((o) => o.pair && results[o.id]?.status === "PASS" && !["PASS", "ELSEWHERE"].includes(results[o.pair]?.status))
@@ -74,7 +118,7 @@ const summary = { pass: count("PASS"), fail: count("FAIL"), pending: count("PEND
   retired: count("RETIRED"), human: human.length, autonomous: open.length, total: ORACLES.length, regressions: regressed, warnings,
   next: open.slice(0, 5).map((o) => `${o.id} ${results[o.id].status} (${o.m}) ${o.title}`) };
 
-if (!FAST) {
+if (!FAST && !NESTED) {
   // One CI job's run is not the whole picture: the cache (read by --fast) is written by full runs only.
   if (!JOB) fs.writeFileSync(CACHE, JSON.stringify({ at: new Date().toISOString(), results }, null, 1));
   const icon = { PASS: "✅", FAIL: "❌", PENDING: "⬜", SKIP: "⏸", RETIRED: "➖", UNRUN: "·", ELSEWHERE: "↪" };
@@ -109,7 +153,7 @@ else if (BRIEF) console.log([
   human.length ? `Waiting on a human: ${human.map((o) => `${o.id} (${results[o.id].human.join(", ")})`).join(", ")}` : null,
 ].filter(Boolean).join("\n"));
 else if (!QUIET) {
-  for (const o of ORACLES) { const r = results[o.id]; console.log(`${r.status.padEnd(8)} ${o.id.padEnd(7)} ${o.m}  ${o.title}${r.metric ? `  [${r.metric}]` : ""}${r.detail ? `  — ${r.detail}` : ""}`); }
+  for (const o of ORACLES) console.log(line(o, results[o.id]));
   console.log(`\nPASS ${summary.pass} / FAIL ${summary.fail} / PENDING ${summary.pending} / SKIP ${summary.skip}${JOB ? ` / in other CI jobs ${summary.elsewhere}` : ""} / total ${summary.total}`);
   for (const r of regressed) console.log(`REGRESSION ${r}`);
   for (const w of warnings) console.log(`UNPAIRED   ${w}`);
