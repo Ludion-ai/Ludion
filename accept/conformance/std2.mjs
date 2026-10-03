@@ -66,10 +66,13 @@ export async function std2Groups({ keypair, signed }) {
     ok(await signed({ key: agent, created: NOW_S + 29 }), "created 29s ahead is inside the skew"),
   ]);
 
-  group("lifetime over 60s → SPOOFED", [
-    bad(await signed({ key: agent, lifetime: 61 }), ["SPOOFED"], "61s"),
+  group("lifetime over an hour, or over 60s without a nonce → SPOOFED", [
+    bad(await signed({ key: agent, lifetime: 3601 }), ["SPOOFED"], "3601s"),
     bad(await signed({ key: agent, lifetime: 86_400 }), ["SPOOFED"], "one day"),
-    ok(await signed({ key: agent, lifetime: 60 }), "60s is the limit"),
+    bad(await signed({ key: agent, lifetime: 61, nonce: null }), ["SPOOFED"], "61s without a nonce"),
+    bad(await signed({ key: agent, lifetime: 3600, nonce: null }), ["SPOOFED"], "an hour without a nonce"),
+    ok(await signed({ key: agent, lifetime: 3600 }), "an hour with a nonce is the limit"),
+    ok(await signed({ key: agent, lifetime: 60, nonce: null }), "60s needs no nonce"),
   ]);
 
   const plain = await signed({ key: agent });

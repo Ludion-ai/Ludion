@@ -1,0 +1,12 @@
+{
+  "id": "nonce-flood--hour-long-replay",
+  "family": "nonce-flood",
+  "title": "Fill the nonce cache from many owners with hour-long signatures, then replay the victim's captured hour-long request half an hour later",
+  "params": {
+    "variant": "hour-long-replay"
+  },
+  "classes": [
+    "SPOOFED"
+  ],
+  "added": "2026-10-03"
+}

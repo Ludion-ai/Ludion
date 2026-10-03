@@ -27,7 +27,11 @@ import { checkContentDigest } from "./digest.mjs";
 export const CLASSES = ["VERIFIED", "UNVERIFIED", "SPOOFED", "REVOKED", "DECLARED", "SUSPECTED", "UNKNOWN"];
 export const AUTOMATION = new Set(["VERIFIED", "UNVERIFIED", "SPOOFED", "REVOKED", "DECLARED", "SUSPECTED"]);
 
-const MAX_SIG_AGE_S = 60;       // spec §10.4: expires - created ≤ 60s
+// spec §10.4: a Gate accepts expires - created up to an hour, what production signers use (ChatGPT
+// agent, GATE-8); past 60 s only with a nonce, so the nonce cache catches a replay inside the window.
+// Divers sign for 60 s.
+const MAX_SIG_LIFETIME_S = 3600;
+const NONCELESS_LIFETIME_S = 60;
 const CLOCK_SKEW_S = 30;        // spec §10.4: ±30s
 const STATE_CHANGING = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 
@@ -158,11 +162,13 @@ export async function classify(req, ctx) {
     sig = await verify(req, {
       resolver: (c) => discover(ctx, c),
       algorithms: ["ed25519"],
-      maxAge: MAX_SIG_AGE_S + CLOCK_SKEW_S,
+      maxAge: MAX_SIG_LIFETIME_S + CLOCK_SKEW_S,
       clockSkew: CLOCK_SKEW_S,
       now,
       validate: (s) => {
-        if (s.expires.getTime() - s.created.getTime() > MAX_SIG_AGE_S * 1000) return false; // spec §10.4
+        const lifetime = s.expires.getTime() - s.created.getTime();
+        if (lifetime > MAX_SIG_LIFETIME_S * 1000) return false; // spec §10.4
+        if (lifetime > NONCELESS_LIFETIME_S * 1000 && !s.nonce) return false; // a long window needs a nonce
         if (ctx.requireNonce && !s.nonce) return false;
         const names = s.components.map((c) => (typeof c === "string" ? c : c.name));
         // A Staple/Mandate that is present MUST be covered (spec §10.1); otherwise it can be swapped.

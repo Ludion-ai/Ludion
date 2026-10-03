@@ -1,0 +1,12 @@
+{
+  "id": "clock-skew--replay-long-lived-late",
+  "family": "clock-skew",
+  "title": "Replay an hour-long signature half an hour later, still inside its window",
+  "params": {
+    "variant": "replay-long-lived-late"
+  },
+  "classes": [
+    "SPOOFED"
+  ],
+  "added": "2026-10-03"
+}

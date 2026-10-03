@@ -100,7 +100,7 @@ export async function runCase(c, d) {
 
 /**
  * A `signature` step: the request's RFC 9421 / Web Bot Auth signature on its own, with the lifetime
- * left to the caller (a Gate adds its 60 s on top). `valid` must verify under the listed
+ * left to the caller (a Gate adds its cap on top, spec §10.4). `valid` must verify under the listed
  * directories with the reference keyid and identifier; `invalid` must not verify.
  */
 async function signatureStep(s, i, t) {

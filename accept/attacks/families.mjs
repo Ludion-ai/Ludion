@@ -303,14 +303,20 @@ export const FAMILIES = {
   // 40-entry cache (the logic does not depend on the size; the default is 100,000). `flood` steps
   // are the attacker's own traffic and may land in any class; the victim signing afresh after a
   // single-owner flood must still be VERIFIED (the flooder is stopped, not the victim).
+  // `hour-long-*`: the same with hour-long signatures (spec §10.4 accepts them with a nonce), whose
+  // nonces live an hour. Many owners fill the cache with them: the victim's captured nonce is never
+  // pushed out (a replay half an hour later is still a replay), and while the cache is full a new
+  // hour-long signature is not VERIFIED (it could not be remembered), so it is refused on Pressure 2.
   async "nonce-flood"({ variant, flood = 60, delayS = 1 }, w) {
     const gate = await deps.harness({ agentKeys: [w.agent], attackerKeys: [w.attacker], registry: w.registry, now: () => w.t, resolver: { fetch: w.fetch }, nonceCache: { maxEntries: 40 } });
-    const captured = await deps.signed({ key: w.agent, ...(variant === "nonce-less-victim" ? { nonce: null } : {}) });
+    const hour = variant.startsWith("hour-long");
+    const sign = (o) => deps.signed({ ...o, ...(hour ? { lifetime: 3600 } : {}) });
+    const captured = await sign({ key: w.agent, ...(variant === "nonce-less-victim" ? { nonce: null } : {}) });
     const steps = [{ gate, req: captured, atS: 0, expect: "verified" }];
     let floodKeys = [{ key: w.attacker, agent: ATTACKER }];
-    if (variant === "many-keys-one-directory" || variant === "many-directories") {
+    if (variant === "many-keys-one-directory" || variant === "many-directories" || hour) {
       const keys = await Promise.all(Array.from({ length: 12 }, () => deps.keypair()));
-      if (variant === "many-keys-one-directory") {
+      if (variant === "many-keys-one-directory" && !hour) {
         await gate.resolver.prime({ type: "directory", uri: "https://swarm.example" }, { keys: keys.map((k) => ({ ...k.publicJwk, use: "sig" })) });
         floodKeys = keys.map((key) => ({ key, agent: "https://swarm.example" }));
       } else {
@@ -321,7 +327,9 @@ export const FAMILIES = {
         }
       }
     }
-    for (let i = 0; i < flood; i++) steps.push({ gate, req: await deps.signed(floodKeys[i % floodKeys.length]), atS: 0, expect: "flood" });
+    for (let i = 0; i < flood; i++) steps.push({ gate, req: await sign(floodKeys[i % floodKeys.length]), atS: 0, expect: "flood" });
+    if (variant === "hour-long-full") return [...steps, { gate, req: await sign({ key: w.agent }), atS: 0, expect: "rejected" }];
+    if (variant === "hour-long-replay") return [...steps, { gate, req: captured, atS: 1800, expect: "rejected" }];
     // Many independent owners can fill the cache (then nobody new is VERIFIED: a documented limit);
     // one owner, however many keys, must not lock the victim out.
     if (variant !== "many-directories") steps.push({ gate, req: await deps.signed({ key: w.agent }), atS: 0, expect: "verified" });
@@ -335,7 +343,13 @@ export const FAMILIES = {
       return [ok(req), bad(req, 60 + 20)];
     }
     if (variant === "future-created") return [ok(await deps.signed({ key: w.agent })), bad(await deps.signed({ key: w.agent, created: NOW_S + 3600 }))];
-    if (variant === "long-lived") return [ok(await deps.signed({ key: w.agent })), bad(await deps.signed({ key: w.agent, lifetime: 3600 }))];
+    // A Gate accepts up to an hour, and past 60 s only with a nonce (spec §10.4).
+    if (variant === "long-lived") return [ok(await deps.signed({ key: w.agent })), bad(await deps.signed({ key: w.agent, lifetime: 3601 }))];
+    if (variant === "nonceless-long-lived") return [ok(await deps.signed({ key: w.agent })), bad(await deps.signed({ key: w.agent, lifetime: 3600, nonce: null }))];
+    if (variant === "replay-long-lived-late") {
+      const req = await deps.signed({ key: w.agent, lifetime: 3600 });
+      return [ok(req), bad(req, 1800)];
+    }
     if (variant === "pre-dated-long-lived") return [ok(await deps.signed({ key: w.agent })), bad(await deps.signed({ key: w.agent, created: NOW_S - 3600, expires: NOW_S + 30 }))];
     if (variant === "just-past-skew") return [ok(await deps.signed({ key: w.agent })), bad(await deps.signed({ key: w.agent, created: NOW_S - 95, expires: NOW_S - 35 }))];
     throw new Error(`unknown variant ${variant}`);

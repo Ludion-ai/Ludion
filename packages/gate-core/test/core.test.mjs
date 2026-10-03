@@ -38,7 +38,7 @@ async function primedResolver() {
 }
 
 test("E.2.1 dictionary Signature-Agent → VERIFIED (lifetime check relaxed for the far-future vector)", async () => {
-  // The vector's expires is far in the future; spec §10.4 caps lifetime at 60s. We verify the
+  // The vector's expires is decades away; spec §10.4 caps what a Gate accepts at an hour. We verify the
   // cryptographic path via the library directly and the policy path via a fresh signature below.
   const { verify } = await import("web-bot-auth");
   const r = await primedResolver();
@@ -60,8 +60,10 @@ test("E.2.2 legacy sf-string Signature-Agent verifies cryptographically (the lib
 test("E.2.2 legacy sf-string Signature-Agent still verifies (verifier MAY accept)", async () => {
   const r = await primedResolver();
   const cls = await classify(E22_LEGACY, { resolver: r, now: VEC_NOW });
-  // expires - created = 3600s > 60s → policy rejects as SPOOFED even though crypto is valid.
-  assert.equal(cls.class, "SPOOFED");
+  // expires - created = 3600s with a nonce: the WG's own vector is inside what a Gate accepts (spec §10.4).
+  assert.equal(cls.class, "VERIFIED", JSON.stringify(cls));
+  assert.equal(cls.identifier, agentEntry.uri);
+  assert.equal(cls.keyid, VEC_KID);
 });
 
 test("tampered signature → SPOOFED; unknown keyid → UNVERIFIED; unresolvable agent → UNVERIFIED", async () => {

@@ -5,7 +5,7 @@
 // (E.2.1 dictionary, E.2.2 legacy string), labels, covered components and tag are signed again
 // with created = now and a 60 s lifetime, and go through the Gate itself: gate.inspect(), and the
 // real gate-node adapter over HTTP. Each must be VERIFIED as the vector's keyid at the vector's
-// directory. The same signature past 60 s is STD-2's to refuse.
+// directory. The same signature past the Gate's cap (an hour; 60 s without a nonce) is STD-2's to refuse.
 import { test, after } from "node:test";
 import assert from "node:assert/strict";
 import http from "node:http";

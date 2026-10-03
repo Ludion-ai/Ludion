@@ -144,8 +144,8 @@ function wgVectors() {
   const world = { registry: { issuer: REGISTRY_ISS, keys: [] }, documents: [] };
   const reference = { keyid: "poqkLGiymh_W0uP6PZFw-dvez3QJT5SolqXBCW38r0U", identifier: "https://signature-agent.test" };
   // The vector's expires is decades away. Its signature is checked as RFC 9421 with the lifetime
-  // left to the caller (`signature` steps); through a Gate, which holds every signature to 60 s
-  // (spec §10.4), the same request is refused. All at created + 1 s.
+  // left to the caller (`signature` steps); through a Gate, which holds every signature to an hour
+  // (spec §10.4), the same request is refused. All at created + 1 s. (The id predates the hour cap.)
   return [
     { id: "wg-e2-1--signature-verifies", source: "STD-1", title: "WG -00 App. E.2.1: the signature verifies (keyid, directory identifier)", now: 1735689601000, world, gates: {},
       steps: [{ atS: 0, expect: "valid", signature: { request: E21, directories: [directory] }, reference }] },
