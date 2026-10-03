@@ -101,14 +101,24 @@ export function validLimits(l) {
 }
 
 /**
+ * The limits v0 knows how to hold. checkout_max and currency hold at any Gate with no record;
+ * per_day is counted in the site's shared ledger (ledger.mjs, PRS-3). Any other limit — a total over
+ * a period, or anything newer — cannot be held here, so a charge under it is refused, never let
+ * through unchecked (the human's rule, 2026-10-02: a limit that adds up over a period needs the
+ * record, and without one is refused).
+ */
+export const LIMIT_KEYS = Object.freeze(["checkout_max", "currency", "per_day"]);
+
+/**
  * The limits a single charge must meet, at any Gate and with no record (spec §10.6): the scope that
- * allows paying, an integer amount in the currency's minor unit, the Mandate's currency, and its
- * per-charge maximum. per_day is counted elsewhere: a site-wide ledger (ledger.mjs, PRS-3).
- * @returns {null | "scope" | "bad_amount" | "currency" | "over_limit"}
+ * allows paying, limits this Gate can hold at all, an integer amount in the currency's minor unit,
+ * the Mandate's currency, and its per-charge maximum. per_day is counted elsewhere (ledger.mjs).
+ * @returns {null | "scope" | "unenforceable_limit" | "bad_amount" | "currency" | "over_limit"}
  */
 export function chargeProblem(m, { amount, currency } = {}) {
   if (!m?.scope?.includes(CHARGE_SCOPE)) return "scope";
   const l = m.limits;
+  if (Object.keys(l ?? {}).some((k) => !LIMIT_KEYS.includes(k))) return "unenforceable_limit";
   if (!Number.isSafeInteger(amount) || amount <= 0) return "bad_amount";
   if (currency !== l?.currency) return "currency";
   if (amount > l.checkout_max) return "over_limit";
