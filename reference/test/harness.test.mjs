@@ -44,3 +44,22 @@ test("GATE-1: harness: stop() returns in bounded time and releases the pipes", a
   assert.ok(s.child.stdout.destroyed && s.child.stderr.destroyed, "our ends of the pipes are closed");
   assert.ok(await until(() => !alive(s.child.pid), 10_000), "the server is gone");
 });
+
+// GATE-1 failed every run (2026-10-02) on a cache prepare() called ready: GATE-3 rebuilds the
+// shared Next.js install's .next inside its clock, was stopped half way, and left no production
+// build behind. A prepared install is used only when it is still whole.
+test("GATE-1: harness: a prepared install is whole only with its build (a half-rebuilt .next is not)", async () => {
+  const { intact } = await import("../harness.mjs");
+  const fs = await import("node:fs"), path = await import("node:path");
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "ludion-intact-"));
+  try {
+    const dirs = { A: path.join(root, "A"), B: path.join(root, "B") };
+    for (const d of Object.values(dirs)) fs.mkdirSync(path.join(d, ".next"), { recursive: true });
+    assert.equal(intact("next", dirs), false, "no BUILD_ID anywhere");
+    fs.writeFileSync(path.join(dirs.A, ".next", "BUILD_ID"), "x");
+    assert.equal(intact("next", dirs), false, "B lost its build (GATE-3 stopped half way)");
+    fs.writeFileSync(path.join(dirs.B, ".next", "BUILD_ID"), "x");
+    assert.equal(intact("next", dirs), true, "both builds present");
+    assert.equal(intact("express", { A: path.join(root, "none"), B: path.join(root, "none") }), true, "an app without a build step has nothing to lose");
+  } finally { fs.rmSync(root, { recursive: true, force: true }); }
+});
