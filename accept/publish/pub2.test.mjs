@@ -11,7 +11,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
-import { ROOT, SET, manifest, packList } from "./set.mjs";
+import { ROOT, SET, BUNDLED, manifest, packList } from "./set.mjs";
 
 const FORBIDDEN = [/(^|\/)test\//, /\.test\.[cm]?js$/, /(^|\/)bench\//, /(^|\/)fixtures?\//, /(^|\/)\.env/, /\.(pem|key|p12|pfx)$/, /(^|\/)ludion\.json$/, /(^|\/)node_modules\//];
 const ALWAYS = new Set(["package.json", "README.md", "LICENSE"]);
@@ -83,4 +83,17 @@ test("PUB-2: every package of the publish set ships only what it declares, and i
     assert.deepEqual(p, [], `${m.name}: ${p.join("; ")}`);
   }
   console.log(`PUB-2: ${report.join(", ")}`);
+});
+
+test("PUB-2: only the set can be published; the bundled packages and every other package are private (ADR-036)", () => {
+  const dirs = fs.readdirSync(path.join(ROOT, "packages"), { withFileTypes: true }).filter((e) => e.isDirectory() && fs.existsSync(path.join(ROOT, "packages", e.name, "package.json"))).map((e) => e.name);
+  const open = dirs.filter((d) => !SET.includes(d) && !manifest(d).private);
+  assert.deepEqual(open, [], "a package outside the set is publishable");
+  for (const d of BUNDLED) assert.ok(dirs.includes(d) && manifest(d).private, `${d} is bundled and private`);
+  for (const d of SET) assert.ok(!manifest(d).private, `${d} is in the set, so it is not private`);
+  const services = path.join(ROOT, "services");
+  for (const d of fs.existsSync(services) ? fs.readdirSync(services) : []) {
+    const p = path.join(services, d, "package.json");
+    if (fs.existsSync(p)) assert.ok(JSON.parse(fs.readFileSync(p, "utf8")).private, `services/${d} is private`);
+  }
 });

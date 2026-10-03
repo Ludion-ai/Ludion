@@ -1,1 +1,1 @@
-export { proxy } from "@ludion/gate-next";
+export { proxy } from "ludion/gate/next";

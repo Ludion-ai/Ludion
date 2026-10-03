@@ -2,7 +2,7 @@
 // Deterministic on purpose (no random session IDs), so GATE-1 can compare bytes.
 import { createHash } from "node:crypto";
 import express from "express";
-import { ludion } from "@ludion/gate-node";
+import { ludion } from "ludion/gate/node";
 
 const app = express();
 app.use(await ludion());

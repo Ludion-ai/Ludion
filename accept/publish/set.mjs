@@ -1,6 +1,5 @@
-// The npm publish set (PUB-1, PUB-2): what `npm publish` will send, in dependency order.
-// A package is in the set only if a customer installs it; the order is the order to publish in
-// (every internal dependency is published before its dependents). docs/PUBLISH.md follows it.
+// The npm publish set (PUB-1..4): what `npm publish` will send. A package is in the set only if a
+// customer installs it. docs/PUBLISH.md follows it.
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -8,7 +7,10 @@ import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
 export const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
-export const SET = ["gate-core", "scan", "report", "diver", "ludion", "gate-node", "gate-next", "gate-workers"];
+// ADR-036: npm gets one package, `ludion`; the CLI's and the Gate's packages travel inside it (BUNDLED,
+// copied into its tarball at prepack) and are private in the repository.
+export const SET = ["ludion"];
+export { VENDORED as BUNDLED } from "../../packages/ludion/vendored.mjs";
 
 /** The npm CLI as a JS file (no .cmd shim on Windows). */
 export function npmCli() {

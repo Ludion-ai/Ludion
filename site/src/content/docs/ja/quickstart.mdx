@@ -17,12 +17,12 @@ Pressure 0 は観測だけです。上げるまで、誰に対しても何も変
 
 ```sh
 npm init -y
-npm install express @ludion/gate-node
+npm install express ludion
 ```
 
 ```js title="server.mjs"
 import express from "express";
-import { ludion } from "@ludion/gate-node";
+import { ludion } from "ludion/gate/node";
 
 const app = express();
 app.use(await ludion());
@@ -68,7 +68,7 @@ DECLARED
 
 ### 毎朝
 
-`ludion.config.json` の `report.endpoint` を、あなたが動かす受け口に向けると、Gate は1時間が終わるたびに、その1時間の件数をそこへ送ります。件数は、経路のテンプレート・メソッド・分類・判定・運営者ごとです。来訪そのものはサイトの外に出ないので、時刻、IP、本文、クッキー、クエリの値も送りません。来訪ごとの記録はサイトの中に7日だけ残り、その後に消えます（[仕様 §12.9](https://github.com/Ludion-ai/Ludion/blob/main/docs/ludion-spec.md#129-性能プライバシー配布)）。[`ludion report`](https://github.com/Ludion-ai/Ludion/tree/main/packages/report) が、どちらからでも日次レポートを日本語か英語で作ります。設定は [`@ludion/gate-node` の README](https://github.com/Ludion-ai/Ludion/blob/main/packages/gate-node/README.md#configuration) にあります。
+`ludion.config.json` の `report.endpoint` を、あなたが動かす受け口に向けると、Gate は1時間が終わるたびに、その1時間の件数をそこへ送ります。件数は、経路のテンプレート・メソッド・分類・判定・運営者ごとです。来訪そのものはサイトの外に出ないので、時刻、IP、本文、クッキー、クエリの値も送りません。来訪ごとの記録はサイトの中に7日だけ残り、その後に消えます（[仕様 §12.9](https://github.com/Ludion-ai/Ludion/blob/main/docs/ludion-spec.md#129-性能プライバシー配布)）。[`ludion report`](https://github.com/Ludion-ai/Ludion/tree/main/packages/report) が、どちらからでも日次レポートを日本語か英語で作ります。設定は [`ludion/gate/node` の README](https://github.com/Ludion-ai/Ludion/blob/main/packages/gate-node/README.md#configuration) にあります。
 
 ## エージェント：リクエストに署名する
 
@@ -100,4 +100,4 @@ npx ludion sign GET http://localhost:3000/ --curl
 
 署名のヘッダーを付けた `curl` のコマンドが出ます。`Signature-Agent`（ディレクトリの場所）、`Signature-Input`、`Signature` です。`-sI` を付けて、上で作ったサイトに送ってください。受領証は `VERIFIED` になり、あなたのディレクトリが書かれています。署名はリクエストのたびに作り直します。署名はすぐに期限が切れ、Gate は一度見た署名をリプレイとみなします。
 
-`ludion sign` は、どの HTTP クライアントにも使えるヘッダーを出します。コードからなら、`@ludion/diver` が署名します（`ludionFetch`）。
+`ludion sign` は、どの HTTP クライアントにも使えるヘッダーを出します。コードからなら、`ludion/diver` が署名します（`ludionFetch`）。

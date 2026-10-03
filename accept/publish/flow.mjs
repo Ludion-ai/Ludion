@@ -1,12 +1,11 @@
-// PUB-1, inside the clean install: only the published package names are importable here (no
-// monorepo, no workspace links). My agent → my Gate → VERIFIED through each adapter's entry point.
+// PUB-1, inside the clean install: only the published name, `ludion`, is importable here (no
+// monorepo, no workspace links). My agent → my Gate → VERIFIED through each of its Gate subpaths.
 // Everything on 127.0.0.1. Prints "ok …" per check; exits 1 at the first failure.
 import http from "node:http";
-import { generateEd25519, diverIdFromRoot, directoryDocument, cardDocument, createDiverSigner, ludionFetch, DIRECTORY_MEDIA_TYPE } from "@ludion/diver";
-import { generateSiteKey } from "@ludion/gate-core";
-import { ludionGate } from "@ludion/gate-node";
-import { withLudion } from "@ludion/gate-workers";
-import { createNextGate } from "@ludion/gate-next/core";
+import { generateEd25519, diverIdFromRoot, directoryDocument, cardDocument, createDiverSigner, ludionFetch, DIRECTORY_MEDIA_TYPE } from "ludion/diver";
+import { ludionGate, generateSiteKey } from "ludion/gate/node";
+import { withLudion } from "ludion/gate/workers";
+import { createNextGate } from "ludion/gate/next/core";
 
 const check = (cond, msg) => { if (!cond) { console.error("FAIL:", msg); process.exit(1); } console.log("ok", msg); };
 const listen = (srv) => new Promise((r) => srv.listen(0, "127.0.0.1", () => r(srv.address().port)));
@@ -27,7 +26,7 @@ const cardHost = http.createServer((req, res) => {
 });
 agentOrigin = `http://127.0.0.1:${await listen(cardHost)}`;
 
-// @ludion/gate-node: a real server, Pressure 0 with a Pressure-2 checkout.
+// ludion/gate/node: a real server, Pressure 0 with a Pressure-2 checkout.
 const siteKey = await generateSiteKey();
 let authority;
 const mw = await ludionGate({ siteId: "site-pub1", siteKey: siteKey.privateJwk, pressure: 0, authorities: (a) => a === authority,
@@ -44,13 +43,13 @@ const signer = await createDiverSigner({ sessionPrivateJwk: session.privateJwk, 
 r = await ludionFetch(`${siteUrl}/products`, {}, { signer });
 check(r.status === 200 && (await r.json()).class === "VERIFIED", "diver → gate-node: a signed request is VERIFIED");
 
-// @ludion/gate-workers: the wrapped fetch handler, config from the LUDION var.
+// ludion/gate/workers: the wrapped fetch handler, config from the LUDION var.
 const worker = withLudion({ async fetch() { return new Response("ok", { headers: { "content-type": "text/plain" } }); } });
 const wr = await worker.fetch(new Request("https://shop.example/", { headers: { "user-agent": "Mozilla/5.0 Chrome/141.0" } }),
   { LUDION: JSON.stringify({ site_id: "site-pub1-workers", pressure: 0 }) }, { waitUntil() {}, passThroughOnException() {} });
 check(wr.status === 200 && (await wr.text()) === "ok" && ludionHeaders(wr.headers).length > 0, "gate-workers: the app's response, with Ludion headers");
 
-// @ludion/gate-next: the proxy core, config handed in (no Next.js needed to load it).
+// ludion/gate/next: the proxy core, config handed in (no Next.js needed to load it).
 const { proxy } = createNextGate({ next: () => new Response(null, { headers: { "x-middleware-next": "1" } }),
   loadConfig: async () => ({ site_id: "site-pub1-next", pressure: 0 }), env: {} });
 const nr = await proxy(new Request("https://shop.example/", { headers: { "user-agent": "Mozilla/5.0 Chrome/141.0" } }));

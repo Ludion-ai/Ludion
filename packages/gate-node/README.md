@@ -1,17 +1,17 @@
-# @ludion/gate-node
+# ludion/gate/node
 
 The Ludion Gate for Node.js servers: Express, Connect, and anything that takes `(req, res, next)` middleware. It verifies Web Bot Auth (RFC 9421) signatures, classifies automated traffic, and applies your Pressure policy. Humans are never affected.
 
 ## Install (60 seconds)
 
 ```sh
-npm install @ludion/gate-node
+npm install ludion
 ```
 
 Add two lines to your server:
 
 ```js
-import { ludion } from "@ludion/gate-node";
+import { ludion } from "ludion/gate/node";
 app.use(await ludion());
 ```
 
@@ -96,4 +96,4 @@ Without a ledger, a charge on a Mandate with `per_day` is refused (`mandate_scop
 
 ## Lower level
 
-`ludionGate(config)` takes a `GateConfig` object directly. See `@ludion/gate-core`.
+`ludionGate(config)` takes a `GateConfig` object directly (gate-core's, bundled inside `ludion`).

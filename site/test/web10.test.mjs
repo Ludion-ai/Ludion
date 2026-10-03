@@ -6,8 +6,8 @@
 // it lists; the signed request is VERIFIED).
 //
 // What stands in for the world, and nothing else:
-//   - @ludion/* and `npx ludion` resolve to the npm publish set's tarballs (accept/publish/set.mjs),
-//     as they will from npm; everything else comes from the npm registry.
+//   - `npm install ludion` (and any @ludion/* name) and `npx ludion` resolve to the npm publish set's
+//     tarballs (accept/publish/set.mjs), as they will from npm; everything else comes from the registry.
 //   - `node server.mjs` is started in the background (the reader keeps it running).
 //   - agent.example.com is not ours, so the directory `init` writes is not served there. The signed
 //     request still goes to the quickstart's Gate, which cannot fetch the directory and says so
@@ -68,9 +68,11 @@ function killTree(child) {
 let tmp, tarballs, env, server;
 const posix = (p) => p.replace(/\\/g, "/");
 
-/** Run one shell block as the reader would, with @ludion/* names pointing at their tarballs. */
+/** Run one shell block as the reader would, with the published names in `npm install` lines pointing at their tarballs. */
 function sh(code, cwd, extraEnv = {}) {
-  const script = code.replace(/(^|\s)(@ludion\/[a-z-]+)(?=\s|$)/g, (_, sp, name) => `${sp}${installSet(name)}`);
+  const script = code.split("\n").map((line) => (/^\s*npm (?:install|i)\b/.test(line)
+    ? line.replace(/(^|\s)(@ludion\/[a-z-]+|ludion)(?=\s|$)/g, (_, sp, name) => `${sp}${installSet(name)}`)
+    : line)).join("\n");
   const r = spawnSync(bash(), ["-c", script], { cwd, encoding: "utf8", env: { ...env, ...extraEnv }, timeout: 600_000, maxBuffer: 64e6 });
   return { out: r.stdout ?? "", err: r.stderr ?? "", code: r.status };
 }
@@ -183,7 +185,7 @@ test("WEB-10: the quickstart runs as written: the Gate at Pressure 0 classifies,
   assert.equal(receiptClass(sent), "UNVERIFIED", `the quickstart's Gate cannot reach https://${domain} from here:\n${sent}`);
 
   // The same request, at a Gate that has the directory the reader publishes.
-  const { createGate, generateSiteKey } = await import(pathToFileURL(path.join(site, "node_modules", "@ludion", "gate-core", "src", "index.mjs")).href);
+  const { createGate, generateSiteKey } = await import(pathToFileURL(path.join(site, "node_modules", "ludion", "lib", "@ludion", "gate-core", "src", "index.mjs")).href);
   const headers = [...command.matchAll(/-H '([^:]+): ((?:[^']|'\\'')*)'/g)].map((m) => ({ name: m[1], value: m[2].replace(/'\\''/g, "'") }));
   const request = (fields) => ({ kind: "request", method: "GET", targetUri: `http://localhost:${PORT}/`, fields: [{ name: "user-agent", value: "web10" }, ...fields] });
   const directory = JSON.parse(fs.readFileSync(path.join(agent, ".well-known", "http-message-signatures-directory"), "utf8"));

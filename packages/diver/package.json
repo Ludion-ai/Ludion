@@ -1,6 +1,7 @@
 {
   "name": "@ludion/diver",
   "version": "0.0.1",
+  "private": true,
   "description": "Ludion Diver: keys, directory/card documents, and one-line request signing on Web Bot Auth (RFC 9421).",
   "license": "Apache-2.0",
   "homepage": "https://ludion.ai",
@@ -29,9 +30,6 @@
   ],
   "engines": {
     "node": ">=20"
-  },
-  "publishConfig": {
-    "access": "public"
   },
   "dependencies": {
     "@ludion/report": "0.0.1",

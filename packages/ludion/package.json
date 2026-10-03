@@ -1,7 +1,7 @@
 {
   "name": "ludion",
   "version": "0.0.1",
-  "description": "Ludion CLI: register an agent identity, sign requests with Web Bot Auth (RFC 9421), and scan access logs for unverified automation.",
+  "description": "Ludion: give your AI agent its own key and name (CLI), and the Gate that reads them (Node, Next.js, Cloudflare Workers). Web Bot Auth (RFC 9421) and OAuth CIMD.",
   "keywords": [
     "web-bot-auth",
     "rfc9421",
@@ -23,6 +23,14 @@
   "bin": {
     "ludion": "bin/ludion.mjs"
   },
+  "exports": {
+    "./diver": "./lib/@ludion/diver/src/index.mjs",
+    "./gate/node": "./lib/@ludion/gate-node/index.mjs",
+    "./gate/next": "./lib/@ludion/gate-next/index.mjs",
+    "./gate/next/core": "./lib/@ludion/gate-next/core.mjs",
+    "./gate/workers": "./lib/@ludion/gate-workers/index.mjs",
+    "./package.json": "./package.json"
+  },
   "files": [
     "bin/",
     "lib/",
@@ -40,5 +48,13 @@
     "http-message-sig": "0.3.0",
     "jsonwebkey-thumbprint": "0.1.0",
     "web-bot-auth": "0.2.0"
+  },
+  "peerDependencies": {
+    "next": ">=16.0.0"
+  },
+  "peerDependenciesMeta": {
+    "next": {
+      "optional": true
+    }
   }
 }
