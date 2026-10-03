@@ -1,0 +1,103 @@
+---
+title: クイックスタート
+description: Gate を Pressure 0 で入れて、どのエージェントが来ているかを見る。自分のエージェントには身元を持たせ、リクエストに署名する。
+---
+
+サイトを運営しているなら、ここから始めてください。エージェントを作っているなら、[エージェント](#エージェントリクエストに署名する)へ。
+
+## サイト：どのエージェントが来ているかを見る
+
+### もう来たものを数える
+
+[スキャンのページ](/ja/scan)にアクセスログを落とします。決済、ログイン、登録、フォームに、未検証の自動化がどれだけ触れたかを数えます。ログはこの端末の外に出ません。手元にログがなければ、そのページのサンプルで試せます。
+
+### Gate を前に置く（Pressure 0）
+
+Pressure 0 は観測だけです。上げるまで、誰に対しても何も変わりません。空のディレクトリから、新しい Express のアプリで：
+
+```sh
+npm init -y
+npm install express @ludion/gate-node
+```
+
+```js title="server.mjs"
+import express from "express";
+import { ludion } from "@ludion/gate-node";
+
+const app = express();
+app.use(await ludion());
+app.get("/", (req, res) => res.send("Hello from my shop\n"));
+app.listen(3000, () => console.log("http://localhost:3000"));
+```
+
+```json title="ludion.config.json"
+{ "site_id": "site-my-shop", "pressure": 0 }
+```
+
+```sh
+node server.mjs
+```
+
+すでにアプリがあるなら、import と `app.use(await ludion())` を、ルートと body parser より前に足します。Next.js と Cloudflare Workers は [Gate を入れる](/ja/gate) にあります。
+
+### 分類されているかを確かめる
+
+別のターミナルから、クローラーと同じように聞きます。
+
+```sh
+curl -sI -A "Mozilla/5.0 (compatible; GPTBot/1.2; +https://openai.com/gptbot)" http://localhost:3000/ | grep -i '^ludion-'
+```
+
+```text
+Ludion-Version: 0
+Ludion-Receipt: eyJ2IjowLCJyaWQiOiJyY3At…
+```
+
+受領証（Receipt）は署名付きの JSON です。分類を読みます。
+
+```sh
+curl -sI -A "Mozilla/5.0 (compatible; GPTBot/1.2; +https://openai.com/gptbot)" http://localhost:3000/ \
+  | node -e 'const r = require("fs").readFileSync(0, "utf8").match(/^ludion-receipt: *(\S+)/im)[1]; console.log(JSON.parse(Buffer.from(r, "base64url")).class)'
+```
+
+```text
+DECLARED
+```
+
+`DECLARED` は、User-Agent で公開されたエージェント名を名乗ったが、署名がなかったということです。誰でも名乗れます。ブラウザには `UNKNOWN` が付き、返るページは同じです。`VERIFIED` になるのは、正しい Web Bot Auth の署名があるリクエストだけです。
+
+### 毎朝
+
+`ludion.config.json` の `report.endpoint` を、あなたが動かす受け口に向けると、Gate は自動化のリクエストごとに、イベントをそこへ送ります。送るのはメタデータだけで、本文、クッキー、クエリの値は送りません。[`ludion report`](https://github.com/Ludion-ai/Ludion/tree/main/packages/report) が、そのイベントから日次レポートを日本語か英語で作ります。設定は [`@ludion/gate-node` の README](https://github.com/Ludion-ai/Ludion/blob/main/packages/gate-node/README.md#configuration) にあります。
+
+## エージェント：リクエストに署名する
+
+### 身元を作る
+
+```sh
+npx ludion init --name "My Agent" --contact mailto:ops@example.com --domain agent.example.com
+```
+
+`--domain` には、あなたが管理していて、鍵を公開するホストを指定します。`init` は Root 鍵を封じるパスフレーズを聞いてから、次のファイルを書きます。
+
+- `ludion.json`：あなたの鍵。人に見せないでください。
+- `.well-known/http-message-signatures-directory`：公開する鍵のディレクトリ。
+- `card`：誰がエージェントを動かしていて、どう連絡が取れるか。
+
+### ディレクトリとカードを公開する
+
+公開するファイルを、`https://agent.example.com/.well-known/http-message-signatures-directory` と `https://agent.example.com/card` で配ります。静的なホストならどこでも構いません。届くかを確かめます。
+
+```sh
+npx ludion doctor
+```
+
+### リクエストに署名する
+
+```sh
+npx ludion sign GET http://localhost:3000/ --curl
+```
+
+署名のヘッダーを付けた `curl` のコマンドが出ます。`Signature-Agent`（ディレクトリの場所）、`Signature-Input`、`Signature` です。`-sI` を付けて、上で作ったサイトに送ってください。受領証は `VERIFIED` になり、あなたのディレクトリが書かれています。署名はリクエストのたびに作り直します。署名はすぐに期限が切れ、Gate は一度見た署名をリプレイとみなします。
+
+`ludion sign` は、どの HTTP クライアントにも使えるヘッダーを出します。コードからなら、`@ludion/diver` が署名します（`ludionFetch`）。
