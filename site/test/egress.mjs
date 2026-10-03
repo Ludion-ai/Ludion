@@ -61,7 +61,9 @@ export async function startEgressProxy(root) {
     socket.destroy();
   });
 
-  await new Promise((r) => server.listen(0, "127.0.0.1", r));
+  // A deep accept queue: the browser opens many connections at once while this process is busy
+  // judging (a refused connection was seen on loop-windows as ERR_PROXY_CONNECTION_FAILED).
+  await new Promise((r) => server.listen({ port: 0, host: "127.0.0.1", backlog: 4096 }, r));
   state.origin = `http://127.0.0.1:${server.address().port}`;
   return {
     get origin() { return state.origin; },

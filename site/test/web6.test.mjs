@@ -66,6 +66,7 @@ after(async () => {
 });
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+let proxyRetries = 0; // navigations retried because the test's own proxy refused the connection
 
 /** Runs in every document before its own scripts: reports each resource hint as it appears. */
 function hintWatch() {
@@ -117,7 +118,16 @@ async function visit(urlPath, files, { transform = null, expectDone = true } = {
   const page = await context.newPage();
   let report = null, state = null, copied = null, saved = null, dom = "", kept = null, dropAt = 0;
   try {
-    const res = await page.goto(proxy.origin + urlPath);
+    // The test's own proxy refusing the connection (a busy machine) is not the page's doing: the page
+    // never loaded, nothing was judged. Navigate again (twice at most) and count it.
+    let res;
+    for (let attempt = 1; ; attempt++) {
+      try { res = await page.goto(proxy.origin + urlPath); break; } catch (e) {
+        if (!/ERR_PROXY_CONNECTION_FAILED/.test(String(e?.message)) || attempt === 3) throw e;
+        proxyRetries++;
+        await sleep(500);
+      }
+    }
     assert.equal(res.status(), 200, urlPath);
     await page.waitForSelector('.ludion-scan[data-state="idle"]', { state: "attached" });
     await sleep(300);
@@ -198,7 +208,7 @@ test("WEB-6: a canary log dropped on /scan and /ja/scan, plain and gzip: not a b
     watched += v.seen.length;
     afterDrop += v.seen.length - v.dropAt;
   }
-  summary = `${watched} requests watched over ${runs.length} scans (${afterDrop} after the drop), 0 left the site's origin, 0 carried a log byte`;
+  summary = `${watched} requests watched over ${runs.length} scans (${afterDrop} after the drop), 0 left the site's origin, 0 carried a log byte${proxyRetries ? `; ${proxyRetries} navigation(s) retried after the test proxy refused a connection` : ""}`;
 });
 
 // ── the watch bites ─────────────────────────────────────────────────────────────────────────
