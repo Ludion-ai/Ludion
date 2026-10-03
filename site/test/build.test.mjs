@@ -39,9 +39,29 @@ test("site build: moving the output falls back to a copy when the rename crosses
     assert.equal(fs.existsSync(from), false, "the stage is removed");
     // Any other rename error is not swallowed.
     tree(from);
-    const eperm = () => { throw Object.assign(new Error("EPERM"), { code: "EPERM" }); };
-    assert.throws(() => moveDir(from, path.join(tmp, "out2"), { rename: eperm }), /EPERM/);
+    const einval = () => { throw Object.assign(new Error("EINVAL"), { code: "EINVAL" }); };
+    assert.throws(() => moveDir(from, path.join(tmp, "out2"), { rename: einval }), /EINVAL/);
   } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
+});
+
+// Windows refuses to rename a directory while another process holds a file in it open: the
+// antivirus or the indexer reading what Astro just wrote. `npm run deploy:preview` failed so on
+// 2026-10-03 (EPERM, rename site/.astro/out/… → site/dist). The files can still be read, so the
+// move copies them instead of failing the build.
+test("site build: a directory another process holds (EPERM, EBUSY, EACCES) is copied, not lost", () => {
+  for (const code of ["EPERM", "EBUSY", "EACCES"]) {
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "ludion-build-"));
+    try {
+      const from = path.join(tmp, "stage"), to = path.join(tmp, "out", "dist");
+      tree(from);
+      const want = list(from);
+      const held = () => { throw Object.assign(new Error(`${code}: operation not permitted, rename`), { code }); };
+      moveDir(from, to, { rename: held });
+      assert.deepEqual(list(to), want, code);
+      assert.equal(fs.readFileSync(path.join(to, "index.html"), "utf8"), "<html>en</html>", code);
+      assert.equal(fs.existsSync(from), false, `${code}: the stage is removed`);
+    } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
+  }
 });
 
 test("site build: on one device the move is a rename, and replaces what was there", () => {
