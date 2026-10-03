@@ -12,6 +12,14 @@
 - オラクルの追加（`accept/registry.mjs`、`docs/MISSION.md`）は、まとめて 1 回の PR にする。
 - ローンチは 2026-10-13（火）22:00 JST。それまでに tracecheck.dev の 7 日分のデータが要る。
 
+### PR の決まり（人間、2026-10-03 の午後から）
+
+- 必須のチェックは `loop` だけ。`loop-windows` は待たない（Windows は夜間のジョブ。担当は 1 本目）。
+- 「最新の main に追従してからマージ」は外す（人間）。マージの後の main の CI が赤なら、それを最優先で直す。
+  - 2026-10-03 11:00 の時点では、API ではまだ `strict: true` だった。それまでは `gh pr update-branch` を続ける。
+- 関連する変更は 1 本の PR にまとめる。1 つのレーンで同時に開く PR は 2 本まで。
+- auto-merge を付けたら、CI を待たずに次の仕事に進む。結果は次の区切りで見る。
+
 ## 現在地
 
 - **tracecheck.dev の計測**：仕組みは main に入った（#81）。デプロイは人間待ち（下）。
@@ -19,7 +27,7 @@
   - デプロイ用のチェックアウト `C:Usershaya0ludion-tracecheck`（`npm ci` 済み）を人間に渡した。
   - 速いテスト（`pilot.test.mjs`、`npm test`）：仕込んだ 6 つの故障をすべて捕まえた（人を記録する、ヘッダーを足す、本文を読まない、passThroughOnException を外す、レポートの日を間違える、生の User-Agent を残す）。
   - workerd：本物の `wrangler.jsonc` と束ねた Worker を `wrangler dev` で、スタブのサイトの前に立てた。サイトのバイトとヘッダーがそのまま返り、D1 には自動化だけが入り、cron がレポートを送る。
-- **ローンチの文書**（PR は `loop-windows` の緑を待ってマージ）：
+- **ローンチの文書**：
   - README（#83）：リポジトリに README がなかった。
   - /scan のサンプル（#82）：SCAN の nginx のコーパスと同じファイルを配り、ドロップと同じ道で読む。WEB-4 を強化した。
   - クイックスタート（#84）：`/quickstart` と `/ja/quickstart`。サイト（Express と Gate、受領証で DECLARED と UNKNOWN）とエージェント（init、sign、VERIFIED）。
@@ -60,6 +68,6 @@
 ## 次の一手
 
 1. 人間がデプロイしたら、D1 に行が入っているかを一緒に確かめる（手順 5 の結果をもらう）。
-2. #82〜#84 を、`loop-windows` が緑になってからマージする（README の #83 は auto-merge）。
+2. #82 と #84 は auto-merge 済み（#83 はマージ済み）。
 3. `lane2/oracles` を main に合わせ、プレビューを出し直し、scoreboard を回し、`npm run ratchet`（WEB-10、PILOT-1）を入れて PR にする。
 4. 対のない正のオラクルに負を足す（STATE.md の「次の一手」2）のうち、レーン 2 の範囲のもの：WEB-4（ブラウザ版 scan）。
