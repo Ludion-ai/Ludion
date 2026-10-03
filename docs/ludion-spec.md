@@ -434,7 +434,9 @@ Signature: sig1=:<Ed25519署名のbase64>:
 - 必須の署名対象：`@authority`、`"signature-agent";key=<ラベル>`（Web Bot Auth）。`ludion-staple`、`ludion-mandate` がある時は必ず含める。
 - 状態を変えるリクエスト（POST／PUT／PATCH／DELETE）は、`@method`、`@path`、`content-digest`（RFC 9530）も含める。
 - 検証者は、署名が覆う `content-digest` を、届いた本文と照合する（RFC 9530 の sha-256 と sha-512。知っているものは全部一致すること）。一致しなければ SPOOFED。本文を確かめられない（大きすぎる、先に読まれた、知らないアルゴリズムだけ）ときは VERIFIED にしない（UNVERIFIED）。本文はサイトの中でハッシュするだけで、外には出さない（§8 の6）。
-- `expires - created` は60秒以内。時計のずれは±30秒まで許す。
+- Diverが付ける寿命（`expires - created`）は60秒以内。
+- Gateが受け入れる寿命は3600秒（1時間）まで。60秒を超える署名は `nonce` を持たなければならない。実運用の署名者（ChatGPT agent）は1時間で署名している（GATE-8、`docs/adr/2026-10-01-real-chatgpt-agent-signs-for-an-hour.md`）。WGのドラフトは24時間以内を推奨し、上限は検証者の方針に任せている。
+- 時計のずれは±30秒まで許す。
 - `nonce` は、有効期間内の再利用を検証者が拒否する。
 - アルゴリズムはEd25519のみ（v0）。
 
@@ -821,7 +823,7 @@ Registryの署名鍵／DiverのRoot鍵／Depthの完全性／サイトのメタ�
 |---|---|---|---|
 | Registry鍵の奪取 | 偽のStapleを大量に発行 | Rootはオフラインでm-of-n分割。中間鍵はHSMで月次交換。全発行を追記専用の記録へ。鍵のピン留めと緊急交換の手順 | v0から |
 | Diver鍵の奪取 | 他人のエージェントになりすます | Root／Sessionの分離、Sessionは短命、Stapleの`cnf`で鍵を結ぶ、漏洩申告を一発で | v0から |
-| リプレイ | 署名付きリクエストの再送 | `created`／`expires`（60秒以内）、`nonce`の再利用拒否 | v0から |
+| リプレイ | 署名付きリクエストの再送 | `created`／`expires`（Diverは60秒以内。Gateは1時間まで受け入れ、60秒を超えるものには`nonce`を求める）、`nonce`の再利用拒否 | v0から |
 | Stapleの差し替え | 他のDiverのStapleを付ける | Stapleを署名の対象に含める、`cnf`の一致を確認 | v0から |
 | 格下げ攻撃 | 署名を剥がして「未検証」として通る | 重要経路はPressure 2で署名必須。剥がしても通れない | v0から |
 | Sybil | 捨てDiverを大量に作る | D1は無料だが優遇は小さい。重要経路はD2以上。登録の速度制限 | v0から |

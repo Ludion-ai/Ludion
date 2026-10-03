@@ -125,7 +125,7 @@ export const ORACLES = [
       "STD-5: E.2.2 (legacy string Signature-Agent), signed again within 60 s, is VERIFIED by the Gate (a verifier MAY accept it)",
       "STD-5: through the real Node adapter over HTTP, both forms are VERIFIED and reach the app",
     ] }) },
-  { id: "STD-2", m: "M1", kind: "-", level: 1, property: "signature-validity", title: "tamper / wrong key / wrong authority / expired / future / >60s / wrong tag all rejected",
+  { id: "STD-2", m: "M1", kind: "-", level: 1, property: "signature-validity", title: "tamper / wrong key / wrong authority / expired / future / >1h (>60s without a nonce) / wrong tag all rejected",
     run: nodeTest(["packages/gate-core/test/std2.test.mjs"], "^STD-2:") },
   { id: "STD-3", m: "M1", kind: "+", level: 1, pair: "STD-2", property: "signature-validity", title: "interop both ways with ≥2 independent implementations (one non-JS)" },
   // The pins (accept/std4/pins.json) against the live datatracker, following replacements, with 7 days'

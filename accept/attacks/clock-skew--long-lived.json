@@ -1,7 +1,7 @@
 {
   "id": "clock-skew--long-lived",
   "family": "clock-skew",
-  "title": "expires an hour after created",
+  "title": "expires an hour and a second after created",
   "params": {
     "variant": "long-lived"
   },

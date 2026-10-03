@@ -1339,10 +1339,10 @@
    ]
   },
   {
-   "id": "std2--08-lifetime-over-60s-spoofed",
+   "id": "std2--08-lifetime-over-an-hour-or-over-60s-without-a-nonc",
    "source": "STD-2",
-   "group": "lifetime over 60s → SPOOFED",
-   "title": "STD-2: lifetime over 60s → SPOOFED",
+   "group": "lifetime over an hour, or over 60s without a nonce → SPOOFED",
+   "title": "STD-2: lifetime over an hour, or over 60s without a nonce → SPOOFED",
    "world": {
     "registry": {
      "issuer": "https://registry.ludion.ai",
@@ -1392,7 +1392,7 @@
      "classes": [
       "SPOOFED"
      ],
-     "note": "61s",
+     "note": "3601s",
      "core": {
       "method": "GET",
       "targetUri": "https://shop.example/checkout/1",
@@ -1407,11 +1407,11 @@
        },
        {
         "name": "signature-input",
-        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"G_4IaFY5mSuMJF85eLXzeTjdcRqPTsKraSMcSDEP51M\";alg=\"ed25519\";expires=1800000061;nonce=\"0mY0GipOuNiq3dwEmrwD0xj1+xqfHLadh8+qQZrWB6ozDQXIC8YRZD5I7pBwv1KkNKzjux56AnxtU4WTOiC7SA==\";tag=\"web-bot-auth\""
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"G_4IaFY5mSuMJF85eLXzeTjdcRqPTsKraSMcSDEP51M\";alg=\"ed25519\";expires=1800003601;nonce=\"0mY0GipOuNiq3dwEmrwD0xj1+xqfHLadh8+qQZrWB6ozDQXIC8YRZD5I7pBwv1KkNKzjux56AnxtU4WTOiC7SA==\";tag=\"web-bot-auth\""
        },
        {
         "name": "signature",
-        "value": "sig1=:eyqWBan9+n123Hg7oj14g0hTV4pFufZF9wNJJjAgdF1jm0R5BXRLucRoasSu/hCZ7/sNFUWDFBx1aYBW/TXhCQ==:"
+        "value": "sig1=:uhbYnwBxguOvWCJE17DB4WpZGKeNhMteOOVglnOMGTcHpE3EbXOK4vxTgsdj8esq4ZB4HDfC/GXZN9nUDr0wBQ==:"
        }
       ]
      },
@@ -1460,9 +1460,11 @@
     {
      "gate": "main",
      "atS": 0,
-     "expect": "verified",
-     "identifier": "https://agent.example",
-     "note": "60s is the limit",
+     "expect": "rejected",
+     "classes": [
+      "SPOOFED"
+     ],
+     "note": "61s without a nonce",
      "core": {
       "method": "GET",
       "targetUri": "https://shop.example/checkout/1",
@@ -1477,11 +1479,114 @@
        },
        {
         "name": "signature-input",
-        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"G_4IaFY5mSuMJF85eLXzeTjdcRqPTsKraSMcSDEP51M\";alg=\"ed25519\";expires=1800000060;nonce=\"Qmt6YDqy4nXpkt4ptc+qYuECJtxTr1c/TWXwNhSMTruuSv8uLgwkmKml/7lk+Br7uQIasgZ48sGiF/ndJbP9cQ==\";tag=\"web-bot-auth\""
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"G_4IaFY5mSuMJF85eLXzeTjdcRqPTsKraSMcSDEP51M\";alg=\"ed25519\";expires=1800000061;tag=\"web-bot-auth\""
        },
        {
         "name": "signature",
-        "value": "sig1=:gJbohzN3JlhgoY2W1Da1DZQmvhGC0HGolCFNB5WrncctTc29gwAZt3JU1IWVjrdb62ww3fjhSVSlvDUelKDjDg==:"
+        "value": "sig1=:qLe/VeM1+MHxw+PVaG+k7UGWxueEm42zGvNqXtft/auuMs0iHRHKeQzpVhb62no4Z3fkKPypk0I9WTEj7OvnAg==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "SPOOFED",
+      "action": "deny",
+      "error": "invalid_signature"
+     }
+    },
+    {
+     "gate": "main",
+     "atS": 0,
+     "expect": "rejected",
+     "classes": [
+      "SPOOFED"
+     ],
+     "note": "an hour without a nonce",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://agent.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"G_4IaFY5mSuMJF85eLXzeTjdcRqPTsKraSMcSDEP51M\";alg=\"ed25519\";expires=1800003600;tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:Ne0SxeS20h66HkeL52rkbbllVtZbNw+T15sVEnHVy1n1Fu7ylt0+pFytDG42RdTV+k3+6DwOsPgBb8/2BTqcCQ==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "SPOOFED",
+      "action": "deny",
+      "error": "invalid_signature"
+     }
+    },
+    {
+     "gate": "main",
+     "atS": 0,
+     "expect": "verified",
+     "identifier": "https://agent.example",
+     "note": "an hour with a nonce is the limit",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://agent.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"G_4IaFY5mSuMJF85eLXzeTjdcRqPTsKraSMcSDEP51M\";alg=\"ed25519\";expires=1800003600;nonce=\"VaO+fMETAtdfWzbQqQl2a4lXh1F8XaiXhZwCk6skd2UUI2eYY6yJZV5W7w0FimFrgZGww0L/ASjv/d8pF/7nAQ==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:Xxnf/Ayhamcxm+F13WYQ51jKjEFGzm1HhXqxWxd2pjkW7lUZhuksHIcF7THUcS8gN8qOM9UX98FNY4Hk2g/TCA==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "VERIFIED",
+      "action": "allow"
+     }
+    },
+    {
+     "gate": "main",
+     "atS": 0,
+     "expect": "verified",
+     "identifier": "https://agent.example",
+     "note": "60s needs no nonce",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://agent.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"G_4IaFY5mSuMJF85eLXzeTjdcRqPTsKraSMcSDEP51M\";alg=\"ed25519\";expires=1800000060;tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:nxlgmdXbijKqdtqW4qWih8zIcJC9rvBgDQUw1HQHQ6vBb78FwwAmIOxGotvV/8gKYqrSdm4sKdaXCa8j2IVVCQ==:"
        }
       ]
      },
@@ -1561,11 +1666,11 @@
        },
        {
         "name": "signature",
-        "value": "sig1=:pYvsJ4iwd383nw5gpQ3fb9rM+pMEp3crVrfos5oNswHpD9eD4cCWQX2nDtWWHR8Et2vtjATqX+Ilgl9hURV7Cw==:"
+        "value": "sig1=:Su9TbNEwErPf2cdz6W6Juyl2dc1aPtE7prFeHuoaf/Ju3a+un+cq8LVA8zIFcdnsurZvhM+oHWOXPqVK0f0yDA==:"
        },
        {
         "name": "signature-input",
-        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"G_4IaFY5mSuMJF85eLXzeTjdcRqPTsKraSMcSDEP51M\";alg=\"ed25519\";nonce=\"t8vpP3OHOTjwBvPdmVpXGtyDTqQ+JbzryE5cb9BmF0ojKIEhHKTtm3qd2wSSNcdEi3U35mVpHwheRj30K5hx1g==\";tag=\"web-bot-auth\""
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"G_4IaFY5mSuMJF85eLXzeTjdcRqPTsKraSMcSDEP51M\";alg=\"ed25519\";nonce=\"gfqV8htXOncgXvRHHi3euFEQMuf5PJW6sy6Ka9mA8JGTCl3VvkwBXsL6Vmp4TSMxQqBnxhHRPCNpyXnFer+vnA==\";tag=\"web-bot-auth\""
        }
       ]
      },
@@ -1597,11 +1702,11 @@
        },
        {
         "name": "signature",
-        "value": "sig1=:pYvsJ4iwd383nw5gpQ3fb9rM+pMEp3crVrfos5oNswHpD9eD4cCWQX2nDtWWHR8Et2vtjATqX+Ilgl9hURV7Cw==:"
+        "value": "sig1=:Su9TbNEwErPf2cdz6W6Juyl2dc1aPtE7prFeHuoaf/Ju3a+un+cq8LVA8zIFcdnsurZvhM+oHWOXPqVK0f0yDA==:"
        },
        {
         "name": "signature-input",
-        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");keyid=\"G_4IaFY5mSuMJF85eLXzeTjdcRqPTsKraSMcSDEP51M\";alg=\"ed25519\";expires=1800000060;nonce=\"t8vpP3OHOTjwBvPdmVpXGtyDTqQ+JbzryE5cb9BmF0ojKIEhHKTtm3qd2wSSNcdEi3U35mVpHwheRj30K5hx1g==\";tag=\"web-bot-auth\""
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");keyid=\"G_4IaFY5mSuMJF85eLXzeTjdcRqPTsKraSMcSDEP51M\";alg=\"ed25519\";expires=1800000060;nonce=\"gfqV8htXOncgXvRHHi3euFEQMuf5PJW6sy6Ka9mA8JGTCl3VvkwBXsL6Vmp4TSMxQqBnxhHRPCNpyXnFer+vnA==\";tag=\"web-bot-auth\""
        }
       ]
      },
@@ -1633,11 +1738,11 @@
        },
        {
         "name": "signature-input",
-        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"G_4IaFY5mSuMJF85eLXzeTjdcRqPTsKraSMcSDEP51M\";alg=\"ed25519\";expires=1800000060;nonce=\"VaO+fMETAtdfWzbQqQl2a4lXh1F8XaiXhZwCk6skd2UUI2eYY6yJZV5W7w0FimFrgZGww0L/ASjv/d8pF/7nAQ==\""
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"G_4IaFY5mSuMJF85eLXzeTjdcRqPTsKraSMcSDEP51M\";alg=\"ed25519\";expires=1800000060;nonce=\"F/1dUqlm0XAOKDi2KE2usGvcr/yhgjmN4+STjLv6s11qbwrRboAhN643Z9XNoqcW1Ak3TBUct7IQKywaYdY2dA==\""
        },
        {
         "name": "signature",
-        "value": "sig1=:akMR0/WgzLQx0ToH1hLvrgFCv6L8RBbGaQ4wK277lYYoSguZuTLLYfZ5MK+RHMDhQ9a2oJ8cJo5NrsqA9NlkAw==:"
+        "value": "sig1=:NBFrrZQs3m4I+Y0MjPOXg45fbHZ1CsnKsTu3eoTfsDvWV3p6xa5IbeCxZ7quaEakoVOIbEBbKISgZJN8cMoIDA==:"
        }
       ]
      },
@@ -1669,11 +1774,11 @@
        },
        {
         "name": "signature-input",
-        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"G_4IaFY5mSuMJF85eLXzeTjdcRqPTsKraSMcSDEP51M\";alg=\"ed25519\";nonce=\"OWOOQbp7JoQMEY5+BHOcgYcrn6TUf6HaHEfZwCGhTKNqBUolFSIluWQN3a48KrdZlRFhto2wjATguYtw4llnKw==\";tag=\"web-bot-auth\""
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"G_4IaFY5mSuMJF85eLXzeTjdcRqPTsKraSMcSDEP51M\";alg=\"ed25519\";nonce=\"hy9HxmD2KFGeuVM1Cu6AcqXcoXWpd21/X3N6xC92aSYGUfx9mQlmYrwxUQ7nhElDpotkg+ZMApPhLk4v0g6wjw==\";tag=\"web-bot-auth\""
        },
        {
         "name": "signature",
-        "value": "sig1=:qj6MFMveZ5CuQ9kKCSnPqedC7pp22lfWN0nNbNTuJ+btbTstUVjn6awZ0WKMDQHpAdYdDk2TcFZxb8cGqQKiBw==:"
+        "value": "sig1=:P5DOv3hdz7p0SrGazIDUlgzSfW7nyV/IEbr8sdejEq+jtJVmFnk9qdTR69iXvOqIeX1nGom/VKqKqH5Z6uSkDQ==:"
        }
       ]
      },
@@ -1754,11 +1859,11 @@
        },
        {
         "name": "signature-input",
-        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"G_4IaFY5mSuMJF85eLXzeTjdcRqPTsKraSMcSDEP51M\";alg=\"ed25519\";expires=1800000060;nonce=\"gfqV8htXOncgXvRHHi3euFEQMuf5PJW6sy6Ka9mA8JGTCl3VvkwBXsL6Vmp4TSMxQqBnxhHRPCNpyXnFer+vnA==\";tag=\"not-web-bot-auth\""
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"G_4IaFY5mSuMJF85eLXzeTjdcRqPTsKraSMcSDEP51M\";alg=\"ed25519\";expires=1800000060;nonce=\"P5KZ7brezGr5aF+/EZ8TwQaZRQ9FvisiZkPAFNLGgO2eQc2BjKok/2kjvTfFzZfphqBWnvLsw0LBZeb+U2apng==\";tag=\"not-web-bot-auth\""
        },
        {
         "name": "signature",
-        "value": "sig1=:1WT5qJmM1ZY01pwGTAh/PmPNhwS4+KSAzqW8Uzk8zjtPt+4WMpMsfT1dJKvE7WMG037Y8HebKHsG2W/a0QrnAg==:"
+        "value": "sig1=:Z+UBXsEZHGES+wLQ+A0A9tpV9WnTa2aSu/QrkeWauLVZdLImpM2cV2OfSbWGvzhx+QrSHpt4EKNVXCQ2LObuBA==:"
        }
       ]
      },
@@ -1790,11 +1895,11 @@
        },
        {
         "name": "signature-input",
-        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"G_4IaFY5mSuMJF85eLXzeTjdcRqPTsKraSMcSDEP51M\";alg=\"ed25519\";expires=1800000060;nonce=\"F/1dUqlm0XAOKDi2KE2usGvcr/yhgjmN4+STjLv6s11qbwrRboAhN643Z9XNoqcW1Ak3TBUct7IQKywaYdY2dA==\";tag=\"Web-Bot-Auth\""
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"G_4IaFY5mSuMJF85eLXzeTjdcRqPTsKraSMcSDEP51M\";alg=\"ed25519\";expires=1800000060;nonce=\"/K02Rr/fSd6KYYB6GMY0Re5BvP7h544Tm3XEV1NbGraKUv39DdePB4HerwWN9ZDOat4W2cnFPNdoJJ31u1VaGA==\";tag=\"Web-Bot-Auth\""
        },
        {
         "name": "signature",
-        "value": "sig1=:UvJBKPP+lNlKo3KzLMNcI+yiqfC6ZZxn9zFf8R8BooK82JZpJjxTG/IVQPV5OaOCf2XbFgovSVrKZGln2MqpBA==:"
+        "value": "sig1=:rwU9qTQFUJcu2cm5e06jyXU3n2pHRiJuEMyPQHPEARdak7Y83G+i7qQiRxidnwuh0D/ypqdPzhKwH4TY3yaHDg==:"
        }
       ]
      },
@@ -1871,11 +1976,11 @@
        },
        {
         "name": "signature-input",
-        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"G_4IaFY5mSuMJF85eLXzeTjdcRqPTsKraSMcSDEP51M\";alg=\"ed25519\";expires=1800000060;nonce=\"hy9HxmD2KFGeuVM1Cu6AcqXcoXWpd21/X3N6xC92aSYGUfx9mQlmYrwxUQ7nhElDpotkg+ZMApPhLk4v0g6wjw==\";tag=\"web-bot-auth\""
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"G_4IaFY5mSuMJF85eLXzeTjdcRqPTsKraSMcSDEP51M\";alg=\"ed25519\";expires=1800000060;nonce=\"Jy3BmnN3VbahMdy5mJjUG4GqgT6n8iSRBw7ZKQf5ISAf7+vOvCMZSPwd9VkvYUvhx4bAXGQ+fmpuN7+gVVHvzw==\";tag=\"web-bot-auth\""
        },
        {
         "name": "signature",
-        "value": "sig1=:BKyHTfnlee56Z2Oxh1T0W+7q/hsbmBjZJvH/XCdri0E4LqEICzKSMIt39O+kXR3GZBydsoH+Bwq7yCFItI2mDA==:"
+        "value": "sig1=:ZbEZaKH9OiqWGd8AFztv43n1Y+gjqjoDl0CxMsSJxjUidxkXBw+oKCKA2RviAW/FsGcrNrNyHwZPL/JmamgVBg==:"
        },
        {
         "name": "signature-agent",
@@ -1907,11 +2012,11 @@
        },
        {
         "name": "signature-input",
-        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"agent1\");created=1800000000;keyid=\"G_4IaFY5mSuMJF85eLXzeTjdcRqPTsKraSMcSDEP51M\";alg=\"ed25519\";expires=1800000060;nonce=\"P5KZ7brezGr5aF+/EZ8TwQaZRQ9FvisiZkPAFNLGgO2eQc2BjKok/2kjvTfFzZfphqBWnvLsw0LBZeb+U2apng==\";tag=\"web-bot-auth\""
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"agent1\");created=1800000000;keyid=\"G_4IaFY5mSuMJF85eLXzeTjdcRqPTsKraSMcSDEP51M\";alg=\"ed25519\";expires=1800000060;nonce=\"HT4w8Mrnzzthh1ZoNbZPuPdHz99HTQsP2S/jKRFNXKoHjBjO9A81KlSS06vgp+508v+cJqdetm/+XFPC28JxWw==\";tag=\"web-bot-auth\""
        },
        {
         "name": "signature",
-        "value": "sig1=:e5tyAsVcHjzOFEURW0Vu9vfWocun1aSjw3caXKN23pHVJu6tPZ3SF/23CF3Kl2Nxoe/FY7IZQurELFo1JCa2AA==:"
+        "value": "sig1=:pclqGObr0QiWQT0FbjgmI5DiFYP0lU2UmYXIoIgOZi6PSIpcXxEhwWWSmeYsEOpJsSaN9dqIAxLl7qgHqByADA==:"
        },
        {
         "name": "signature-agent",
@@ -1947,11 +2052,11 @@
        },
        {
         "name": "signature-input",
-        "value": "sig1=(\"@authority\" \"signature-agent\");created=1800000000;keyid=\"G_4IaFY5mSuMJF85eLXzeTjdcRqPTsKraSMcSDEP51M\";alg=\"ed25519\";expires=1800000060;nonce=\"Jy3BmnN3VbahMdy5mJjUG4GqgT6n8iSRBw7ZKQf5ISAf7+vOvCMZSPwd9VkvYUvhx4bAXGQ+fmpuN7+gVVHvzw==\";tag=\"web-bot-auth\""
+        "value": "sig1=(\"@authority\" \"signature-agent\");created=1800000000;keyid=\"G_4IaFY5mSuMJF85eLXzeTjdcRqPTsKraSMcSDEP51M\";alg=\"ed25519\";expires=1800000060;nonce=\"0guNxhnXBfCmUIB3KLFUKqgNOUB02J7Sm76bQHelUn5Vk+95pD9Nf9Mqx6ZXBBPBF70uPAAiM8t21CCaxySfIg==\";tag=\"web-bot-auth\""
        },
        {
         "name": "signature",
-        "value": "sig1=:lrdnrjJk8rtWXqwzn14iO/tgdrU2DFoMeVw2rVV8uHmZFRDOUfltDjia24nyLBpuyaF/zUEYAL2AAog3WjtyDA==:"
+        "value": "sig1=:qhAMhLVp+u6ZNunEgFtBRXiyY7WrniNuDwPusdq50XsFU2ZDp1J0wq49K3/0JymNgOexo4NfFeoDIP2bUikKCQ==:"
        }
       ]
      },
@@ -1983,11 +2088,11 @@
        },
        {
         "name": "signature-input",
-        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\" \"signature-agent\";key=\"agent2\");created=1800000000;keyid=\"G_4IaFY5mSuMJF85eLXzeTjdcRqPTsKraSMcSDEP51M\";alg=\"ed25519\";expires=1800000060;nonce=\"HT4w8Mrnzzthh1ZoNbZPuPdHz99HTQsP2S/jKRFNXKoHjBjO9A81KlSS06vgp+508v+cJqdetm/+XFPC28JxWw==\";tag=\"web-bot-auth\""
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\" \"signature-agent\";key=\"agent2\");created=1800000000;keyid=\"G_4IaFY5mSuMJF85eLXzeTjdcRqPTsKraSMcSDEP51M\";alg=\"ed25519\";expires=1800000060;nonce=\"rbW49TffEbjt6lynWBU9sybg/yifADJlNkYqgQR6fC5yAYlDrcJT/VuKaT8gkOMPkE9EoiLiGc7e/p4JmvPW3A==\";tag=\"web-bot-auth\""
        },
        {
         "name": "signature",
-        "value": "sig1=:mDTxCf3QbGdQlhy3AqzvVQPJO9YT6N3YOqg1n4dr6kIzgjYwYMxdJBgw/UtsfpSLhwKcCItPDW5mPddmsjESDQ==:"
+        "value": "sig1=:j/BtzxSmn99hDP32XumGkopZNAx85s6dpz9WekezC6+RQ0l9c9Yp9kLkk8Rwr/Khux3bizlZFooeKEjZgYwcBw==:"
        }
       ]
      },
@@ -2019,11 +2124,11 @@
        },
        {
         "name": "signature-input",
-        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"G_4IaFY5mSuMJF85eLXzeTjdcRqPTsKraSMcSDEP51M\";alg=\"ed25519\";expires=1800000060;nonce=\"/K02Rr/fSd6KYYB6GMY0Re5BvP7h544Tm3XEV1NbGraKUv39DdePB4HerwWN9ZDOat4W2cnFPNdoJJ31u1VaGA==\";tag=\"web-bot-auth\""
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"G_4IaFY5mSuMJF85eLXzeTjdcRqPTsKraSMcSDEP51M\";alg=\"ed25519\";expires=1800000060;nonce=\"WwtppHIHN4hgz007My+W81QH+wC+81CJOKxqQHXyjS7r1GjEfkNdmLcSjngCVNKJQQWCDglqq7GXea3wRsO8TQ==\";tag=\"web-bot-auth\""
        },
        {
         "name": "signature",
-        "value": "sig2=:yGiCi2No2YWt6RkU65RHUf2buRIXAELo7woeCvjN9HBuKGxIGMxJ/1uZZv7pWoyWvDaX+lPza/mfNRIXrkfFAQ==:"
+        "value": "sig2=:6WyUksspvOL604WmDdpqItb1VKhrtYHF6rK85lFTbWGzvKiJojL7Hks79fmGB1kAdY1fugNtyIfK3NB2fZQYCg==:"
        }
       ]
      },
@@ -2053,11 +2158,11 @@
        },
        {
         "name": "signature-input",
-        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"b\");created=1800000000;keyid=\"7bExIkU988yU65n_x3mctB6TBAH913suxO2RE7dd8e4\";alg=\"ed25519\";expires=1800000060;nonce=\"WwtppHIHN4hgz007My+W81QH+wC+81CJOKxqQHXyjS7r1GjEfkNdmLcSjngCVNKJQQWCDglqq7GXea3wRsO8TQ==\";tag=\"web-bot-auth\""
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"b\");created=1800000000;keyid=\"7bExIkU988yU65n_x3mctB6TBAH913suxO2RE7dd8e4\";alg=\"ed25519\";expires=1800000060;nonce=\"mq4H8ERNtsCqUIRKnDjUv5n+xVjzbGfw/rXmI6kUAOoL5Hh+pbIam+JqwR/0vkm973N+P6+xlFnBgnkOy4GNew==\";tag=\"web-bot-auth\""
        },
        {
         "name": "signature",
-        "value": "sig1=:TEGP8iYWGzPqc/GhFjLTznB4emJOtjbaZaQpMzIds2e5at9A/uGfdqtkh/mgavJCr4JiHCNV2c6qeBMjjcOWBA==:"
+        "value": "sig1=:eT9mngyfRTs2wlblRUCb7dUixf+nIQysjkkmiFpmIC72auvNRu3x1Lf3eILHPGra4YMUKAE1V0AUTNe04zt0Dg==:"
        }
       ]
      },
@@ -2088,11 +2193,11 @@
        },
        {
         "name": "signature-input",
-        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"a\");created=1800000000;keyid=\"7bExIkU988yU65n_x3mctB6TBAH913suxO2RE7dd8e4\";alg=\"ed25519\";expires=1800000060;nonce=\"0guNxhnXBfCmUIB3KLFUKqgNOUB02J7Sm76bQHelUn5Vk+95pD9Nf9Mqx6ZXBBPBF70uPAAiM8t21CCaxySfIg==\";tag=\"web-bot-auth\""
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"a\");created=1800000000;keyid=\"7bExIkU988yU65n_x3mctB6TBAH913suxO2RE7dd8e4\";alg=\"ed25519\";expires=1800000060;nonce=\"9JNeUJFlKxa34mD9xTp/UPu/sQTg7r3n7++OHPgpwVQ5rTPK5AP8b8Rk+L9BeoIF25fnCIKMAcJ6kw2UFEThtw==\";tag=\"web-bot-auth\""
        },
        {
         "name": "signature",
-        "value": "sig1=:ZCxFsI8jcE7WvOmhjkCUs+7VzKSxZk6YUFdlmW5/4rLtcFy517rMhkWTCv+sO8/n29AASNEdSuqvYYMVhZseCA==:"
+        "value": "sig1=:Db7H+Ck0/ROBNc/qHQfvv6UMJ6zhlasFfcVzJ3kg2kuMPuv89HiwHXW9aPsIyhon6cmp5FTZ08HfVwQyg86WBg==:"
        }
       ]
      },
@@ -2174,11 +2279,11 @@
        },
        {
         "name": "signature-input",
-        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"G_4IaFY5mSuMJF85eLXzeTjdcRqPTsKraSMcSDEP51M\";alg=\"ed25519\";expires=1800000060;nonce=\"rbW49TffEbjt6lynWBU9sybg/yifADJlNkYqgQR6fC5yAYlDrcJT/VuKaT8gkOMPkE9EoiLiGc7e/p4JmvPW3A==\";tag=\"web-bot-auth\""
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"G_4IaFY5mSuMJF85eLXzeTjdcRqPTsKraSMcSDEP51M\";alg=\"ed25519\";expires=1800000060;nonce=\"ibbMiytfAZ5I0xO1Xg/pn93s45f6D84bKhv3vVXkhyeLwinEFU5CLUtf6GgWjwcxDsGlXS3lGyFaP4etH6en5w==\";tag=\"web-bot-auth\""
        },
        {
         "name": "signature",
-        "value": "sig1=:Z6O04J3zKt6SMYTTD8YnXY7g3HTSp/UTvz8byvZiXdIcAq9IQmvArCg9aa5KiNd2aVe3grkMyJitLiO/47gwCw==:"
+        "value": "sig1=:p11rthMVQ5Xkr6x8jt+CsmKEkY25UDb6QkVDp389aWzyGsSrxMGLPK/00+ubgKYzk89kZ8xlJoyn075YMWr+Dg==:"
        }
       ]
      },
@@ -3162,7 +3267,7 @@
    "id": "clock-skew--long-lived",
    "source": "GATE-7",
    "family": "clock-skew",
-   "title": "expires an hour after created",
+   "title": "expires an hour and a second after created",
    "params": {
     "variant": "long-lived"
    },
@@ -3274,11 +3379,143 @@
        },
        {
         "name": "signature-input",
-        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"kySfvbHiDzy0NyP4XyHbogGZExquU8XOWp2j5jfLkYs\";alg=\"ed25519\";expires=1800003600;nonce=\"n48UbzggSZAYCJKTfywBISTqCwzMRYGPIZpg6P8QQIG8MjtwiBa41rRG1RbXpyCaOz2QeLjhk04hJC/hYSWliQ==\";tag=\"web-bot-auth\""
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"kySfvbHiDzy0NyP4XyHbogGZExquU8XOWp2j5jfLkYs\";alg=\"ed25519\";expires=1800003601;nonce=\"n48UbzggSZAYCJKTfywBISTqCwzMRYGPIZpg6P8QQIG8MjtwiBa41rRG1RbXpyCaOz2QeLjhk04hJC/hYSWliQ==\";tag=\"web-bot-auth\""
        },
        {
         "name": "signature",
-        "value": "sig1=:j7uFYqOb+bOpRCJKeqVW/KoizHN+R/IPOTI6e/uQP8u9aPGrDhQ32RcyR29tHtDzZrMTG6Y3TwLXAVYpArNEAA==:"
+        "value": "sig1=:4lOQrAnWcEHQYj7gxXIO8ioA4NW7XPFZOPvz7kd/HI9j2Gd/JU7Idt/QIdL7DwzFSpBYKcY9Xt9DicA3RxspAw==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "SPOOFED",
+      "action": "deny",
+      "error": "invalid_signature"
+     }
+    }
+   ]
+  },
+  {
+   "id": "clock-skew--nonceless-long-lived",
+   "source": "GATE-7",
+   "family": "clock-skew",
+   "title": "alive for an hour without a nonce, so a replay inside the window could not be told apart",
+   "params": {
+    "variant": "nonceless-long-lived"
+   },
+   "world": {
+    "registry": {
+     "issuer": "https://registry.ludion.ai",
+     "keys": [
+      {
+       "kty": "OKP",
+       "crv": "Ed25519",
+       "x": "BTsRz5GDghdQVlhCmjeayc5TxqrpOhWrnTKTprNE87w",
+       "kid": "CqjsE2nDs4yM8RuAfaVdvIIPL7_n5dQLLWhB7wEb4-4"
+      }
+     ]
+    },
+    "documents": []
+   },
+   "gates": {
+    "main": {
+     "adapter": "core",
+     "authorities": [
+      "shop.example"
+     ],
+     "directories": [
+      {
+       "uri": "https://agent.example",
+       "keys": [
+        {
+         "kty": "OKP",
+         "crv": "Ed25519",
+         "x": "pKG3iU2SCduwjOc1qyPYtQRHk8PzjC0buc5WcgEJzRk",
+         "kid": "sF5mMaZjIY6BxY_D-4mDhAUd2344ox6n7l9KlZcSdfI",
+         "use": "sig"
+        },
+        {
+         "kty": "OKP",
+         "crv": "Ed25519",
+         "x": "rNibi2aFjxLt4Gs5nzXXGl8DNGR9yYgvdz6o0X4t_So",
+         "kid": "gipTsJoCT2k09EVuje-8AwxmOv1oMMTVuWAjX_c86O8",
+         "use": "sig"
+        }
+       ]
+      },
+      {
+       "uri": "https://attacker.example",
+       "keys": [
+        {
+         "kty": "OKP",
+         "crv": "Ed25519",
+         "x": "mvXFO6TeBXkIVKfrjkNGauX84NHHWA-Wky7YYjYcwJE",
+         "kid": "OMRIkQ1333o3njG3CLWFa64M6HR1YUhUO-zvrvd17AU",
+         "use": "sig"
+        }
+       ]
+      }
+     ]
+    }
+   },
+   "steps": [
+    {
+     "gate": "main",
+     "atS": 0,
+     "expect": "verified",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://agent.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"sF5mMaZjIY6BxY_D-4mDhAUd2344ox6n7l9KlZcSdfI\";alg=\"ed25519\";expires=1800000060;nonce=\"ZAYQSRaN0dSizrOHYekFIfFggZURQ7q2D8Ct/J+5EJkHgv35hNu2LmmYwjT6i4cyMAx37zg3BTklx/wx/xV6Yw==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:y4kcknR70nRbaT0zkrnAsPa8KI5WDMyvZduKG5F5ZP/fElDCEsRgmOOGtIl1rQHfCg/09rHmS2ZBlxz0Elt0DA==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "VERIFIED",
+      "action": "allow"
+     }
+    },
+    {
+     "gate": "main",
+     "atS": 0,
+     "expect": "rejected",
+     "classes": [
+      "SPOOFED"
+     ],
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://agent.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"sF5mMaZjIY6BxY_D-4mDhAUd2344ox6n7l9KlZcSdfI\";alg=\"ed25519\";expires=1800003600;tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:WaheIlmIyjRyNh5rHh3vI0VFfYjBOy4XBTzvBUIBmVTpF1JfhVObdfedoESg5TNIW1lGd08AOrQEhiq0qoFrBg==:"
        }
       ]
      },
@@ -3543,6 +3780,138 @@
        {
         "name": "signature",
         "value": "sig1=:u9MYkQFEglvskuvCnAow1nucMuAUcQxZY23uhHGTBi3bqFmPK3J73XFW5qLUQw63WwFhVWwQ/EqBwuKl5SpPCQ==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "SPOOFED",
+      "action": "deny",
+      "error": "invalid_signature"
+     }
+    }
+   ]
+  },
+  {
+   "id": "clock-skew--replay-long-lived-late",
+   "source": "GATE-7",
+   "family": "clock-skew",
+   "title": "Replay an hour-long signature half an hour later, still inside its window",
+   "params": {
+    "variant": "replay-long-lived-late"
+   },
+   "world": {
+    "registry": {
+     "issuer": "https://registry.ludion.ai",
+     "keys": [
+      {
+       "kty": "OKP",
+       "crv": "Ed25519",
+       "x": "8EDOuS3Mw5vF3DrbwjD8M7giNtYEZm_I0rLojUHydFA",
+       "kid": "l7wF7rlbpGrD0G8bv-HovhAZ9jr2ie6hM2e0da8yd4Y"
+      }
+     ]
+    },
+    "documents": []
+   },
+   "gates": {
+    "main": {
+     "adapter": "core",
+     "authorities": [
+      "shop.example"
+     ],
+     "directories": [
+      {
+       "uri": "https://agent.example",
+       "keys": [
+        {
+         "kty": "OKP",
+         "crv": "Ed25519",
+         "x": "VU8ytvDzWhJ_MzH0qrCYT9KADm7bMJqlr1Wx1R5AcPg",
+         "kid": "4Of4_Tq8fOG5n0Kv56rhT-tiCangOssTLTDmZTf2SBo",
+         "use": "sig"
+        },
+        {
+         "kty": "OKP",
+         "crv": "Ed25519",
+         "x": "E9HCwDTlRe8HmdMldIGwn7k4oblJZFcn6EiS4-WWzX0",
+         "kid": "kuxQ83DWKrbUN-s2DFr0uqNdUcGxcKkKejLAWA2nXOo",
+         "use": "sig"
+        }
+       ]
+      },
+      {
+       "uri": "https://attacker.example",
+       "keys": [
+        {
+         "kty": "OKP",
+         "crv": "Ed25519",
+         "x": "WnnLmOSN0vHxZfbrAs-Ey3D-SUIsv0So8AXTlYEFpQ0",
+         "kid": "Iu-iiGPnXH1T_aPVFsnwJS0ktPl78M663a-w2mP36gw",
+         "use": "sig"
+        }
+       ]
+      }
+     ]
+    }
+   },
+   "steps": [
+    {
+     "gate": "main",
+     "atS": 0,
+     "expect": "verified",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://agent.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"4Of4_Tq8fOG5n0Kv56rhT-tiCangOssTLTDmZTf2SBo\";alg=\"ed25519\";expires=1800003600;nonce=\"dB8vMK0MQfZgeFSBf6XjlzUzz9fBbSPlRNSPyktERIa9+CQO8ubmQ+lZknQ2ti7DqxFFxek/IkA0DoBUzl8vKw==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:HLR30Wyr08KawDx3MQkQ/tZ/iw9nVqfDFu/7Gn+e2E8IKbjBTZ6OySrQGp2djFThjk+tfMM2xSuAnsAlGN5cCg==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "VERIFIED",
+      "action": "allow"
+     }
+    },
+    {
+     "gate": "main",
+     "atS": 1800,
+     "expect": "rejected",
+     "classes": [
+      "SPOOFED"
+     ],
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://agent.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"4Of4_Tq8fOG5n0Kv56rhT-tiCangOssTLTDmZTf2SBo\";alg=\"ed25519\";expires=1800003600;nonce=\"dB8vMK0MQfZgeFSBf6XjlzUzz9fBbSPlRNSPyktERIa9+CQO8ubmQ+lZknQ2ti7DqxFFxek/IkA0DoBUzl8vKw==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:HLR30Wyr08KawDx3MQkQ/tZ/iw9nVqfDFu/7Gn+e2E8IKbjBTZ6OySrQGp2djFThjk+tfMM2xSuAnsAlGN5cCg==:"
        }
       ]
      },
@@ -6915,6 +7284,4312 @@
        {
         "name": "signature",
         "value": "sig1=:Pc0WXm0KfOdTFmMfTHqLwQXUCzGZqwg0Ey4C5BSfxnc1/+dHjxkPeoUCj3KCW6e7Fncl1WloHLkvR4vK2zKdDg==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "SPOOFED",
+      "action": "deny",
+      "error": "invalid_signature"
+     }
+    }
+   ]
+  },
+  {
+   "id": "nonce-flood--hour-long-full",
+   "source": "GATE-7",
+   "family": "nonce-flood",
+   "title": "Fill the nonce cache from many owners with hour-long signatures; a new hour-long signature cannot be remembered, so it is never VERIFIED",
+   "params": {
+    "variant": "hour-long-full"
+   },
+   "world": {
+    "registry": {
+     "issuer": "https://registry.ludion.ai",
+     "keys": [
+      {
+       "kty": "OKP",
+       "crv": "Ed25519",
+       "x": "LtQg3nAUYrnFI0dCcOX6Bq-bcwZ6nkG35gSJwcvjNzk",
+       "kid": "5Rz_9zEg7fU27Om_0_00rWSs0z-YwC-eiXqWxvEZ9uE"
+      }
+     ]
+    },
+    "documents": []
+   },
+   "gates": {
+    "g0": {
+     "adapter": "core",
+     "authorities": [
+      "shop.example"
+     ],
+     "nonceCache": {
+      "maxEntries": 40
+     },
+     "directories": [
+      {
+       "uri": "https://agent.example",
+       "keys": [
+        {
+         "kty": "OKP",
+         "crv": "Ed25519",
+         "x": "YZNJNzZK1Jor-iKc3HGNiqaspxNsXCRn500tTXqszZo",
+         "kid": "OkBvLMyFLwuy5tStqduM-u_Cc1PAQ_vHNSzVWqqODkE",
+         "use": "sig"
+        }
+       ]
+      },
+      {
+       "uri": "https://attacker.example",
+       "keys": [
+        {
+         "kty": "OKP",
+         "crv": "Ed25519",
+         "x": "zeljdwUeKum8QUxvnmxhV0s-5Xi3xKIHkT03tQUlxu4",
+         "kid": "ppd63dX6EGy7KDpb94nr_AsZYYbySyEg922JON5fdlg",
+         "use": "sig"
+        }
+       ]
+      },
+      {
+       "uri": "https://s0.swarm.example",
+       "keys": [
+        {
+         "kty": "OKP",
+         "crv": "Ed25519",
+         "x": "ECVd8qCrbdfYnhZRymKgw9HEOVGdDUgGvZ9Wq0UqI7o",
+         "kid": "pcbUYUUPoUZXa9yrlpl5PcJTayClNcqzBUR-UbvGyKo",
+         "use": "sig"
+        }
+       ]
+      },
+      {
+       "uri": "https://s1.swarm.example",
+       "keys": [
+        {
+         "kty": "OKP",
+         "crv": "Ed25519",
+         "x": "o9YWLsq-gDbLMx6Lklt3tRInAlhHkGIzzKtFH25pvtk",
+         "kid": "eQFgbvWXvvnjMtIvQBYyOb1F8ZR3NU0TELIZXx-oQ1M",
+         "use": "sig"
+        }
+       ]
+      },
+      {
+       "uri": "https://s2.swarm.example",
+       "keys": [
+        {
+         "kty": "OKP",
+         "crv": "Ed25519",
+         "x": "oc0C98Sn_W4MvLCveA5c25GZGDHo8VSNL5Wmo4saCGw",
+         "kid": "obXa3m8PCibxdybtweTl656y5uM2K4mjgNWNrE2pqTw",
+         "use": "sig"
+        }
+       ]
+      },
+      {
+       "uri": "https://s3.swarm.example",
+       "keys": [
+        {
+         "kty": "OKP",
+         "crv": "Ed25519",
+         "x": "ASRE1UPH3y5YWZNrNbSfIJmZG5JZxoyilXuDis3x10U",
+         "kid": "kKHPhN5DlCjAEIDm2S2FzxXVpB3lXiJTz_2E8-eewrc",
+         "use": "sig"
+        }
+       ]
+      },
+      {
+       "uri": "https://s4.swarm.example",
+       "keys": [
+        {
+         "kty": "OKP",
+         "crv": "Ed25519",
+         "x": "6DObLCYkqZms1SeahJ3UbKRLKR5PnTOXiXxJq6TQtik",
+         "kid": "mCEyTc4cjXLbAxsucooIWc9Ddocsca_jiV_GyqHrjPE",
+         "use": "sig"
+        }
+       ]
+      },
+      {
+       "uri": "https://s5.swarm.example",
+       "keys": [
+        {
+         "kty": "OKP",
+         "crv": "Ed25519",
+         "x": "KtALkR-mAPFar5PKCsGtb8uoUJtizrIj8_Xt-4fzQJ8",
+         "kid": "X82fat5kTS6lJaiqpCV71WEcp7s0yEB5wdFOBVJjw3M",
+         "use": "sig"
+        }
+       ]
+      },
+      {
+       "uri": "https://s6.swarm.example",
+       "keys": [
+        {
+         "kty": "OKP",
+         "crv": "Ed25519",
+         "x": "27MGr5iohOnAhlichpOadynfZ4ag1Cg7OKIhX7-NTUc",
+         "kid": "65ptZYL_6Dn0XZWLIE3ZaF8W4G2ZiJkIno1jhH28x_U",
+         "use": "sig"
+        }
+       ]
+      },
+      {
+       "uri": "https://s7.swarm.example",
+       "keys": [
+        {
+         "kty": "OKP",
+         "crv": "Ed25519",
+         "x": "Zr2k2eB5veeOLDuAy2HcQK9K-1_z_g6GNiAuNxm6ULM",
+         "kid": "kNdjiQbXuTJ0_934PzGibuKxxDDeQXa3IFsVrcPSweI",
+         "use": "sig"
+        }
+       ]
+      },
+      {
+       "uri": "https://s8.swarm.example",
+       "keys": [
+        {
+         "kty": "OKP",
+         "crv": "Ed25519",
+         "x": "3UdD8g21ivDGRyziscU_y4yAHamvKwrKw9BF1jUnpOs",
+         "kid": "Sex4UJqB7rRitk3oqM3jVwRabp-g0LT-gzGlwiSliTo",
+         "use": "sig"
+        }
+       ]
+      },
+      {
+       "uri": "https://s9.swarm.example",
+       "keys": [
+        {
+         "kty": "OKP",
+         "crv": "Ed25519",
+         "x": "fJ1A6GbEz-B1I9tZweF6F5OQwoc1-S-y65Ci_OGBKbM",
+         "kid": "UkiWSPZfMZfx6JkRnAyLidafnzdvMyf7gy3DjUhGBL0",
+         "use": "sig"
+        }
+       ]
+      },
+      {
+       "uri": "https://s10.swarm.example",
+       "keys": [
+        {
+         "kty": "OKP",
+         "crv": "Ed25519",
+         "x": "i6etoXTX6eWgasB9MXBTMbv6U4vdQoTQ2ZcMWVw2stU",
+         "kid": "4kIJAKsIsHDOUIiNRvPNHFJvLbeZxnYStapaNCdxm08",
+         "use": "sig"
+        }
+       ]
+      },
+      {
+       "uri": "https://s11.swarm.example",
+       "keys": [
+        {
+         "kty": "OKP",
+         "crv": "Ed25519",
+         "x": "wVDVUsa2B2D1l4QEQ9dNUd6wdsw-7GWRlMO3l35WRZs",
+         "kid": "Kd4j_JX5TnKvo-jowHvnEMukLs6Oj8gtIHW_sA4--RM",
+         "use": "sig"
+        }
+       ]
+      }
+     ]
+    }
+   },
+   "steps": [
+    {
+     "gate": "g0",
+     "atS": 0,
+     "expect": "verified",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://agent.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"OkBvLMyFLwuy5tStqduM-u_Cc1PAQ_vHNSzVWqqODkE\";alg=\"ed25519\";expires=1800003600;nonce=\"m27gVcxBTU9tC5SRu+Tz5BUjy5SmhELp2P/oCN+E6ytTGJJsUhf79qn/NxoDb2NKo6ubdqSjrpz4CU7V9XH5Pw==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:t1Kv5vA5cvGtWETEdJU13IiX2PUFQTJ7HF1hRDpFwDo3HlYs2n8jTTYTuptrGDrS4igW5e0sNV9HE3twZVaXBA==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "VERIFIED",
+      "action": "allow"
+     }
+    },
+    {
+     "gate": "g0",
+     "atS": 0,
+     "expect": "flood",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://s0.swarm.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"pcbUYUUPoUZXa9yrlpl5PcJTayClNcqzBUR-UbvGyKo\";alg=\"ed25519\";expires=1800003600;nonce=\"QEGr41A7mj7SlrTtafNB4wbWa6p4YndeVbwb+Kz+M4+f7xVRsDXOXrEa3lj5UzhUmjABe9Ca1AXiNKme5CuYxQ==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:KmPYNKeLLYu8N4gmyUrnMCksyaMK7uugJ0E0ephGIj2fpyZoh0hvWfcD21SezVTtxt/HJLBHQnfKT1Xq2xS2Bg==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "VERIFIED",
+      "action": "allow"
+     }
+    },
+    {
+     "gate": "g0",
+     "atS": 0,
+     "expect": "flood",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://s1.swarm.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"eQFgbvWXvvnjMtIvQBYyOb1F8ZR3NU0TELIZXx-oQ1M\";alg=\"ed25519\";expires=1800003600;nonce=\"xlTrNr/iw6hON7llRCuJXIfQ5r82xV18EIBobEZxZ9p/h7Tw+uKD9BdG427SB7oWc9oSgr3rfkeK0FExqzJ5Ew==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:Tyg3baYz8X4KdxE4bmkhHwKBhVbj4OkaTaon+9WstfbkmGFV3fac6fcxTGmAynYd82xU3mRISUhuhXgbCsBcCg==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "VERIFIED",
+      "action": "allow"
+     }
+    },
+    {
+     "gate": "g0",
+     "atS": 0,
+     "expect": "flood",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://s2.swarm.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"obXa3m8PCibxdybtweTl656y5uM2K4mjgNWNrE2pqTw\";alg=\"ed25519\";expires=1800003600;nonce=\"8opjNcZpPgOFWAePRtqgFDb9Ae4RSsOKupK3EqPInYfAa1YKwKcM/c1bdv/Am0dDUzSiFXWDfHOG3Vu/6TWzoQ==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:h+FNhXmrRzG1SO3mh0MAgKTjZEzOTXAPsCjBh2smkcCYlmSHN+oPRHyuhQu2IByIoT270Ej28feDSgu3ZJxkCw==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "VERIFIED",
+      "action": "allow"
+     }
+    },
+    {
+     "gate": "g0",
+     "atS": 0,
+     "expect": "flood",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://s3.swarm.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"kKHPhN5DlCjAEIDm2S2FzxXVpB3lXiJTz_2E8-eewrc\";alg=\"ed25519\";expires=1800003600;nonce=\"zHz6yrsgnZVzvSQiI793pLiOrVA4YrI40Ip10taIlNa3Un/KeheO2UfsigGvSmgOF+fBrgHuesYJ6dGk/N7pMg==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:I0YVokbTi5Nf2/biQbzwc4LV54XdwBOlGv37L0D/LbwRhToF2qcDLr4GSNJx2CgILs1t11436s3wmNI3CZxwAg==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "VERIFIED",
+      "action": "allow"
+     }
+    },
+    {
+     "gate": "g0",
+     "atS": 0,
+     "expect": "flood",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://s4.swarm.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"mCEyTc4cjXLbAxsucooIWc9Ddocsca_jiV_GyqHrjPE\";alg=\"ed25519\";expires=1800003600;nonce=\"t3eljdcBQ5h9ImPSTxLk4kHKzHjjj85sSQgUGI0lXDxmxfhfCx9V8Vc+zTUkihuqlzihh26UEvsURnbkMjPp8A==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:sk+KhZk3jn5sqwTYVA1QXFAzaIWypjA3NZz0PuPUBIxYISpjyXzGpQRIGW7OPTTgi0eD1L1zsJ7c8PHRKpXQBQ==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "VERIFIED",
+      "action": "allow"
+     }
+    },
+    {
+     "gate": "g0",
+     "atS": 0,
+     "expect": "flood",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://s5.swarm.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"X82fat5kTS6lJaiqpCV71WEcp7s0yEB5wdFOBVJjw3M\";alg=\"ed25519\";expires=1800003600;nonce=\"njL81JlYehmbaXjgu3oqNSvS9zElAFQN1cgI6bS+5zD91PACjKoOJJRVvi9OdkYqE4e8NuuHMdIzmU+tkA9/RQ==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:CrLwLqEu2bTnqEdaCf6ZE+RysADZRZnvkIRV2L7bGfBrXxj6+bHWC7RVPndMKnysUNy8ezKdQQ2tdaXPGynZBQ==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "VERIFIED",
+      "action": "allow"
+     }
+    },
+    {
+     "gate": "g0",
+     "atS": 0,
+     "expect": "flood",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://s6.swarm.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"65ptZYL_6Dn0XZWLIE3ZaF8W4G2ZiJkIno1jhH28x_U\";alg=\"ed25519\";expires=1800003600;nonce=\"asF0ambHvgkM2pOZPwYy31coy7QVEGzYRZ+0KHwcGxqjPy6YyBQTI/uizbcQs7wwnR2WwQ6xa09Xybu5kvUi5Q==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:FQSG4vdZ3zKHl0ejgrAbbcwjfddxTH3oH+VRsNAqQlxRnmeThesotlCETSpGCdTSj2sCjfaD5Oh4Ms1CXZKNDA==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "VERIFIED",
+      "action": "allow"
+     }
+    },
+    {
+     "gate": "g0",
+     "atS": 0,
+     "expect": "flood",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://s7.swarm.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"kNdjiQbXuTJ0_934PzGibuKxxDDeQXa3IFsVrcPSweI\";alg=\"ed25519\";expires=1800003600;nonce=\"K26LQa6d/p5G7u+pZIZjD7WJjiDcJw4ahREj5tpUgQbZoVeBT2pn5W2H7ZM9Qews8AC6gPmwgcFelDYHyOyGlQ==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:8n7Ia85U4mhypik0mlnP92jZnY3ogiiUzuTLEGgfHpLumj0TWifRPNaW1zzzgF9XhcQxIma25GfiZnx5ugbjDg==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "VERIFIED",
+      "action": "allow"
+     }
+    },
+    {
+     "gate": "g0",
+     "atS": 0,
+     "expect": "flood",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://s8.swarm.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"Sex4UJqB7rRitk3oqM3jVwRabp-g0LT-gzGlwiSliTo\";alg=\"ed25519\";expires=1800003600;nonce=\"hL9h4fKHeTgyma8bA652UaU5CyKFzPS3ASVwuiF2mPvYE+2iG4kMExEce56UQARXssbsk+MEClPbJy0Zq0XzKw==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:Sya7vm2rTZbXcGUG2/pu+JbNVc8CyZ3mqD8c4beKAdxuDkn08QKpWnwjWsT9xuxufduY0x9JujQLHXksD6j+Bw==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "VERIFIED",
+      "action": "allow"
+     }
+    },
+    {
+     "gate": "g0",
+     "atS": 0,
+     "expect": "flood",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://s9.swarm.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"UkiWSPZfMZfx6JkRnAyLidafnzdvMyf7gy3DjUhGBL0\";alg=\"ed25519\";expires=1800003600;nonce=\"GNLG5HzlpqVnAV8FlgEsIV2QbxtNg/8e/fxCx3aLh82RiE4WYndwlHOP2pR0/UlHuFXj8zuV6g8nd0Eg1cWjDQ==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:KYjk0bZ9LGzEEco0GSKqJDA1n9po8ebIIAEX3kwk1dI9FuTWWUN/KDaXgf+o3SIZKMVJRCBZ2nVOVG5ToXjeBw==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "VERIFIED",
+      "action": "allow"
+     }
+    },
+    {
+     "gate": "g0",
+     "atS": 0,
+     "expect": "flood",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://s10.swarm.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"4kIJAKsIsHDOUIiNRvPNHFJvLbeZxnYStapaNCdxm08\";alg=\"ed25519\";expires=1800003600;nonce=\"BnXsH3cRVo1g3XBZXdFukRvescAPLDogvcbh8JyXsJTfGAm/CyrZ5ihs8YlNsW0DKVNQtdip1ENTcPFcZ7qAoA==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:u7LFTz4mhMygoPdZ/UXu3mw7pzjy5IqeYRLVhHh840PIyUzNcHJm6zlJFlc9dXJQmlBqtXw3bJ3g/z4Cv/EpCA==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "VERIFIED",
+      "action": "allow"
+     }
+    },
+    {
+     "gate": "g0",
+     "atS": 0,
+     "expect": "flood",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://s11.swarm.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"Kd4j_JX5TnKvo-jowHvnEMukLs6Oj8gtIHW_sA4--RM\";alg=\"ed25519\";expires=1800003600;nonce=\"tUDO/AVtQUEcrSUopOBh+GPAT1ernX+TwlRtYhGrqypy/auvNgeRGP2cysinJWgr2Iq6rKfx971kW9CZ7bYFbg==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:+KWudkMOHZn7Hbp1lFKV5ypwByFyOrUCmPX9NSyUzKzrHj9P9AkQAFyHbCoUmyCpvYC7NuZ69doVnNm0V1y8Dw==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "VERIFIED",
+      "action": "allow"
+     }
+    },
+    {
+     "gate": "g0",
+     "atS": 0,
+     "expect": "flood",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://s0.swarm.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"pcbUYUUPoUZXa9yrlpl5PcJTayClNcqzBUR-UbvGyKo\";alg=\"ed25519\";expires=1800003600;nonce=\"hJs1jaPsXYUYMBTI7AfHi7wyW+tSQ4oJ3CvOzwLExeQVDxWe9mtCvHn2L5xtiFDb54gTbUMtPiutq5TfHv6uOA==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:wtSWqztpagGkNyrpQUcPxQ9HMS7jmqw1eFDvicnZhIPqtCy9GfrGULQNSTxsSM9d/8H5IArRDfGeI2hEYAapDQ==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "VERIFIED",
+      "action": "allow"
+     }
+    },
+    {
+     "gate": "g0",
+     "atS": 0,
+     "expect": "flood",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://s1.swarm.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"eQFgbvWXvvnjMtIvQBYyOb1F8ZR3NU0TELIZXx-oQ1M\";alg=\"ed25519\";expires=1800003600;nonce=\"924QaX5qSXisYuIhztNuPlTSWftV/yurlqqjeQjXZBNl2cbOrB0W9n8+sn09+G0F5O0WKNbGS2FmBTgbl/eE5Q==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:5z55H2+8zA8RlKO5Hs25UJWAsSmwecWwdqtjwbo1+d8Xlu9LcYNq+vButoshP7IcLUo7n9oLtjl2U16pdbYTAw==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "VERIFIED",
+      "action": "allow"
+     }
+    },
+    {
+     "gate": "g0",
+     "atS": 0,
+     "expect": "flood",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://s2.swarm.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"obXa3m8PCibxdybtweTl656y5uM2K4mjgNWNrE2pqTw\";alg=\"ed25519\";expires=1800003600;nonce=\"ID3o6ssSLTO6P88kIS5Ded+JDkhtfRNM878JxxX75rPOmRPcAUXqOC+cSW9O3n4g5IH0tvkYsHxAW+J+w3Yzow==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:q9latH+3HWgWqZE1vrZYOdBJTBbPCX89Gz/2bnVKmEmWFJetFWTd1+ugFYf0qyeAJMnbbfCb9nT3bW7T3bp9CQ==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "VERIFIED",
+      "action": "allow"
+     }
+    },
+    {
+     "gate": "g0",
+     "atS": 0,
+     "expect": "flood",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://s3.swarm.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"kKHPhN5DlCjAEIDm2S2FzxXVpB3lXiJTz_2E8-eewrc\";alg=\"ed25519\";expires=1800003600;nonce=\"fSfGyjOkPeRbkVOtZrfeMp184DaOC+2AjybD73xbJaERcqs9KoAi/Ao0pFgH/TE2uV6t5jtVVr7mSukucBKUSg==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:W0ybeom9Y+b8prYDdVC7wRjlmRzRAHOvfNfrrHWBD3i9F9VFKDYiFIeNgUOmgFp+grbvyVNNqwUcUsZytwbHCA==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "VERIFIED",
+      "action": "allow"
+     }
+    },
+    {
+     "gate": "g0",
+     "atS": 0,
+     "expect": "flood",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://s4.swarm.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"mCEyTc4cjXLbAxsucooIWc9Ddocsca_jiV_GyqHrjPE\";alg=\"ed25519\";expires=1800003600;nonce=\"OUl+Mmjn6aHS1d28nl1Z8hblXH6DMsdSrYQrPyZY6xHSiAZJiKTysChQ48rV9938Eg3Gy1pDjNGizMSQss0qPg==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:dPqWZSzKT8zg2dUIp6dNFRRtPEod48HnDakGTEy6wQIPfLoq1LWBv124nWvx+AhHTWQwW4UfMhvXHzk0AjGiBw==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "VERIFIED",
+      "action": "allow"
+     }
+    },
+    {
+     "gate": "g0",
+     "atS": 0,
+     "expect": "flood",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://s5.swarm.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"X82fat5kTS6lJaiqpCV71WEcp7s0yEB5wdFOBVJjw3M\";alg=\"ed25519\";expires=1800003600;nonce=\"+lKz2otxeEt1xYMWYHjJBj9qEIKpXLU6pJFUfHTTJyzSQVT91lcCVieqf6Wc8HY2HhM4z32Ej4C2OeS2pX3MoA==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:c/gzsD+nTtOoBBbHgGD9rMCuzTvao2Js+haE+zs7YJTFPU1ljefKF9fT12pfW0r56oAJ1QsVql6UMuk5yOikDA==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "VERIFIED",
+      "action": "allow"
+     }
+    },
+    {
+     "gate": "g0",
+     "atS": 0,
+     "expect": "flood",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://s6.swarm.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"65ptZYL_6Dn0XZWLIE3ZaF8W4G2ZiJkIno1jhH28x_U\";alg=\"ed25519\";expires=1800003600;nonce=\"dJ0CGv+DxLc0eFNFC3NzGTFHmw2EyQQLV+fUbYxiAuwV7MB15eiu7K18KK0/IS44r9ItcDzGqFdktjCvicOdVQ==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:0A/a/GtsqpDv0AnyMvNL1lFzmP7B+93zqwsPvbEGn6liZZgHbttCMdQjpojuv+/kIn+PaO0xwutlJ12wu5VSDg==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "VERIFIED",
+      "action": "allow"
+     }
+    },
+    {
+     "gate": "g0",
+     "atS": 0,
+     "expect": "flood",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://s7.swarm.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"kNdjiQbXuTJ0_934PzGibuKxxDDeQXa3IFsVrcPSweI\";alg=\"ed25519\";expires=1800003600;nonce=\"IbJJkwsgiqklXf2/aqysnMQu84kr4xTbx9IPvpkHo/BHYQU0oHoe0F7uNcjXxu4sc3FK3rGCsBRK1oj8l4bL7g==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:c7HJJmjZollNgp1NQLL/Etk74aHV+dVjtH3eaHwLS8NgXSVWDzdHyRrom9VKe8YqSyqprhOKEdIE3YpHQSugDQ==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "VERIFIED",
+      "action": "allow"
+     }
+    },
+    {
+     "gate": "g0",
+     "atS": 0,
+     "expect": "flood",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://s8.swarm.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"Sex4UJqB7rRitk3oqM3jVwRabp-g0LT-gzGlwiSliTo\";alg=\"ed25519\";expires=1800003600;nonce=\"oTwuATHUMpHa2LDxaFKfZGZNMg/q4UQzAGtMCjhtbMHebG8NSsHxkf7xKP8Kf2uZJllkQ5UM6jgcx1T2oR5yKA==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:auoy/4bK9tRqb/yxG5gRFigThyakTI7EI05rTY4AVcU6PAak17AEfzGXja34N44kaqEm3xAoAuto53IbhQaXCQ==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "VERIFIED",
+      "action": "allow"
+     }
+    },
+    {
+     "gate": "g0",
+     "atS": 0,
+     "expect": "flood",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://s9.swarm.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"UkiWSPZfMZfx6JkRnAyLidafnzdvMyf7gy3DjUhGBL0\";alg=\"ed25519\";expires=1800003600;nonce=\"anv3B2lU8t4/hCxIdqHtNAhuD35OARqAptl7+1tqMJLPis5DqKiK5oG/JZ7SJ80rOCf8A0QSLFbsiFMP5QQHIg==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:MEK3P6/0BJe7NZsPrSSqGIz8V1djY9HqhAmofipIQffp7AF3JRUGbfNFrQvLckqk9hug4pEK2FJTVePy8WirAg==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "VERIFIED",
+      "action": "allow"
+     }
+    },
+    {
+     "gate": "g0",
+     "atS": 0,
+     "expect": "flood",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://s10.swarm.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"4kIJAKsIsHDOUIiNRvPNHFJvLbeZxnYStapaNCdxm08\";alg=\"ed25519\";expires=1800003600;nonce=\"HWfSD7yN84SoCjHMJT3CQ7vl/KJAoX+pNf7wT6vWCBbK5u7rmWUz5C/w2FNWT69N6OST8mkaYBCdjD/7lcX0wQ==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:cUMFtCbHa+NlRWLtm81KqQdPgk9K0W2QoN57nTE6WR6sgCKzuOLpQ7UnwlCFG8t88jVBMwVbLF9pcNbA4rzhBg==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "VERIFIED",
+      "action": "allow"
+     }
+    },
+    {
+     "gate": "g0",
+     "atS": 0,
+     "expect": "flood",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://s11.swarm.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"Kd4j_JX5TnKvo-jowHvnEMukLs6Oj8gtIHW_sA4--RM\";alg=\"ed25519\";expires=1800003600;nonce=\"dAUrDLjpotHePbt9MhvuIbewGDGAOZf1NmJq4lfqy+lRbTq6zpATNLiVLJnqpxGfvnesyYmM2DxB1JHL4OtiNQ==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:hf3xf4gLBD2VsgdjQaFs4uA44Fp3g3vjWJn0aefImNsflaHHDl6s21noLmgl3MqjrSqySLW9uUWVOh/ZbDbOCg==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "VERIFIED",
+      "action": "allow"
+     }
+    },
+    {
+     "gate": "g0",
+     "atS": 0,
+     "expect": "flood",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://s0.swarm.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"pcbUYUUPoUZXa9yrlpl5PcJTayClNcqzBUR-UbvGyKo\";alg=\"ed25519\";expires=1800003600;nonce=\"hxxfDlOurRb1drxbZv0aGJCdnB32CZwDftLgclIFeBm/5L1Bu9y5CmcrY8GIsbDkWjcHGQm88hvUDlBSFB+L4w==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:R1WT8mTlSzOsMxNoxcO03YMK5W9lII/5rnZ8nm3/iJbnEFRoIRAjYSAfAbPpN0meTgAlsKsO9+oE6wBL8wRoAw==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "VERIFIED",
+      "action": "allow"
+     }
+    },
+    {
+     "gate": "g0",
+     "atS": 0,
+     "expect": "flood",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://s1.swarm.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"eQFgbvWXvvnjMtIvQBYyOb1F8ZR3NU0TELIZXx-oQ1M\";alg=\"ed25519\";expires=1800003600;nonce=\"z/dzqtTu11Xcc6lTCJktbwszKV1qc/IOCTdnIbYd/CdAPNX9tTnt3uUlkWxGlExxxSWcJoSArmQuM4IGfcgnpw==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:8wpXN2u38IBHgRmbFTXmy/5XbYss1oql6b+FIWoio9ItObHlILVcPAJq66Xv42v57hyT2A0xbuuGwR2gm71JBg==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "VERIFIED",
+      "action": "allow"
+     }
+    },
+    {
+     "gate": "g0",
+     "atS": 0,
+     "expect": "flood",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://s2.swarm.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"obXa3m8PCibxdybtweTl656y5uM2K4mjgNWNrE2pqTw\";alg=\"ed25519\";expires=1800003600;nonce=\"7VIr8L/qSANoXVcx9jMRznuI2qzzRKsHY0dYzLGXe1GWjEZa1u3ez6aVFGWDIAQP1Cm3T/sCw+dVlIxygdXWjg==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:r5t0/5vEuEkvr7NnMzWdfIpLLsjZ/7iity4thxOqlnlYDvhMr7sQnJLdzR86So/9TXE3do461a7C26tvJHRMCg==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "VERIFIED",
+      "action": "allow"
+     }
+    },
+    {
+     "gate": "g0",
+     "atS": 0,
+     "expect": "flood",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://s3.swarm.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"kKHPhN5DlCjAEIDm2S2FzxXVpB3lXiJTz_2E8-eewrc\";alg=\"ed25519\";expires=1800003600;nonce=\"WvUmNigz1Jsqgdn8QGZYTidfRUrcDGBY+dH/jeHZu2W1dYs73xFAF6eIxZ0G9lXQibOqP2/RVBZ5xMp1TsZWEQ==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:Ylj3DkqF4wTuhO45lgracNjzcyJHA+V/I4ZR/bmQ+X00z0d55n1Zkp3UasFLBrCNGYoe8bvLycZb9MJHrVIwAA==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "VERIFIED",
+      "action": "allow"
+     }
+    },
+    {
+     "gate": "g0",
+     "atS": 0,
+     "expect": "flood",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://s4.swarm.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"mCEyTc4cjXLbAxsucooIWc9Ddocsca_jiV_GyqHrjPE\";alg=\"ed25519\";expires=1800003600;nonce=\"PtjUX3msikRNSfIvlyhBx8Pw8c9LzzngTZvfeYgR1iavNekmcY4fCVHEikLtboLNK0RwPV5KEbXPnNMLXXa1xg==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:DAw8o3eMHq+Osv0sODIQN5UeBZfce80G6IiJpYXM7F0t8+HmVPGTHejbYQvrzpn7Mcy8g94EgdkT1CVG9TdtCA==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "VERIFIED",
+      "action": "allow"
+     }
+    },
+    {
+     "gate": "g0",
+     "atS": 0,
+     "expect": "flood",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://s5.swarm.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"X82fat5kTS6lJaiqpCV71WEcp7s0yEB5wdFOBVJjw3M\";alg=\"ed25519\";expires=1800003600;nonce=\"XsEliZReHBCdIeC/keQp9EXBwOOVt8sY23gQ/R4VM7F5kDriYphFEK/j06IA81KtGkeYW4DTeprNDAymmfuYvQ==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:0hV2Y+8Bnvb9/zxUK31WWszeFtqc0kFnWzSEN+e3sUrLYkgGHNuqzGZHF1oW3/k6oQS/HjNJsuD9iB23qohgDg==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "VERIFIED",
+      "action": "allow"
+     }
+    },
+    {
+     "gate": "g0",
+     "atS": 0,
+     "expect": "flood",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://s6.swarm.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"65ptZYL_6Dn0XZWLIE3ZaF8W4G2ZiJkIno1jhH28x_U\";alg=\"ed25519\";expires=1800003600;nonce=\"9Vad11MvEMWoR+x+o0ltkODslDnw2HoJP6cr1IbsyFD5AToUwF2aewAINHmmN5kY39+M+24CfDE7cNBadgMZuQ==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:+h5IqjqOwAXKXm+0vmyNuBFSsp8OKlS8XAC7+MxubMxolxN+eRiVCwoziWH8v7GmTuFjy1uhmXgRhxpzLPM4BA==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "VERIFIED",
+      "action": "allow"
+     }
+    },
+    {
+     "gate": "g0",
+     "atS": 0,
+     "expect": "flood",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://s7.swarm.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"kNdjiQbXuTJ0_934PzGibuKxxDDeQXa3IFsVrcPSweI\";alg=\"ed25519\";expires=1800003600;nonce=\"HwCh+UTNeMuFsP7SON73ucxr8bLwFR3k5fWRAclgCJ1zMjJgRJBNUqub87I8ksW3/1NSS6pQq16SO+4o7v1W1g==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:0G9lT3iYlYepzO2SKsGWgrCp6NsDiU4FTX9uiDCIPNX8b1bcvI+CtSwzIb3LxvK5KAKJrkaMwRFs0Krpxe9ZDg==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "VERIFIED",
+      "action": "allow"
+     }
+    },
+    {
+     "gate": "g0",
+     "atS": 0,
+     "expect": "flood",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://s8.swarm.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"Sex4UJqB7rRitk3oqM3jVwRabp-g0LT-gzGlwiSliTo\";alg=\"ed25519\";expires=1800003600;nonce=\"3Hp2RMJ6NKVET+B/90ogrIYzFkwHKqfyGEOrmBU2mcuJV83R6tm+A6MqbWO64WrJoLiz9ZH+RrfpYXv8TnTw7g==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:tSDBbfUZolWozfvlU8Y8WYS+gigiYFL+/0o73kAU2Vm4EWUGayYnimCDq0sOIyexmOYgL+v0OlBlxaKlOAUlBw==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "VERIFIED",
+      "action": "allow"
+     }
+    },
+    {
+     "gate": "g0",
+     "atS": 0,
+     "expect": "flood",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://s9.swarm.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"UkiWSPZfMZfx6JkRnAyLidafnzdvMyf7gy3DjUhGBL0\";alg=\"ed25519\";expires=1800003600;nonce=\"SA5Wyx65tyPdqvqaT6GPaUz5nq2/2kBLsEkdzHVz7P/eLjtYjQ40ZJHFlHV9hrJNbUy3nD7ncRc8UR9a81lM/g==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:Q/shl0O2Ipyu1he/MwQdk4r0IJS/syj7nOCn7VGXOnSU2a29jiCJX39knvpb8LjeYEKCgFjJV9fXWFQ+4pXsDw==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "VERIFIED",
+      "action": "allow"
+     }
+    },
+    {
+     "gate": "g0",
+     "atS": 0,
+     "expect": "flood",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://s10.swarm.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"4kIJAKsIsHDOUIiNRvPNHFJvLbeZxnYStapaNCdxm08\";alg=\"ed25519\";expires=1800003600;nonce=\"0rjHAVPIs05ri4drQu1Dwo3+CaMzhcsD4VxdJzIm4z/9lS95dHvrniU5GhQRVuQuIUybkUyMOIkDL5n7pF1pTw==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:uKTbwP9aO8ZSFfqySb1WaTPHVVWp5RELyBpwh/VPKgwNjYImJueP6U7t30H4miMvB4RseUv5Zzvzv6NcWrOzCg==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "VERIFIED",
+      "action": "allow"
+     }
+    },
+    {
+     "gate": "g0",
+     "atS": 0,
+     "expect": "flood",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://s11.swarm.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"Kd4j_JX5TnKvo-jowHvnEMukLs6Oj8gtIHW_sA4--RM\";alg=\"ed25519\";expires=1800003600;nonce=\"wl+8F3M/ryC93AP9SSJnSKA89DpGcH6BuVVJwYZ7AFGGv/Z4Ui1FjOz5lunyPPl7q/cUWIBlbIIeTbRzt1Ytbw==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:loxW17CN4tGyN698s3izHKlSlNz+5aUiFOxpDtT7l7SD251dAaqgvSB/GQYa9kmT/fHc7pgj1RA/P5YNyOrpBA==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "VERIFIED",
+      "action": "allow"
+     }
+    },
+    {
+     "gate": "g0",
+     "atS": 0,
+     "expect": "flood",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://s0.swarm.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"pcbUYUUPoUZXa9yrlpl5PcJTayClNcqzBUR-UbvGyKo\";alg=\"ed25519\";expires=1800003600;nonce=\"tzfKSYYoXyQ11hFbKk2roOruazpunSra/L1Wg1/NZOtX8GgHP+0T2kZgp+vgVj2Ji03cneTdOXZBeHLc+e82JA==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:ldvNeVupYG7ZEVBcMYy2pI69pMZGizp8GypPP99JqU2qZ/8lUQw4v9EpReSXeNvL3PZ2lVPi+BPXmniCX7XmDg==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "VERIFIED",
+      "action": "allow"
+     }
+    },
+    {
+     "gate": "g0",
+     "atS": 0,
+     "expect": "flood",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://s1.swarm.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"eQFgbvWXvvnjMtIvQBYyOb1F8ZR3NU0TELIZXx-oQ1M\";alg=\"ed25519\";expires=1800003600;nonce=\"9piOTRvYJG6BNookzla2fAdZTs5+LN/HY+w5W/qhzXHBCLgqGwMDgOIFTCJLxHRvbe5EmRjj0a7++CCgkOFDMw==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:usdNV0Zb6dUoQ7i+FCTQN0TupxvaCGV0nqxV7QtjDMYn0PCLdoZpeOg+8o+ETdCB/GCoC2IbANkwxzWKuzYWDA==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "VERIFIED",
+      "action": "allow"
+     }
+    },
+    {
+     "gate": "g0",
+     "atS": 0,
+     "expect": "flood",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://s2.swarm.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"obXa3m8PCibxdybtweTl656y5uM2K4mjgNWNrE2pqTw\";alg=\"ed25519\";expires=1800003600;nonce=\"ggwdjl/7Ambhi649m8nIsT/+cwkRLcXNaoZQ7nDjVaFYj1AynywU5QSzAdD1lBM780GoyXioPvCBd5Enl8E1lw==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:+Hr4Su08MCmC6Tx3E2XtADCxkUo4md3y4qPTxAIOjBL+V5WQkQZ/DSohAMH+6ck7fYWDl50gN43TBJYlkJBoCg==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "VERIFIED",
+      "action": "allow"
+     }
+    },
+    {
+     "gate": "g0",
+     "atS": 0,
+     "expect": "flood",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://s3.swarm.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"kKHPhN5DlCjAEIDm2S2FzxXVpB3lXiJTz_2E8-eewrc\";alg=\"ed25519\";expires=1800003600;nonce=\"LMybgG/S53ldliVVivZn+YcXXC0neritDvKDkfTstNjjy+8TA/f+OFYNAsD+l/rOQ2jimccJaMzQaJX6/tT7xg==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:G1x97IJtmZi124Fs/awlHgPb5x8YDfl7DuMqPXt/3cCP+pMifp9+2139mxtd3fyvup+x2LJ8kukLLOMEuDaODg==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "UNVERIFIED",
+      "action": "deny",
+      "error": "signature_required"
+     }
+    },
+    {
+     "gate": "g0",
+     "atS": 0,
+     "expect": "flood",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://s4.swarm.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"mCEyTc4cjXLbAxsucooIWc9Ddocsca_jiV_GyqHrjPE\";alg=\"ed25519\";expires=1800003600;nonce=\"jbf9hjgsC3XpUKeB9fDqE7e+9LAHgtxxxjVDdKIZTYS+ftfv5piupNMMhH7mVyMm8BCcXmhjhDFwoTEJw2jnqw==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:UQAsEMziu3ujM+06HE7YNdc+17sIW6MUuyB4NuYdcrzOCdU6PQHO8+cRUETuNGKVp1t4oPu4K4YazoRMBYQJCQ==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "UNVERIFIED",
+      "action": "deny",
+      "error": "signature_required"
+     }
+    },
+    {
+     "gate": "g0",
+     "atS": 0,
+     "expect": "flood",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://s5.swarm.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"X82fat5kTS6lJaiqpCV71WEcp7s0yEB5wdFOBVJjw3M\";alg=\"ed25519\";expires=1800003600;nonce=\"4xjnhUEoSDc69RYbCRz508L7ipHTfg/jC5bjKve/yFhsSqV3wQrScmHCXlBz6wBrB4Xp/HLW8ocSbIe0NmTY9A==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:f/KkK7XQ/thzAtHIp4/Dq1YBpPd9GPQe4wi7fA7UpnYwOKCoaGspuVJ7Y95qTyqm0+k1Ry1XG8f41C0dLl5ECw==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "UNVERIFIED",
+      "action": "deny",
+      "error": "signature_required"
+     }
+    },
+    {
+     "gate": "g0",
+     "atS": 0,
+     "expect": "flood",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://s6.swarm.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"65ptZYL_6Dn0XZWLIE3ZaF8W4G2ZiJkIno1jhH28x_U\";alg=\"ed25519\";expires=1800003600;nonce=\"PcvVBIU92y61v7r/tyRhj4t/sTza0+VcBpZ820X1vxUfsjle9ofKLC1ak333/RRMqmbohlGvgSLxQfXuxU/YsQ==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:A2XL5n4OEo/6rKiqff1E1XcbaHXUJot1tcelGl68P5Oklogk8Taquiil8cpCk6UMnvNoXMn3y/rqnk+cjoOXBA==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "UNVERIFIED",
+      "action": "deny",
+      "error": "signature_required"
+     }
+    },
+    {
+     "gate": "g0",
+     "atS": 0,
+     "expect": "flood",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://s7.swarm.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"kNdjiQbXuTJ0_934PzGibuKxxDDeQXa3IFsVrcPSweI\";alg=\"ed25519\";expires=1800003600;nonce=\"0sYfA6OKE94ijHscI2/sw7MgVZL1kNPVxY55t42zRW5P6GN8HFLN2iYliTnROaqo8MwRM2mn5yuVGXHPSnyTsg==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:lqnWZIotjV6pNegriklVpPPDhxZuS4c+zmOEiCr0DoNq0fSqKvKpLpoM9f/5TwcW43NMLc1mxxbGsEyxE+ChCQ==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "UNVERIFIED",
+      "action": "deny",
+      "error": "signature_required"
+     }
+    },
+    {
+     "gate": "g0",
+     "atS": 0,
+     "expect": "flood",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://s8.swarm.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"Sex4UJqB7rRitk3oqM3jVwRabp-g0LT-gzGlwiSliTo\";alg=\"ed25519\";expires=1800003600;nonce=\"WeWkW+KjCznVW2h1TlOyF//pGg3/F5PknQ5au4esXCAtJHE4kzr9iES/3+jM86vELUNZE9L8ArjLepW/4XvNMg==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:J9cVfpdT7PWPP08J2nso00Pawf7qvDCK58MM3u9EBE+vIdkDLZEaDHmTGSjtCa8ySavWjmXtBc9JyI85kUuaCg==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "UNVERIFIED",
+      "action": "deny",
+      "error": "signature_required"
+     }
+    },
+    {
+     "gate": "g0",
+     "atS": 0,
+     "expect": "flood",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://s9.swarm.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"UkiWSPZfMZfx6JkRnAyLidafnzdvMyf7gy3DjUhGBL0\";alg=\"ed25519\";expires=1800003600;nonce=\"1MpGBfeGnjEWHA0hxXpBpmVx9e7Hz+Nw1MIBaHnBO9uRdhR3qhx5W2WbPKuuMyijCFgJeJ0IbL80oTw2wlIEcg==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:2HfBml+oGqvHjjSi8o2zh3i7GoBgBG8HDCD6zP07SrkhICFa6Rt5WDaNFWyuKOjCT9zlLyseNHa0Or5s+o+LCA==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "UNVERIFIED",
+      "action": "deny",
+      "error": "signature_required"
+     }
+    },
+    {
+     "gate": "g0",
+     "atS": 0,
+     "expect": "flood",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://s10.swarm.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"4kIJAKsIsHDOUIiNRvPNHFJvLbeZxnYStapaNCdxm08\";alg=\"ed25519\";expires=1800003600;nonce=\"hrhfDVw0y1HEezaeDxRFH9tsBrVMaXoAtMQDK91jaEfttf+xOvvt4eGzbEN9q5TlbMqjO9q+pzE4cwbiKdDrIQ==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:QAeIvdWi861+lJun5NvXyvrx/qtxdNq+isHZJMTlc/KKeWrN8Tj7WZHfhuD3bKAxbOnfzPB/fnHxWmJjQgHwCA==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "UNVERIFIED",
+      "action": "deny",
+      "error": "signature_required"
+     }
+    },
+    {
+     "gate": "g0",
+     "atS": 0,
+     "expect": "flood",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://s11.swarm.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"Kd4j_JX5TnKvo-jowHvnEMukLs6Oj8gtIHW_sA4--RM\";alg=\"ed25519\";expires=1800003600;nonce=\"4xMEjTx+qxI4+VyWjNgHm79ilXo2iTLLSZsIOe6oCmDo5Mz0ALAOV6NPZbVnGIGeaVW5DSC1wQA/NLwtQrfaVA==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:gKcLZBxhgb//vCSu8slCY9b5f9hGD29YkNDEp3AGxiOoW31xq0aB6CIq4xE9V4j7XGlmzMIMaW8NkIERNLC0Aw==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "UNVERIFIED",
+      "action": "deny",
+      "error": "signature_required"
+     }
+    },
+    {
+     "gate": "g0",
+     "atS": 0,
+     "expect": "flood",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://s0.swarm.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"pcbUYUUPoUZXa9yrlpl5PcJTayClNcqzBUR-UbvGyKo\";alg=\"ed25519\";expires=1800003600;nonce=\"bCblBZ7OSIWfzEotYgNlFAqCmvHMooYW+3xk8m9BakuTkU0oSvJJehudjfDkxj85LpTEM0D9faM8nlyDg1kNJQ==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:alxMy3riIPqCwviX+ptFs+jPDYUbDawqnIkAwrUbc/+88KmIP+/BrYFZaPZ/ynNf4J22GphImoolZVNJVLnqDg==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "UNVERIFIED",
+      "action": "deny",
+      "error": "signature_required"
+     }
+    },
+    {
+     "gate": "g0",
+     "atS": 0,
+     "expect": "flood",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://s1.swarm.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"eQFgbvWXvvnjMtIvQBYyOb1F8ZR3NU0TELIZXx-oQ1M\";alg=\"ed25519\";expires=1800003600;nonce=\"D5k9p28hf8Guokb1smnGupGksU3MhZB9V6OS8wPLhLbJSI9rQD4PysVFIn1+dUjwy5w881gJ8pLOaNtSe0UAcw==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:Uwz+pj/0F5hHlIwsz7u6Kn0y/xrmcmu6OkwMPThZ+ZJd40E70tIxDLUM9GArTC4gHPbXqNFLz+9M3cmd04VnAQ==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "UNVERIFIED",
+      "action": "deny",
+      "error": "signature_required"
+     }
+    },
+    {
+     "gate": "g0",
+     "atS": 0,
+     "expect": "flood",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://s2.swarm.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"obXa3m8PCibxdybtweTl656y5uM2K4mjgNWNrE2pqTw\";alg=\"ed25519\";expires=1800003600;nonce=\"EGcMb01I71/7TJM3pqOBcQ1PULREH/auRJ7IEwCBf8ao8UYhe+IMTozzFBYKhzSrXaaF36a2uvFl1segA+br4A==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:ogdr4OI4P52I17IFzHs1t8xPUtsvtm8w52u8y7Hs4dJDSBue5gt15aXsRfEUgZQpBXcBffmYhufALgdJ6uPLAg==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "UNVERIFIED",
+      "action": "deny",
+      "error": "signature_required"
+     }
+    },
+    {
+     "gate": "g0",
+     "atS": 0,
+     "expect": "flood",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://s3.swarm.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"kKHPhN5DlCjAEIDm2S2FzxXVpB3lXiJTz_2E8-eewrc\";alg=\"ed25519\";expires=1800003600;nonce=\"Wt1u+nwKjmZy56a8VH3aD8MR1py4zrkJmkF2Xx9Vn+8ZaCiFyUiHZSl/dUcodBkqt4R+dMwrBQXIoIDUgS8zIA==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:ohcKBp2gacGKnYrZkRxs0i+JCtsCRxAheels8U/Q5G1XbUy+cJN6pRAR0veBjXkOQUccg/nsXbRtJC9o9a/WCQ==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "UNVERIFIED",
+      "action": "deny",
+      "error": "signature_required"
+     }
+    },
+    {
+     "gate": "g0",
+     "atS": 0,
+     "expect": "flood",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://s4.swarm.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"mCEyTc4cjXLbAxsucooIWc9Ddocsca_jiV_GyqHrjPE\";alg=\"ed25519\";expires=1800003600;nonce=\"8UB1xouU1u6NKWG1yy6DmliVAFyy2mdq8TaBwbPZ7QFITf4Hs7Xmpb+P/AThs5h53xSusV7bHYL0u2oP217XBg==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:/iBT+KQlPMrdGLlA53PBx/OddavjQ3txAWcDs9mQF/0kNuAqWcGAED4rZFEFg1fM8lhAV4+ROJ6SO+MdRyRwCQ==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "UNVERIFIED",
+      "action": "deny",
+      "error": "signature_required"
+     }
+    },
+    {
+     "gate": "g0",
+     "atS": 0,
+     "expect": "flood",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://s5.swarm.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"X82fat5kTS6lJaiqpCV71WEcp7s0yEB5wdFOBVJjw3M\";alg=\"ed25519\";expires=1800003600;nonce=\"0jebI6DHsJXK0hCqRFo6DW8L+OJWzLkEKe0DTIiheNnvvMlDC/JP4N0bQm/A49yD7ZcKLQIvEZ4mh4ki6OIG4g==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:wP+293A/eByVgfSbszanq0rLQwhsYXhy7U7/oyCbUrKOSO9BMnfN8II6/c6urkzlPU4LmHc2bx2q6nxxOEjwCg==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "UNVERIFIED",
+      "action": "deny",
+      "error": "signature_required"
+     }
+    },
+    {
+     "gate": "g0",
+     "atS": 0,
+     "expect": "flood",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://s6.swarm.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"65ptZYL_6Dn0XZWLIE3ZaF8W4G2ZiJkIno1jhH28x_U\";alg=\"ed25519\";expires=1800003600;nonce=\"qseqcfkE9LMxKBmPqcyoVQKBRUkiSjjQYD43347PUeKBvT5ktNa27EkAgTV8tlnKealPdKnhtp+lm+xGAU7OdQ==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:iUs1puWm6AfBD4fyCiXnv3LdyXYupFN5dcQGbokAve9H2ZTfQM39WgwLgEsYVoZI+qciqtMHBRs2LWcWcGenDw==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "UNVERIFIED",
+      "action": "deny",
+      "error": "signature_required"
+     }
+    },
+    {
+     "gate": "g0",
+     "atS": 0,
+     "expect": "flood",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://s7.swarm.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"kNdjiQbXuTJ0_934PzGibuKxxDDeQXa3IFsVrcPSweI\";alg=\"ed25519\";expires=1800003600;nonce=\"YQREYFoglw1/Q8OToIS+6qSpX0qRbUowRvsBwQ8o4c2gF/R9njWmEY1Q02sC2PhTdedK7FdfjbGIGtjjsib0aw==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:WpPkz5rxwgIWsqF3QwC6nAdGMEb/IqmC+gL7+aveFrTKg5hMpYhVKLNoWrO5z1GVgFxiGNRy40D+5Kl8OLgJCw==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "UNVERIFIED",
+      "action": "deny",
+      "error": "signature_required"
+     }
+    },
+    {
+     "gate": "g0",
+     "atS": 0,
+     "expect": "flood",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://s8.swarm.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"Sex4UJqB7rRitk3oqM3jVwRabp-g0LT-gzGlwiSliTo\";alg=\"ed25519\";expires=1800003600;nonce=\"VdhWBHAOUArfdTq6/cO66egIvKOMTP4OKNacYYDCDrNy58aDk82DNfyD3Ce9rVmp5rh5YX2S+jzebom4rWsBsQ==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:87WLBTWvLYziAlZgX/gVhvRnNh/iMfCZ0s+hWK+klgSFB1DAfmW2SKRmAtshO1KQrih24dtf2VnMwQqv7jmfCQ==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "UNVERIFIED",
+      "action": "deny",
+      "error": "signature_required"
+     }
+    },
+    {
+     "gate": "g0",
+     "atS": 0,
+     "expect": "flood",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://s9.swarm.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"UkiWSPZfMZfx6JkRnAyLidafnzdvMyf7gy3DjUhGBL0\";alg=\"ed25519\";expires=1800003600;nonce=\"+zT5mUD3CilKgiTG3coLOHLtTsOnDp0wOYEWHMbfOFyACLE55hMpM0AaGFiCtWzJxltAfept+/gDEHncmBiLxA==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:KbYvMtJFFUx6KHY84quJvFQql7XSI2Qo5Uetc6fm5W8JUWRkwYQacJM9TZkqE/RRTZ1VbsgL5jThzzO2QkFmCA==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "UNVERIFIED",
+      "action": "deny",
+      "error": "signature_required"
+     }
+    },
+    {
+     "gate": "g0",
+     "atS": 0,
+     "expect": "flood",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://s10.swarm.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"4kIJAKsIsHDOUIiNRvPNHFJvLbeZxnYStapaNCdxm08\";alg=\"ed25519\";expires=1800003600;nonce=\"1dGEBci3uZ/cJltKRZp0TGkiQubEMfRx4h7yi9WHNFlM/CrjOITQQFnWfzXH+1OSmBkcs014o3atdB/0X1CmuQ==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:PzIs10weC40cqTUvpjwRdKPSRX/iDR8UhqV5IQLhRRaxqS/K/gzxJ2fKj44oIR9ctZLd6YcoFVwuYTxro87BAQ==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "UNVERIFIED",
+      "action": "deny",
+      "error": "signature_required"
+     }
+    },
+    {
+     "gate": "g0",
+     "atS": 0,
+     "expect": "flood",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://s11.swarm.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"Kd4j_JX5TnKvo-jowHvnEMukLs6Oj8gtIHW_sA4--RM\";alg=\"ed25519\";expires=1800003600;nonce=\"UlelGCuHTJRMR43vQ4hS3U2SpdNvT8T5nyBuS+P6m3/7erDb9nyAKvigFU4GkJv+LVBfFPio/rUx2jJet78mxQ==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:9ZWMTKqQvtY4qyyMhnTLqIn9KgQbg1KGPCuylOQBIJx2rffE/e36OBl4wnyDgjD7t+4uT9wh/ILckoABk0/BDA==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "UNVERIFIED",
+      "action": "deny",
+      "error": "signature_required"
+     }
+    },
+    {
+     "gate": "g0",
+     "atS": 0,
+     "expect": "rejected",
+     "classes": [
+      "UNVERIFIED"
+     ],
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://agent.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"OkBvLMyFLwuy5tStqduM-u_Cc1PAQ_vHNSzVWqqODkE\";alg=\"ed25519\";expires=1800003600;nonce=\"DmIXhyTb/s4qpOdWdhermjnicltxh0UzHlueZ/0PMYgXEeqsZz/lQPJevo5yrtzIU/BaQxFxJRWuuSGbpoi83A==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:20DKNX1qmXP5lZoxFO6JWOS5wRp/vXtMdj7kxXvw9poUn5BNM+xxAPeUPAdM8Rnk4XbMIby4p+q8RK7+lUmTCg==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "UNVERIFIED",
+      "action": "deny",
+      "error": "signature_required"
+     }
+    }
+   ]
+  },
+  {
+   "id": "nonce-flood--hour-long-replay",
+   "source": "GATE-7",
+   "family": "nonce-flood",
+   "title": "Fill the nonce cache from many owners with hour-long signatures, then replay the victim's captured hour-long request half an hour later",
+   "params": {
+    "variant": "hour-long-replay"
+   },
+   "world": {
+    "registry": {
+     "issuer": "https://registry.ludion.ai",
+     "keys": [
+      {
+       "kty": "OKP",
+       "crv": "Ed25519",
+       "x": "tzKlWz8xaYghm_DrV_IA9my9LMv8IDuLNSY4157O9Bc",
+       "kid": "ZthDLLjhbIFR0Ss6-Wvn9QWuiP4Wgo8TAerxle0Qfxw"
+      }
+     ]
+    },
+    "documents": []
+   },
+   "gates": {
+    "g0": {
+     "adapter": "core",
+     "authorities": [
+      "shop.example"
+     ],
+     "nonceCache": {
+      "maxEntries": 40
+     },
+     "directories": [
+      {
+       "uri": "https://agent.example",
+       "keys": [
+        {
+         "kty": "OKP",
+         "crv": "Ed25519",
+         "x": "LhgDQeZzPizwkS9GW_wyWK51dC1holREJFdj2NjDvGE",
+         "kid": "Hto2uuH8Y4PkK2c-Gt99FZ9xGVBlmNm-g1ZRi_HHZj0",
+         "use": "sig"
+        }
+       ]
+      },
+      {
+       "uri": "https://attacker.example",
+       "keys": [
+        {
+         "kty": "OKP",
+         "crv": "Ed25519",
+         "x": "rS6v2jd_GQRiuUeUeNtYt8fAosBbgXAj6kkAfhjyf3k",
+         "kid": "0-Zd4PFhSTlgwK7q6b8SmUQIRV4VgVXI7WjCupAeWV4",
+         "use": "sig"
+        }
+       ]
+      },
+      {
+       "uri": "https://s0.swarm.example",
+       "keys": [
+        {
+         "kty": "OKP",
+         "crv": "Ed25519",
+         "x": "CS95i-_71bqg53TXW61i-tjip8zhSDJjBEFz11bMeWc",
+         "kid": "PtbKRbrXxq95nV9puNEYh7YZqnC1-Xfj0txmgXvgkd8",
+         "use": "sig"
+        }
+       ]
+      },
+      {
+       "uri": "https://s1.swarm.example",
+       "keys": [
+        {
+         "kty": "OKP",
+         "crv": "Ed25519",
+         "x": "_xI9yG25TxvAUxzCmtl8DsO6bmF-d0TbejSGMjFWZSA",
+         "kid": "Eonn3bnGuKSxKa-kIVdw-NvKJkRKsOFPjPY_LPuhONU",
+         "use": "sig"
+        }
+       ]
+      },
+      {
+       "uri": "https://s2.swarm.example",
+       "keys": [
+        {
+         "kty": "OKP",
+         "crv": "Ed25519",
+         "x": "qpcYDB_Wj8E6SJhpV0yBaMfwPc8SAE0GSCbcsquqADs",
+         "kid": "njMnRXnlS-4mysgg6kfpZDiG6xfvAl_AJ26ELPi5sxY",
+         "use": "sig"
+        }
+       ]
+      },
+      {
+       "uri": "https://s3.swarm.example",
+       "keys": [
+        {
+         "kty": "OKP",
+         "crv": "Ed25519",
+         "x": "qwsNTlOKoRNP0Kh6UvGqJaG61TskfCcyFhmLU3c4Dr4",
+         "kid": "_1tXolpgwFSj8-mO44TolonPJZaSQjENen5bhiwZeeU",
+         "use": "sig"
+        }
+       ]
+      },
+      {
+       "uri": "https://s4.swarm.example",
+       "keys": [
+        {
+         "kty": "OKP",
+         "crv": "Ed25519",
+         "x": "QJUHExybZIcrsXMc_zUY3OnU2sJDbyuqSMfUydsJudM",
+         "kid": "gVueREDIzCDhmI3BtG4-5_HDjjLA0TznL_-ZV97ilAg",
+         "use": "sig"
+        }
+       ]
+      },
+      {
+       "uri": "https://s5.swarm.example",
+       "keys": [
+        {
+         "kty": "OKP",
+         "crv": "Ed25519",
+         "x": "oKFo9M65TgzAMCGRAlr6S9PPUalhEWadwYr9lybnODk",
+         "kid": "AaNFgoyataZLdPEFGu7xa5Y3VAWzpgeTKZYhZwP9p84",
+         "use": "sig"
+        }
+       ]
+      },
+      {
+       "uri": "https://s6.swarm.example",
+       "keys": [
+        {
+         "kty": "OKP",
+         "crv": "Ed25519",
+         "x": "rwR8bJ6cXTRY5Bo4t6VoDU_9yFhmSqKura8xMMK4F1U",
+         "kid": "UP6FchEXiEjEjc4D6yv6RNL-qGMtE7KF-VCqGacPaE8",
+         "use": "sig"
+        }
+       ]
+      },
+      {
+       "uri": "https://s7.swarm.example",
+       "keys": [
+        {
+         "kty": "OKP",
+         "crv": "Ed25519",
+         "x": "Qf2eSZ5A9xlFGSS5ii7WKmS-eNBoH74j0s1JAZJkjzo",
+         "kid": "cUIHtacSL1_ASISkmUihZyZO0hY3TgyMOzlgL3s51Z0",
+         "use": "sig"
+        }
+       ]
+      },
+      {
+       "uri": "https://s8.swarm.example",
+       "keys": [
+        {
+         "kty": "OKP",
+         "crv": "Ed25519",
+         "x": "VqsZi3ESLWllP4S-rNN1bbWULrgeUmXSZXKkd5vob-E",
+         "kid": "QqESw6LgfSc7RODuQV002Cc1VMPgu63-PskTpNBM2jE",
+         "use": "sig"
+        }
+       ]
+      },
+      {
+       "uri": "https://s9.swarm.example",
+       "keys": [
+        {
+         "kty": "OKP",
+         "crv": "Ed25519",
+         "x": "NY62Ne7OzELiustV-xuE9nsX7CNyXzTYZpnKDFEI0zQ",
+         "kid": "H-CDGItN36UPVQBf7GtgygA2cThUNlrG7yoR-FOs1O0",
+         "use": "sig"
+        }
+       ]
+      },
+      {
+       "uri": "https://s10.swarm.example",
+       "keys": [
+        {
+         "kty": "OKP",
+         "crv": "Ed25519",
+         "x": "OaCmUM8ePgSuRcwosntrZTE1bAdTfTXZU4y5yGnNqT4",
+         "kid": "z5EOaQqV09ABq2ga9aDP8r4zoTDmt1wnHgTUUfBQ6os",
+         "use": "sig"
+        }
+       ]
+      },
+      {
+       "uri": "https://s11.swarm.example",
+       "keys": [
+        {
+         "kty": "OKP",
+         "crv": "Ed25519",
+         "x": "BXQJIOkKaV4z_q_ce5qToPtTXS0UkydYSxEn-MfJfvU",
+         "kid": "4RKk3CqZYT4272o_lQN1gd0g1DS7QUMuXsSzku-Szfk",
+         "use": "sig"
+        }
+       ]
+      }
+     ]
+    }
+   },
+   "steps": [
+    {
+     "gate": "g0",
+     "atS": 0,
+     "expect": "verified",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://agent.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"Hto2uuH8Y4PkK2c-Gt99FZ9xGVBlmNm-g1ZRi_HHZj0\";alg=\"ed25519\";expires=1800003600;nonce=\"yPrKLlvcoOh3nl/qhxjXDbfA6wCEpOkZQHf/L1DpfMRkDJT59ipQZIw7pv8NExEbiGTh2UalHX3Y8P6nnMLG0w==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:j6jodc3U/ztG9lTAewNkAUCZzoNIW/3avzPW4wRqtnHgHlPU/0+A1TYVoF5ovNnp+ewu92tAkyQDtkashR2BAw==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "VERIFIED",
+      "action": "allow"
+     }
+    },
+    {
+     "gate": "g0",
+     "atS": 0,
+     "expect": "flood",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://s0.swarm.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"PtbKRbrXxq95nV9puNEYh7YZqnC1-Xfj0txmgXvgkd8\";alg=\"ed25519\";expires=1800003600;nonce=\"WteGBM5Dner/DNBI2ufaXQM6pOF600egPpQ95Xwsr2H1xt1RD9qXbcoeRLopVM+XMxWN2esMYs4BX93enJ5WUw==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:O1JGwQwEZSHwqZ2lQwZD5QD2iz8HLbN9a29jt7JrNDzgjO8mgWhrHvIwDxJyUbddldr0YPmyD0ErUVjabuSGAA==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "VERIFIED",
+      "action": "allow"
+     }
+    },
+    {
+     "gate": "g0",
+     "atS": 0,
+     "expect": "flood",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://s1.swarm.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"Eonn3bnGuKSxKa-kIVdw-NvKJkRKsOFPjPY_LPuhONU\";alg=\"ed25519\";expires=1800003600;nonce=\"wqzlN9I+MNy3oyVdoe67wsByCUxmp/4NhzynLn10LHOVPMy8eeay1s0BJhsKHPicMKirhv/G5rJwTPfHnmNNaw==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:5eP7vZ4MzccRF4S5umLzYo301L68DkhhlPM01s3WoyzQoArCMKYkD8R56MZbYMFXUZXZmelGCF1805AAAyCKAQ==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "VERIFIED",
+      "action": "allow"
+     }
+    },
+    {
+     "gate": "g0",
+     "atS": 0,
+     "expect": "flood",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://s2.swarm.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"njMnRXnlS-4mysgg6kfpZDiG6xfvAl_AJ26ELPi5sxY\";alg=\"ed25519\";expires=1800003600;nonce=\"7PUv/bDGHcJvtnqsLjzzq13X4YGn8pq7XJUYKtpXsAKAmnCpSfaEWZBBHQj77BBsRsNtYeAWJ9v0bAJn+TpraQ==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:nKBQlSFUczRzrJUPkMzvM5j2e4fjju7WT+y7rvaHV9df+9jltpYYLBj3SfiJlurwLrHFhoXy6TqkeGCErXZYBg==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "VERIFIED",
+      "action": "allow"
+     }
+    },
+    {
+     "gate": "g0",
+     "atS": 0,
+     "expect": "flood",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://s3.swarm.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"_1tXolpgwFSj8-mO44TolonPJZaSQjENen5bhiwZeeU\";alg=\"ed25519\";expires=1800003600;nonce=\"34F/AwP+G+smVZW2+BeH3Z4jSQKYIgKIINOOyOsx6eR+p9Va62zR2RhWxN5CPKG/bZg6x3vgNqOPWg+aOCG4HA==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:BmA8ZYB3omCQuWzlf+rHC6fvb88bGlJEHYEJR2ggRLwSTh/rWYWidNhtXF9MA2JJFJjR/zJI42hYT5X1BQeVDA==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "VERIFIED",
+      "action": "allow"
+     }
+    },
+    {
+     "gate": "g0",
+     "atS": 0,
+     "expect": "flood",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://s4.swarm.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"gVueREDIzCDhmI3BtG4-5_HDjjLA0TznL_-ZV97ilAg\";alg=\"ed25519\";expires=1800003600;nonce=\"SJDnA06waIW0zQv1ANwe1UpwJBXaB2R7M5R2xcWdh2086nb187Ndi9q14oUuhyllZM0QWnTpp0ncuMrHC8QbCw==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:EhgiIIC2pfE2VPpV7aQQ8XCrlHqbfZz8WQ2vYmlGuKjkOvdpasTAmC/Ig5am/m/AP+JIE72MJ3XTw2eu+ofrDQ==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "VERIFIED",
+      "action": "allow"
+     }
+    },
+    {
+     "gate": "g0",
+     "atS": 0,
+     "expect": "flood",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://s5.swarm.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"AaNFgoyataZLdPEFGu7xa5Y3VAWzpgeTKZYhZwP9p84\";alg=\"ed25519\";expires=1800003600;nonce=\"R57i684VXqULyJ7XfP+QCft353NrEZHFO77p0b6zSA68oGte4HWOuFi1CjH1jWoxEopkTj2y8ZTT1gddOZjOpg==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:BbXfDx8IcjMs8NgXlLmTivbczQu96uTqilfoJga1Gj90MsSMTHR7LxiW8GbuPXQjuFMqNBDm+qvrZ/u9BMXwBw==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "VERIFIED",
+      "action": "allow"
+     }
+    },
+    {
+     "gate": "g0",
+     "atS": 0,
+     "expect": "flood",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://s6.swarm.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"UP6FchEXiEjEjc4D6yv6RNL-qGMtE7KF-VCqGacPaE8\";alg=\"ed25519\";expires=1800003600;nonce=\"v2WnQxF9AOSkfnRxcT1iGrhkJER/WbI4JOg+yUmZVDOTMMwg2nI3Weco7IPNMfrW2KicNpGSmdD31iamFV94ZA==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:Ut/ysowzD4RN3QtgKeIEqF7EGcu8zpXiHMHS4KzfLPUpMXlk8BfFIx6+VKXp0M7cnFC5/nxjyEs0JDO+OAZzCA==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "VERIFIED",
+      "action": "allow"
+     }
+    },
+    {
+     "gate": "g0",
+     "atS": 0,
+     "expect": "flood",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://s7.swarm.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"cUIHtacSL1_ASISkmUihZyZO0hY3TgyMOzlgL3s51Z0\";alg=\"ed25519\";expires=1800003600;nonce=\"K4EWyvxtQQdOWfsxj0y+6p0Prf5209UnNOCnVQ3srs/u1mo/PD231aA5q/yvvaQo2TlhdWWFEyHCHT0RfBLDYw==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:TJ3a1LayIhmPx1qwSyYzZ23O83RdLgmnx8+NQytlvDcI0FidHvbhHNCgevkLdnlrNObMUCHYigzOqo+Iu8GQCQ==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "VERIFIED",
+      "action": "allow"
+     }
+    },
+    {
+     "gate": "g0",
+     "atS": 0,
+     "expect": "flood",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://s8.swarm.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"QqESw6LgfSc7RODuQV002Cc1VMPgu63-PskTpNBM2jE\";alg=\"ed25519\";expires=1800003600;nonce=\"xx3V+7lnXJbxlcCcDZqREYNZCkrLqf3p0OG5P476ZUGC/IA+XeOvv/MZy+Dox3XXMZasN/fE9bE0bm4dM07jRA==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:TXEcG8afpQ8PJiYpBY6kpvwM/onsadHTlML4fWG6GHOoItnEXQwKgw8CZPL2ptKwLzxIANbCr7UlSQKdVG/CBA==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "VERIFIED",
+      "action": "allow"
+     }
+    },
+    {
+     "gate": "g0",
+     "atS": 0,
+     "expect": "flood",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://s9.swarm.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"H-CDGItN36UPVQBf7GtgygA2cThUNlrG7yoR-FOs1O0\";alg=\"ed25519\";expires=1800003600;nonce=\"GwVnEcUDtuNBgIgTyr9WLaAqDN6emMvOMQLX3cSOfPk6UpcC6O+r0O3/2GoQ5llOU4f0MUTq+vyLNrFNqYBtgA==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:D9O22hzy5U0FecolFU0Yu2hrQgpJ7PWBbbebnhxfzZYvTEfmY/da0Rh2xAXGv2qRevysl7S8DuLC2bPRJbPzDg==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "VERIFIED",
+      "action": "allow"
+     }
+    },
+    {
+     "gate": "g0",
+     "atS": 0,
+     "expect": "flood",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://s10.swarm.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"z5EOaQqV09ABq2ga9aDP8r4zoTDmt1wnHgTUUfBQ6os\";alg=\"ed25519\";expires=1800003600;nonce=\"qEGVU1Cc36IhoiiQqgfqVWT6kRA91csTnv64l1RlhlCRpOeSXulTjEivzVP8AE/4Bj7RLi0Al2BTF2qG/dzb1w==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:JCxJqqCtWhr/QqO7Z7Qy/bolKDV6D/7TjGWed/VzYeCfb/t4RoD27x+SPSRFzVkprMc2YFK6DFoOEtgptwbIBg==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "VERIFIED",
+      "action": "allow"
+     }
+    },
+    {
+     "gate": "g0",
+     "atS": 0,
+     "expect": "flood",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://s11.swarm.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"4RKk3CqZYT4272o_lQN1gd0g1DS7QUMuXsSzku-Szfk\";alg=\"ed25519\";expires=1800003600;nonce=\"3pl7puJaF+al8CgHU1zb42imfn4+MOV6PqIV09HxYXDy9d6AzLsQhHdWRdXHwrUJPoudlpVQpymQ0lOaQdZArw==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:1z1PPCTvZyELdW66OZiUi8v2WiYobWGcvHabTKMjUSWK2at7+v/0o6ruXYqWdkWTMl7+ubOhTLhAwtBr848vAg==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "VERIFIED",
+      "action": "allow"
+     }
+    },
+    {
+     "gate": "g0",
+     "atS": 0,
+     "expect": "flood",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://s0.swarm.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"PtbKRbrXxq95nV9puNEYh7YZqnC1-Xfj0txmgXvgkd8\";alg=\"ed25519\";expires=1800003600;nonce=\"wVpYIfSFN1b9HhEoGie6Kk4kafS2wR9za7Vi6CmqwCWMxowFW2ISmotsSgN4fWZnsBdf8q7V/VEid+Y/gkwPcw==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:wVCwEs0bzKtExT1cMrazeS1riOTb3NAFlAgX3Zz4k5PuJBBQwyWSIWYWJZa4gzDX+GEoHFk8mvfg/+Me3sUCAg==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "VERIFIED",
+      "action": "allow"
+     }
+    },
+    {
+     "gate": "g0",
+     "atS": 0,
+     "expect": "flood",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://s1.swarm.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"Eonn3bnGuKSxKa-kIVdw-NvKJkRKsOFPjPY_LPuhONU\";alg=\"ed25519\";expires=1800003600;nonce=\"fdYkykcuaeSLsAgCCuolBv0BpVIjHtuhGtYDBK+OiBdv0LjmrFk7MZh8xfTUuj1pKEPsBD0HqzqCWTDnt3SgfQ==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:tbBS7QQIN8N1iuL2/by0LSU7Z/iaKMRHgaxm8WnlP1WCvgh5yPml+oCZn3rO7+PKpAQWyyl80C6XPh9X9Lp+Dw==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "VERIFIED",
+      "action": "allow"
+     }
+    },
+    {
+     "gate": "g0",
+     "atS": 0,
+     "expect": "flood",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://s2.swarm.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"njMnRXnlS-4mysgg6kfpZDiG6xfvAl_AJ26ELPi5sxY\";alg=\"ed25519\";expires=1800003600;nonce=\"3X8UExwlBl4ZXgBYTglz6H8S8Ao/JkvlYczUIPPDljPVn5bcdr0sDkWh0dqOkcUiValVyb0W1heFMWrlSIbFdw==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:wfVTWM99QnXyYvFbQmHfQeNEbpgec050I1O820vfdyGuYEiNaMWy/uWFhLGLjQZAiu0DrVdQLxcyAl0stZ0+Bg==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "VERIFIED",
+      "action": "allow"
+     }
+    },
+    {
+     "gate": "g0",
+     "atS": 0,
+     "expect": "flood",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://s3.swarm.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"_1tXolpgwFSj8-mO44TolonPJZaSQjENen5bhiwZeeU\";alg=\"ed25519\";expires=1800003600;nonce=\"BvNUGVx6Sjy6iRk26P0uuQmBJQzpbArp9KJw9Q7wsCr362HUejJy6V3nURl0NtRji+k0Hj066RtZvyk1qfhrGA==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:anZoNiW/8OjpXC935MU6be0ZVBWCRTT+n0iAL/jh4sf9vuD+WjlCuEE2P8JklvXrarGLRYqtXpitvbqOt/hmDA==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "VERIFIED",
+      "action": "allow"
+     }
+    },
+    {
+     "gate": "g0",
+     "atS": 0,
+     "expect": "flood",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://s4.swarm.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"gVueREDIzCDhmI3BtG4-5_HDjjLA0TznL_-ZV97ilAg\";alg=\"ed25519\";expires=1800003600;nonce=\"4DKaK8n8jDR2JKWdXsDQW1VEgSiu4hM5SH7RFZVeghSNhHhW3jofC0cPGmQZ/JET+g7ATl+CU7I88Yuc7QrVZA==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:/W9K7xW/dXeOGBNLk9MJYop4OUI43WSPXrPi4wTYWf3vMpusEb9jCuOj/gimyJcrlcv2UE+drlETG2+SNt0RBw==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "VERIFIED",
+      "action": "allow"
+     }
+    },
+    {
+     "gate": "g0",
+     "atS": 0,
+     "expect": "flood",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://s5.swarm.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"AaNFgoyataZLdPEFGu7xa5Y3VAWzpgeTKZYhZwP9p84\";alg=\"ed25519\";expires=1800003600;nonce=\"Jgng8xBMWaxpb68tbTh1h3FScW7hy0UpuLXkhyXeTdn8SuNHsZ8bWARi+bQ/iEzNgfXGYAmoDOYUg87vwWwQ3g==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:SgihNZVnEPCjFqgSzklFdGdBI2jlHSWhBLwg9lTxeuxXBGJHvb8lpI1x6yVFT4Yg3PvVcETuJ6IJ5EM143RBBA==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "VERIFIED",
+      "action": "allow"
+     }
+    },
+    {
+     "gate": "g0",
+     "atS": 0,
+     "expect": "flood",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://s6.swarm.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"UP6FchEXiEjEjc4D6yv6RNL-qGMtE7KF-VCqGacPaE8\";alg=\"ed25519\";expires=1800003600;nonce=\"qE7+QVzrKz+LUoWpFOVFvo6Hc/O76zL4pH2SZGZdZx+1kS0aoqFX31D7j9qTaIXO1CFtAygockgXdNzZNrAEJw==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:ehEtuohK7PsraIJ4UwMRYcqM/AAEdj2NVpWMnLlwGrFfyr6iRR6QDc+1nKjXy4D3pxGqpTrfRrSiJ40imkT2CA==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "VERIFIED",
+      "action": "allow"
+     }
+    },
+    {
+     "gate": "g0",
+     "atS": 0,
+     "expect": "flood",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://s7.swarm.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"cUIHtacSL1_ASISkmUihZyZO0hY3TgyMOzlgL3s51Z0\";alg=\"ed25519\";expires=1800003600;nonce=\"x5OlNcgamKRWQzcyHaYz2XOga/JqmBEX7AB2pimF46IRK0Npc/wtEZ7/t/EgZy4o3H5vvUVrwD1jDWGm68687g==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:fuXBXZbKmdQljpzEkjBsm00TN+GDYJOYN5eFTF2NNLl/fZSqaV8UPHx52kBmZtRBPuXlCQSAOuBkBzRNIK6iDg==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "VERIFIED",
+      "action": "allow"
+     }
+    },
+    {
+     "gate": "g0",
+     "atS": 0,
+     "expect": "flood",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://s8.swarm.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"QqESw6LgfSc7RODuQV002Cc1VMPgu63-PskTpNBM2jE\";alg=\"ed25519\";expires=1800003600;nonce=\"B2aALjx2XS4rFOR57FeHemcXvtFD/TNVhsdx4dGpT6SWykYrDB0r6+vSZg/NtbwATWHhXgTM8F7Jo5AqPsqHOA==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:1862+3rbFTGXTSk7sfbJ1TwqpKGF01r+reHhh7W8tNd1RNjrNt7mW7xuOZjf1ehM8YH1gdMr2AS1uXBk0jiDAg==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "VERIFIED",
+      "action": "allow"
+     }
+    },
+    {
+     "gate": "g0",
+     "atS": 0,
+     "expect": "flood",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://s9.swarm.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"H-CDGItN36UPVQBf7GtgygA2cThUNlrG7yoR-FOs1O0\";alg=\"ed25519\";expires=1800003600;nonce=\"j5aA/8uG3aj8odtAZvgKzjYDishI62DQ/efg4YKbGC7nyclWlHqMl99zyuLFFywUE2zmBMXCEGxKp78ff3msIA==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:tZbetk/Vmygj3ab4dTcUZKJpNrGaLK/98RVHxuMxJ50EOoKjacev2x8VolCw/DpqnwTO4QWJYyHPu2xLCkcrCg==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "VERIFIED",
+      "action": "allow"
+     }
+    },
+    {
+     "gate": "g0",
+     "atS": 0,
+     "expect": "flood",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://s10.swarm.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"z5EOaQqV09ABq2ga9aDP8r4zoTDmt1wnHgTUUfBQ6os\";alg=\"ed25519\";expires=1800003600;nonce=\"wCLMrxvTnSY7U1HY8RjiWJ7TaQyzLzynYPtXlKfLU6attyq2GlAan93/jfoQZZStN/4WU8/m3C+48N5o7ftmBg==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:DzfODCpoNQ28wI6g1OcqC3fby/jTxNP/kJtaXhf8fa4nGIdGxUcfWqYZozrIGW/Z2zaapxlpwkodWXFfk1SnBA==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "VERIFIED",
+      "action": "allow"
+     }
+    },
+    {
+     "gate": "g0",
+     "atS": 0,
+     "expect": "flood",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://s11.swarm.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"4RKk3CqZYT4272o_lQN1gd0g1DS7QUMuXsSzku-Szfk\";alg=\"ed25519\";expires=1800003600;nonce=\"uC0DmUaNy3bLgElfZGInCqIjNqZxnEDXNkjQDbTLeWQOq0ef90OgCSQ1WiFXwSstsB6KKuOXCccgFf/YJEsb0A==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:XV6fYaOJl5m9xqohPrxvh7XT2nfCvnO19PytfsjVg6L+UVlT4IEPAxeKkTuRqLB6HWYzLJQYZ56f21QMJDVVDQ==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "VERIFIED",
+      "action": "allow"
+     }
+    },
+    {
+     "gate": "g0",
+     "atS": 0,
+     "expect": "flood",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://s0.swarm.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"PtbKRbrXxq95nV9puNEYh7YZqnC1-Xfj0txmgXvgkd8\";alg=\"ed25519\";expires=1800003600;nonce=\"jripr/czeOGHRmzdRVhdc+xc/+gmMP+p08XSKSW5bm4Os1o51eHBZyuklFBfV9T6VnZxxuHIl7QI8cPBsDdgSw==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:IuQpMt39o6F2LvZmTuSAPJ2IoDlcJ/63gxTcXH3vlEIDr/rKnyqWSUnzzR9ou8CbOpxq9y4nVWsa7wY0O1LdCg==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "VERIFIED",
+      "action": "allow"
+     }
+    },
+    {
+     "gate": "g0",
+     "atS": 0,
+     "expect": "flood",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://s1.swarm.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"Eonn3bnGuKSxKa-kIVdw-NvKJkRKsOFPjPY_LPuhONU\";alg=\"ed25519\";expires=1800003600;nonce=\"mZ9yO5QM7uv/Hv9TfKHc/lSmO1F1aEuSMDZaI8n1ly7kT1DtpMUzjHLJmlAOR8ft9+Ve6dR6MwKZr5i8zTwcMA==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:x9ZyjHTALFqXqJ6ho+WniXhNfF82uPaWHxHxjTJ4kvCl6XuI4wFeA/MVqcJ/dSerQdfcV5QaAZacr3H3R//OBg==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "VERIFIED",
+      "action": "allow"
+     }
+    },
+    {
+     "gate": "g0",
+     "atS": 0,
+     "expect": "flood",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://s2.swarm.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"njMnRXnlS-4mysgg6kfpZDiG6xfvAl_AJ26ELPi5sxY\";alg=\"ed25519\";expires=1800003600;nonce=\"llGd+51cMr+OpFIHnDIHWQhOp9P3SqMUC3WuqZzzfNYqzxRRFHnuJoH/hmVd19ihVMb2u5hqhsM1jzsUcm//xw==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:i1X+xcdjUQaBUwfdbRqz3brgeZ2G/TA6JZmIlxzpi/zUa95s1mjQEkAYQORMUySz4P5jGGG3iXre0T1GTsYnDg==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "VERIFIED",
+      "action": "allow"
+     }
+    },
+    {
+     "gate": "g0",
+     "atS": 0,
+     "expect": "flood",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://s3.swarm.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"_1tXolpgwFSj8-mO44TolonPJZaSQjENen5bhiwZeeU\";alg=\"ed25519\";expires=1800003600;nonce=\"HyvGMIRUkcduP+FdjfzTkEGNEOTCgxyjdttu0gHrLW9Tfvg+WvYvtgl63qOjWrZMAUBylFF+UbuhD5XnS65Qrw==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:E7g9Y6L9Cb5JuJvgOCeTIZtBLc1X12vXNdRIdH2WGvoDdmLbiH29Ulb7/DqNe83fj88SdMkDUrb6nWKPzH70Cg==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "VERIFIED",
+      "action": "allow"
+     }
+    },
+    {
+     "gate": "g0",
+     "atS": 0,
+     "expect": "flood",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://s4.swarm.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"gVueREDIzCDhmI3BtG4-5_HDjjLA0TznL_-ZV97ilAg\";alg=\"ed25519\";expires=1800003600;nonce=\"kN+rR1JMxWfPZtQBrSSxO4QBrj365p8wAqDzGEk795dgmdZMBo9EX8J0OXInG0x8awj/YOPnaoqJR4FnKW+d8Q==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:c6P5WHSIIUkXLHX89alRhYDoZShVYwosUSEk/VTsTaTqxfUKepDlfkk3MlmLSF8K6b+TzkMsVkLt6GGnZ3ccAg==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "VERIFIED",
+      "action": "allow"
+     }
+    },
+    {
+     "gate": "g0",
+     "atS": 0,
+     "expect": "flood",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://s5.swarm.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"AaNFgoyataZLdPEFGu7xa5Y3VAWzpgeTKZYhZwP9p84\";alg=\"ed25519\";expires=1800003600;nonce=\"bWGxBgnFjFKd3LRkr13sGDKtsEIxfhCn1zfleno6gPMsHUJQI/Pw6i4PZ+NabReN1R/mTcAKwKjSVCc1xrzwgw==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:bOMvYzGZ8Tm3A5r0/lHZaz8byl0L+L/X9BwTiYMR778ZIlA/zIznKocrjueslkiFtl8kb1tYTXfxH8Mty/7PAw==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "VERIFIED",
+      "action": "allow"
+     }
+    },
+    {
+     "gate": "g0",
+     "atS": 0,
+     "expect": "flood",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://s6.swarm.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"UP6FchEXiEjEjc4D6yv6RNL-qGMtE7KF-VCqGacPaE8\";alg=\"ed25519\";expires=1800003600;nonce=\"Yqa5zflAjXjOWL1OGTc3/IyBmKJgYvlx7IvPJ2X4+QNIcVtWtoSUJeDN/pFOcBWHBxfYJYsDvRApFx7pMz62Zw==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:P9wLwGqFTzRzQz08FPt0oxZGdz9hsSOB3gMtvtXsIpBUIK6f9r/g9ix0k8tdS5aNAKgKVfFEWd/osEc3AegPDQ==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "VERIFIED",
+      "action": "allow"
+     }
+    },
+    {
+     "gate": "g0",
+     "atS": 0,
+     "expect": "flood",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://s7.swarm.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"cUIHtacSL1_ASISkmUihZyZO0hY3TgyMOzlgL3s51Z0\";alg=\"ed25519\";expires=1800003600;nonce=\"mEiWL2WyIV/3gA+t7oBHdHrIRtR5SvRzHSQqxVw0E3ma0r3BjSYxpuumgRnRfAtc56AgUyUlv2GMlLA1xInr1g==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:LgcapSjuce1G5xwd6RhJm8PnFROb9lietjtbcLM9VRIbm7mC3OZrCV9WkX0T+2QJvfAb0+joGE6LImGeidioCw==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "VERIFIED",
+      "action": "allow"
+     }
+    },
+    {
+     "gate": "g0",
+     "atS": 0,
+     "expect": "flood",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://s8.swarm.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"QqESw6LgfSc7RODuQV002Cc1VMPgu63-PskTpNBM2jE\";alg=\"ed25519\";expires=1800003600;nonce=\"4Gl/osHl8KRcLfYHpqyTjV8bqL22RlEmuNvGmua5rtyO7YZEn4zix5ApQP61I/eLgwsJyK6QJX1EVRM4aU990Q==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:lSXUOW7XC6ZlJ6VYhssG6qk0wxQAEkc28im9FM/J/1SXgOtK+mF6/60P9sjb2LnJK6CijS9Z+loFY3cuExVwDg==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "VERIFIED",
+      "action": "allow"
+     }
+    },
+    {
+     "gate": "g0",
+     "atS": 0,
+     "expect": "flood",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://s9.swarm.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"H-CDGItN36UPVQBf7GtgygA2cThUNlrG7yoR-FOs1O0\";alg=\"ed25519\";expires=1800003600;nonce=\"dxryT/y6ESwEtwe/P4OBq4NAd8J7Lpa6xMTb1ZqJ8aE7UIreLVDV844bn803qrJqk8cjPwMxkiKqMDGH5Z5OlA==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:I3eMs4WrfEgL8tksT2V4RaI6rQX5GRM5Ydm0DJ81uvEMRbFE479p+4CXzVXKmtNesjTe2k1uAZLJ3Eu8WAFFAw==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "VERIFIED",
+      "action": "allow"
+     }
+    },
+    {
+     "gate": "g0",
+     "atS": 0,
+     "expect": "flood",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://s10.swarm.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"z5EOaQqV09ABq2ga9aDP8r4zoTDmt1wnHgTUUfBQ6os\";alg=\"ed25519\";expires=1800003600;nonce=\"rTZOiQD9RXGGUmEvwc3cIJKXhXm739rhikUmP+pMdOoeI0K7SmkSZ+NprEfShCy6PeNyePEARkkcTSaEoANKxQ==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:0mUjWl3olVXTIwGndmiZcX+bHi28/fbdLzF+HFjJYQvgaDaFjlLXYXsfJ8h0EzhkhVqVIwYZtiF8dzkyp1VMCg==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "VERIFIED",
+      "action": "allow"
+     }
+    },
+    {
+     "gate": "g0",
+     "atS": 0,
+     "expect": "flood",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://s11.swarm.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"4RKk3CqZYT4272o_lQN1gd0g1DS7QUMuXsSzku-Szfk\";alg=\"ed25519\";expires=1800003600;nonce=\"2oD7+naIrVbTPlJ3cYdfy37olRUZdKUSfr+/4zyZEIGiO9wDoajRuf9Jq4dsJD4TilhEtUZ1BthSrOttvhdoxg==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:ipQd/RQZt03kvsaUaxWLF8VfoOSqiRAqrQP5Qnvgel+vdlkLTU96jyHWJLSB1/7XaQqVMeFaFjlBBRpb0ZDiAA==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "VERIFIED",
+      "action": "allow"
+     }
+    },
+    {
+     "gate": "g0",
+     "atS": 0,
+     "expect": "flood",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://s0.swarm.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"PtbKRbrXxq95nV9puNEYh7YZqnC1-Xfj0txmgXvgkd8\";alg=\"ed25519\";expires=1800003600;nonce=\"evETut8WRqFdQstBhqnIq4BFiboBaNayS02kl4KemNAE11kGx2uzLRdKg7+tYQetRJPQmPdp9NgNZ0llqlVpMw==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:2APjkURPdf7foRw72dE+hYX2nUfVi0Spg7xkUAwMvPpAMkewar8ELOsLzsE7a8VJ2LGIdvqJ7LHf84yDsk4lDw==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "VERIFIED",
+      "action": "allow"
+     }
+    },
+    {
+     "gate": "g0",
+     "atS": 0,
+     "expect": "flood",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://s1.swarm.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"Eonn3bnGuKSxKa-kIVdw-NvKJkRKsOFPjPY_LPuhONU\";alg=\"ed25519\";expires=1800003600;nonce=\"7nzbCJEtDXUfQI4GVvew6Y2OtzWA6bjp95m/Rl9fMVLGUC46wgsqF0xJivw3xBq9mzzprRWUZlDzFowodj4EaA==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:/jjQIHWM/ThjFaVT6MvVwHvgiBWkCdzs5/vZrhFriNDXI1h4lvfR1OJoWngPv1g4f9pUC3IqHUncWH/GMYAZBA==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "VERIFIED",
+      "action": "allow"
+     }
+    },
+    {
+     "gate": "g0",
+     "atS": 0,
+     "expect": "flood",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://s2.swarm.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"njMnRXnlS-4mysgg6kfpZDiG6xfvAl_AJ26ELPi5sxY\";alg=\"ed25519\";expires=1800003600;nonce=\"a7AzzXhmgA1Yk/AK6Q5AQ5yPPLlw0ml80bodA5qmM20Fx5LsQjuVdu7N35rwnziwfoJqbUvuspDvEY7ZZDj4rQ==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:Jzzi2HOsfOLHf/P1lNdtgdR2luwmkGEOZtbKRzZ0RynhyjxbwJZN0vdJ+KRuLUXdGZVhgwhfrJArjedXqqivBA==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "VERIFIED",
+      "action": "allow"
+     }
+    },
+    {
+     "gate": "g0",
+     "atS": 0,
+     "expect": "flood",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://s3.swarm.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"_1tXolpgwFSj8-mO44TolonPJZaSQjENen5bhiwZeeU\";alg=\"ed25519\";expires=1800003600;nonce=\"HC9WRPRIsLKTdPpU4WVROn4OElchOvtrDV0fOc3aoHt/iVKXwP+OwUQjJtPSIVo72vS/5JPlrUWUUm9S/bajKg==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:v0GExaPLFUdDtu02GpEfKF4zPvWI3iGdU6TQpFMAG7X7Hx7eTuPA40IeWMXVev1MZIsu3p1CjMer6yrOQR9QBg==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "UNVERIFIED",
+      "action": "deny",
+      "error": "signature_required"
+     }
+    },
+    {
+     "gate": "g0",
+     "atS": 0,
+     "expect": "flood",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://s4.swarm.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"gVueREDIzCDhmI3BtG4-5_HDjjLA0TznL_-ZV97ilAg\";alg=\"ed25519\";expires=1800003600;nonce=\"AggQQ3ac24UGOyRIUr7ODL8AZ/1YvIxVms+vAgS2VvcGyoh0vjo1yBcK5ElxKckU2n6pyuCt3eprNm0RfsvTLQ==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:7A/5IonQ6fddiNKBZb9itxAjBXvhG7vFLGdylXpBUo4+lGUEIrJTzR5if7R4sg8H1Mx+2jpGgOXjdTN/fx6FBg==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "UNVERIFIED",
+      "action": "deny",
+      "error": "signature_required"
+     }
+    },
+    {
+     "gate": "g0",
+     "atS": 0,
+     "expect": "flood",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://s5.swarm.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"AaNFgoyataZLdPEFGu7xa5Y3VAWzpgeTKZYhZwP9p84\";alg=\"ed25519\";expires=1800003600;nonce=\"tiRq0E+DQeXcTVTAEFXIIS4gjt2J7WTSLyVlE4daN1P8ISrgFZqq71mkw/m6q0fCYUe/itfmGC+nppzxV7BJ3w==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:fjGe+w+y3jZtEUK7AWNWQNk2YyNDQwqwlJKTLLp5Iyti/zqBGX0KTSxsH1fQQOvPteCtIBNdi7af4NAQ6XSJBw==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "UNVERIFIED",
+      "action": "deny",
+      "error": "signature_required"
+     }
+    },
+    {
+     "gate": "g0",
+     "atS": 0,
+     "expect": "flood",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://s6.swarm.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"UP6FchEXiEjEjc4D6yv6RNL-qGMtE7KF-VCqGacPaE8\";alg=\"ed25519\";expires=1800003600;nonce=\"BCZRX7uTtXeSiFzRVFFTYiKaR3V613ZF48anQ63dAnEfkvGIcWnrfECgY9P+qAjda1+bZYSBXXPgmXAtjE1BQw==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:IVERxZn+oNcekV1E6/z8BZddmqoyXH54/gQaUtHMJsM1QUm/NNDMZVtzGjAnfkPp3ak6beIzY0OGE2583QNcBw==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "UNVERIFIED",
+      "action": "deny",
+      "error": "signature_required"
+     }
+    },
+    {
+     "gate": "g0",
+     "atS": 0,
+     "expect": "flood",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://s7.swarm.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"cUIHtacSL1_ASISkmUihZyZO0hY3TgyMOzlgL3s51Z0\";alg=\"ed25519\";expires=1800003600;nonce=\"aXu8SIJWuoRM/qYg0IKiB2pm7bBrmowUh6iJRanH1r7CWJJkXkH0ecbkTW88xA6RW00WLYDttZwUQkIdGoR/MA==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:/GnERbMQqWyIitkhpYeWZD7LlUgDgCV6jmPcJlb+Iiqr5qphchIko1Qwcxrk/uQFpkKDzmCZithRz6PaeMmuBw==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "UNVERIFIED",
+      "action": "deny",
+      "error": "signature_required"
+     }
+    },
+    {
+     "gate": "g0",
+     "atS": 0,
+     "expect": "flood",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://s8.swarm.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"QqESw6LgfSc7RODuQV002Cc1VMPgu63-PskTpNBM2jE\";alg=\"ed25519\";expires=1800003600;nonce=\"0GPOQfsKYTyBRpYcOON9rDEz25Xi1SwlUfymr3SeAp0IjA4hEN958bo7VJr/cdKoOGIYW4y6WWtqt+r2uMLkPA==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:fE47OqSPsy4rqfBqd/W7laX0CK/yuYSybi2DaE55df+uCsz958ACvWbVj3261FiuYmteRPkVutB1oenTN3ucCg==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "UNVERIFIED",
+      "action": "deny",
+      "error": "signature_required"
+     }
+    },
+    {
+     "gate": "g0",
+     "atS": 0,
+     "expect": "flood",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://s9.swarm.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"H-CDGItN36UPVQBf7GtgygA2cThUNlrG7yoR-FOs1O0\";alg=\"ed25519\";expires=1800003600;nonce=\"bepPCFMeVWfCmeMk6d+r9HHMXbITTjJeIw1qlZDd4WapzkpL4/Wby7h9hZWasLoMlF3VTEAxOZWUz2ZsUT7a/A==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:EeuZWzZeFh/eecNFsGB+Tu5ncK6uLTT8aF+C4lpDswDTZsBwYA3A0GkiEDWEytYwKsS2ivdEwbRXT5WiExSoBg==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "UNVERIFIED",
+      "action": "deny",
+      "error": "signature_required"
+     }
+    },
+    {
+     "gate": "g0",
+     "atS": 0,
+     "expect": "flood",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://s10.swarm.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"z5EOaQqV09ABq2ga9aDP8r4zoTDmt1wnHgTUUfBQ6os\";alg=\"ed25519\";expires=1800003600;nonce=\"HCbkBMwJG37SzeiAi/4/DzlN2/ZFiqMEEYLthtRiSoMsLgRWFKkNo2lSXhmGlW3ck8DRwhrPxuwLlr/4rXVvgw==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:5Ut4RUMVjfoHcAVKDmB8PhcqLDO8YCpbKYCvCAHyT/hsXH5mXn1LVJce073h7vFcwFF793K77SQN4QAINcOADg==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "UNVERIFIED",
+      "action": "deny",
+      "error": "signature_required"
+     }
+    },
+    {
+     "gate": "g0",
+     "atS": 0,
+     "expect": "flood",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://s11.swarm.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"4RKk3CqZYT4272o_lQN1gd0g1DS7QUMuXsSzku-Szfk\";alg=\"ed25519\";expires=1800003600;nonce=\"xsJ5DRTvmZXUxhfLhl1iq1udH0L886/FFSffgxM5U/w1UgiecRJgKzafo+eX5A47bjzAD9c/SfXIHqoNJhzdIw==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:1buvFo2O5WWFOzIlPFerpw1AxrBmNnuxmQM3nA5J4V8HO0bS1yhRp4oiGDOHZFKY2T8CfKXTU/IIgpIdKuKpDA==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "UNVERIFIED",
+      "action": "deny",
+      "error": "signature_required"
+     }
+    },
+    {
+     "gate": "g0",
+     "atS": 0,
+     "expect": "flood",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://s0.swarm.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"PtbKRbrXxq95nV9puNEYh7YZqnC1-Xfj0txmgXvgkd8\";alg=\"ed25519\";expires=1800003600;nonce=\"v2RbgTITQkUmG7W/25wEyExJOOLccKMG48bU3B4pdXvDR+Ic949gF4yumbZAfYJqeZjYjxzWtLXQ1UNR2L8m5Q==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:Cw7bXRwmu4PYFEokr0qx7P/cJHJ6JnukTJAve3+P4sxPq1UxSDwfFdu/R1jJTTJt8PKLjPQB0/DHQ609Qh/VDA==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "UNVERIFIED",
+      "action": "deny",
+      "error": "signature_required"
+     }
+    },
+    {
+     "gate": "g0",
+     "atS": 0,
+     "expect": "flood",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://s1.swarm.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"Eonn3bnGuKSxKa-kIVdw-NvKJkRKsOFPjPY_LPuhONU\";alg=\"ed25519\";expires=1800003600;nonce=\"cXNXxmhHeWz/EHZZDdALc2FMr8TEAs1pxRqIhahN5v5azzJJoG6ZBLa5jrV7+KnVv/I89dmPgdxQUQaXvpM+lw==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:DXrT27/l2MHgz4Pw2jOUYzhYQ5KTTVvnkDrLKMkXxO9fcEgPsfEPTX3yUzBH4t0xSwnudv4sAGUDSuAoVE+2Cw==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "UNVERIFIED",
+      "action": "deny",
+      "error": "signature_required"
+     }
+    },
+    {
+     "gate": "g0",
+     "atS": 0,
+     "expect": "flood",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://s2.swarm.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"njMnRXnlS-4mysgg6kfpZDiG6xfvAl_AJ26ELPi5sxY\";alg=\"ed25519\";expires=1800003600;nonce=\"JO+KxdStLn6FVGDa2iFLk/EeyOpQe2JHIwFFzUc7oaJQJ1SzACbHJk3jhVTsbuCPypTy/O5/Jo3WwQPLGv5cag==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:koz1BfxSBFbIfEa4bnBhV3s/9caoMNJlP/KIW/VIYuSRENUfssrRoBWTXjVcR0b19Hiok5HTJtH2zO8LZE9iAw==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "UNVERIFIED",
+      "action": "deny",
+      "error": "signature_required"
+     }
+    },
+    {
+     "gate": "g0",
+     "atS": 0,
+     "expect": "flood",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://s3.swarm.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"_1tXolpgwFSj8-mO44TolonPJZaSQjENen5bhiwZeeU\";alg=\"ed25519\";expires=1800003600;nonce=\"BTSa0/nGMalBB6VbRS3MlfMAGWQDSYdhg3hQYlWmYp07dQ8RUaLPGwyjhs7rsMz591TLNQzo00Pv7vhbrobieQ==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:3eQEQwzOipeQeKIGn8IX/edWhNDoN6kPRwD26GeQTiJrfrVbgwOOzjat2HceI2Y67Alm1zNzTAvYxqGm77IvCA==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "UNVERIFIED",
+      "action": "deny",
+      "error": "signature_required"
+     }
+    },
+    {
+     "gate": "g0",
+     "atS": 0,
+     "expect": "flood",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://s4.swarm.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"gVueREDIzCDhmI3BtG4-5_HDjjLA0TznL_-ZV97ilAg\";alg=\"ed25519\";expires=1800003600;nonce=\"Hr9ib0vCY4p45b32R0eYDtGgYm6D5Q9oQhkhKjdnztqbVbIViqKIDFADxtjxqgRODx+nRmt7HDStjBu6oM/wNA==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:IR8Pgu5FPCokeV6+iNRMe6faeXqstfpjRAJqLOWGrDnFqrrHU/nVjHvaFFqW0YvVSOcPTd3sll3ZJUDDk94uAg==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "UNVERIFIED",
+      "action": "deny",
+      "error": "signature_required"
+     }
+    },
+    {
+     "gate": "g0",
+     "atS": 0,
+     "expect": "flood",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://s5.swarm.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"AaNFgoyataZLdPEFGu7xa5Y3VAWzpgeTKZYhZwP9p84\";alg=\"ed25519\";expires=1800003600;nonce=\"Qlzig0SIrGgNv2ls/4mvooPKoBmoGx6BvPxVGbgBGH8vB/NVPgwFISRG66vMly/WWD/WLe2zWvMJkcaGISGTDA==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:sFBBTya5E8Ua1H6GvEU/ajpvE+aBjdg2r2FtYoLJ74rJ9YBut+MOD5WwAWI5ZD4lTmHx4Mp4VRjVoFYcKXJuAA==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "UNVERIFIED",
+      "action": "deny",
+      "error": "signature_required"
+     }
+    },
+    {
+     "gate": "g0",
+     "atS": 0,
+     "expect": "flood",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://s6.swarm.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"UP6FchEXiEjEjc4D6yv6RNL-qGMtE7KF-VCqGacPaE8\";alg=\"ed25519\";expires=1800003600;nonce=\"pLi4I/BPRFbYsJpGbO8PQwTjoWXSDoKpckLwX/A5fj5hQ1HBXzoIZCNFPlN3etCXu4m0+54rLGEcK3gm/7mOgQ==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:sMseexWARHmiC9hTKEm2cAXCfKXwuqqilzKZ7asIQ9DqKhB4sdtM8LeK88hfqrXplAvUxBtF2X9tvCAI9fU+Bw==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "UNVERIFIED",
+      "action": "deny",
+      "error": "signature_required"
+     }
+    },
+    {
+     "gate": "g0",
+     "atS": 0,
+     "expect": "flood",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://s7.swarm.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"cUIHtacSL1_ASISkmUihZyZO0hY3TgyMOzlgL3s51Z0\";alg=\"ed25519\";expires=1800003600;nonce=\"NZ6veE8voETJFQfVCPBazX5m6BKQD9zyRQqOjqgFumBGEF7L8+itsUt+QWROTUzoPVLTpzPt5ClgQEpwY6VY2Q==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:91suCeW8zOP11Nu74cJeflU3BgRU6TBRIpKDqRMvJJq2Vmn6XE1zSR3NlBNJqmtPpujTdwVgtWuxjrcDQDlnAA==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "UNVERIFIED",
+      "action": "deny",
+      "error": "signature_required"
+     }
+    },
+    {
+     "gate": "g0",
+     "atS": 0,
+     "expect": "flood",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://s8.swarm.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"QqESw6LgfSc7RODuQV002Cc1VMPgu63-PskTpNBM2jE\";alg=\"ed25519\";expires=1800003600;nonce=\"euPBubW7aXQ16dchb6b3TfND+ArQKIZx2wTnyoEUWsvD2+qI++Tjl59kqCQAgnXkfbF7eaWaOSQn8zBG4iONqg==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:lDcGMhr3wo5CuGts5P3pIxwygHIEFyYNnr79HXxqliovlUk3ZNJDGlQohOCOuTxgzTP0FNtQQg9Q5rz9zqRtBg==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "UNVERIFIED",
+      "action": "deny",
+      "error": "signature_required"
+     }
+    },
+    {
+     "gate": "g0",
+     "atS": 0,
+     "expect": "flood",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://s9.swarm.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"H-CDGItN36UPVQBf7GtgygA2cThUNlrG7yoR-FOs1O0\";alg=\"ed25519\";expires=1800003600;nonce=\"yyTSujEheFKIkCa28+6HaKBaHii6bPkwBancfdL6ESOi0U11jYgY45UJiilX2RlCCKHkv8ufGzHvDhZ5CErLSA==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:wBh0fh/892VTmzmFYRRNUEGYSL95aJPOxVi97VpuE4k1MMWTNuPaLbNxENOqQt/aRVf8s6wf9Ok2EMq0AL0OCw==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "UNVERIFIED",
+      "action": "deny",
+      "error": "signature_required"
+     }
+    },
+    {
+     "gate": "g0",
+     "atS": 0,
+     "expect": "flood",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://s10.swarm.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"z5EOaQqV09ABq2ga9aDP8r4zoTDmt1wnHgTUUfBQ6os\";alg=\"ed25519\";expires=1800003600;nonce=\"9xMNjZ/hthKwI/vfGZwOIZWF2fW5h0RYPCMBdkpbyvszl76t5zJbsLkjR5wjPX0dEd3sFAvGxeCGq1UbR++q9w==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:qXgxJggw3X6qgjjkJ+JgX9jv/soTcL9EDH96BVN6iSDz9a/NTbPtW5JDAjQcaiL+uoOftsYXKDNnFKHg0Z4gDA==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "UNVERIFIED",
+      "action": "deny",
+      "error": "signature_required"
+     }
+    },
+    {
+     "gate": "g0",
+     "atS": 0,
+     "expect": "flood",
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://s11.swarm.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"4RKk3CqZYT4272o_lQN1gd0g1DS7QUMuXsSzku-Szfk\";alg=\"ed25519\";expires=1800003600;nonce=\"G4Qrqro0Aod1wJQb6hKUVEgo+nSofcxS1OmOm5ZUBLeqzXzo3qgasdQnBEKeemiYThwqRA6ooNg3YaE6lEn4PQ==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:yUVkVIbVVflpIdVgyeNWz3CLWJURnEIDeThErBUp6WqUXpI1hTTsRZwkfAN1Bel1hAfhVr7OtUp/mCG774pQDQ==:"
+       }
+      ]
+     },
+     "reference": {
+      "class": "UNVERIFIED",
+      "action": "deny",
+      "error": "signature_required"
+     }
+    },
+    {
+     "gate": "g0",
+     "atS": 1800,
+     "expect": "rejected",
+     "classes": [
+      "SPOOFED"
+     ],
+     "core": {
+      "method": "GET",
+      "targetUri": "https://shop.example/checkout/1",
+      "fields": [
+       {
+        "name": "user-agent",
+        "value": "ExampleAgent/1.0"
+       },
+       {
+        "name": "signature-agent",
+        "value": "sig1=\"https://agent.example\""
+       },
+       {
+        "name": "signature-input",
+        "value": "sig1=(\"@authority\" \"signature-agent\";key=\"sig1\");created=1800000000;keyid=\"Hto2uuH8Y4PkK2c-Gt99FZ9xGVBlmNm-g1ZRi_HHZj0\";alg=\"ed25519\";expires=1800003600;nonce=\"yPrKLlvcoOh3nl/qhxjXDbfA6wCEpOkZQHf/L1DpfMRkDJT59ipQZIw7pv8NExEbiGTh2UalHX3Y8P6nnMLG0w==\";tag=\"web-bot-auth\""
+       },
+       {
+        "name": "signature",
+        "value": "sig1=:j6jodc3U/ztG9lTAewNkAUCZzoNIW/3avzPW4wRqtnHgHlPU/0+A1TYVoF5ovNnp+ewu92tAkyQDtkashR2BAw==:"
        }
       ]
      },

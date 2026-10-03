@@ -63,7 +63,7 @@ node accept/conformance/export.mjs     # after adding to accept/attacks/
   - the authority comes from `Host`, or from `X-Forwarded-Host` / `X-Forwarded-Proto` when `trustProxy` is set;
   - an absolute-form target is routed on its path;
   - a denial answers the request itself, and anything else reaches the app.
-- **`signature`**: the RFC 9421 / Web Bot Auth signature on its own, with the lifetime left to the caller. A Gate adds its 60-second cap, and `wg-e2-1--gate-holds-to-60s` checks that.
+- **`signature`**: the RFC 9421 / Web Bot Auth signature on its own, with the lifetime left to the caller. A Gate adds its own cap: `expires - created` of at most an hour, and a nonce once it passes 60 seconds (spec §10.4). `wg-e2-1--gate-holds-to-60s` checks the cap. Its id predates the hour limit.
 
 ### What each step must satisfy
 

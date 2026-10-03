@@ -15,7 +15,7 @@ Your request carried a Web Bot Auth signature, the Gate found your key, and the 
 - the request changed after signing (a proxy rewrote a header, the body changed);
 - the signature was made for another host: `@authority` must be this site;
 - the clock: `created` is in the future, or `expires` has passed, beyond ±30 seconds of skew ([spec §10.4](https://github.com/Ludion-ai/Ludion/blob/main/docs/ludion-spec.md#104-リクエストの署名));
-- the lifetime `expires − created` is longer than 60 seconds ([spec §10.4](https://github.com/Ludion-ai/Ludion/blob/main/docs/ludion-spec.md#104-リクエストの署名));
+- the lifetime `expires − created` is longer than 3600 seconds, or longer than 60 seconds without a `nonce` ([spec §10.4](https://github.com/Ludion-ai/Ludion/blob/main/docs/ludion-spec.md#104-リクエストの署名));
 - `tag` is not `web-bot-auth`, or the `Signature-Agent` dictionary key does not match the signature label;
 - the same signature (or nonce) was sent again: a signature cannot be reused.
 
