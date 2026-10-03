@@ -165,3 +165,11 @@ test("links: every locale has its own 404 page (Starlight's 404 has no fallback:
   assert.ok(locales.includes("ja"), `locales: ${locales}`);
   for (const l of locales) assert.ok(hasPage(`${l}/404`), `site/src/content/docs/${l}/404.mdx`);
 });
+
+test("links: the /scan sample the page loads is shipped, and is the SCAN corpus file byte for byte (its truth applies)", () => {
+  const component = fs.readFileSync(path.join(ROOT, "site/src/components/ScanDrop.astro"), "utf8");
+  const src = /id="scan-sample" data-src="([^"]+)"/.exec(component)?.[1];
+  assert.equal(src, "/samples/nginx-access.log");
+  const shipped = path.join(ROOT, "site/public", src);
+  assert.deepEqual(fs.readFileSync(shipped), fs.readFileSync(path.join(ROOT, "accept/fixtures/logs/corpus/nginx-access.log")));
+});
