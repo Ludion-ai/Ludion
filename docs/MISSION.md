@@ -158,6 +158,16 @@
 | WEB-7 | + | 1 | ドキュメントがテストになっている。クイックスタート（Gate：Express、Next.js、Workers、FastAPI、WordPress。Diver：CLI、TypeScript、Python。scan）のコードブロックを CI がクリーンな環境で実行し、書いてあるとおりの結果（VERIFIED、最初の分類イベント）になる | |
 | WEB-8 | ± | 1 | 登録フォーム。プレビューで送信すると、受け口を通って通知（スタブでよい）まで届く。ハニーポットとレート制限でボットは落ちる | |
 | WEB-9 | + | 1 | デプロイと同じ成果物（`site/edge` を workerd の `wrangler dev` で動かす）で、全ページが英日の対で揃う。テンプレートごとに英日1ページずつの Lighthouse（モバイル）の4項目がすべて95以上（各ページ3回の中央値）。検査器は、仕込んだ劣化ページで先に試す。WEB-1 と違ってデプロイもトークンも要らないので、CI で毎回回る | WEB-5 |
+| WEB-10 | ± | 1 | クイックスタートのページ（`/quickstart`）が書いてあるとおりに動く。ページのブロックを順に、クリーンなディレクトリで実行する（`@ludion/*` は公開セットの tarball）。出力はページのとおり。GPTBot の受領証は DECLARED、ブラウザは UNKNOWN で同じページ。`init` と `sign` の署名付きリクエストは、`init` が書いたディレクトリを持つ Gate で VERIFIED、改ざんしたものは VERIFIED にならない。WEB-7 のうち Express と CLI の部分（WEB-7 は残りのために開いたまま） | |
+
+### M8 現場（パイロット）
+
+本物のサイトの前に Gate を立てる。デプロイは人間がする（`pilots/`）。
+
+| ID | ± | L | 合格条件 | 対 |
+|---|---|---|---|---|
+| PILOT-1 | ± | 1 | tracecheck.dev のパイロット（`pilots/tracecheck`）。デプロイするものと同じ Worker を workerd でスタブのサイトの前に立て、人にもエージェントにも、サイトの応答がバイトとヘッダーまでそのまま返る。記録されるのは自動化だけで、クエリ、アドレス、自由な文字列を含まない。毎朝のレポートが届く。D1 の故障、拒否される設定、例外は訪問者に届かない（仕込んだ故障を Node のテストで捕まえる） | |
+| PILOT-2 | + | 2 | tracecheck.dev で、直近 7 日（東京の暦日）のどの日にも自動化の記録と毎朝のレポートがある。tracecheck のアカウントの読み取り用トークンで D1 を読む | |
 
 ## 5. 最初の順番（提案。根拠があれば変えてよい）
 
@@ -181,3 +191,4 @@
 | `SIGNUP_WEBHOOK_URL` | LP の登録通知 | |
 | GitHub の secret `CLOUDFLARE_PREVIEW_API_TOKEN` と `CLOUDFLARE_PREVIEW_ACCOUNT_ID`（エージェント用アカウント `Ludion Agents` の、Workers Scripts の編集だけのトークン） | CI の `preview` ジョブ（WEB-1 をプレビューに出してから回す） | 他のアカウントに届くトークンなら、デプロイが止まる（DEPLOY.md §2）。`preview` を必須のチェックにする |
 | `LUDION_CANARY_READ_TOKEN`、`LUDION_CLOUD_READ_TOKEN` | LIVE-2、LIVE-3 | Claude Code が canary と Cloud を作った後に発行する |
+| tracecheck.dev へのパイロットのデプロイ（`pilots/tracecheck/DEPLOY.md`）と、`TRACECHECK_D1_READ_TOKEN`、`TRACECHECK_ACCOUNT_ID`、`TRACECHECK_D1_ID`（tracecheck のアカウントの、D1 を読むだけのトークン） | PILOT-2 | Claude の鍵は tracecheck のアカウントに届かない。トークンも、そのアカウントの D1 の読み取りだけにする |

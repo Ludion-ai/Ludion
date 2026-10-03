@@ -332,4 +332,24 @@ export const ORACLES = [
   { id: "WEB-8", m: "M7", kind: "±", level: 1, title: "signup form: a preview submission reaches the notifier (stub ok); honeypot and rate limit drop bots",
     timeoutMs: 900_000, run: nodeTest(["site/test/web8.test.mjs"], "^WEB-8:", { timeoutMs: 880_000,
       metric: (out) => (/^# WEB-8: (.+)$/m.exec(out) ?? [])[1] }) },
+  // The quickstart page as a test (the Express and CLI part of WEB-7, which stays open for the rest):
+  // its blocks run in order in a clean directory, @ludion/* from the publish set's tarballs; what the
+  // page shows is what they print. The agent's request is VERIFIED by a Gate given the directory init
+  // wrote (agent.example.com is not ours to publish on), and a tampered copy is not.
+  { id: "WEB-10", m: "M7", kind: "±", level: 1, title: "the quickstart page runs as written: the Gate at P0 classifies (DECLARED; a browser UNKNOWN, same page); init + sign → VERIFIED with the directory init wrote, a tampered copy not",
+    timeoutMs: 1_200_000, run: nodeTest(["site/test/web10.test.mjs"], "^WEB-10:", { timeoutMs: 1_180_000,
+      metric: (out) => (/^# WEB-10: (.+)$/m.exec(out) ?? [])[1] }) },
+
+  // ── M8 pilots: the Gate in front of real sites ─────────────────────────────────────────
+  // tracecheck.dev (pilots/tracecheck): a zone-route Worker a person deploys. In Node (D1 on node:sqlite,
+  // planted faults) and in workerd (the deployable bundle in front of a stub site).
+  { id: "PILOT-1", m: "M8", kind: "±", level: 1, title: "tracecheck.dev pilot: every response is the site's own (bytes and headers); only automation is recorded, with no query, address or free text; the morning report is posted; faults never reach a visitor",
+    timeoutMs: 600_000, run: nodeTest(["pilots/tracecheck/test/pilot.test.mjs", "pilots/tracecheck/test/workerd.test.mjs"], undefined, { timeoutMs: 580_000, requires: [
+      "PILOT-1 (workerd): the site's response, untouched; automation recorded; a report posted",
+      "faults stay in the pilot: a dead D1, a refused config, a throwing Gate never touch the response",
+    ] }) },
+  // The deployed pilot, read through the Cloudflare API with a person's read-only token.
+  { id: "PILOT-2", m: "M8", kind: "+", level: 2, needs: ["TRACECHECK_D1_READ_TOKEN", "TRACECHECK_ACCOUNT_ID", "TRACECHECK_D1_ID"],
+    title: "tracecheck.dev live: each of the last 7 full days (Tokyo) has recorded automation and a saved morning report",
+    run: nodeScript("pilots/tracecheck/live.mjs") },
 ];
