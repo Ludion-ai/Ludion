@@ -1,6 +1,8 @@
 node_modules/
 *.log
 !accept/fixtures/logs/corpus/*.log
+# the /scan sample (a copy of the nginx corpus file)
+!site/public/samples/*.log
 .DS_Store
 .vercel/
 # reference apps run in place

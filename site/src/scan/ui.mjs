@@ -20,10 +20,12 @@ function table(head, rows, numeric) {
     el("tbody", {}, rows.map((r) => el("tr", {}, r.map((c, i) => el("td", { class: numeric(i) ? "num" : null }, c))))));
 }
 
-function draw(out, r, t, fmt) {
+function draw(out, r, t, fmt, { sample = false } = {}) {
   const pct = (a, b) => (b ? `${((a / b) * 100).toFixed(1)}%` : "–");
   const c = r.classes;
   out.replaceChildren();
+
+  if (sample) out.append(el("p", { class: "scan-sample-shown", id: "scan-sample-shown" }, t.sampleShown));
 
   out.append(el("section", { class: "scan-hero" },
     el("h2", {}, t.headline),
@@ -87,8 +89,9 @@ export function mount(root) {
   const mb = (b) => (b / 1e6).toFixed(b < 1e7 ? 1 : 0);
   let worker = null;
 
-  function start(files) {
+  function start(files, { sample = false } = {}) {
     if (!files.length) return;
+    root.dataset.sample = String(sample);
     worker?.terminate();
     worker = new Worker(new URL("./worker.mjs", import.meta.url), { type: "module" });
     root.dataset.state = "reading";
@@ -101,7 +104,7 @@ export function mount(root) {
       input.disabled = false;
       input.value = "";
       if (m.type === "done") {
-        draw(out, m.report, t, fmt);
+        draw(out, m.report, t, fmt, { sample: root.dataset.sample === "true" });
         out.hidden = false;
         status.textContent = t.done(mb(m.bytes), (m.ms / 1000).toFixed(1));
         root.dataset.ms = String(m.ms);
@@ -116,6 +119,21 @@ export function mount(root) {
   }
 
   input.addEventListener("change", () => start(input.files ?? []));
+  // The sample: a synthetic nginx log shipped with this site (the SCAN corpus file), read the same
+  // way as a dropped file. Fetching it is a GET of one of this site's own files, and nothing else.
+  const sample = root.querySelector("#scan-sample");
+  sample?.addEventListener("click", async () => {
+    sample.disabled = true;
+    try {
+      const res = await fetch(sample.dataset.src);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const name = sample.dataset.src.split("/").pop();
+      start([new File([await res.blob()], name, { type: "text/plain" })], { sample: true });
+    } catch (e) {
+      status.textContent = t.error + (e?.message ?? e);
+      root.dataset.state = "error";
+    } finally { sample.disabled = false; }
+  });
   root.addEventListener("dragover", (e) => { e.preventDefault(); root.classList.add("scan-over"); });
   root.addEventListener("dragleave", () => root.classList.remove("scan-over"));
   root.addEventListener("drop", (e) => { e.preventDefault(); root.classList.remove("scan-over"); start(e.dataTransfer?.files ?? []); });
