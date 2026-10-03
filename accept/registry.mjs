@@ -307,7 +307,7 @@ export const ORACLES = [
       metric: (out) => (/^# WEB-3: (.+)$/m.exec(out) ?? [])[1] }) },
   // Headless Chromium: playwright-core from the site's lockfile, its pinned browser build installed on
   // first use into Playwright's cache (site/test/browser.mjs). The page runs packages/scan's own core.
-  { id: "WEB-4", m: "M7", kind: "+", level: 1, title: "in-browser scan at /scan equals the CLI on SCAN fixtures; 200 MB in ≤30s (headless Chromium)",
+  { id: "WEB-4", m: "M7", kind: "+", level: 1, pair: "WEB-11", property: "scan-equivalence", title: "in-browser scan at /scan equals the CLI on SCAN fixtures; 200 MB in ≤30s (headless Chromium)",
     timeoutMs: 900_000, run: nodeTest(["site/test/web4.test.mjs"], "^WEB-4:", { timeoutMs: 880_000,
       metric: (out) => (/^# WEB-4: (.+)$/m.exec(out) ?? [])[1] }) },
   // The allowlist is the site's own origin. Every page of the real build, desktop and mobile, is used
@@ -339,6 +339,12 @@ export const ORACLES = [
   { id: "WEB-10", m: "M7", kind: "±", level: 1, title: "the quickstart page runs as written: the Gate at P0 classifies (DECLARED; a browser UNKNOWN, same page); init + sign → VERIFIED with the directory init wrote, a tampered copy not",
     timeoutMs: 1_200_000, run: nodeTest(["site/test/web10.test.mjs"], "^WEB-10:", { timeoutMs: 1_180_000,
       metric: (out) => (/^# WEB-10: (.+)$/m.exec(out) ?? [])[1] }) },
+
+  // WEB-4's comparison (site/test/scan-check.mjs) run against copies of the built site with a fault
+  // planted in the worker, the page or the shipped sample: each is caught by its rule, an untouched copy passes.
+  { id: "WEB-11", m: "M7", kind: "-", level: 1, property: "scan-equivalence", title: "WEB-4's check bites: a scan worker that miscounts or leaves a file out, a headline from another field, a swapped or cut-short sample are each caught; an untouched copy passes",
+    timeoutMs: 900_000, run: nodeTest(["site/test/web11.test.mjs"], "^WEB-11:", { timeoutMs: 880_000,
+      metric: (out) => (/^# WEB-11: (.+)$/m.exec(out) ?? [])[1] }) },
 
   // ── M8 pilots: the Gate in front of real sites ─────────────────────────────────────────
   // tracecheck.dev (pilots/tracecheck): a zone-route Worker a person deploys. In Node (D1 on node:sqlite,
