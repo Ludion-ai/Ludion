@@ -1,0 +1,23 @@
+{
+  "id": "01K6ZQ4T9X0N8V2H7M3P5R1S6W",
+  "subject": "python",
+  "version": ">=3.12",
+  "claim": "Python 3.12 removed the distutils module from the standard library (PEP 632); use setuptools or packaging instead.",
+  "evidence": [
+    {
+      "run": {
+        "runner": "python",
+        "code": "import sys, importlib.util\nif sys.version_info < (3, 12):\n    print('skip: runner is older than 3.12'); raise SystemExit(0)\nassert importlib.util.find_spec('distutils') is None, 'distutils still importable'\nprint('ok')"
+      }
+    },
+    {
+      "source": {
+        "url": "https://peps.python.org/pep-0632/",
+        "quote": "Remove distutils from the standard library"
+      }
+    }
+  ],
+  "author": "github:Ludion-ai",
+  "author_id": 292738933,
+  "created_at": "2026-10-07T00:00:00Z"
+}

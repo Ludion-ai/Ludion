@@ -1,0 +1,97 @@
+---
+paths:
+  - "lessons/**/*"
+  - "packages/core/**/*"
+  - "tools/**/*"
+---
+
+# Lessons and the core package
+
+## A lesson
+
+One file: `lessons/<subject>/<id>.json`. Schema: `lessons/lessons.schema.json`. Example: `lessons/python/01K6ZQ4T9X0N8V2H7M3P5R1S6W.json`.
+
+| Field | Required | Meaning |
+| - | - | - |
+| `id` | yes | ULID (Crockford base32, 26 chars). Also the file name. |
+| `subject` | yes | `^[a-z0-9][a-z0-9.-]{0,63}$`. Also the directory name. |
+| `version` | no | Where the claim holds, e.g. `>=3.12`. Semver range for packages, free text otherwise. |
+| `claim` | yes | One sentence, 10 to 400 chars, exactly as the teacher wrote it. |
+| `evidence` | yes | 1 to 3 items, each `{"run": {...}}` or `{"source": {...}}`. |
+| `author` | yes | `github:<login>` of the account that signed, as it was at signing. For display. |
+| `author_id` | yes | GitHub numeric user id of the account that signed (integer, 1 or more). The teacher's identity. |
+| `replaces` | no | ULIDs of lessons this one corrects. |
+| `created_at` | yes | UTC, `YYYY-MM-DDTHH:MM:SSZ`, set at signing. |
+
+Identity is decided by the numeric id. Logins can be changed, and a freed login can be taken by someone else, so a login alone could move a lesson to another person. The login is for display only; whenever logins are compared, compare them case-insensitively.
+
+Subject naming: the canonical lowercase name of the thing. npm `@scope/name` becomes `scope.name`. Languages and tools by their common name: `python`, `node`, `wrangler`.
+
+### Evidence
+
+- `run`: `{"runner": "python" | "bash" | "node" | "lean", "code": "<= 8000 chars"}`. The code exits 0 if and only if the claim holds. Deterministic and offline. It may print a line starting `skip:` and exit 0 when the runner cannot test the claim (for example, an older runtime); CI then labels the PR `skipped` and a human decides.
+- `source`: `{"url": "https://...", "quote": "8 to 300 chars"}`. The quote must appear on the page after normalization (below).
+- Label shown to users, derived not stored: any `run` with runner `lean` → `proof`; else any `run` → `test`; else `source`.
+
+### Rules
+
+- Immutable. A merged lesson file is never edited. Correct it with a new lesson whose `replaces` lists the old id. Retract it by deleting the file.
+- Canonical JSON: keys in the order of the table above, omit absent optional fields, 2-space indent (`JSON.stringify(lesson, null, 2)`, nested objects expanded too), UTF-8, trailing newline. `packages/core` exposes `formatLesson(lesson): string`, and CI rejects files that differ from it.
+- `replaces` may only name lessons in the current active set.
+
+## The active set
+
+All lessons on `main` minus every id that appears in some other lesson's `replaces`. Everything served or exported uses the active set only.
+
+## index.json
+
+Built from the active set at site build time. Written to `apps/site/dist/index.json`.
+
+```json
+{
+  "version": 1,
+  "built_at": "2026-10-08T09:00:00Z",
+  "lessons": [
+    {
+      "id": "01K6ZQ4T9X0N8V2H7M3P5R1S6W",
+      "subject": "python",
+      "version": ">=3.12",
+      "claim": "Python 3.12 removed the distutils module ...",
+      "evidence": [{"run": {"runner": "python", "code": "..."}}, {"source": {"url": "...", "quote": "..."}}],
+      "teacher": "alice",
+      "teacher_id": 1234567,
+      "replaces": [],
+      "verified_by": "test",
+      "verified_at": "2026-10-08T08:57:12Z",
+      "pr": 42,
+      "url": "https://github.com/<ORG>/ludion/blob/main/lessons/python/01K6ZQ4T9X0N8V2H7M3P5R1S6W.json"
+    }
+  ],
+  "teachers": {"1234567": {"login": "alice", "lessons": 1, "subjects": ["python"]}}
+}
+```
+
+- `teacher_id` is the lesson's `author_id`. `teachers` is keyed by that id (as a string).
+- `teacher` is the current login for `teacher_id`, looked up at build time with `GET https://api.github.com/user/{account_id}`, once per distinct id per build. If the lookup fails (deleted account, rate limit, network), use the login from the `author` of that teacher's newest lesson and log a warning.
+- Lookups are unauthenticated by default (60 requests an hour). When distinct teachers approach that limit, set the Workers Builds build variable `GITHUB_READ_TOKEN`: a fine-grained token with public, read-only access and no repository permissions. The build sends it when present. It is never shipped in `dist/` or logged.
+- Teacher pages live at the lowercase login: `/teachers/<lowercase login>/`, served at `/@<login>` in any case. If two ids end up with the same lowercase login (possible only when a lookup failed and someone else now holds that name), the id whose login came from the API gets the page; the other's lessons show the name without a link.
+- `verified_at` and `pr` come from `git log` of the file: the commit that added it. Squash merge messages end with `(#<number>)`; parse it. If the build clone is shallow, run `git fetch --unshallow` first.
+- Sort lessons by `verified_at`, newest first.
+- Size check: warn in the build log above 5 MB; the index is loaded whole by the Worker and the ask box.
+
+## packages/core
+
+Pure TypeScript. No Node-only or Worker-only APIs, so the site build, the Worker, and the CLI share it.
+
+- `types.ts`: `Lesson`, `Evidence`, `IndexEntry`, `Index`.
+- `schema.ts`: Ajv validator compiled from `lessons/lessons.schema.json`. Returns `{ok: true} | {ok: false, errors: {path, message}[]}` with messages a person can act on.
+- `ulid.ts`: `newId(now = Date.now())`.
+- `format.ts`: `formatLesson`.
+- `active.ts`: `activeSet(lessons)`.
+- `search.ts`: MiniSearch over `claim` (boost 2) and `subject` (boost 1), `prefix: true`, `fuzzy: 0.2`. `search(index, query, {subject?, k=5})`.
+- `teachers.ts`: `resolveLogins(ids, fetchFn, token?)` → `Map<id, login>` via `GET /user/{account_id}`; ids that fail are left out.
+- `index-builder.ts`: `buildIndex(lessons, gitInfo, logins)` → `Index`. Falls back to the stored `author` login for ids missing from `logins`.
+- `source-check.ts`: `checkSource(url, quote, fetchFn)`. Normalization for both page and quote: strip `<script>`, `<style>`, and tags; decode HTML entities; NFKC; lowercase; collapse whitespace; straighten quotes and dashes. Fetch rules: `https` only, 5-second timeout, at most 3 redirects, at most 2 MB read, `User-Agent: LudionBot/0.1 (+https://ludion.ai/bot)`.
+- `label.ts`: `verifiedBy(lesson)`.
+
+Unit tests cover every function, including: a quote split across tags still matches; a replaced lesson leaves the active set; `formatLesson` round-trips the example byte for byte; a teacher who renamed their account shows the new login; a failed lookup falls back to the stored login.
