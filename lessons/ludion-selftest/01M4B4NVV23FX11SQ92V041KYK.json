@@ -1,0 +1,16 @@
+{
+  "id": "01M4B4NVV23FX11SQ92V041KYK",
+  "subject": "ludion-selftest",
+  "claim": "Python evaluates 1 + 1 to 3 (ludion-selftest: this lesson is meant to fail CI).",
+  "evidence": [
+    {
+      "run": {
+        "runner": "python",
+        "code": "assert 1 + 1 == 3, '1 + 1 is not 3'"
+      }
+    }
+  ],
+  "author": "github:Ludion-ai",
+  "author_id": 292738933,
+  "created_at": "2026-10-07T12:16:12Z"
+}
