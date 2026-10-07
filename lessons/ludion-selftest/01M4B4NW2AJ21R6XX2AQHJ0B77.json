@@ -1,0 +1,16 @@
+{
+  "id": "01M4B4NW2AJ21R6XX2AQHJ0B77",
+  "subject": "ludion-selftest",
+  "claim": "Python evaluates 1 + 1 to 2 (ludion-selftest: this lesson is meant to pass CI).",
+  "evidence": [
+    {
+      "run": {
+        "runner": "python",
+        "code": "assert 1 + 1 == 2\nprint('ok')"
+      }
+    }
+  ],
+  "author": "github:Ludion-ai",
+  "author_id": 292738933,
+  "created_at": "2026-10-07T12:16:12Z"
+}
