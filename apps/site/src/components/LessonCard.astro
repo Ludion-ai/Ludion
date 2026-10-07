@@ -1,14 +1,11 @@
 ---
-// A register entry. Compact: one ruled row with the claim and a one-line record.
-// Full: the claim large beside its full record (used for the newest lesson on the home page).
-import StatusChip from "./StatusChip.astro";
-import TeacherLink from "./TeacherLink.astro";
-import LessonRecord from "./LessonRecord.astro";
-import { en, formatDate } from "../strings/en.ts";
+// A lesson in a list: one row of the readout. The claim, the teacher's signature with the seal, the subject.
+import Signature from "./Signature.astro";
+import SubjectTag from "./SubjectTag.astro";
+import Claim from "./Claim.astro";
 import type { VerifiedBy } from "@ludion/core";
 
 interface Props {
-  variant?: "compact" | "full";
   id: string;
   claim: string;
   subject: string;
@@ -18,102 +15,47 @@ interface Props {
   teacherHref: string | null;
   verifiedBy: VerifiedBy;
   verifiedAt: string;
-  /** Heading level for the claim in the full variant. */
-  level?: 2 | 3;
-  /** Leave out the teacher, on that teacher's own page. */
-  hideTeacher?: boolean;
 }
-const { variant = "compact", level = 2, hideTeacher = false, ...p } = Astro.props;
-const Heading = `h${level}` as "h2" | "h3";
+const p = Astro.props;
 ---
 
-{
-  variant === "full" ? (
-    <article class="full">
-      <Heading class="claim big">
-        <a href={`/lessons/${p.id}/`}>{p.claim}</a>
-      </Heading>
-      <div class="rail">
-        <LessonRecord
-          verifiedBy={p.verifiedBy}
-          verifiedAt={p.verifiedAt}
-          subject={p.subject}
-          version={p.version}
-          teacher={p.teacher}
-          teacherId={p.teacherId}
-          teacherHref={p.teacherHref}
-        />
-      </div>
-    </article>
-  ) : (
-    <article class="row">
-      <p class="claim">
-        <a href={`/lessons/${p.id}/`}>{p.claim}</a>
-      </p>
-      <p class="meta">
-        <StatusChip status="verified" label={en.lesson.verifiedBy[p.verifiedBy]} />
-        {!hideTeacher && <TeacherLink login={p.teacher} id={p.teacherId} href={p.teacherHref} />}
-        <span>{en.lesson.appliesTo(p.subject, p.version)}</span>
-        <time datetime={p.verifiedAt}>{formatDate(p.verifiedAt)}</time>
-      </p>
-    </article>
-  )
-}
+<article class="row">
+  <p class="claim text"><a href={`/lessons/${p.id}/`}><Claim text={p.claim} /></a></p>
+  <div class="under">
+    <Signature teacher={p.teacher} teacherId={p.teacherId} teacherHref={p.teacherHref} verifiedBy={p.verifiedBy} verifiedAt={p.verifiedAt} />
+    <SubjectTag subject={p.subject} version={p.version} />
+  </div>
+</article>
 
 <style>
   .row {
-    padding: var(--space-5) 0;
+    padding: 28px 0 30px;
+    border-top: 1px solid var(--rule);
   }
-  .row .claim {
-    font-size: var(--size-claim);
-    line-height: 1.45;
-    margin: 0 0 var(--space-3);
-    max-width: 44em;
+  .text {
+    font-size: 26px;
+    line-height: 1.22;
+    margin: 0 0 16px;
+    max-width: 30em;
   }
-  .claim a {
+  .text a {
     color: inherit;
     text-decoration: none;
   }
-  .claim a:hover {
+  .text a:hover {
     text-decoration: underline;
-    text-decoration-color: var(--rule);
+    text-decoration-thickness: 2px;
   }
-  .meta {
+  .under {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: var(--space-2) var(--space-5);
-    margin: 0;
-    font-size: var(--size-meta);
-    color: var(--muted);
+    justify-content: space-between;
+    gap: 12px 24px;
   }
-
-  .full {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) var(--rail);
-    gap: var(--space-8);
-    align-items: start;
-  }
-  .big {
-    font-size: var(--size-hero);
-    line-height: 1.25;
-    margin: 0;
-    max-width: 22em;
-  }
-  .rail {
-    padding-top: var(--space-2);
-    border-left: 1px solid var(--rule);
-    padding-left: var(--space-5);
-  }
-  @media (max-width: 860px) {
-    .full {
-      grid-template-columns: 1fr;
-      gap: var(--space-5);
-    }
-    .rail {
-      border-left: 0;
-      padding-left: 0;
-      padding-top: 0;
+  @media (max-width: 640px) {
+    .text {
+      font-size: 21px;
     }
   }
 </style>

@@ -12,34 +12,41 @@ const host = new URL(url).host;
 <figure class="source">
   <figcaption>{en.lesson.source}</figcaption>
   <blockquote cite={url}>
-    <p class="claim">{quote}</p>
+    <p>{quote}</p>
   </blockquote>
   <p class="where"><a href={url} rel="noopener nofollow">{host}</a></p>
 </figure>
 
 <style>
   .source {
-    margin: 0 0 var(--space-6);
+    margin: 0 0 20px;
+    padding: 14px 16px 16px;
+    border: 1px solid var(--rule);
+    border-radius: 4px;
   }
   figcaption {
-    font-size: var(--size-meta);
-    font-weight: 500;
+    font-size: 13px;
+    font-weight: 700;
     color: var(--ink);
-    margin-bottom: var(--space-3);
+    margin-bottom: 10px;
   }
   blockquote {
     margin: 0;
-    padding-left: var(--space-5);
-    border-left: 3px solid var(--rule);
+    padding-left: 14px;
+    border-left: 3px solid var(--ink);
   }
   blockquote p {
     margin: 0;
-    font-size: var(--size-claim);
-    line-height: 1.45;
+    font-size: 20px;
+    line-height: 1.35;
+    font-weight: 500;
+    color: var(--ink);
+    letter-spacing: -0.012em;
   }
   .where {
-    margin: var(--space-2) 0 0;
-    padding-left: calc(var(--space-5) + 3px);
-    font-size: var(--size-meta);
+    margin: 10px 0 0;
+    font-family: var(--font-code);
+    font-variant-ligatures: none;
+    font-size: 13px;
   }
 </style>

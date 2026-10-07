@@ -1,0 +1,73 @@
+---
+// The teacher signs the claim: "— @login", then how (the seal) and when it was verified.
+import StatusChip from "./StatusChip.astro";
+import { siteData } from "../build/data.ts";
+import { en, formatDate } from "../strings/en.ts";
+import type { VerifiedBy } from "@ludion/core";
+
+interface Props {
+  teacher: string;
+  teacherId: number;
+  teacherHref: string | null;
+  verifiedBy: VerifiedBy;
+  verifiedAt: string;
+  avatar?: boolean;
+  size?: "small" | "large";
+  /** Leave the seal out (the lesson page shows it on its own). */
+  seal?: boolean;
+}
+const { seal = true, ...p } = Astro.props;
+const { avatarOf } = await siteData();
+---
+
+<p class:list={["signature", p.size ?? "small"]}>
+  <span class="by">
+    {p.avatar && <img src={avatarOf(p.teacherId, 28)} alt="" width="28" height="28" />}
+    <span aria-hidden="true">—</span>
+    <span class="visually-hidden">{en.lesson.taughtBy}</span>
+    {p.teacherHref ? <a href={p.teacherHref}>@{p.teacher}</a> : <span>@{p.teacher}</span>}
+  </span>
+  {seal && <StatusChip status="verified" label={en.lesson.verifiedBy[p.verifiedBy]} by={p.verifiedBy} size={p.size} />}
+  <time datetime={p.verifiedAt}>{seal ? formatDate(p.verifiedAt) : en.lesson.on(formatDate(p.verifiedAt))}</time>
+</p>
+
+<style>
+  .signature {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px 16px;
+    margin: 0;
+    font-size: 14px;
+    color: var(--muted);
+  }
+  .by {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--ink);
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  .large .by {
+    font-size: 20px;
+  }
+  .by a,
+  .by > span:last-child {
+    min-width: 0;
+  }
+  .by a {
+    color: inherit;
+    text-decoration: none;
+    background: linear-gradient(currentColor, currentColor) 0 100% / 100% 1px no-repeat;
+  }
+  .by a:hover {
+    background-size: 100% 2px;
+  }
+  .by img {
+    border-radius: 2px;
+    flex: none;
+  }
+</style>

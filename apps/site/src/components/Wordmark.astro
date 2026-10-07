@@ -1,0 +1,35 @@
+---
+// "ludion", lowercase, Schibsted Grotesk at its heaviest, set tight. The i's dot is a solid square: the same block
+// as the verified seal. Decorative to assistive tech (the link around it carries the name).
+interface Props {
+  size?: number;
+}
+const { size = 28 } = Astro.props;
+---
+
+<span class="wordmark" style={`--wm-size:${size}px`} aria-hidden="true">lud<span class="i">ı<span class="block"></span></span>on</span>
+
+<style>
+  .wordmark {
+    font-family: var(--font-ui);
+    font-weight: 850;
+    font-size: var(--wm-size);
+    line-height: 1;
+    letter-spacing: -0.06em;
+    color: var(--ink);
+    white-space: nowrap;
+  }
+  .i {
+    position: relative;
+    display: inline-block;
+  }
+  .block {
+    position: absolute;
+    left: 50%;
+    top: -0.03em;
+    width: 0.19em;
+    height: 0.19em;
+    margin-left: -0.095em;
+    background: currentColor;
+  }
+</style>

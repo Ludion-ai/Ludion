@@ -40,8 +40,16 @@ test("home and lesson pages at 390 and 1280, light and dark, with video", async 
         recordVideo: { dir: dir!, size: { width, height: width === 390 ? 844 : 800 } },
       });
       const moving = await video.newPage();
-      await moving.goto("/", { waitUntil: "networkidle" });
-      await moving.waitForTimeout(6000);
+      const start = Date.now();
+      await moving.goto("/", { waitUntil: "commit" });
+      // A few stills through the moment, for reviewing the motion without playing the video.
+      if (width === 1280) {
+        for (const at of [400, 1400, 2400, 3200, 4500]) {
+          await moving.waitForTimeout(Math.max(0, at - (Date.now() - start)));
+          await moving.screenshot({ path: join(dir!, `home-motion-${colorScheme}-${String(at).padStart(4, "0")}ms.png`) });
+        }
+      }
+      await moving.waitForTimeout(Math.max(0, 6000 - (Date.now() - start)));
       const path = await moving.video()!.path();
       await video.close();
       renameSync(path, join(dir!, `home-motion-${width}-${colorScheme}.webm`));

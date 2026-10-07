@@ -1,81 +1,70 @@
-/* Design tokens. Light is paper, dark is slate. See site.md, Design. */
+/* Proposal B, "Exit 0". A lesson is a claim that passed. The page reads like a precise instrument: ink on paper,
+   no accent color. The verified seal is the one inverted block on a page (paper on ink), and it carries the mark
+   of its evidence: exit 0, a proof, a found quote. Light is used only to show a run's progress and the moment it passes. */
 :root {
-  --bg: #ffffff;
-  --surface: #f3f6f4;
-  --rule: #dce3df;
-  --ink: #17201c;
-  --text: #36423d;
-  --muted: #5d6964;
-  --link: #0b5f73;
-  --focus: #0b5f73;
+  --paper: #ffffff;
+  --paper-2: #f3f3f1;
+  --ink: #0a0a0a;
+  --text: #262626;
+  --muted: #5c5c5c;
+  --rule: #e2e2df;
+  --rule-strong: #0a0a0a;
+  --link: #0a0a0a;
 
-  /* The verified seal is the only filled, saturated element on a page. */
-  --verified-fill: #0a6b48;
-  --verified-on: #ffffff;
-  --checking-line: #b07a12;
-  --checking-text: #6e4300;
-  --checking-bg: #fff6e2;
-  --failed-line: #c0392b;
-  --failed-text: #9f2219;
-  --failed-bg: #fdeeec;
+  /* Machine output panels: inverted. */
+  --log-bg: #0a0a0a;
+  --log-fg: #ededed;
+  --log-dim: #a3a3a3;
+  --log-line: #2a2a2a;
 
-  --font-claim: "Zen Old Mincho", "Hiragino Mincho ProN", "Yu Mincho", serif;
-  --font-ui: "IBM Plex Sans", "Hiragino Sans", "Yu Gothic UI", system-ui, sans-serif;
-  --font-code: "IBM Plex Mono", ui-monospace, monospace;
+  /* The seal: the only inverted block. */
+  --seal-bg: #0a0a0a;
+  --seal-fg: #ffffff;
+  --checking-line: #8a6100;
+  --checking-fg: #6b4b00;
+  --failed-line: #b42318;
+  --failed-fg: #a01d14;
+  --progress: linear-gradient(90deg, rgb(237 237 237 / 0.25), #ededed);
+  --bloom: rgb(10 10 10 / 0.35);
 
-  --size-small: 13px;
-  --size-meta: 15px;
-  --size-body: 17px;
-  --size-claim: 21px;
-  --size-title: 30px;
-  --size-hero: 40px;
+  --font-ui: "Schibsted Grotesk Variable", "Hiragino Sans", "Yu Gothic UI", system-ui, sans-serif;
+  --font-code: "JetBrains Mono Variable", ui-monospace, monospace;
 
-  --space-1: 4px;
-  --space-2: 8px;
-  --space-3: 12px;
-  --space-4: 16px;
-  --space-5: 24px;
-  --space-6: 32px;
-  --space-7: 48px;
-  --space-8: 64px;
-
-  --radius: 8px;
-  --page: 1120px;
-  --gutter: 24px;
-  --rail: 280px;
-
-  --verified-moment: 280ms ease-out;
+  --page: 1200px;
+  --gutter: 32px;
   color-scheme: light;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #131a17;
-    --surface: #1b2420;
-    --rule: #2b3832;
-    --ink: #edf2ef;
-    --text: #c6d1cb;
-    --muted: #93a29b;
-    --link: #86c9d8;
-    --focus: #86c9d8;
+    --paper: #000000;
+    --paper-2: #121212;
+    --ink: #f5f5f5;
+    --text: #d4d4d4;
+    --muted: #9e9e9e;
+    --rule: #262626;
+    --rule-strong: #f5f5f5;
+    --link: #f5f5f5;
 
-    --verified-fill: #7fd4aa;
-    --verified-on: #062016;
-    --checking-line: #e2b356;
-    --checking-text: #f2c46b;
-    --checking-bg: #2a2212;
-    --failed-line: #e2786e;
-    --failed-text: #f3a49d;
-    --failed-bg: #36191a;
+    --log-bg: #111111;
+    --log-fg: #ededed;
+    --log-dim: #9e9e9e;
+    --log-line: #2e2e2e;
+
+    --seal-bg: #f5f5f5;
+    --seal-fg: #000000;
+    --checking-line: #e0a526;
+    --checking-fg: #f2c45f;
+    --failed-line: #f0605a;
+    --failed-fg: #ff8f89;
+    --progress: linear-gradient(90deg, rgb(245 245 245 / 0.15), #f5f5f5);
+    --bloom: rgb(255 255 255 / 0.45);
     color-scheme: dark;
   }
 }
 
 @media (max-width: 640px) {
   :root {
-    --gutter: 16px;
-    --size-title: 26px;
-    --size-hero: 30px;
-    --size-claim: 19px;
+    --gutter: 18px;
   }
 }
