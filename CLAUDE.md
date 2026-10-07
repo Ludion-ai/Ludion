@@ -113,7 +113,7 @@ Each step ends green: tests pass, and the step's check is demonstrated.
 
 ## Conventions
 
-- TypeScript strict, Node 24 LTS (same as Workers Builds), npm workspaces. Vitest 4 everywhere, pinned until `@cloudflare/vitest-pool-workers` supports a newer major, so Worker tests run inside workerd. Playwright for the acceptance tests and for the axe accessibility check on every page.
+- TypeScript strict, Node 24 LTS (same as Workers Builds), npm workspaces. Vitest 4 everywhere, pinned until `@cloudflare/vitest-plugin` (formerly `@cloudflare/vitest-pool-workers`, renamed for v1) supports a newer major, so Worker tests run inside workerd. Playwright for the acceptance tests and for the axe accessibility check on every page.
 - Code uses only web-standard APIs (fetch, Web Crypto, Streams). Node-specific APIs are allowed only in `tools/` and build scripts.
 - npm scripts are written in Node so they run on both Windows and Linux. No bash-only commands.
 - Small functions. No abstraction before the third use.

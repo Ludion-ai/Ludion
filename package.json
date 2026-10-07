@@ -19,9 +19,10 @@
     "gen:validator": "node packages/core/scripts/gen-validator.ts"
   },
   "devDependencies": {
+    "@cloudflare/vitest-plugin": "^1.3.7",
     "@types/node": "^24.0.0",
     "typescript": "^7.0.2",
-    "vitest": "^5.0.3",
+    "vitest": "^4.1.11",
     "wrangler": "^4.148.0"
   }
 }
