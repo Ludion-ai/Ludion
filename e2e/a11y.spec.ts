@@ -12,6 +12,8 @@ for (const colorScheme of ["light", "dark"] as const) {
     test("axe finds no violations on any page", async ({ page, request }) => {
       for (const path of await allPages(request)) {
         await page.goto(path);
+        // Judge the finished page: wait for any one-off animation (the home page's replay) to end.
+        await page.waitForFunction(() => document.getAnimations().every((a) => a.playState === "finished" || a.playState === "idle"));
         const { violations } = await new AxeBuilder({ page }).withTags(TAGS).analyze();
         const summary = violations.map((v) => `${v.id}: ${v.help} (${v.nodes.map((n) => n.target.join(" ")).join(", ")})`);
         expect(summary, `axe on ${path} (${colorScheme})`).toEqual([]);
