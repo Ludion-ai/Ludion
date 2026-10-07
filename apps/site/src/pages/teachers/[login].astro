@@ -17,14 +17,21 @@ const summary = index.teachers[String(id)]!;
 const lessons = index.lessons.filter((l) => l.teacher_id === id);
 ---
 
-<Base title={en.teacher.title(login)}>
+<Base title={en.teacher.title(login)} canonicalPath={`/@${login.toLowerCase()}`}>
   <header class="teacher">
     <img src={`https://avatars.githubusercontent.com/u/${id}?s=128`} alt="" width="64" height="64" />
-    <h1>@{login}</h1>
+    <div>
+      <h1>@{login}</h1>
+      <p class="summary">
+        {en.teacher.summary(summary.lessons, summary.subjects.length)}
+        <a href={`https://github.com/${login}`}>{en.teacher.profile}</a>
+      </p>
+    </div>
   </header>
-  <p>{en.teacher.summary(summary.lessons, summary.subjects.length)}: {summary.subjects.join(", ")}</p>
-  <p><a href={`https://github.com/${login}`}>{en.teacher.profile}</a></p>
-  <ul class="list">
+  <ul class="subjects" aria-label={en.teacher.subjects}>
+    {summary.subjects.map((s) => <li>{s}</li>)}
+  </ul>
+  <ul class="register">
     {
       lessons.map((l) => (
         <li>
@@ -38,6 +45,7 @@ const lessons = index.lessons.filter((l) => l.teacher_id === id);
             teacherHref={teacherHref(l.teacher_id)}
             verifiedBy={l.verified_by}
             verifiedAt={l.verified_at}
+            hideTeacher
           />
         </li>
       ))
@@ -49,14 +57,41 @@ const lessons = index.lessons.filter((l) => l.teacher_id === id);
   .teacher {
     display: flex;
     align-items: center;
-    gap: 16px;
-    margin-bottom: 16px;
-  }
-  .teacher h1 {
-    margin: 0;
+    gap: var(--space-5);
+    margin-bottom: var(--space-5);
   }
   .teacher img {
     border-radius: 50%;
     background: var(--surface);
+    outline: 1px solid var(--rule);
+    flex: none;
+  }
+  h1 {
+    font-size: var(--size-title);
+    margin: 0 0 var(--space-1);
+    overflow-wrap: anywhere;
+  }
+  .summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-1) var(--space-5);
+    margin: 0;
+    font-size: var(--size-meta);
+  }
+  .subjects {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    list-style: none;
+    margin: 0 0 var(--space-6);
+    padding: 0;
+  }
+  .subjects li {
+    font-size: var(--size-small);
+    font-weight: 500;
+    color: var(--ink);
+    border: 1px solid var(--rule);
+    border-radius: 999px;
+    padding: var(--space-1) var(--space-3);
   }
 </style>

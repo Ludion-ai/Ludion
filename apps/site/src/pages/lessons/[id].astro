@@ -1,11 +1,10 @@
 ---
 import Base from "../../layouts/Base.astro";
-import StatusChip from "../../components/StatusChip.astro";
-import TeacherLink from "../../components/TeacherLink.astro";
+import LessonRecord from "../../components/LessonRecord.astro";
 import EvidenceRun from "../../components/EvidenceRun.astro";
 import EvidenceSource from "../../components/EvidenceSource.astro";
 import { siteData, type LessonPage } from "../../build/data.ts";
-import { en, formatDate } from "../../strings/en.ts";
+import { en } from "../../strings/en.ts";
 
 // Every lesson on main, replaced ones included: history stays visible.
 export async function getStaticPaths() {
@@ -16,85 +15,115 @@ export async function getStaticPaths() {
 const { page } = Astro.props as { page: LessonPage };
 const { config, teacherHref } = await siteData();
 const { lesson } = page;
-const fileUrl = `https://github.com/${config.org}/${config.repo}/blob/main/lessons/${lesson.subject}/${lesson.id}.json`;
+const repo = `https://github.com/${config.org}/${config.repo}`;
 ---
 
 <Base title={`${lesson.claim} | Ludion`} description={lesson.claim}>
-  <article class="lesson prose">
-    {
-      page.correctedBy && (
-        <p class="banner" role="note">
-          {en.lesson.correctedBy} <a href={`/lessons/${page.correctedBy}/`}>{page.correctedBy}</a>.
-        </p>
-      )
-    }
-    <h1>{lesson.claim}</h1>
-    <p class="meta">
-      <StatusChip status="verified" label={en.lesson.verifiedBy[page.verified_by]} />
-      <time datetime={page.verified_at}>{en.lesson.on(formatDate(page.verified_at))}</time>
-      <span class="muted">{en.lesson.appliesTo(lesson.subject, lesson.version)}</span>
-    </p>
-    <p class="taught">
-      {en.lesson.taughtBy}
-      <TeacherLink login={page.teacher} id={lesson.author_id} href={teacherHref(lesson.author_id)} showAvatar />
-    </p>
-
-    <h2>{en.lesson.evidence}</h2>
-    {
-      lesson.evidence.map((e) =>
-        "run" in e ? <EvidenceRun runner={e.run.runner} code={e.run.code} /> : <EvidenceSource url={e.source.url} quote={e.source.quote} />,
-      )
-    }
-
-    {
-      page.corrects.length > 0 && (
-        <>
-          <h2>{en.lesson.corrects}</h2>
-          <ul>
-            {page.corrects.map((id) => (
-              <li>
-                <a href={`/lessons/${id}/`}>{id}</a>
-              </li>
-            ))}
-          </ul>
-        </>
-      )
-    }
-
-    <p class="links">
-      <a href={fileUrl}>{en.lesson.viewFile}</a>
-      {page.pr !== null && <a href={`https://github.com/${config.org}/${config.repo}/pull/${page.pr}`}>{en.lesson.pullRequest(page.pr)}</a>}
-    </p>
+  {
+    page.correctedBy && (
+      <p class="banner" role="note">
+        {en.lesson.correctedBy} <a href={`/lessons/${page.correctedBy}/`}>{page.correctedBy}</a>.
+      </p>
+    )
+  }
+  <article class="lesson">
+    <h1 class="claim">{lesson.claim}</h1>
+    <aside class="rail" aria-label={en.record.check}>
+      <LessonRecord
+        verifiedBy={page.verified_by}
+        verifiedAt={page.verified_at}
+        subject={lesson.subject}
+        version={lesson.version}
+        teacher={page.teacher}
+        teacherId={lesson.author_id}
+        teacherHref={teacherHref(lesson.author_id)}
+        fileUrl={`${repo}/blob/main/lessons/${lesson.subject}/${lesson.id}.json`}
+        pr={page.pr}
+        prUrl={page.pr !== null ? `${repo}/pull/${page.pr}` : null}
+      />
+    </aside>
+    <section class="evidence" aria-labelledby="evidence">
+      <h2 id="evidence">{en.lesson.evidence}</h2>
+      {
+        lesson.evidence.map((e) =>
+          "run" in e ? <EvidenceRun runner={e.run.runner} code={e.run.code} /> : <EvidenceSource url={e.source.url} quote={e.source.quote} />,
+        )
+      }
+      {
+        page.corrects.length > 0 && (
+          <>
+            <h2>{en.lesson.corrects}</h2>
+            <ul>
+              {page.corrects.map((id) => (
+                <li>
+                  <a href={`/lessons/${id}/`}>{id}</a>
+                </li>
+              ))}
+            </ul>
+          </>
+        )
+      }
+    </section>
   </article>
 </Base>
 
 <style>
+  .lesson {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) var(--rail);
+    grid-template-areas:
+      "claim rail"
+      "evidence evidence";
+    column-gap: var(--space-8);
+    align-items: start;
+  }
+  h1 {
+    grid-area: claim;
+    font-size: var(--size-hero);
+    line-height: 1.25;
+    max-width: 22em;
+    margin: 0 0 var(--space-7);
+  }
+  .rail {
+    grid-area: rail;
+    padding-left: var(--space-5);
+    border-left: 1px solid var(--rule);
+    padding-top: var(--space-2);
+  }
+  .evidence {
+    grid-area: evidence;
+    min-width: 0;
+  }
+  .evidence h2 {
+    font-size: var(--size-meta);
+    font-weight: 600;
+    color: var(--muted);
+    margin-bottom: var(--space-4);
+  }
   .banner {
     background: var(--checking-bg);
     color: var(--checking-text);
-    border-radius: 6px;
-    padding: 12px 16px;
-    margin: 0 0 24px;
+    border: 1px solid var(--checking-line);
+    border-radius: var(--radius);
+    padding: var(--space-3) var(--space-4);
+    margin: 0 0 var(--space-6);
   }
   .banner a {
     color: inherit;
   }
-  .meta,
-  .taught {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 8px 12px;
-    margin: 0 0 16px;
-  }
-  .taught {
-    margin-bottom: 32px;
-  }
-  .links {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px 24px;
-    margin-top: 32px;
-    font-size: 15px;
+  @media (max-width: 860px) {
+    .lesson {
+      grid-template-columns: minmax(0, 1fr);
+      grid-template-areas: "claim" "rail" "evidence";
+    }
+    h1 {
+      margin-bottom: var(--space-5);
+    }
+    .rail {
+      border-left: 0;
+      padding: 0 0 var(--space-6);
+      margin-bottom: var(--space-6);
+      border-bottom: 1px solid var(--rule);
+    }
   }
 </style>

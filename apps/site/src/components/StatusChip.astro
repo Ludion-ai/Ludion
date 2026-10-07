@@ -1,4 +1,6 @@
 ---
+// The seal. "verified" is the only filled, saturated element on a page; "checking" is the same shape, outlined.
+// When a chip changes from checking to verified (step 7), the fill and the check mark arrive in one 280 ms move.
 interface Props {
   status: "verified" | "checking" | "failed" | "closed";
   label: string;
@@ -6,29 +8,58 @@ interface Props {
 const { status, label } = Astro.props;
 ---
 
-<span class:list={["chip", status]}>{label}</span>
+<span class:list={["chip", status]} data-status={status}>
+  <svg class="mark" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" focusable="false">
+    <path d="M3.5 8.5l3 3 6-7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+  </svg>
+  {label}
+</span>
 
 <style>
   .chip {
-    display: inline-block;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 28px;
+    padding: 0 12px 0 10px;
+    border: 1.5px solid transparent;
     border-radius: 999px;
-    padding: 0 12px;
-    font-size: 13px;
-    font-weight: 500;
-    line-height: 24px;
+    font-size: var(--size-small);
+    font-weight: 600;
+    line-height: 1;
     white-space: nowrap;
+    transition:
+      background-color var(--verified-moment),
+      border-color var(--verified-moment),
+      color var(--verified-moment);
+  }
+  .mark path {
+    stroke-dasharray: 16;
+    stroke-dashoffset: 16;
+    transition: stroke-dashoffset var(--verified-moment);
   }
   .verified {
-    background: var(--verified-bg);
-    color: var(--verified-text);
+    background: var(--verified-fill);
+    border-color: var(--verified-fill);
+    color: var(--verified-on);
+  }
+  .verified .mark path {
+    stroke-dashoffset: 0;
   }
   .checking {
     background: var(--checking-bg);
+    border-color: var(--checking-line);
     color: var(--checking-text);
   }
   .failed,
   .closed {
     background: var(--failed-bg);
+    border-color: var(--failed-line);
     color: var(--failed-text);
+  }
+  .checking .mark,
+  .failed .mark,
+  .closed .mark {
+    display: none;
   }
 </style>

@@ -5,3 +5,5 @@ dist/
 results.json
 *.log
 .astro/
+test-results/
+playwright-report/

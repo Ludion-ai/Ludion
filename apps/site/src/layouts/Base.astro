@@ -6,11 +6,17 @@ import { en } from "../strings/en.ts";
 interface Props {
   title: string;
   description?: string;
+  /** False for pages without a URL of their own (404). */
+  canonical?: boolean;
+  /** The public path when it differs from the built one (teacher pages are linked as /@<login>). */
+  canonicalPath?: string;
 }
-const { title, description = en.site.description } = Astro.props;
+const { title, description = en.site.description, canonical = true, canonicalPath } = Astro.props;
 const { index, config } = await siteData();
 const teacherCount = Object.keys(index.teachers).length;
-const canonical = new URL(Astro.url.pathname, config.site);
+// The trailing-slash URL: the one without it only redirects (307).
+const path = canonicalPath ?? (Astro.url.pathname.endsWith("/") ? Astro.url.pathname : `${Astro.url.pathname}/`);
+const canonicalUrl = new URL(path, config.site).href;
 ---
 
 <!doctype html>
@@ -20,14 +26,15 @@ const canonical = new URL(Astro.url.pathname, config.site);
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{title}</title>
     <meta name="description" content={description} />
-    <link rel="canonical" href={canonical.href} />
+    {canonical && <link rel="canonical" href={canonicalUrl} />}
+    <meta name="color-scheme" content="light dark" />
   </head>
   <body>
     <header class="site-header">
       <div class="wrap bar">
         <a class="wordmark" href="/">{en.site.name}</a>
         <nav aria-label={en.nav.label}>
-          <a href="/lessons/">{en.nav.lessons}</a>
+          <a href="/lessons/" aria-current={Astro.url.pathname.startsWith("/lessons") ? "page" : undefined}>{en.nav.lessons}</a>
         </nav>
       </div>
     </header>
@@ -47,41 +54,50 @@ const canonical = new URL(Astro.url.pathname, config.site);
 
 <style>
   .site-header {
-    border-bottom: 1px solid var(--border);
+    border-bottom: 1px solid var(--rule);
   }
   .bar {
     display: flex;
     align-items: center;
-    gap: 32px;
+    justify-content: space-between;
+    gap: var(--space-6);
     min-height: 64px;
   }
   .wordmark {
+    font-family: var(--font-claim);
+    font-size: 24px;
     color: var(--ink);
-    font-weight: 600;
-    font-size: 21px;
     text-decoration: none;
   }
   nav {
     display: flex;
-    gap: 24px;
+    gap: var(--space-5);
+    font-size: var(--size-meta);
   }
   nav a {
     color: var(--text);
     text-decoration: none;
+    padding: var(--space-2) 0;
   }
-  nav a:hover {
-    color: var(--cobalt);
+  nav a:hover,
+  nav a[aria-current="page"] {
+    color: var(--ink);
+    text-decoration: underline;
+    text-decoration-color: var(--rule);
+    text-decoration-thickness: 2px;
+    text-underline-offset: 0.4em;
   }
   main {
-    padding-top: 48px;
-    padding-bottom: 64px;
+    padding-top: var(--space-7);
+    padding-bottom: var(--space-8);
+    min-height: 60vh;
   }
   .site-footer {
-    border-top: 1px solid var(--border);
-    padding: 24px 0 48px;
-    font-size: 15px;
+    border-top: 1px solid var(--rule);
+    padding: var(--space-5) 0 var(--space-7);
+    font-size: var(--size-meta);
   }
   .site-footer p {
-    margin: 0 0 8px;
+    margin: 0 0 var(--space-2);
   }
 </style>

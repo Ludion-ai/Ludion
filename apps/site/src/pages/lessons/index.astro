@@ -11,8 +11,8 @@ const shown = index.lessons.slice(0, STATIC_LIMIT);
 
 <Base title={`${en.lessons.title} | Ludion`}>
   <h1>{en.lessons.title}</h1>
-  <p class="muted">{index.lessons.length ? en.lessons.intro(shown.length, index.lessons.length) : en.lessons.empty}</p>
-  <ul class="list">
+  <p class="muted count">{index.lessons.length ? en.lessons.intro(shown.length, index.lessons.length) : en.lessons.empty}</p>
+  <ul class="register">
     {
       shown.map((l) => (
         <li>
@@ -32,3 +32,14 @@ const shown = index.lessons.slice(0, STATIC_LIMIT);
     }
   </ul>
 </Base>
+
+<style>
+  h1 {
+    font-size: var(--size-title);
+    margin-bottom: var(--space-2);
+  }
+  .count {
+    font-size: var(--size-meta);
+    margin: 0 0 var(--space-6);
+  }
+</style>

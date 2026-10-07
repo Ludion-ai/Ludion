@@ -10,14 +10,15 @@ export const en = {
   },
   home: {
     title: "Ludion: lessons people taught and machines verified",
-    headline: "A public AI model that people teach.",
-    sub: "Every lesson is checked by a test, a proof, or a cited source before it is served, and it keeps its teacher's name.",
-    seeLessons: "See the lessons",
+    intro: "Ludion is a public AI model that people teach. Every lesson is checked by a test, a proof, or a cited source before it is served, and it keeps its teacher's name.",
+    newest: "Newest lesson",
     recent: "Recently verified",
+    seeLessons: "See all lessons",
   },
   lessons: {
     title: "Lessons",
-    intro: (shown: number, total: number) => (shown < total ? `The newest ${shown} of ${total} lessons.` : `${total} lessons, newest first.`),
+    intro: (shown: number, total: number) =>
+      shown < total ? `The newest ${shown} of ${total} lessons.` : total === 1 ? "1 lesson." : `${total} lessons, newest first.`,
     empty: "No lessons yet.",
   },
   lesson: {
@@ -28,6 +29,7 @@ export const en = {
     evidence: "Evidence",
     test: (runner: string) => `Test (${runner})`,
     proof: "Proof (Lean)",
+    source: "Source",
     copy: "Copy",
     copied: "Copied",
     corrects: "Corrects",
@@ -35,11 +37,18 @@ export const en = {
     viewFile: "View the file on GitHub",
     pullRequest: (n: number) => `Pull request #${n}`,
   },
+  record: {
+    verified: "Verified",
+    appliesTo: "Applies to",
+    teacher: "Teacher",
+    check: "Check it yourself",
+  },
   teacher: {
     title: (login: string) => `@${login} on Ludion`,
     summary: (lessons: number, subjects: number) =>
       `${lessons} ${lessons === 1 ? "lesson" : "lessons"} in ${subjects} ${subjects === 1 ? "subject" : "subjects"}`,
     profile: "GitHub profile",
+    subjects: "Subjects",
   },
   footer: {
     count: (lessons: number, teachers: number) =>

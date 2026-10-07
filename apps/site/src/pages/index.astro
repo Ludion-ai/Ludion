@@ -1,52 +1,84 @@
 ---
-// Home skeleton. The ask box, live feed, and /start link arrive in step 7.
+// Home skeleton: what Ludion is, the newest lesson as the hero, and the register of recent lessons.
+// The ask box, live feed, and /start link arrive in step 7.
 import Base from "../layouts/Base.astro";
 import LessonCard from "../components/LessonCard.astro";
 import { siteData } from "../build/data.ts";
 import { en } from "../strings/en.ts";
 
 const { index, teacherHref } = await siteData();
-const recent = index.lessons.slice(0, 5);
+const [newest, ...rest] = index.lessons;
+const recent = rest.slice(0, 5);
 ---
 
 <Base title={en.home.title}>
-  <section class="hero prose">
-    <h1>{en.home.headline}</h1>
-    <p>{en.home.sub}</p>
-    <p><a href="/lessons/">{en.home.seeLessons}</a></p>
-  </section>
-  <h2>{en.home.recent}</h2>
-  <ul class="list">
-    {
-      recent.map((l) => (
-        <li>
-          <LessonCard
-            id={l.id}
-            claim={l.claim}
-            subject={l.subject}
-            version={l.version}
-            teacher={l.teacher}
-            teacherId={l.teacher_id}
-            teacherHref={teacherHref(l.teacher_id)}
-            verifiedBy={l.verified_by}
-            verifiedAt={l.verified_at}
-          />
-        </li>
-      ))
-    }
-  </ul>
+  <h1 class="intro">{en.home.intro}</h1>
+  {
+    newest && (
+      <section class="newest" aria-labelledby="newest">
+        <h2 id="newest" class="section">{en.home.newest}</h2>
+        <LessonCard
+          variant="full"
+          level={3}
+          id={newest.id}
+          claim={newest.claim}
+          subject={newest.subject}
+          version={newest.version}
+          teacher={newest.teacher}
+          teacherId={newest.teacher_id}
+          teacherHref={teacherHref(newest.teacher_id)}
+          verifiedBy={newest.verified_by}
+          verifiedAt={newest.verified_at}
+        />
+      </section>
+    )
+  }
+  {
+    recent.length > 0 && (
+      <section aria-labelledby="recent">
+        <h2 id="recent" class="section">{en.home.recent}</h2>
+        <ul class="register">
+          {recent.map((l) => (
+            <li>
+              <LessonCard
+                id={l.id}
+                claim={l.claim}
+                subject={l.subject}
+                version={l.version}
+                teacher={l.teacher}
+                teacherId={l.teacher_id}
+                teacherHref={teacherHref(l.teacher_id)}
+                verifiedBy={l.verified_by}
+                verifiedAt={l.verified_at}
+              />
+            </li>
+          ))}
+        </ul>
+      </section>
+    )
+  }
+  <p class="all"><a href="/lessons/">{en.home.seeLessons}</a></p>
 </Base>
 
 <style>
-  .hero {
-    margin-bottom: 48px;
+  .intro {
+    font-size: var(--size-body);
+    font-weight: 400;
+    line-height: 1.6;
+    color: var(--text);
+    max-width: 38em;
+    margin: 0 0 var(--space-8);
   }
-  .hero h1 {
-    font-size: 42px;
+  .section {
+    font-size: var(--size-meta);
+    font-weight: 600;
+    color: var(--muted);
+    margin: 0 0 var(--space-4);
   }
-  @media (max-width: 640px) {
-    .hero h1 {
-      font-size: 33px;
-    }
+  .newest {
+    margin-bottom: var(--space-7);
+  }
+  .all {
+    margin: var(--space-6) 0 0;
   }
 </style>

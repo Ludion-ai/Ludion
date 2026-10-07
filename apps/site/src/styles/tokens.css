@@ -1,0 +1,81 @@
+/* Design tokens. Light is paper, dark is slate. See site.md, Design. */
+:root {
+  --bg: #ffffff;
+  --surface: #f3f6f4;
+  --rule: #dce3df;
+  --ink: #17201c;
+  --text: #36423d;
+  --muted: #5d6964;
+  --link: #0b5f73;
+  --focus: #0b5f73;
+
+  /* The verified seal is the only filled, saturated element on a page. */
+  --verified-fill: #0a6b48;
+  --verified-on: #ffffff;
+  --checking-line: #b07a12;
+  --checking-text: #6e4300;
+  --checking-bg: #fff6e2;
+  --failed-line: #c0392b;
+  --failed-text: #9f2219;
+  --failed-bg: #fdeeec;
+
+  --font-claim: "Zen Old Mincho", "Hiragino Mincho ProN", "Yu Mincho", serif;
+  --font-ui: "IBM Plex Sans", "Hiragino Sans", "Yu Gothic UI", system-ui, sans-serif;
+  --font-code: "IBM Plex Mono", ui-monospace, monospace;
+
+  --size-small: 13px;
+  --size-meta: 15px;
+  --size-body: 17px;
+  --size-claim: 21px;
+  --size-title: 30px;
+  --size-hero: 40px;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --space-8: 64px;
+
+  --radius: 8px;
+  --page: 1120px;
+  --gutter: 24px;
+  --rail: 280px;
+
+  --verified-moment: 280ms ease-out;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #131a17;
+    --surface: #1b2420;
+    --rule: #2b3832;
+    --ink: #edf2ef;
+    --text: #c6d1cb;
+    --muted: #93a29b;
+    --link: #86c9d8;
+    --focus: #86c9d8;
+
+    --verified-fill: #7fd4aa;
+    --verified-on: #062016;
+    --checking-line: #e2b356;
+    --checking-text: #f2c46b;
+    --checking-bg: #2a2212;
+    --failed-line: #e2786e;
+    --failed-text: #f3a49d;
+    --failed-bg: #36191a;
+    color-scheme: dark;
+  }
+}
+
+@media (max-width: 640px) {
+  :root {
+    --gutter: 16px;
+    --size-title: 26px;
+    --size-hero: 30px;
+    --size-claim: 19px;
+  }
+}
