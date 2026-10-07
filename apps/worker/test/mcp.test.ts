@@ -77,6 +77,25 @@ describe("/mcp", () => {
     expect(body.result.instructions).toBe(SERVER_INSTRUCTIONS);
   });
 
+  it("negotiates with older clients through initialize; a 2026-07-28 client falls back to 2025-11-25", async () => {
+    const init = (v: string) => rpc("initialize", { protocolVersion: v, capabilities: {}, clientInfo: { name: "test", version: "0" } });
+    expect((await init("2026-07-28")).body.result.protocolVersion).toBe("2025-11-25");
+    expect((await init("2025-11-25")).body.result.protocolVersion).toBe("2025-11-25");
+    expect((await init("2025-06-18")).body.result.protocolVersion).toBe("2025-06-18");
+    expect((await init("2025-03-26")).body.result.protocolVersion).toBe("2025-03-26");
+  });
+
+  it("serves 2026-07-28 requests without a session: per-request envelope, no initialize", async () => {
+    const envelope = { "io.modelcontextprotocol/protocolVersion": "2026-07-28", "io.modelcontextprotocol/clientCapabilities": {} };
+    const modern = (method: string, params: Record<string, unknown>, extra: Record<string, string> = {}) =>
+      rpc(method, { ...params, _meta: envelope }, { "MCP-Protocol-Version": "2026-07-28", "Mcp-Method": method, ...extra });
+    const list = await modern("tools/list", {});
+    expect(list.status).toBe(200);
+    expect(list.body.result.tools.map((t: { name: string }) => t.name)).toContain("ludion_ask");
+    const call = await modern("tools/call", { name: "ludion_ask", arguments: { question: "distutils" } }, { "Mcp-Name": "ludion_ask" });
+    expect(call.body.result.content[0].text).toMatch(/^1\. Python 3\.12 removed the distutils module/);
+  });
+
   it("lists ludion_ask with the exact description, inputs, and annotations", async () => {
     const { body } = await rpc("tools/list");
     const tool = body.result.tools.find((t: { name: string }) => t.name === "ludion_ask");
