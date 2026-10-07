@@ -56,7 +56,7 @@ Trigger: `pull_request`, every PR. Job `test`, `permissions: contents: read`, No
 
 ## Branch protection on main
 
-- Required checks: `verify` and `test`, branches must be up to date before merging: off.
+- Required checks: `verify` and `test`, both pinned to the GitHub Actions app (app id 15368), so a commit status from anywhere else cannot satisfy them. Branches must be up to date before merging: off.
 - Pull request required, required approving reviews: 0. Reviews are at 0 only because there is one maintainer today; when a second maintainer joins, set required approving reviews back to 1.
 - Include administrators: no one bypasses these rules.
 - Force pushes and deletion of `main`: blocked.
