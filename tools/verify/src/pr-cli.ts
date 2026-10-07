@@ -4,7 +4,8 @@
 import { execFileSync } from "node:child_process";
 import { appendFileSync, readFileSync, writeFileSync } from "node:fs";
 import { parseArgs } from "node:util";
-import { validateLesson, type Lesson, type Runner } from "@ludion/core";
+import type { Lesson, LessonValidator, Runner } from "@ludion/core";
+import { compileLessonSchema } from "./base-schema.ts";
 import { pullImages, runInDocker } from "./docker.ts";
 import { parseNameStatus, planChanges, verifyPullRequest, type PullRequestAuthor } from "./pr.ts";
 import { countByStatus, labelsOf, printResults, stepSummary } from "./report.ts";
@@ -13,12 +14,12 @@ import type { LessonFile } from "./verify.ts";
 
 const git = (...args: string[]) => execFileSync("git", args, { encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
 
-function baseLessons(baseRef: string): Lesson[] {
+function baseLessons(baseRef: string, validate: LessonValidator): Lesson[] {
   const paths = git("ls-tree", "-r", "--name-only", baseRef, "--", "lessons/").split("\n").filter((p) => /^lessons\/[^/]+\/[^/]+\.json$/.test(p));
   const lessons: Lesson[] = [];
   for (const p of paths) {
     try {
-      const v = validateLesson(JSON.parse(git("show", `${baseRef}:${p}`)));
+      const v = validate(JSON.parse(git("show", `${baseRef}:${p}`)));
       if (v.ok) lessons.push(v.lesson);
     } catch {
       // A broken file on the base branch is not this PR's problem.
@@ -27,11 +28,11 @@ function baseLessons(baseRef: string): Lesson[] {
   return lessons;
 }
 
-function runnersIn(files: LessonFile[]): Exclude<Runner, "lean">[] {
+function runnersIn(files: LessonFile[], validate: LessonValidator): Exclude<Runner, "lean">[] {
   const runners = new Set<Exclude<Runner, "lean">>();
   for (const f of files) {
     try {
-      const v = validateLesson(JSON.parse(f.text));
+      const v = validate(JSON.parse(f.text));
       if (!v.ok) continue;
       for (const e of v.lesson.evidence) if ("run" in e && e.run.runner !== "lean") runners.add(e.run.runner);
     } catch {
@@ -56,20 +57,24 @@ async function main(): Promise<number> {
   const baseRef = `origin/${pr.base.ref}`;
   const headSha: string = pr.head.sha;
   const author: PullRequestAuthor = { id: pr.user.id, login: pr.user.login, type: pr.user.type };
-  const config = JSON.parse(readFileSync("ludion.config.json", "utf8")) as { app_bot?: string };
+  // The rules come from the base branch, never from the PR: a PR cannot add its own bot or loosen the schema.
+  const config = JSON.parse(git("show", `${baseRef}:ludion.config.json`)) as { app_bot_id?: number };
+  const validate = compileLessonSchema(git("show", `${baseRef}:lessons/lessons.schema.json`));
 
-  const plan = planChanges(parseNameStatus(git("diff", "--no-renames", "--name-status", `${baseRef}...HEAD`, "--", "lessons/")));
+  // Every file the PR changes, not only lessons/: a lesson PR may change nothing else.
+  const plan = planChanges(parseNameStatus(git("diff", "--no-renames", "--name-status", `${baseRef}...HEAD`)));
   const added: LessonFile[] = plan.added.map((path) => ({ path, text: readFileSync(path, "utf8") }));
 
-  const pullFailures = pullImages(runnersIn(added));
+  const pullFailures = pullImages(runnersIn(added, validate));
   for (const f of pullFailures) console.error(f);
 
   const results = await verifyPullRequest(plan, added, {
-    base: baseLessons(baseRef),
+    base: baseLessons(baseRef, validate),
     fetchFn: createSafeFetch(),
     run: runInDocker,
+    validate,
     author,
-    appBot: config.app_bot,
+    appBotId: config.app_bot_id,
     commitMessageFor: (path) => git("log", "--diff-filter=A", "--format=%B", "-n", "1", `${baseRef}..${headSha}`, "--", path) || null,
   });
 

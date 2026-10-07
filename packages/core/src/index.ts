@@ -1,5 +1,6 @@
 export type * from "./types.ts";
-export { validateLesson, type FieldError, type ValidationResult } from "./schema.ts";
+export { lessonValidator, validateLesson, type FieldError, type LessonValidator, type ValidationResult } from "./schema.ts";
+export type { AjvError, ValidateFn } from "./generated/validate-lesson.js";
 export { newId } from "./ulid.ts";
 export { formatLesson } from "./format.ts";
 export { activeSet } from "./active.ts";

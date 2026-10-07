@@ -1,6 +1,9 @@
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { formatLesson, type FetchFn, type Lesson } from "@ludion/core";
-import { authorProblem, IMMUTABLE, parseNameStatus, planChanges, verifyPullRequest, type PullRequestContext } from "../src/pr.ts";
+import { formatLesson, validateLesson, type FetchFn, type Lesson } from "@ludion/core";
+import { compileLessonSchema } from "../src/base-schema.ts";
+import { authorProblem, IMMUTABLE, LESSON_FILES_ONLY, parseNameStatus, planChanges, STRAY_FILE, verifyPullRequest, type PullRequestContext } from "../src/pr.ts";
 import { labelsOf, stepSummary } from "../src/report.ts";
 
 const lesson: Lesson = {
@@ -13,24 +16,62 @@ const lesson: Lesson = {
   created_at: "2026-10-07T00:00:00Z",
 };
 const path = `lessons/ludion-selftest/${lesson.id}.json`;
+const SCHEMA_PATH = fileURLToPath(new URL("../../../lessons/lessons.schema.json", import.meta.url));
 const alice = { id: 1001, login: "alice", type: "User" };
 const app = { id: 9, login: "ludion[bot]", type: "Bot" };
 
 describe("planChanges", () => {
-  it("sorts added and deleted lessons, refuses edits and stray files, ignores the schema", () => {
+  it("sorts added and deleted lessons and refuses edits", () => {
     const plan = planChanges(
-      parseNameStatus(
-        [`A\t${path}`, "D\tlessons/python/01K6ZQ4T9X0N8V2H7M3P5R1S6W.json", "M\tlessons/python/01K6ZQ4T9X0N8V2H7M3P5R1S6X.json", "M\tlessons/lessons.schema.json", "A\tlessons/README.md", ""].join("\n"),
-      ),
+      parseNameStatus([`A\t${path}`, "D\tlessons/python/01K6ZQ4T9X0N8V2H7M3P5R1S6W.json", "M\tlessons/python/01K6ZQ4T9X0N8V2H7M3P5R1S6X.json", ""].join("\n")),
     );
     expect(plan).toEqual({
       added: [path],
       deleted: ["lessons/python/01K6ZQ4T9X0N8V2H7M3P5R1S6W.json"],
-      problems: [
-        { path: "lessons/python/01K6ZQ4T9X0N8V2H7M3P5R1S6X.json", reason: IMMUTABLE },
-        { path: "lessons/README.md", reason: "Only lesson files go in lessons/<subject>/." },
-      ],
+      problems: [{ path: "lessons/python/01K6ZQ4T9X0N8V2H7M3P5R1S6X.json", reason: IMMUTABLE }],
     });
+  });
+
+  it("refuses a lesson PR that also changes the schema, config, or code", () => {
+    const plan = planChanges(
+      parseNameStatus([`A\t${path}`, "M\tlessons/lessons.schema.json", "M\tludion.config.json", "M\ttools/verify/src/pr.ts", "A\tlessons/README.md"].join("\n")),
+    );
+    expect(plan.added).toEqual([path]);
+    expect(plan.problems).toEqual([
+      { path: "lessons/lessons.schema.json", reason: LESSON_FILES_ONLY },
+      { path: "ludion.config.json", reason: LESSON_FILES_ONLY },
+      { path: "tools/verify/src/pr.ts", reason: LESSON_FILES_ONLY },
+      { path: "lessons/README.md", reason: LESSON_FILES_ONLY },
+    ]);
+  });
+
+  it("leaves a code PR alone, schema changes included, but refuses stray files in lessons/", () => {
+    expect(planChanges(parseNameStatus("M\tlessons/lessons.schema.json\nM\tpackages/core/src/schema.ts"))).toEqual({ added: [], deleted: [], problems: [] });
+    expect(planChanges(parseNameStatus("A\tlessons/README.md")).problems).toEqual([{ path: "lessons/README.md", reason: STRAY_FILE }]);
+  });
+});
+
+describe("compileLessonSchema (the base branch's schema)", () => {
+  const schema = JSON.parse(readFileSync(SCHEMA_PATH, "utf8"));
+
+  it("validates like the precompiled schema", () => {
+    const validate = compileLessonSchema(JSON.stringify(schema));
+    expect(validate(lesson)).toEqual({ ok: true, lesson });
+    const { author_id: _, ...noId } = lesson;
+    expect(validate(noId)).toEqual(validateLesson(noId));
+  });
+
+  it("is what a lesson is checked against, so a looser schema in the PR does not help", async () => {
+    // The PR's copy would allow a missing author_id; the base schema still refuses it.
+    const { author_id: _, ...noId } = lesson;
+    const text = JSON.stringify(noId, null, 2) + "\n";
+    const results = await verifyPullRequest(
+      { added: [path], deleted: [], problems: [] },
+      [{ path, text }],
+      { base: [], fetchFn: async () => new Response(""), author: alice, commitMessageFor: () => null, validate: compileLessonSchema(JSON.stringify(schema)) },
+    );
+    expect(results[0]!.status).toBe("failed");
+    expect(results[0]!.reasons[0]).toMatch(/^\/author_id:/);
   });
 });
 
@@ -45,18 +86,23 @@ describe("authorProblem", () => {
   });
 
   it("accepts the App when the trailer matches id and login (case-insensitive)", () => {
-    expect(authorProblem(lesson, app, "ludion[bot]", "Teach x: y\n\nTaught-by: alice (1001)\n")).toBeUndefined();
+    expect(authorProblem(lesson, app, 9, "Teach x: y\n\nTaught-by: alice (1001)\n")).toBeUndefined();
   });
 
   it("refuses the App when the trailer is missing or names someone else", () => {
-    expect(authorProblem(lesson, app, "ludion[bot]", "Teach x: y\n")).toMatch(/no "Taught-by/);
-    expect(authorProblem(lesson, app, "ludion[bot]", "Taught-by: alice (1002)")).toMatch(/must match/);
-    expect(authorProblem(lesson, app, "ludion[bot]", "Taught-by: bob (1001)")).toMatch(/must match/);
-    expect(authorProblem(lesson, app, "ludion[bot]", "Taught-by: alice")).toMatch(/no "Taught-by/);
+    expect(authorProblem(lesson, app, 9, "Teach x: y\n")).toMatch(/no "Taught-by/);
+    expect(authorProblem(lesson, app, 9, "Taught-by: alice (1002)")).toMatch(/must match/);
+    expect(authorProblem(lesson, app, 9, "Taught-by: bob (1001)")).toMatch(/must match/);
+    expect(authorProblem(lesson, app, 9, "Taught-by: alice")).toMatch(/no "Taught-by/);
+  });
+
+  it("knows the App by id, not by name", () => {
+    const impostor = { id: 10, login: "ludion[bot]", type: "Bot" };
+    expect(authorProblem(lesson, impostor, 9, "Taught-by: alice (1001)")).toMatch(/\(10\), which is not the Ludion App/);
   });
 
   it("refuses any other bot, and every bot while no App is configured", () => {
-    expect(authorProblem(lesson, { id: 5, login: "dependabot[bot]", type: "Bot" }, "ludion[bot]", "Taught-by: alice (1001)")).toMatch(/not the Ludion App/);
+    expect(authorProblem(lesson, { id: 5, login: "dependabot[bot]", type: "Bot" }, 9, "Taught-by: alice (1001)")).toMatch(/not the Ludion App/);
     expect(authorProblem(lesson, app, undefined, "Taught-by: alice (1001)")).toMatch(/not the Ludion App/);
   });
 });

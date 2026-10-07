@@ -8,6 +8,7 @@
   },
   "dependencies": {
     "@ludion/core": "*",
+    "ajv": "^8.20.0",
     "undici": "^8.11.2"
   }
 }

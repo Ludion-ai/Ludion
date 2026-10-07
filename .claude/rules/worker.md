@@ -56,6 +56,7 @@ Secrets (`wrangler secret put`; `.dev.vars` locally, gitignored; never logged): 
 - Expire user authorization tokens: on. Request user authorization during installation: off. Device flow: off. Webhook: inactive.
 - Repository permissions: Contents read and write, Pull requests read and write, Metadata read. No account permissions.
 - Install only on `<ORG>/ludion`.
+- After creating it, put the App's bot account's numeric user id in `ludion.config.json` as `app_bot_id` (`gh api "users/<app-slug>[bot]" --jq .id`), in a PR of its own. CI knows the App by this id, never by name.
 - Private key: GitHub gives PKCS#1; WebCrypto needs PKCS#8. Convert once: `openssl pkcs8 -topk8 -nocrypt -in ludion.private-key.pem -out ludion.pk8.pem`, and store the PKCS#8 file as `GITHUB_APP_PRIVATE_KEY`.
 - Installation token: sign a JWT with RS256 (`iat` now minus 60 s, `exp` now plus 9 min, `iss` app id), call `POST /app/installations/{id}/access_tokens`, cache in module scope until 5 minutes before `expires_at`.
 
