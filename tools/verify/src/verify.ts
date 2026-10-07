@@ -1,4 +1,4 @@
-import { activeSet, checkSource, formatLesson, validateLesson, type FetchFn, type Lesson } from "@ludion/core";
+import { activeSet, checkSource, formatLesson, validateLesson, type FetchFn, type Lesson, type LessonValidator } from "@ludion/core";
 import type { RunFn } from "./docker.ts";
 
 export type Status = "passed" | "failed" | "skipped";
@@ -25,6 +25,8 @@ export interface VerifyContext {
   fetchFn: FetchFn;
   /** Executes run evidence. Absent: run evidence is not executed (local use). */
   run?: RunFn;
+  /** Schema to validate against. Absent: the precompiled one. CI passes the base branch's schema. */
+  validate?: LessonValidator;
 }
 
 function firstDifference(actual: string, expected: string): string {
@@ -64,7 +66,7 @@ export async function verifyLesson(file: LessonFile, ctx: VerifyContext): Promis
   }
 
   // 1. Schema, then canonical form.
-  const valid = validateLesson(data);
+  const valid = (ctx.validate ?? validateLesson)(data);
   if (!valid.ok) {
     for (const e of valid.errors) fail(`${e.path}: ${e.message}`);
     return result;

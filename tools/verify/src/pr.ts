@@ -20,9 +20,11 @@ export interface ChangePlan {
   problems: { path: string; reason: string }[];
 }
 
-const SCHEMA_PATH = "lessons/lessons.schema.json";
 const LESSON_PATH = /^lessons\/[^/]+\/[^/]+\.json$/;
+const SCHEMA_PATH = "lessons/lessons.schema.json";
 export const IMMUTABLE = "Lessons are immutable. Add a new lesson that replaces this one instead.";
+export const LESSON_FILES_ONLY = "A lesson pull request can change only lesson files in lessons/.";
+export const STRAY_FILE = "Only lesson files go in lessons/<subject>/.";
 
 /** Parse `git diff --no-renames --name-status` output. */
 export function parseNameStatus(output: string): Change[] {
@@ -35,25 +37,40 @@ export function parseNameStatus(output: string): Change[] {
     });
 }
 
+/**
+ * Plan from every file the PR changes. A PR that adds or deletes lessons is a lesson PR and may change nothing else,
+ * not even the schema. A PR that touches no lesson file is a code PR: nothing to verify here (`test` covers it).
+ */
 export function planChanges(changes: Change[]): ChangePlan {
   const plan: ChangePlan = { added: [], deleted: [], problems: [] };
-  for (const { status, path } of changes) {
-    if (path === SCHEMA_PATH) continue;
-    if (!LESSON_PATH.test(path)) plan.problems.push({ path, reason: "Only lesson files go in lessons/<subject>/." });
-    else if (status === "A") plan.added.push(path);
+  const lessonChanges = changes.filter((c) => LESSON_PATH.test(c.path));
+  if (lessonChanges.length === 0) {
+    for (const { path } of changes) {
+      if (path.startsWith("lessons/") && path !== SCHEMA_PATH) plan.problems.push({ path, reason: STRAY_FILE });
+    }
+    return plan;
+  }
+  for (const { status, path } of lessonChanges) {
+    if (status === "A") plan.added.push(path);
     else if (status === "D") plan.deleted.push(path);
     else plan.problems.push({ path, reason: IMMUTABLE });
+  }
+  for (const { path } of changes) {
+    if (!LESSON_PATH.test(path)) plan.problems.push({ path, reason: LESSON_FILES_ONLY });
   }
   return plan;
 }
 
 const TRAILER = /^Taught-by: ([A-Za-z0-9-]{1,39}) \((\d+)\)[ \t]*$/m;
 
-/** Why this lesson may not come from this PR's author, or undefined. Identity is the numeric id. */
-export function authorProblem(lesson: Lesson, author: PullRequestAuthor, appBot: string | undefined, commitMessage: string | null): string | undefined {
+/**
+ * Why this lesson may not come from this PR's author, or undefined. Identity is the numeric id,
+ * for the teacher and for the App's bot account alike.
+ */
+export function authorProblem(lesson: Lesson, author: PullRequestAuthor, appBotId: number | undefined, commitMessage: string | null): string | undefined {
   if (author.type === "Bot") {
-    if (!appBot || author.login !== appBot) {
-      return `This pull request was opened by ${author.login}, which is not the Ludion App. Lessons come from the person who signed them or from the Ludion App.`;
+    if (appBotId === undefined || author.id !== appBotId) {
+      return `This pull request was opened by ${author.login} (${author.id}), which is not the Ludion App. Lessons come from the person who signed them or from the Ludion App.`;
     }
     const m = commitMessage ? TRAILER.exec(commitMessage) : null;
     if (!m) return 'The commit that adds this lesson has no "Taught-by: <login> (<user id>)" trailer.';
@@ -71,7 +88,8 @@ export function authorProblem(lesson: Lesson, author: PullRequestAuthor, appBot:
 
 export interface PullRequestContext extends VerifyContext {
   author: PullRequestAuthor;
-  appBot?: string;
+  /** `app_bot_id` from ludion.config.json on the base branch. */
+  appBotId?: number;
   /** Message of the PR commit that added this path, or null. */
   commitMessageFor: (path: string) => string | null;
 }
@@ -84,6 +102,7 @@ export async function verifyPullRequest(plan: ChangePlan, addedFiles: LessonFile
     const id = path.split("/").pop()!.replace(/\.json$/, "");
     results.push({ file: path, id, claim: null, status: "passed", reasons: [], labels: ["retract"] });
   }
+  const validate = ctx.validate ?? validateLesson;
   for (const file of addedFiles) {
     const result = await verifyLesson(file, ctx);
     let parsed: unknown;
@@ -92,9 +111,9 @@ export async function verifyPullRequest(plan: ChangePlan, addedFiles: LessonFile
     } catch {
       parsed = undefined;
     }
-    const valid = validateLesson(parsed);
+    const valid = validate(parsed);
     if (valid.ok) {
-      const problem = authorProblem(valid.lesson, ctx.author, ctx.appBot, ctx.commitMessageFor(file.path));
+      const problem = authorProblem(valid.lesson, ctx.author, ctx.appBotId, ctx.commitMessageFor(file.path));
       if (problem) {
         result.status = "failed";
         result.reasons.push(problem);

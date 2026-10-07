@@ -10,7 +10,7 @@ paths:
 
 Node CLI over `packages/core`. `npm run verify -- <files or dirs>` exits non-zero on any failure and prints one line per lesson: `passed | failed | skipped  <id>  <claim, first 60 chars>`, then the reason for anything not passed. Flags: `--run` executes `run` evidence (CI only), `--json <path>` writes machine-readable results.
 
-`npm run verify:pr` is what `verify.yml` runs: it reads the pull request from `$GITHUB_EVENT_PATH`, applies every rule below, writes `results.json` and `$GITHUB_STEP_SUMMARY`, and exits non-zero on any failure.
+`npm run verify:pr` is what `verify.yml` runs: it reads the pull request from `$GITHUB_EVENT_PATH`, applies every rule below, writes `results.json` and `$GITHUB_STEP_SUMMARY`, and exits non-zero on any failure. It reads `ludion.config.json` and `lessons/lessons.schema.json` from the base branch (`git show origin/<base>:<path>`), never from the PR, and compiles that schema at run time, so a PR cannot add its own bot or loosen the schema it is checked against.
 
 Source fetches (`src/safe-fetch.ts`) go through an undici `Agent` whose `connect.lookup` resolves the name itself (all addresses, and answers as a list when called with `all: true`), refuses the name if even one address is not public, and lets the socket connect to exactly the checked address. There is no second resolution, so DNS rebinding cannot swap in a private address. Not public: IPv4 `0/8`, `10/8`, `100.64/10`, `127/8`, `169.254/16`, `172.16/12`, `192.0.0/24`, `192.0.2/24`, `192.88.99/24`, `192.168/16`, `198.18/15`, `198.51.100/24`, `203.0.113/24`, `224/4`, `240/4`; IPv6 outside `2000::/3` (so `::1`, `fc00::/7`, `fe80::/10`, IPv4-mapped, NAT64, multicast), plus `2001::/23`, `2001:db8::/32`, `2002::/16`. Never pass the global `fetch` for source checks.
 
@@ -34,16 +34,15 @@ A lesson that depends on a version says so in `version` and prints `skip: <why>`
 Trigger: `pull_request`, every PR, no path filter (a path filter would leave PRs that touch no lessons waiting forever on a required check). Never `pull_request_target`.
 
 - Job `verify`: `permissions: contents: read`. No secrets. `actions/checkout` with `persist-credentials: false` and `fetch-depth: 0`.
-- Changed files from `git diff --no-renames --name-status origin/<base>...HEAD -- lessons/`, where `<base>` is the PR's base branch. If nothing under `lessons/` changed, print "No lesson changes." and succeed at once: no `npm ci`, no Docker.
-  - `lessons/lessons.schema.json`: not a lesson; ignored here (`test.yml` covers it).
-  - Any other path that is not `lessons/<subject>/<file>.json`: fail with "Only lesson files go in lessons/<subject>/."
-  - `A` added: validate and verify.
-  - `D` deleted: allowed (retraction). Label the PR `retract`.
-  - `M` modified: fail with "Lessons are immutable. Add a new lesson that replaces this one instead."
+- If nothing under `lessons/` changed (`git diff --quiet origin/<base>...HEAD -- lessons/`, where `<base>` is the PR's base branch), print "No lesson changes." and succeed at once: no `npm ci`, no Docker.
+- Otherwise take every file the PR changes, `git diff --no-renames --name-status origin/<base>...HEAD`:
+  - A PR that adds, deletes, or modifies any `lessons/<subject>/<file>.json` is a **lesson PR**. It may change nothing else, not the schema, not `ludion.config.json`, not code: each other file fails with "A lesson pull request can change only lesson files in lessons/."
+  - A PR with no lesson files is a code PR; `verify` passes it (`test` and a human review cover it), except that any other new file under `lessons/` besides the schema fails with "Only lesson files go in lessons/<subject>/."
+  - In a lesson PR: `A` added: validate and verify. `D` deleted: allowed (retraction); label the PR `retract`. `M` modified: fail with "Lessons are immutable. Add a new lesson that replaces this one instead."
 - For each added lesson:
-  1. Schema valid, and the file equals `formatLesson(lesson)`.
+  1. Valid against the base branch's schema, and the file equals `formatLesson(lesson)`.
   2. Path matches `lessons/<subject>/<id>.json`.
-  3. Author rule, checked by numeric id (read the PR from the event payload, `pull_request.user`). If the PR was opened by the Ludion App bot (`user.type` is `Bot` and `user.login` equals `app_bot` in `ludion.config.json`, added in step 5): the commit that adds the lesson must carry the trailer `Taught-by: <login> (<user id>)` (format in `worker.md`), where `<user id>` equals the lesson's `author_id` and `<login>` equals the login in its `author` (case-insensitive). Any other bot fails. Otherwise, a person opened the PR directly: the lesson's `author_id` must equal `pull_request.user.id`.
+  3. Author rule, checked by numeric id (read the PR from the event payload, `pull_request.user`). If the PR was opened by the Ludion App bot (`user.type` is `Bot` and `user.id` equals `app_bot_id`, the bot account's numeric user id, in `ludion.config.json` on the base branch; added in step 5, and until then every bot fails): the commit that adds the lesson must carry the trailer `Taught-by: <login> (<user id>)` (format in `worker.md`), where `<user id>` equals the lesson's `author_id` and `<login>` equals the login in its `author` (case-insensitive). Any other bot fails. Otherwise, a person opened the PR directly: the lesson's `author_id` must equal `pull_request.user.id`.
   4. `replaces` ids exist in the active set on the base branch (read with `git show origin/<base>:<path>`).
   5. Each `run` evidence in Docker, as in Runners. `lean`: label `needs-lean`; the check does not fail on it until the Lean runner exists.
   6. Each `source` evidence with `checkSource` and the guarded fetch above.
@@ -63,6 +62,8 @@ Trigger: `pull_request`, every PR. Job `test`, `permissions: contents: read`, No
 - Repository settings: squash merge only (merge commits and rebase merges off), auto-merge on, delete head branches after merge.
 
 Every change, code or lessons, lands through a PR merged with `gh pr merge --auto --squash` (see CLAUDE.md).
+
+`verify` runs the PR's own copy of `tools/verify`, so it cannot be the authority on what a PR is allowed to change: a PR could edit the checker itself. Today a human reviews before merging. If lesson PRs are ever merged automatically, that decision must be made on a trusted side outside the PR (for example, a `pull_request_target` workflow or the Ludion App that runs only base-branch code and never checks out the PR): it lists the PR's files through the GitHub API, confirms every one is an added or deleted `lessons/<subject>/<id>.json`, and only then merges.
 
 ## reverify.yml (nightly, 03:00 UTC)
 

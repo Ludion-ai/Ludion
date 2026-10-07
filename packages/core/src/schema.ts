@@ -1,4 +1,4 @@
-import { validate, type AjvError } from "./generated/validate-lesson.js";
+import { validate as generatedValidate, type AjvError, type ValidateFn } from "./generated/validate-lesson.js";
 import type { Lesson } from "./types.ts";
 
 export interface FieldError {
@@ -72,7 +72,17 @@ function messageFor(err: AjvError, data: unknown): FieldError | undefined {
   return { path, message: FIELD_MESSAGES[top] ?? `This value is not valid: ${err.message ?? err.keyword}.` };
 }
 
-export function validateLesson(data: unknown): ValidationResult {
+export type LessonValidator = (data: unknown) => ValidationResult;
+
+/** Wrap any Ajv validate function compiled from a lesson schema, with person-readable errors. */
+export function lessonValidator(validate: ValidateFn): LessonValidator {
+  return (data) => runValidator(validate, data);
+}
+
+/** Validates against the schema this code was built with (precompiled). */
+export const validateLesson: LessonValidator = lessonValidator(generatedValidate);
+
+function runValidator(validate: ValidateFn, data: unknown): ValidationResult {
   if (validate(data)) return { ok: true, lesson: data as Lesson };
   const seen = new Set<string>();
   const errors: FieldError[] = [];
