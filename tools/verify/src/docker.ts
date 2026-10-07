@@ -1,4 +1,4 @@
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import type { Runner } from "@ludion/core";
 
 export type RunResult = { status: "passed" } | { status: "skipped"; reason: string } | { status: "failed"; reason: string };
@@ -8,11 +8,22 @@ export type RunFn = (runner: Exclude<Runner, "lean">, code: string) => Promise<R
 const TIMEOUT_MS = 30_000;
 const OUTPUT_LIMIT = 4000;
 
+// One image per runner, on the current stable release (ci.md, Runners).
 const IMAGES: Record<Exclude<Runner, "lean">, { image: string; command: string[] }> = {
-  python: { image: "python:3.12-slim", command: ["python", "-"] },
-  bash: { image: "python:3.12-slim", command: ["bash", "-s"] },
-  node: { image: "node:22-slim", command: ["node", "-"] },
+  python: { image: "python:3.14-slim", command: ["python", "-"] },
+  bash: { image: "python:3.14-slim", command: ["bash", "-s"] },
+  node: { image: "node:24-slim", command: ["node", "-"] },
 };
+
+/** Pull the images these runners need, before any timed run starts. Returns a message per image that failed. */
+export function pullImages(runners: Iterable<Exclude<Runner, "lean">>): string[] {
+  const failures: string[] = [];
+  for (const image of new Set([...runners].map((r) => IMAGES[r].image))) {
+    const r = spawnSync("docker", ["pull", "--quiet", image], { stdio: ["ignore", "inherit", "inherit"] });
+    if (r.status !== 0) failures.push(`Could not pull ${image}${r.error ? ` (${r.error.message})` : ""}.`);
+  }
+  return failures;
+}
 
 /** `docker run` arguments for one piece of run evidence. The code arrives on stdin. */
 export function dockerArgs(runner: Exclude<Runner, "lean">, name: string): string[] {

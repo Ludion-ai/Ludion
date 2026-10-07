@@ -5,7 +5,8 @@ import { parseArgs } from "node:util";
 import { runInDocker } from "./docker.ts";
 import { collectLessonFiles, loadBaseLessons } from "./files.ts";
 import { createSafeFetch } from "./safe-fetch.ts";
-import { summaryLine, verifyLesson, type LessonResult } from "./verify.ts";
+import { countByStatus, labelsOf, printResults } from "./report.ts";
+import { verifyLesson, type LessonResult } from "./verify.ts";
 
 const USAGE = "Usage: npm run verify -- <lesson files or directories> [--run] [--json <path>]";
 const CONCURRENCY = 4;
@@ -52,17 +53,12 @@ async function main(): Promise<number> {
     }),
   );
 
-  for (const r of results) {
-    console.log(summaryLine(r));
-    if (r.status !== "passed") for (const reason of r.reasons) console.log(`  ${reason.replace(/\n/g, "\n  ")}`);
-  }
-  const count = (s: string) => results.filter((r) => r.status === s).length;
-  console.log(`\n${count("passed")} passed, ${count("failed")} failed, ${count("skipped")} skipped.`);
+  printResults(results);
   if (!values.run && results.some((r) => r.status !== "failed")) {
     console.log("Test code was not run here. CI runs it in an isolated container (--run).");
   }
-  if (values.json) writeFileSync(values.json, JSON.stringify({ results }, null, 2) + "\n");
-  return count("failed") > 0 ? 1 : 0;
+  if (values.json) writeFileSync(values.json, JSON.stringify({ results, labels: labelsOf(results) }, null, 2) + "\n");
+  return countByStatus(results).failed > 0 ? 1 : 0;
 }
 
 process.exitCode = await main();

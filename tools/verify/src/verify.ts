@@ -2,7 +2,7 @@ import { activeSet, checkSource, formatLesson, validateLesson, type FetchFn, typ
 import type { RunFn } from "./docker.ts";
 
 export type Status = "passed" | "failed" | "skipped";
-export type Label = "skipped" | "needs-lean";
+export type Label = "skipped" | "needs-lean" | "retract";
 
 export interface LessonResult {
   file: string;

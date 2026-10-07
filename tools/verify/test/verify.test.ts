@@ -130,10 +130,10 @@ describe("docker", () => {
     expect(dockerArgs("python", "n")).toEqual([
       "run", "--rm", "-i", "--name", "n",
       "--network", "none", "--memory", "512m", "--cpus", "1", "--pids-limit", "128", "--read-only", "--tmpfs", "/tmp",
-      "python:3.12-slim", "python", "-",
+      "python:3.14-slim", "python", "-",
     ]);
-    expect(dockerArgs("bash", "n").slice(-3)).toEqual(["python:3.12-slim", "bash", "-s"]);
-    expect(dockerArgs("node", "n").slice(-3)).toEqual(["node:22-slim", "node", "-"]);
+    expect(dockerArgs("bash", "n").slice(-3)).toEqual(["python:3.14-slim", "bash", "-s"]);
+    expect(dockerArgs("node", "n").slice(-3)).toEqual(["node:24-slim", "node", "-"]);
   });
 
   it("interprets exit codes, skip lines, and timeouts", () => {

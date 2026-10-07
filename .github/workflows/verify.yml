@@ -1,0 +1,85 @@
+# Required check "verify". Runs on every PR; finishes at once when no lesson changed.
+# Lesson code runs only here, with a read-only token, no secrets, and no network (see .claude/rules/ci.md).
+name: verify
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Find lesson changes
+        id: changes
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          if git diff --quiet "origin/${BASE_REF}...HEAD" -- lessons/; then
+            echo "No lesson changes."
+            echo "lessons=false" >> "$GITHUB_OUTPUT"
+          else
+            git diff --no-renames --name-status "origin/${BASE_REF}...HEAD" -- lessons/
+            echo "lessons=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/setup-node@v7
+        if: steps.changes.outputs.lessons == 'true'
+        with:
+          node-version-file: .node-version
+          cache: npm
+
+      - name: Install
+        if: steps.changes.outputs.lessons == 'true'
+        run: npm ci
+
+      - name: Verify lessons
+        if: steps.changes.outputs.lessons == 'true'
+        run: npm run verify:pr -- --json results.json
+
+      - uses: actions/upload-artifact@v7
+        if: always() && steps.changes.outputs.lessons == 'true'
+        with:
+          name: results
+          path: results.json
+          if-no-files-found: ignore
+
+  # Reads results.json only; never checks out or runs lesson code.
+  label:
+    needs: verify
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      pull-requests: write
+    steps:
+      - uses: actions/download-artifact@v8
+        continue-on-error: true
+        with:
+          name: results
+
+      - name: Apply labels
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+        run: |
+          if [ ! -f results.json ]; then
+            echo "No lesson results, so no labels."
+            exit 0
+          fi
+          labels=$(jq -r '[.labels[] | select(. == "skipped" or . == "needs-lean" or . == "retract")] | join(",")' results.json)
+          if [ -z "$labels" ]; then
+            echo "No labels to add."
+            exit 0
+          fi
+          gh pr edit "$PR" --repo "$REPO" --add-label "$labels" \
+            || echo "Could not add labels ($labels). Fork PRs get a read-only token; a maintainer can add them."
