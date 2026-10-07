@@ -13,7 +13,7 @@
     {
       "source": {
         "url": "https://peps.python.org/pep-0632/",
-        "quote": "Remove distutils from the standard library"
+        "quote": "Code that imports distutils will no longer work from Python 3.12."
       }
     }
   ],

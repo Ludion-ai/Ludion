@@ -1,0 +1,12 @@
+{
+  "name": "@ludion/verify",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "ludion-verify": "./src/cli.ts"
+  },
+  "dependencies": {
+    "@ludion/core": "*"
+  }
+}

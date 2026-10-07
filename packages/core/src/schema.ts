@@ -1,0 +1,89 @@
+import { validate, type AjvError } from "./generated/validate-lesson.js";
+import type { Lesson } from "./types.ts";
+
+export interface FieldError {
+  path: string;
+  message: string;
+}
+
+export type ValidationResult = { ok: true; lesson: Lesson } | { ok: false; errors: FieldError[] };
+
+const FIELD_MESSAGES: Record<string, string> = {
+  "/id": "The id must be a ULID: 26 characters of Crockford base32 (0-9, A-Z without I, L, O, U).",
+  "/subject": "Write the subject in lowercase, like python or wrangler: letters, digits, dots, and dashes, up to 64 characters.",
+  "/version": "Write the version as text, for example >=3.12, or leave it out.",
+  "/claim": "Write one sentence of 10 to 400 characters.",
+  "/evidence": "Give 1 to 3 pieces of evidence: a test or a source.",
+  "/author": "The author must be github:<login> of the account that signed.",
+  "/author_id": "The author_id must be the signer's numeric GitHub user id (a whole number, 1 or more).",
+  "/replaces": "List the ids (ULIDs) of the lessons this one corrects.",
+  "/created_at": "The time must be UTC in the form YYYY-MM-DDTHH:MM:SSZ.",
+};
+
+const EVIDENCE_MESSAGES: Record<string, string> = {
+  run: 'A test needs "runner" (python, bash, node, or lean) and "code" (up to 8000 characters) that exits 0 only if the claim is true.',
+  "run/runner": "Choose a runner: python, bash, node, or lean.",
+  "run/code": "Test code must be text of at most 8000 characters that exits 0 only if the claim is true.",
+  source: 'A source needs "url" and "quote".',
+  "source/url": "The source URL must start with https://.",
+  "source/quote": "Paste an exact sentence from the page: 8 to 300 characters.",
+};
+
+const EVIDENCE_SHAPE = 'Each piece of evidence is either a test, {"run": {"runner", "code"}}, or a source, {"source": {"url", "quote"}}.';
+
+/** Which oneOf branch an evidence item meant to be: 0 for run, 1 for source, undefined if unclear. */
+function intendedBranch(item: unknown): number | undefined {
+  if (item === null || typeof item !== "object") return undefined;
+  const keys = Object.keys(item);
+  if (keys.length !== 1) return undefined;
+  if (keys[0] === "run") return 0;
+  if (keys[0] === "source") return 1;
+  return undefined;
+}
+
+function messageFor(err: AjvError, data: unknown): FieldError | undefined {
+  const path = err.instancePath;
+  if (path === "" && err.keyword === "required") {
+    const field = `/${String(err.params.missingProperty)}`;
+    return { path: field, message: FIELD_MESSAGES[field] ?? `Add the missing field ${field.slice(1)}.` };
+  }
+  if (path === "" && err.keyword === "additionalProperties") {
+    const field = String(err.params.additionalProperty);
+    return { path: `/${field}`, message: `Remove the field "${field}"; lessons do not have it.` };
+  }
+  if (path === "") return { path: "/", message: "A lesson must be a JSON object." };
+
+  const m = /^\/evidence\/(\d+)(\/.*)?$/.exec(path);
+  if (m) {
+    const index = Number(m[1]);
+    const item = (data as { evidence?: unknown[] }).evidence?.[index];
+    const branch = intendedBranch(item);
+    if (branch === undefined) return { path: `/evidence/${index}`, message: EVIDENCE_SHAPE };
+    // Errors from the branch this item did not mean to be are noise.
+    if (!err.schemaPath.startsWith(`#/properties/evidence/items/oneOf/${branch}/`)) return undefined;
+    const rest = (m[2] ?? "").slice(1);
+    if (err.keyword === "additionalProperties") {
+      return { path, message: `Remove "${String(err.params.additionalProperty)}". ${EVIDENCE_MESSAGES[rest] ?? EVIDENCE_SHAPE}` };
+    }
+    return { path, message: EVIDENCE_MESSAGES[rest] ?? EVIDENCE_SHAPE };
+  }
+
+  const top = "/" + (path.split("/")[1] ?? "");
+  return { path, message: FIELD_MESSAGES[top] ?? `This value is not valid: ${err.message ?? err.keyword}.` };
+}
+
+export function validateLesson(data: unknown): ValidationResult {
+  if (validate(data)) return { ok: true, lesson: data as Lesson };
+  const seen = new Set<string>();
+  const errors: FieldError[] = [];
+  for (const err of validate.errors ?? []) {
+    const e = messageFor(err, data);
+    if (!e) continue;
+    const key = `${e.path}\n${e.message}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    errors.push(e);
+  }
+  if (errors.length === 0) errors.push({ path: "/", message: "This lesson does not match lessons/lessons.schema.json." });
+  return { ok: false, errors };
+}

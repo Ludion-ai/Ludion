@@ -1,0 +1,23 @@
+{
+  "name": "ludion",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "workspaces": [
+    "packages/*",
+    "tools/*"
+  ],
+  "scripts": {
+    "verify": "node tools/verify/src/cli.ts",
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json",
+    "gen:validator": "node packages/core/scripts/gen-validator.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.3"
+  }
+}

@@ -84,13 +84,13 @@ Built from the active set at site build time. Written to `apps/site/dist/index.j
 Pure TypeScript. No Node-only or Worker-only APIs, so the site build, the Worker, and the CLI share it.
 
 - `types.ts`: `Lesson`, `Evidence`, `IndexEntry`, `Index`.
-- `schema.ts`: Ajv validator compiled from `lessons/lessons.schema.json`. Returns `{ok: true} | {ok: false, errors: {path, message}[]}` with messages a person can act on.
+- `schema.ts`: Ajv validator compiled from `lessons/lessons.schema.json` ahead of time into `src/generated/validate-lesson.js` (`npm run gen:validator`), because Workers forbid runtime code generation. A unit test fails if the generated file is stale. Returns `{ok: true} | {ok: false, errors: {path, message}[]}` with messages a person can act on.
 - `ulid.ts`: `newId(now = Date.now())`.
 - `format.ts`: `formatLesson`.
 - `active.ts`: `activeSet(lessons)`.
 - `search.ts`: MiniSearch over `claim` (boost 2) and `subject` (boost 1), `prefix: true`, `fuzzy: 0.2`. `search(index, query, {subject?, k=5})`.
 - `teachers.ts`: `resolveLogins(ids, fetchFn, token?)` → `Map<id, login>` via `GET /user/{account_id}`; ids that fail are left out.
-- `index-builder.ts`: `buildIndex(lessons, gitInfo, logins)` → `Index`. Falls back to the stored `author` login for ids missing from `logins`.
+- `index-builder.ts`: `buildIndex(lessons, gitInfo, logins, {org, repo})` → `Index`. Falls back to the stored `author` login for ids missing from `logins`.
 - `source-check.ts`: `checkSource(url, quote, fetchFn)`. Normalization for both page and quote: strip `<script>`, `<style>`, and tags; decode HTML entities; NFKC; lowercase; collapse whitespace; straighten quotes and dashes. Fetch rules: `https` only, 5-second timeout, at most 3 redirects, at most 2 MB read, `User-Agent: LudionBot/0.1 (+https://ludion.ai/bot)`.
 - `label.ts`: `verifiedBy(lesson)`.
 
