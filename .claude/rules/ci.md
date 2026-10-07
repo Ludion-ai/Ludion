@@ -42,7 +42,7 @@ Trigger: `pull_request`, every PR, no path filter (a path filter would leave PRs
 - For each added lesson:
   1. Valid against the base branch's schema, and the file equals `formatLesson(lesson)`.
   2. Path matches `lessons/<subject>/<id>.json`.
-  3. Author rule, checked by numeric id (read the PR from the event payload, `pull_request.user`). If the PR was opened by the Ludion App bot (`user.type` is `Bot` and `user.id` equals `app_bot_id`, the bot account's numeric user id, in `ludion.config.json` on the base branch; added in step 5, and until then every bot fails): the commit that adds the lesson must carry the trailer `Taught-by: <login> (<user id>)` (format in `worker.md`), where `<user id>` equals the lesson's `author_id` and `<login>` equals the login in its `author` (case-insensitive). Any other bot fails. Otherwise, a person opened the PR directly: the lesson's `author_id` must equal `pull_request.user.id`.
+  3. Author rule, checked by numeric id (read the PR from the event payload, `pull_request.user`). If the PR was opened by the Ludion App bot (`user.type` is `Bot` and `user.id` equals `app_bot_id`, the bot account's numeric user id, in `ludion.config.json` on the base branch; added in step 6, and until then every bot fails): the commit that adds the lesson must carry the trailer `Taught-by: <login> (<user id>)` (format in `worker.md`), where `<user id>` equals the lesson's `author_id` and `<login>` equals the login in its `author` (case-insensitive). Any other bot fails. Otherwise, a person opened the PR directly: the lesson's `author_id` must equal `pull_request.user.id`.
   4. `replaces` ids exist in the active set on the base branch (read with `git show origin/<base>:<path>`).
   5. Each `run` evidence in Docker, as in Runners. `lean`: label `needs-lean`; the check does not fail on it until the Lean runner exists.
   6. Each `source` evidence with `checkSource` and the guarded fetch above.
@@ -51,7 +51,7 @@ Trigger: `pull_request`, every PR, no path filter (a path filter would leave PRs
 
 ## test.yml (required check `test`)
 
-Trigger: `pull_request`, every PR. Job `test`, `permissions: contents: read`, Node from `.node-version`: `npm ci`, `npm run typecheck`, `npm test`, `npm run build`.
+Trigger: `pull_request`, every PR. Job `test`, `permissions: contents: read`, Node from `.node-version`: `npm ci`, `npm run typecheck`, `npm test`, `npm run build`, then (from step 4) `npm run test:e2e`: Playwright with Chromium against the built site served by `wrangler dev`, including the axe check from `site.md` on every page. Install the browser with `npx playwright install --with-deps chromium` and cache it.
 
 ## Branch protection on main
 
