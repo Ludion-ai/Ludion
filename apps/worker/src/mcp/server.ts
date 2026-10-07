@@ -5,6 +5,7 @@ import { z } from "zod";
 import type { Env } from "../app.ts";
 import { lessonsIndex } from "../lessons-index.ts";
 import { ASK_DESCRIPTION, formatAsk, toAskLesson } from "./ask.ts";
+import { TEACH_DESCRIPTION, teach } from "./teach.ts";
 
 export const SERVER_INSTRUCTIONS =
   "Ludion holds lessons that people taught and machines verified by test, proof, or cited source. Use ludion_ask before answering questions about specific software behavior, versions, or recent changes, and cite the teacher. Use ludion_teach only when the user asks to teach or corrects you with evidence.";
@@ -41,6 +42,27 @@ export function createServer(env: Env): McpServer {
       const index = await lessonsIndex(env.ASSETS);
       const lessons = search(index, question, { subject, k: k ?? 5 }).map((e) => toAskLesson(e, env.SITE_URL));
       return { content: [{ type: "text", text: formatAsk(lessons) }], structuredContent: { lessons } };
+    },
+  );
+
+  // Types only here: validateDraft gives the person-readable field messages, so a draft with a wrong
+  // field still reaches it instead of failing on a generic schema error.
+  server.registerTool(
+    "ludion_teach",
+    {
+      description: TEACH_DESCRIPTION,
+      inputSchema: z.object({
+        subject: z.string(),
+        version: z.string().nullable().optional(),
+        claim: z.string(),
+        evidence: z.array(z.record(z.string(), z.unknown())),
+        replaces: z.array(z.string()).optional(),
+      }),
+      annotations: { readOnlyHint: true, openWorldHint: false },
+    },
+    async (draft) => {
+      const result = teach(env.SITE_URL, draft);
+      return { content: [{ type: "text", text: result.text }], isError: result.isError };
     },
   );
 

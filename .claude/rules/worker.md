@@ -72,7 +72,8 @@ Workers Builds also builds non-production branches and uploads them as preview v
 ## Sign-in and session
 
 - `/auth/login?next=/teach`: `next` must start with `/` and not `//`; otherwise use `/`. Create a 32-byte random `state`. Set cookie `ludion_oauth` (signed, 10 min) holding `{state, next}`. Redirect to `https://github.com/login/oauth/authorize?client_id=…&redirect_uri=https://ludion.ai/auth/callback&state=…`.
-- `/auth/callback`: verify `state` against the cookie. Exchange the code at `https://github.com/login/oauth/access_token` (JSON). Call `GET https://api.github.com/user` once for `login`, `id`, `avatar_url`, `created_at`, then discard the user token; Ludion never stores it. If the account is younger than 30 days, redirect to `/teach?error=account_too_new`. Otherwise set the session and redirect to `next`.
+- `/auth/callback`: verify `state` against the cookie. Exchange the code at `https://github.com/login/oauth/access_token` (JSON). Call `GET https://api.github.com/user` once for `login`, `id`, `avatar_url`, `created_at`, then discard the user token; Ludion never stores it. If the account is younger than 30 days, redirect to `/teach?error=account_too_new`. Otherwise set the session and redirect to `next`. A missing or mismatched `state` (or no oauth cookie) answers `400 {"error": "bad_state", "message": "..."}` without calling GitHub; a failed code exchange or `/user` call redirects to `/teach?error=github_error`. The oauth cookie is scoped to `Path=/auth` and cleared on every callback.
+- `next` is also refused when it starts with `/\` (browsers read it as `//`) or contains control characters.
 - Session cookie `ludion_session`: `base64url(JSON{login, id, avatar_url, exp}) + "." + base64url(HMAC-SHA256(payload, SESSION_SECRET))`. 30 days. `HttpOnly; Secure; SameSite=Lax; Path=/`. Compare signatures in constant time.
 - CSRF: `POST /api/check`, `POST /api/teach`, and `POST /auth/logout` require `Origin` equal to `SITE_URL` and `Content-Type: application/json`.
 
@@ -142,7 +143,7 @@ Responses:
 | 403 | `forbidden_origin` | `Origin` mismatch |
 | 422 | `invalid_draft` | Schema errors, with `errors[]` |
 | 422 | `source_not_found` | A source could not be confirmed; message exactly "This source could not be confirmed.", includes `url` as given |
-| 422 | `unknown_replaces` | A `replaces` id is not in the active set |
+| 422 | `unknown_replaces` | A `replaces` id is not in the active set; includes `id` |
 | 429 | `rate_limited` | More than 10 checks and teaches by this account in a minute |
 | 429 | `daily_limit` | 20 lessons in 24 hours |
 | 502 | `github_error` | GitHub failed; the request did nothing |
@@ -153,7 +154,7 @@ Every error body is `{"error": "<code>", "message": "<what happened and what to 
 
 Status of a teaching PR: merged → `verified`; closed without merge → `closed`; open with any failed check run on the head commit → `failed`; otherwise `checking`.
 
-- `/api/pr/:number` → `{"pr", "status", "pr_url", "merged_at"}`. Cache 30 s.
+- `/api/pr/:number` → `{"pr", "status", "pr_url", "merged_at"}`. Cache 30 s (`caches.default`, `Cache-Control: public, max-age=30`). Read with the installation token. A PR that does not exist → `404 not_found`; GitHub failing → `502 github_error`. "Failed" check runs are conclusions `failure`, `timed_out`, `cancelled`, or `action_required`.
 - `/api/feed` → `{"items": [{"pr", "status", "subject", "claim", "teacher", "teacher_id", "at", "pr_url"}]}`: open PRs labelled `lesson` (newest 20) plus PRs labelled `lesson` merged in the last 7 days (newest 20), newest first. Read `subject`, `teacher`, `teacher_id`, and `id` from the `<!-- ludion … -->` comment; `claim` is the first paragraph of the body. Cache 60 s in `caches.default`; respond with `Cache-Control: public, max-age=30`.
 
 ## MCP
