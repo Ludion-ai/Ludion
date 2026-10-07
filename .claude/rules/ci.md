@@ -51,7 +51,7 @@ Trigger: `pull_request`, every PR, no path filter (a path filter would leave PRs
 
 ## test.yml (required check `test`)
 
-Trigger: `pull_request`, every PR. Job `test`, `permissions: contents: read`, Node from `.node-version`: `npm ci`, `npm run typecheck`, `npm test`, `npm run build`, then (from step 4) `npm run test:e2e`: Playwright with Chromium against the built site served by `wrangler dev`, including the axe check from `site.md` on every page. Install the browser with `npx playwright install --with-deps chromium` and cache it.
+Trigger: `pull_request`, every PR. Job `test`, `permissions: contents: read`, Node from `.node-version`: `npm ci`, `npm run typecheck`, `npm run build`, `npm test` (build first: the Worker tests serve the built site through the real `ASSETS` binding), then (from step 4) `npm run test:e2e`: Playwright with Chromium against the built site served by `wrangler dev`, including the axe check from `site.md` on every page. Install the browser with `npx playwright install --with-deps chromium` and cache it.
 
 ## Branch protection on main
 

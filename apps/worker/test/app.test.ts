@@ -1,58 +1,68 @@
-// Runs the Hono app in Node with a stand-in ASSETS binding. Worker-runtime tests
-// (@cloudflare/vitest-pool-workers) come with the dynamic routes in steps 4 and 5.
+// Runs inside workerd (@cloudflare/vitest-plugin) against the Worker from wrangler.jsonc and the built site.
+import { exports } from "cloudflare:workers";
 import { describe, expect, it } from "vitest";
-import { createApp, type Env } from "../src/app.ts";
 
-const pages: Record<string, string> = {
-  "/": "home",
-  "/teachers/ludion-ai/": "teacher page",
-  "/lessons/01K6ZQ4T9X0N8V2H7M3P5R1S6W/": "lesson page",
-};
+const get = (path: string, init?: RequestInit) => exports.default.fetch(new Request(`https://ludion.ai${path}`, init));
 
-function env(): Env & { requested: string[] } {
-  const requested: string[] = [];
-  const ASSETS = {
-    fetch: async (input: Request | string) => {
-      const path = new URL(input instanceof Request ? input.url : input).pathname;
-      requested.push(path);
-      const body = pages[path];
-      // Like the real binding: immutable headers.
-      const res = body ? new Response(body, { headers: { "content-type": "text/html" } }) : new Response("404 page", { status: 404 });
-      Object.freeze(res.headers);
-      return res;
-    },
-  } as unknown as Fetcher;
-  return { ASSETS, SITE_URL: "https://ludion.ai", SOURCE_CHECK_LIMITER: {} as RateLimit, requested };
+interface IndexJson {
+  lessons: { id: string; teacher: string }[];
+  teachers: Record<string, { login: string }>;
 }
 
-const app = createApp();
-const get = (path: string, e = env()) => app.request(`https://ludion.ai${path}`, {}, e);
+async function builtIndex(): Promise<IndexJson> {
+  const res = await get("/index.json");
+  expect(res.status).toBe(200);
+  return res.json();
+}
 
 describe("worker", () => {
-  it("serves static assets", async () => {
-    const res = await get("/lessons/01K6ZQ4T9X0N8V2H7M3P5R1S6W/");
-    expect(res.status).toBe(200);
-    expect(await res.text()).toBe("lesson page");
+  it("serves index.json to any origin", async () => {
+    const res = await get("/index.json");
+    expect(res.headers.get("Access-Control-Allow-Origin")).toBe("*");
+    expect((await res.json() as { version: number }).version).toBe(1);
   });
 
-  it("serves /@<login> from the lowercase teacher page", async () => {
-    const e = env();
-    const res = await get("/@Ludion-ai", e);
-    expect(await res.text()).toBe("teacher page");
-    expect(e.requested).toEqual(["/teachers/ludion-ai/"]);
-    expect((await get("/@ludion-ai/")).status).toBe(200);
+  it("serves every lesson page in the index", async () => {
+    const { lessons } = await builtIndex();
+    for (const l of lessons) {
+      const res = await get(`/lessons/${l.id}/`);
+      expect(res.status).toBe(200);
+      expect(await res.text()).toContain(`/lessons/${l.id}/`);
+    }
+  });
+
+  it("redirects a lesson URL without the trailing slash", async () => {
+    const { lessons } = await builtIndex();
+    if (lessons.length === 0) return;
+    const res = await get(`/lessons/${lessons[0]!.id}`, { redirect: "manual" });
+    expect(res.status).toBe(307);
+    expect(res.headers.get("Location")).toBe(`/lessons/${lessons[0]!.id}/`);
+  });
+
+  it("serves /@<login> in any case from the lowercase teacher page", async () => {
+    const { teachers } = await builtIndex();
+    for (const { login } of Object.values(teachers)) {
+      for (const variant of [login, login.toUpperCase(), `${login.toLowerCase()}/`]) {
+        const res = await get(`/@${variant}`);
+        expect(res.status, variant).toBe(200);
+        expect(await res.text()).toContain(`@${login}`);
+      }
+    }
   });
 
   it("gives the 404 page for an unknown teacher or an invalid login", async () => {
-    expect((await get("/@nobody")).status).toBe(404);
-    const e = env();
-    expect((await get("/@bad_login!", e)).status).toBe(404);
-    expect(e.requested).toEqual(["/@bad_login!"]);
+    for (const path of ["/@nobody-has-this-login-0", "/@bad_login!", "/no-such-page/"]) {
+      const res = await get(path);
+      expect(res.status, path).toBe(404);
+      expect(await res.text()).toContain("No page here.");
+    }
   });
 
-  it("sets nosniff on every response", async () => {
-    for (const path of ["/", "/@Ludion-ai", "/missing"]) {
-      expect((await get(path)).headers.get("X-Content-Type-Options")).toBe("nosniff");
+  it("sets nosniff on Worker responses and static assets", async () => {
+    const { teachers } = await builtIndex();
+    const login = Object.values(teachers)[0]?.login ?? "nobody";
+    for (const path of ["/", "/index.json", `/@${login}`, "/@nobody-has-this-login-0"]) {
+      expect((await get(path)).headers.get("X-Content-Type-Options"), path).toBe("nosniff");
     }
   });
 });

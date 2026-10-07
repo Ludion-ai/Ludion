@@ -23,5 +23,6 @@ jobs:
 
       - run: npm ci
       - run: npm run typecheck
-      - run: npm test
+      # Build first: the Worker tests run in workerd and serve apps/site/dist through ASSETS.
       - run: npm run build
+      - run: npm test
