@@ -1,5 +1,6 @@
 ---
 import "../styles/global.css";
+import Wordmark from "../components/Wordmark.astro";
 import { siteData } from "../build/data.ts";
 import { en } from "../strings/en.ts";
 
@@ -32,19 +33,19 @@ const canonicalUrl = new URL(path, config.site).href;
   <body>
     <header class="site-header">
       <div class="wrap bar">
-        <a class="wordmark" href="/">{en.site.name}</a>
+        <a class="home" href="/" aria-label={en.site.name}><Wordmark /></a>
         <nav aria-label={en.nav.label}>
           <a href="/lessons/" aria-current={Astro.url.pathname.startsWith("/lessons") ? "page" : undefined}>{en.nav.lessons}</a>
         </nav>
       </div>
     </header>
-    <main class="wrap">
+    <main>
       <slot />
     </main>
     <footer class="site-footer">
-      <div class="wrap">
+      <div class="wrap foot">
         <p>{en.footer.count(index.lessons.length, teacherCount)}</p>
-        <p class="muted">
+        <p>
           {en.footer.license} <a href={`https://github.com/${config.org}/${config.repo}`}>{en.footer.github}</a>
         </p>
       </div>
@@ -53,51 +54,68 @@ const canonicalUrl = new URL(path, config.site).href;
 </html>
 
 <style>
+  /* The header floats on the surface: a line of light under it. */
   .site-header {
-    border-bottom: 1px solid var(--rule);
+    position: relative;
+  }
+  .site-header::after {
+    content: "";
+    position: absolute;
+    inset: auto 0 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--surface) 12%, var(--surface) 88%, transparent);
+    box-shadow: 0 1px 12px var(--surface-under);
   }
   .bar {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: var(--space-6);
-    min-height: 64px;
+    gap: 32px;
+    min-height: 72px;
   }
-  .wordmark {
-    font-family: var(--font-claim);
-    font-size: 24px;
+  .home {
+    display: inline-flex;
     color: var(--ink);
     text-decoration: none;
-  }
-  nav {
-    display: flex;
-    gap: var(--space-5);
-    font-size: var(--size-meta);
+    padding: 6px 0;
   }
   nav a {
     color: var(--text);
+    font-size: 15px;
+    font-weight: 500;
     text-decoration: none;
-    padding: var(--space-2) 0;
+    padding: 8px 2px;
   }
   nav a:hover,
   nav a[aria-current="page"] {
     color: var(--ink);
     text-decoration: underline;
-    text-decoration-color: var(--rule);
     text-decoration-thickness: 2px;
-    text-underline-offset: 0.4em;
+    text-underline-offset: 0.45em;
   }
   main {
-    padding-top: var(--space-7);
-    padding-bottom: var(--space-8);
-    min-height: 60vh;
+    display: flex;
+    flex-direction: column;
+    padding-top: 56px;
+  }
+  /* Pages end in their own space; a page ending in a band of water lets it run down to the footer. */
+  main > :global(:last-child) {
+    padding-bottom: 96px;
   }
   .site-footer {
     border-top: 1px solid var(--rule);
-    padding: var(--space-5) 0 var(--space-7);
-    font-size: var(--size-meta);
+    font-size: 14px;
+    color: var(--muted);
   }
-  .site-footer p {
-    margin: 0 0 var(--space-2);
+  .foot {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 8px 32px;
+    padding-top: 24px;
+    padding-bottom: 32px;
+  }
+  .foot p {
+    margin: 0;
   }
 </style>

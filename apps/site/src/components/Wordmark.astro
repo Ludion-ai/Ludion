@@ -1,0 +1,42 @@
+---
+// "Ludion" in Newsreader at display size. The i has no dot: in its place a small circle sits higher than a dot
+// would, the diver that has risen. Decorative to assistive tech (the link around it carries the name).
+interface Props {
+  size?: number;
+}
+const { size = 30 } = Astro.props;
+---
+
+<span class="wordmark" style={`--wm-size:${size}px`} aria-hidden="true">Lud<span class="i">ı<span class="diver"></span></span>on</span>
+
+<style>
+  .wordmark {
+    font-family: var(--font-claim);
+    font-variation-settings: "opsz" 72;
+    font-weight: 540;
+    font-size: var(--wm-size);
+    line-height: 1;
+    letter-spacing: -0.012em;
+    color: var(--ink);
+    white-space: nowrap;
+  }
+  .i {
+    position: relative;
+    display: inline-block;
+  }
+  /* Higher than a dot would sit, and lit like the verified seal: the diver at the surface. */
+  .diver {
+    position: absolute;
+    left: 50%;
+    top: -0.2em;
+    width: 0.17em;
+    height: 0.17em;
+    margin-left: -0.085em;
+    border-radius: 50%;
+    background: var(--seal-bg);
+    box-shadow:
+      inset 0 0.02em 0 var(--seal-sheen),
+      0 0 0 0.045em var(--seal-ring),
+      0 0.06em 0.22em var(--seal-glow);
+  }
+</style>

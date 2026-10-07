@@ -9,9 +9,13 @@ export const en = {
     lessons: "Lessons",
   },
   home: {
-    title: "Ludion: lessons people taught and machines verified",
-    intro: "Ludion is a public AI model that people teach. Every lesson is checked by a test, a proof, or a cited source before it is served, and it keeps its teacher's name.",
-    newest: "Newest lesson",
+    title: "Ludion: teach it once",
+    headline: "Teach it once.",
+    sub: "Everyone's AI learns it in minutes. Your name stays on it.",
+    replayTitle: "How a lesson surfaces",
+    checking: "Checking",
+    replay: (by: "test" | "proof" | "source", date: string) =>
+      `A replay. This lesson waited below while ${by === "test" ? "CI ran its test" : by === "proof" ? "its proof was checked" : "its source was checked"}, and surfaced when it was verified on ${date}.`,
     recent: "Recently verified",
     seeLessons: "See all lessons",
   },

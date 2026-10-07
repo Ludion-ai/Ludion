@@ -1,8 +1,7 @@
-@import "@fontsource/ibm-plex-sans/latin-400.css";
-@import "@fontsource/ibm-plex-sans/latin-500.css";
-@import "@fontsource/ibm-plex-sans/latin-600.css";
-@import "@fontsource/ibm-plex-mono/latin-400.css";
-@import "@fontsource/zen-old-mincho/latin-400.css";
+@import "@fontsource-variable/newsreader/opsz.css";
+@import "@fontsource-variable/newsreader/opsz-italic.css";
+@import "@fontsource-variable/hanken-grotesk/wght.css";
+@import "@fontsource/commit-mono/latin-400.css";
 @import "./tokens.css";
 
 *,
@@ -13,41 +12,47 @@
 
 html {
   -webkit-text-size-adjust: 100%;
+  background: var(--water-deep);
 }
 
+/* The water column: lightest at the surface, darker with depth. The footer is the bottom of the bottle. */
 body {
   margin: 0;
-  background: var(--bg);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(180deg, var(--water-top) 0, var(--water-mid) 55%, var(--water-deep) 100%);
   color: var(--text);
   font-family: var(--font-ui);
-  font-size: var(--size-body);
+  font-size: 17px;
   line-height: 1.6;
+}
+
+main {
+  flex: 1;
 }
 
 h1,
 h2,
 h3 {
   color: var(--ink);
+  margin: 0;
   font-weight: 600;
-  line-height: 1.25;
-  margin: 0 0 var(--space-4);
+  line-height: 1.2;
 }
 
-h2 {
-  font-size: var(--size-body);
-}
-
-/* A claim is a sentence someone wrote: the serif is reserved for it. */
 .claim {
   font-family: var(--font-claim);
-  font-weight: 400;
+  font-optical-sizing: auto;
+  font-weight: 430;
   color: var(--ink);
-  letter-spacing: 0;
+  letter-spacing: -0.005em;
+  text-wrap: pretty;
 }
 
 a {
   color: var(--link);
-  text-underline-offset: 0.18em;
+  text-underline-offset: 0.2em;
   text-decoration-thickness: 1px;
 }
 
@@ -56,9 +61,9 @@ a:hover {
 }
 
 :focus-visible {
-  outline: 2px solid var(--focus);
-  outline-offset: 2px;
-  border-radius: 2px;
+  outline: 2px solid var(--link);
+  outline-offset: 3px;
+  border-radius: 3px;
 }
 
 code,
@@ -68,32 +73,32 @@ pre {
 }
 
 .wrap {
-  max-width: var(--page);
+  width: 100%;
+  max-width: calc(var(--page) + var(--gutter) * 2);
   margin: 0 auto;
   padding: 0 var(--gutter);
 }
 
-.muted {
-  color: var(--muted);
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
 }
 
-/* The register: one ruled line per entry. */
-.register {
+.list {
   list-style: none;
   margin: 0;
   padding: 0;
-  border-top: 1px solid var(--rule);
-}
-
-.register > li {
-  border-bottom: 1px solid var(--rule);
 }
 
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
   *::after {
-    transition-duration: 0s !important;
-    animation-duration: 0s !important;
+    animation: none !important;
+    transition: none !important;
   }
 }

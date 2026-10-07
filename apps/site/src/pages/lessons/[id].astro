@@ -1,9 +1,12 @@
 ---
 import Base from "../../layouts/Base.astro";
-import LessonRecord from "../../components/LessonRecord.astro";
+import Signature from "../../components/Signature.astro";
+import SubjectTag from "../../components/SubjectTag.astro";
 import EvidenceRun from "../../components/EvidenceRun.astro";
 import EvidenceSource from "../../components/EvidenceSource.astro";
 import { siteData, type LessonPage } from "../../build/data.ts";
+import Claim from "../../components/Claim.astro";
+import { claimSize } from "../../build/claim-size.ts";
 import { en } from "../../strings/en.ts";
 
 // Every lesson on main, replaced ones included: history stays visible.
@@ -21,28 +24,31 @@ const repo = `https://github.com/${config.org}/${config.repo}`;
 <Base title={`${lesson.claim} | Ludion`} description={lesson.claim}>
   {
     page.correctedBy && (
-      <p class="banner" role="note">
+      <p class="banner wrap" role="note">
         {en.lesson.correctedBy} <a href={`/lessons/${page.correctedBy}/`}>{page.correctedBy}</a>.
       </p>
     )
   }
   <article class="lesson">
-    <h1 class="claim">{lesson.claim}</h1>
-    <aside class="rail" aria-label={en.record.check}>
-      <LessonRecord
-        verifiedBy={page.verified_by}
-        verifiedAt={page.verified_at}
-        subject={lesson.subject}
-        version={lesson.version}
+    <header class="top wrap">
+      <h1 class:list={["claim", claimSize(lesson.claim)]}><Claim text={lesson.claim} /></h1>
+      <Signature
         teacher={page.teacher}
         teacherId={lesson.author_id}
         teacherHref={teacherHref(lesson.author_id)}
-        fileUrl={`${repo}/blob/main/lessons/${lesson.subject}/${lesson.id}.json`}
-        pr={page.pr}
-        prUrl={page.pr !== null ? `${repo}/pull/${page.pr}` : null}
+        verifiedBy={page.verified_by}
+        verifiedAt={page.verified_at}
+        avatar
+        size="large"
       />
-    </aside>
-    <section class="evidence" aria-labelledby="evidence">
+      <p class="where">
+        <SubjectTag subject={lesson.subject} version={lesson.version} />
+        <span>{en.lesson.appliesTo(lesson.subject, lesson.version)}</span>
+      </p>
+    </header>
+
+    <section class="depth" aria-labelledby="evidence">
+      <div class="wrap">
       <h2 id="evidence">{en.lesson.evidence}</h2>
       {
         lesson.evidence.map((e) =>
@@ -51,7 +57,7 @@ const repo = `https://github.com/${config.org}/${config.repo}`;
       }
       {
         page.corrects.length > 0 && (
-          <>
+          <div class="corrects">
             <h2>{en.lesson.corrects}</h2>
             <ul>
               {page.corrects.map((id) => (
@@ -60,70 +66,87 @@ const repo = `https://github.com/${config.org}/${config.repo}`;
                 </li>
               ))}
             </ul>
-          </>
+          </div>
         )
       }
+      <p class="links">
+        <a href={`${repo}/blob/main/lessons/${lesson.subject}/${lesson.id}.json`}>{en.lesson.viewFile}</a>
+        {page.pr !== null && <a href={`${repo}/pull/${page.pr}`}>{en.lesson.pullRequest(page.pr)}</a>}
+      </p>
+      </div>
     </section>
   </article>
 </Base>
 
 <style>
   .lesson {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) var(--rail);
-    grid-template-areas:
-      "claim rail"
-      "evidence evidence";
-    column-gap: var(--space-8);
-    align-items: start;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding-bottom: 0 !important;
+  }
+  .top {
+    padding-block: 8px 56px;
   }
   h1 {
-    grid-area: claim;
-    font-size: var(--size-hero);
-    line-height: 1.25;
+    line-height: 1.1;
+    letter-spacing: -0.016em;
     max-width: 22em;
-    margin: 0 0 var(--space-7);
+    margin-bottom: 30px;
   }
-  .rail {
-    grid-area: rail;
-    padding-left: var(--space-5);
-    border-left: 1px solid var(--rule);
-    padding-top: var(--space-2);
+  h1.xl { font-size: clamp(36px, 5.6vw, 68px); }
+  h1.l { font-size: clamp(30px, 4.4vw, 52px); }
+  h1.m { font-size: clamp(26px, 3.4vw, 40px); line-height: 1.16; }
+  h1.s { font-size: clamp(22px, 2.6vw, 31px); line-height: 1.26; max-width: 34em; }
+  .where {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 14px;
+    margin: 20px 0 0;
+    font-size: 14px;
+    color: var(--muted);
   }
-  .evidence {
-    grid-area: evidence;
-    min-width: 0;
+  /* The evidence lies below the claim: a band of deeper water across the page, its surface lit. */
+  .depth {
+    flex: 1;
+    position: relative;
+    padding-block: 48px 72px;
+    background: linear-gradient(180deg, var(--bottle-top), var(--bottle-deep));
   }
-  .evidence h2 {
-    font-size: var(--size-meta);
+  .depth::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto;
+    height: 1px;
+    background: var(--surface);
+    box-shadow: 0 0 16px 1px var(--surface-under);
+  }
+  .depth h2 {
+    font-size: 15px;
     font-weight: 600;
     color: var(--muted);
-    margin-bottom: var(--space-4);
+    margin-bottom: 18px;
+  }
+  .corrects {
+    margin-top: 8px;
+  }
+  .links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 28px;
+    margin: 28px 0 0;
+    font-size: 15px;
+    font-weight: 500;
   }
   .banner {
-    background: var(--checking-bg);
-    color: var(--checking-text);
-    border: 1px solid var(--checking-line);
-    border-radius: var(--radius);
-    padding: var(--space-3) var(--space-4);
-    margin: 0 0 var(--space-6);
+    display: block;
+    margin-block: 0 32px;
+    padding-block: 12px;
+    color: var(--checking-fg);
+    border-bottom: 1px dashed var(--checking-line);
   }
   .banner a {
     color: inherit;
-  }
-  @media (max-width: 860px) {
-    .lesson {
-      grid-template-columns: minmax(0, 1fr);
-      grid-template-areas: "claim" "rail" "evidence";
-    }
-    h1 {
-      margin-bottom: var(--space-5);
-    }
-    .rail {
-      border-left: 0;
-      padding: 0 0 var(--space-6);
-      margin-bottom: var(--space-6);
-      border-bottom: 1px solid var(--rule);
-    }
   }
 </style>

@@ -10,9 +10,9 @@
     "preview:samples": "node scripts/samples.ts preview"
   },
   "dependencies": {
-    "@fontsource/ibm-plex-mono": "^5.3.0",
-    "@fontsource/ibm-plex-sans": "^5.3.0",
-    "@fontsource/zen-old-mincho": "^5.3.0",
+    "@fontsource-variable/hanken-grotesk": "^5.3.0",
+    "@fontsource-variable/newsreader": "^5.3.0",
+    "@fontsource/commit-mono": "^5.3.0",
     "@ludion/core": "*",
     "astro": "^7.3.6"
   }

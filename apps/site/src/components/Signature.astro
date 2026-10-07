@@ -1,0 +1,80 @@
+---
+// The teacher signs the claim: "— @login", then how and when it was verified.
+import StatusChip from "./StatusChip.astro";
+import { siteData } from "../build/data.ts";
+import { en, formatDate } from "../strings/en.ts";
+import type { VerifiedBy } from "@ludion/core";
+
+interface Props {
+  teacher: string;
+  teacherId: number;
+  teacherHref: string | null;
+  verifiedBy: VerifiedBy;
+  verifiedAt: string;
+  avatar?: boolean;
+  size?: "small" | "large";
+}
+const p = Astro.props;
+const { avatarOf } = await siteData();
+const name = `@${p.teacher}`;
+---
+
+<p class:list={["signature", p.size ?? "small"]}>
+  <span class="by">
+    {p.avatar && <img src={avatarOf(p.teacherId, 28)} alt="" width="28" height="28" />}
+    <span class="dash" aria-hidden="true">—</span>
+    <span class="visually-hidden">{en.lesson.taughtBy}</span>
+    {p.teacherHref ? <a href={p.teacherHref}>{name}</a> : <span>{name}</span>}
+  </span>
+  <span class="how">
+    <StatusChip status="verified" label={en.lesson.verifiedBy[p.verifiedBy]} size={p.size} />
+    <time datetime={p.verifiedAt}>{en.lesson.on(formatDate(p.verifiedAt))}</time>
+  </span>
+</p>
+
+<style>
+  .signature {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px 20px;
+    margin: 0;
+  }
+  .by {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--font-claim);
+    font-style: italic;
+    font-size: 19px;
+    color: var(--ink);
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  .large .by {
+    font-size: 22px;
+  }
+  .by a {
+    color: inherit;
+    text-decoration-color: var(--rule);
+  }
+  .by a:hover {
+    text-decoration-color: currentColor;
+  }
+  .by img {
+    border-radius: 50%;
+    flex: none;
+    box-shadow: 0 0 0 2px var(--water-top);
+  }
+  .dash {
+    font-style: normal;
+  }
+  .how {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 12px;
+    font-size: 14px;
+    color: var(--muted);
+  }
+</style>

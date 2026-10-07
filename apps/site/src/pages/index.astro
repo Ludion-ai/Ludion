@@ -1,43 +1,68 @@
 ---
-// Home skeleton: what Ludion is, the newest lesson as the hero, and the register of recent lessons.
-// The ask box, live feed, and /start link arrive in step 7.
+// Home: the promise, then one real lesson replaying how it surfaced: it waits below while it is checked, then
+// rises once it is verified. A replay with its date, never shown as happening now. CSS only, plays once,
+// and under reduced motion the lesson is simply at the surface.
 import Base from "../layouts/Base.astro";
 import LessonCard from "../components/LessonCard.astro";
+import StatusChip from "../components/StatusChip.astro";
+import SubjectTag from "../components/SubjectTag.astro";
 import { siteData } from "../build/data.ts";
-import { en } from "../strings/en.ts";
+import Claim from "../components/Claim.astro";
+import { claimSize } from "../build/claim-size.ts";
+import { en, formatDate } from "../strings/en.ts";
 
-const { index, teacherHref } = await siteData();
+const { index, teacherHref, avatarOf } = await siteData();
 const [newest, ...rest] = index.lessons;
-const recent = rest.slice(0, 5);
+const recent = rest.slice(0, 6);
 ---
 
 <Base title={en.home.title}>
-  <h1 class="intro">{en.home.intro}</h1>
+  <section class="hero wrap">
+    <h1>{en.home.headline}</h1>
+    <p class="sub">{en.home.sub}</p>
+  </section>
+
   {
     newest && (
-      <section class="newest" aria-labelledby="newest">
-        <h2 id="newest" class="section">{en.home.newest}</h2>
-        <LessonCard
-          variant="full"
-          level={3}
-          id={newest.id}
-          claim={newest.claim}
-          subject={newest.subject}
-          version={newest.version}
-          teacher={newest.teacher}
-          teacherId={newest.teacher_id}
-          teacherHref={teacherHref(newest.teacher_id)}
-          verifiedBy={newest.verified_by}
-          verifiedAt={newest.verified_at}
-        />
+      <section class="bottle" aria-labelledby="replay">
+        <h2 id="replay" class="visually-hidden">{en.home.replayTitle}</h2>
+        <div class="light" aria-hidden="true" />
+        <div class="surface" aria-hidden="true" />
+        <div class="wrap">
+        <article class="diver">
+          <p class:list={["claim", "text", claimSize(newest.claim)]}>
+            <a href={`/lessons/${newest.id}/`}><Claim text={newest.claim} /></a>
+          </p>
+          <p class="sign">
+            <span class="by">
+              <img src={avatarOf(newest.teacher_id, 28)} alt="" width="28" height="28" />
+              <span aria-hidden="true">—</span>
+              <span class="visually-hidden">{en.lesson.taughtBy}</span>
+              {teacherHref(newest.teacher_id) ? <a href={teacherHref(newest.teacher_id)!}>@{newest.teacher}</a> : <span>@{newest.teacher}</span>}
+            </span>
+            <span class="states">
+              <span class="was" aria-hidden="true">
+                <StatusChip status="checking" label={en.home.checking} size="large" />
+              </span>
+              <span class="now">
+                <StatusChip status="verified" label={en.lesson.verifiedBy[newest.verified_by]} size="large" />
+              </span>
+            </span>
+            <time datetime={newest.verified_at}>{en.lesson.on(formatDate(newest.verified_at))}</time>
+            <SubjectTag subject={newest.subject} version={newest.version} />
+          </p>
+        </article>
+        <p class="caption">{en.home.replay(newest.verified_by, formatDate(newest.verified_at))}</p>
+        </div>
       </section>
     )
   }
+
   {
     recent.length > 0 && (
-      <section aria-labelledby="recent">
-        <h2 id="recent" class="section">{en.home.recent}</h2>
-        <ul class="register">
+      <section class="recent wrap" aria-labelledby="recent">
+        <h2 id="recent">{en.home.recent}</h2>
+        <ul class="list">
           {recent.map((l) => (
             <li>
               <LessonCard
@@ -54,31 +79,190 @@ const recent = rest.slice(0, 5);
             </li>
           ))}
         </ul>
+        <p class="all"><a href="/lessons/">{en.home.seeLessons}</a></p>
       </section>
     )
   }
-  <p class="all"><a href="/lessons/">{en.home.seeLessons}</a></p>
 </Base>
 
 <style>
-  .intro {
-    font-size: var(--size-body);
-    font-weight: 400;
-    line-height: 1.6;
-    color: var(--text);
-    max-width: 38em;
-    margin: 0 0 var(--space-8);
+  .hero {
+    padding-block: 24px 64px;
   }
-  .section {
-    font-size: var(--size-meta);
+  h1 {
+    font-family: var(--font-claim);
+    font-variation-settings: "opsz" 72;
+    font-weight: 480;
+    font-size: clamp(56px, 10vw, 128px);
+    line-height: 0.98;
+    letter-spacing: -0.028em;
+  }
+  .sub {
+    margin: 22px 0 0;
+    max-width: 30em;
+    font-size: clamp(19px, 2.2vw, 24px);
+    line-height: 1.45;
+    color: var(--text);
+  }
+
+  /* The bottle: a band of deeper water across the whole page, lit from the surface at its top edge. */
+  .bottle {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    padding: 96px 0 48px;
+    background: linear-gradient(180deg, var(--bottle-top) 0%, var(--bottle-deep) 100%);
+  }
+  .light {
+    position: absolute;
+    inset: 0 0 auto;
+    height: 85%;
+    z-index: -1;
+    background:
+      radial-gradient(60% 90% at 30% 0%, var(--light), transparent 70%),
+      radial-gradient(40% 70% at 78% 0%, var(--light), transparent 70%);
+  }
+  .surface {
+    position: absolute;
+    inset: 44px 0 auto;
+    height: 1px;
+    background: var(--surface);
+    box-shadow: 0 0 18px 2px var(--surface-under);
+    animation: break 900ms ease-out 2.6s both;
+  }  .diver {
+    animation: rise 2.9s cubic-bezier(0.22, 0.7, 0.2, 1) 0.3s both;
+  }
+  .text {
+    line-height: 1.16;
+    margin: 0 0 24px;
+    max-width: 24em;
+    letter-spacing: -0.012em;
+  }
+  .text.xl { font-size: clamp(32px, 4.6vw, 56px); }
+  .text.l { font-size: clamp(28px, 3.6vw, 44px); }
+  .text.m { font-size: clamp(24px, 2.8vw, 34px); line-height: 1.22; }
+  .text.s { font-size: clamp(21px, 2.2vw, 27px); line-height: 1.3; max-width: 34em; }
+  .text a {
+    color: inherit;
+    text-decoration: none;
+  }
+  .text a:hover {
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+  }
+  .sign {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px 18px;
+    margin: 0;
+    font-size: 14px;
+    color: var(--muted);
+  }
+  .by {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--font-claim);
+    font-style: italic;
+    font-size: 22px;
+    color: var(--ink);
+    overflow-wrap: anywhere;
+  }
+  .by a {
+    color: inherit;
+    text-decoration-color: var(--rule);
+  }
+  .by img {
+    border-radius: 50%;
+  }
+  .states {
+    display: inline-grid;
+  }
+  .was,
+  .now {
+    grid-area: 1 / 1;
+  }
+  .was {
+    opacity: 0;
+    animation: fade-out 500ms ease-out 2.35s backwards;
+  }
+  .now {
+    animation: surface-seal 900ms cubic-bezier(0.2, 0.8, 0.2, 1) 2.5s backwards;
+  }
+  .caption {
+    margin: 44px 0 0;
+    font-size: 14px;
+    color: var(--muted);
+    max-width: 44em;
+  }
+
+  /* Below: deeper, darker, out of focus. Then up through the water to the surface. */
+  @keyframes rise {
+    0% {
+      transform: translateY(150px);
+      filter: blur(6px) brightness(0.8);
+      opacity: 0.4;
+    }
+    75% {
+      filter: blur(0.6px) brightness(1);
+      opacity: 0.95;
+    }
+    100% {
+      transform: none;
+      filter: none;
+      opacity: 1;
+    }
+  }
+  @keyframes fade-out {
+    from {
+      opacity: 1;
+    }
+    to {
+      opacity: 0;
+    }
+  }
+  @keyframes surface-seal {
+    from {
+      opacity: 0;
+      transform: scale(0.92);
+      box-shadow: none;
+    }
+    45% {
+      opacity: 1;
+      transform: scale(1.04);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  @keyframes break {
+    0% {
+      opacity: 0.55;
+    }
+    40% {
+      opacity: 1;
+      box-shadow: 0 0 34px 6px var(--surface-under);
+    }
+    100% {
+      opacity: 1;
+    }
+  }
+
+  .recent {
+    padding-top: 80px;
+  }
+  .recent h2 {
+    font-size: 15px;
     font-weight: 600;
     color: var(--muted);
-    margin: 0 0 var(--space-4);
-  }
-  .newest {
-    margin-bottom: var(--space-7);
+    margin-bottom: 8px;
   }
   .all {
-    margin: var(--space-6) 0 0;
+    margin: 24px 0 0;
+    padding-top: 24px;
+    border-top: 1px solid var(--rule);
+    font-weight: 500;
   }
 </style>

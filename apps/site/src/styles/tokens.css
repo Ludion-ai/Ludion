@@ -1,81 +1,83 @@
-/* Design tokens. Light is paper, dark is slate. See site.md, Design. */
+/* Proposal A, "Ludion". The page is a column of water: the surface is at the top, light comes from above,
+   and depth is the gradient downward. A verified lesson has surfaced; a checking one is still below.
+   Day is the light theme, night the dark one. */
 :root {
-  --bg: #ffffff;
-  --surface: #f3f6f4;
-  --rule: #dce3df;
-  --ink: #17201c;
-  --text: #36423d;
-  --muted: #5d6964;
-  --link: #0b5f73;
-  --focus: #0b5f73;
+  --water-top: #f5fbfd;
+  --water-mid: #e7f1f6;
+  --water-deep: #d4e4ec;
+  --bottle-top: #eaf5f9;
+  --bottle-deep: #c3dbe6;
+  --light: rgb(255 255 255 / 0.9);
+  --surface: rgb(255 255 255 / 0.95);
+  --surface-under: rgb(11 108 140 / 0.28);
 
-  /* The verified seal is the only filled, saturated element on a page. */
-  --verified-fill: #0a6b48;
-  --verified-on: #ffffff;
-  --checking-line: #b07a12;
-  --checking-text: #6e4300;
-  --checking-bg: #fff6e2;
-  --failed-line: #c0392b;
-  --failed-text: #9f2219;
-  --failed-bg: #fdeeec;
+  --ink: #0a1d27;
+  --text: #1f3a48;
+  --muted: #46616f;
+  --link: #075c80;
+  --rule: rgb(10 29 39 / 0.12);
+  --panel: rgb(255 255 255 / 0.55);
+  --panel-line: rgb(10 29 39 / 0.1);
 
-  --font-claim: "Zen Old Mincho", "Hiragino Mincho ProN", "Yu Mincho", serif;
-  --font-ui: "IBM Plex Sans", "Hiragino Sans", "Yu Gothic UI", system-ui, sans-serif;
-  --font-code: "IBM Plex Mono", ui-monospace, monospace;
+  /* The seal: the brightest, most saturated thing on any page. */
+  --seal-bg: #0b6c8c;
+  --seal-fg: #ffffff;
+  --seal-ring: rgb(42 170 206 / 0.22);
+  --seal-glow: rgb(11 108 140 / 0.45);
+  --seal-sheen: rgb(255 255 255 / 0.38);
+  --checking-line: #6b8c9b;
+  --checking-fg: #33505e;
+  --checking-bg: rgb(255 255 255 / 0.4);
+  --failed-line: #b8483d;
+  --failed-fg: #8f241b;
+  --failed-bg: rgb(253 236 234 / 0.8);
 
-  --size-small: 13px;
-  --size-meta: 15px;
-  --size-body: 17px;
-  --size-claim: 21px;
-  --size-title: 30px;
-  --size-hero: 40px;
+  --font-claim: "Newsreader Variable", "Hiragino Mincho ProN", "Yu Mincho", serif;
+  --font-ui: "Hanken Grotesk Variable", "Hiragino Sans", "Yu Gothic UI", system-ui, sans-serif;
+  --font-code: "Commit Mono", ui-monospace, monospace;
 
-  --space-1: 4px;
-  --space-2: 8px;
-  --space-3: 12px;
-  --space-4: 16px;
-  --space-5: 24px;
-  --space-6: 32px;
-  --space-7: 48px;
-  --space-8: 64px;
-
-  --radius: 8px;
   --page: 1120px;
-  --gutter: 24px;
-  --rail: 280px;
-
-  --verified-moment: 280ms ease-out;
+  --gutter: 32px;
+  --radius: 14px;
   color-scheme: light;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #131a17;
-    --surface: #1b2420;
-    --rule: #2b3832;
-    --ink: #edf2ef;
-    --text: #c6d1cb;
-    --muted: #93a29b;
-    --link: #86c9d8;
-    --focus: #86c9d8;
+    --water-top: #133a4b;
+    --water-mid: #0d2a39;
+    --water-deep: #0a1f2c;
+    --bottle-top: #174457;
+    --bottle-deep: #081b27;
+    --light: rgb(150 225 248 / 0.26);
+    --surface: rgb(170 235 252 / 0.7);
+    --surface-under: rgb(120 220 255 / 0.18);
 
-    --verified-fill: #7fd4aa;
-    --verified-on: #062016;
-    --checking-line: #e2b356;
-    --checking-text: #f2c46b;
-    --checking-bg: #2a2212;
+    --ink: #eaf6fa;
+    --text: #c7dde6;
+    --muted: #92b2c1;
+    --link: #86d6f0;
+    --rule: rgb(234 246 250 / 0.12);
+    --panel: rgb(4 18 27 / 0.55);
+    --panel-line: rgb(234 246 250 / 0.1);
+
+    --seal-bg: #bff1ff;
+    --seal-fg: #04222e;
+    --seal-ring: rgb(120 220 255 / 0.2);
+    --seal-glow: rgb(120 220 255 / 0.5);
+    --seal-sheen: rgb(255 255 255 / 0.6);
+    --checking-line: #557a8a;
+    --checking-fg: #9dbdcb;
+    --checking-bg: rgb(255 255 255 / 0.03);
     --failed-line: #e2786e;
-    --failed-text: #f3a49d;
-    --failed-bg: #36191a;
+    --failed-fg: #f3a49d;
+    --failed-bg: rgb(54 25 26 / 0.7);
     color-scheme: dark;
   }
 }
 
 @media (max-width: 640px) {
   :root {
-    --gutter: 16px;
-    --size-title: 26px;
-    --size-hero: 30px;
-    --size-claim: 19px;
+    --gutter: 18px;
   }
 }
