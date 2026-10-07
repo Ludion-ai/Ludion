@@ -18,7 +18,7 @@ Latin *ludus*: a game, and a school. Ludion is where models go to school. People
 | `.claude/rules/lessons.md` | Lesson format, the active set, `index.json`, `packages/core` |
 | `.claude/rules/ci.md` | `verify.yml`, `reverify.yml`, `tools/verify`, sandboxing |
 | `.claude/rules/worker.md` | The Worker: routes, MCP tools, API contracts, auth, GitHub App, secrets |
-| `.claude/rules/site.md` | Pages, components, states, copy, design tokens |
+| `.claude/rules/site.md` | Pages, components, states, copy, design direction |
 
 They load when you touch matching files. Read the relevant file before you plan a step, not only when you edit.
 
@@ -91,9 +91,9 @@ wrangler.jsonc       Worker "ludion"; assets dir apps/site/dist; secrets listed 
 
 ## Before you start (owner, by hand)
 
-- Finish deleting the old Cloudflare Workers, KV, R2, D1, and the old Vercel project. Keep the `ludion.ai` zone, the npm account, and the GitHub orgs.
+- The old Workers are deleted. Delete the leftover wildcard `*.ludion.ai` DNS record: it points at nothing, and a dangling wildcard invites subdomain takeover. The old KV, R2, D1, and Vercel project can go whenever. Keep the `ludion.ai` zone and its email routing records, the npm account, and the GitHub account.
 - Create `<ORG>/ludion` (public). Write the org into `ludion.config.json`. Set the example lesson's `author` to your GitHub login and `author_id` to your numeric user ID (`gh api user --jq .id`).
-- Step 5 needs a GitHub App. Claude Code prepares the settings in `worker.md`; a human clicks Create and installs it.
+- Step 6 needs a GitHub App. Claude Code prepares the settings in `worker.md`; a human clicks Create and installs it.
 - In Cloudflare: connect this repo to Workers Builds, and attach `ludion.ai` as the Worker's custom domain.
 
 ## Order of work
@@ -103,16 +103,17 @@ Each step ends green: tests pass, and the step's check is demonstrated.
 1. `packages/core`, `tools/verify`, schema, example lesson. Check: `npm run verify -- lessons/` passes; Vitest passes.
 2. `verify.yml`, `test.yml`, and branch protection. Check: a PR with a failing test is blocked; a passing one is mergeable.
 3. `apps/site` static build and `apps/worker` serving it. Deploy to `ludion.ai`. Check: `/lessons/<id>` and `/index.json` are live.
-4. `/mcp` with `ludion_ask`. Check: `claude mcp add --transport http ludion https://ludion.ai/mcp`, then ask about distutils and get the example lesson with its teacher.
-5. GitHub App, `/auth/*`, `/api/check`, `/api/teach`, `/teach`, and `ludion_teach`. Check: both acceptance tests pass with subject `ludion-selftest`; retract those lessons afterwards.
-6. Home page live feed, `/start`, `/why`. Check: Lighthouse accessibility ≥ 95 on every page.
-7. Seed 200 lessons in the wedge library. Check: each passes CI.
-8. `reverify.yml`. Check: a lesson whose source quote disappears gets a deletion PR.
-9. FreshBench (spec to come).
+4. Design. Follow "Design" in `site.md`: propose a design plan with the frontend-design skill using real lessons, apply it to the lesson page, the teacher page, and the home skeleton, capture Playwright screenshots (phone and desktop, light and dark), critique and fix them, then show them to the owner. Add the axe check to `test`. Check: the owner approves the screenshots; axe finds no violations on any page.
+5. `/mcp` with `ludion_ask`. Check: `claude mcp add --transport http ludion https://ludion.ai/mcp`, then ask about distutils and get the example lesson with its teacher.
+6. GitHub App, `/auth/*`, `/api/check`, `/api/teach`, `/teach`, and `ludion_teach`. Check: both acceptance tests pass with subject `ludion-selftest`; retract those lessons afterwards.
+7. Home page live feed, `/start`, `/why`. Check: axe finds no violations and Lighthouse accessibility is at least 95 on every page.
+8. Seed 200 lessons in the wedge library. Check: each passes CI.
+9. `reverify.yml`. Check: a lesson whose source quote disappears gets a deletion PR.
+10. FreshBench (spec to come).
 
 ## Conventions
 
-- TypeScript strict, Node 24 LTS (same as Workers Builds), npm workspaces. Vitest for unit tests; Playwright for the acceptance tests.
+- TypeScript strict, Node 24 LTS (same as Workers Builds), npm workspaces. Vitest 4 everywhere, pinned until `@cloudflare/vitest-pool-workers` supports a newer major, so Worker tests run inside workerd. Playwright for the acceptance tests and for the axe accessibility check on every page.
 - Code uses only web-standard APIs (fetch, Web Crypto, Streams). Node-specific APIs are allowed only in `tools/` and build scripts.
 - npm scripts are written in Node so they run on both Windows and Linux. No bash-only commands.
 - Small functions. No abstraction before the third use.
