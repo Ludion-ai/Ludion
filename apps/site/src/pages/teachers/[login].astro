@@ -11,7 +11,7 @@ export async function getStaticPaths() {
 }
 
 const { id } = Astro.props as { id: number };
-const { index, loginOf, teacherHref } = await siteData();
+const { index, loginOf, teacherHref, avatarOf } = await siteData();
 const login = loginOf(id);
 const summary = index.teachers[String(id)]!;
 const lessons = index.lessons.filter((l) => l.teacher_id === id);
@@ -19,7 +19,7 @@ const lessons = index.lessons.filter((l) => l.teacher_id === id);
 
 <Base title={en.teacher.title(login)} canonicalPath={`/@${login.toLowerCase()}`}>
   <header class="teacher">
-    <img src={`https://avatars.githubusercontent.com/u/${id}?s=128`} alt="" width="64" height="64" />
+    <img src={avatarOf(id, 64)} alt="" width="64" height="64" />
     <div>
       <h1>@{login}</h1>
       <p class="summary">

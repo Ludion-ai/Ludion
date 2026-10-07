@@ -1,0 +1,17 @@
+{
+  "id": "01M40JC9R0W8V8CC7RWGK8CMZR",
+  "subject": "python",
+  "version": ">=3.7",
+  "claim": "dict keeps insertion order as a language guarantee since Python 3.7, not just in CPython.",
+  "evidence": [
+    {
+      "run": {
+        "runner": "python",
+        "code": "d = {}\nfor k in 'zyx':\n    d[k] = 1\nassert list(d) == ['z', 'y', 'x']"
+      }
+    }
+  ],
+  "author": "github:kenji-watanabe",
+  "author_id": 102,
+  "created_at": "2026-10-03T09:44:00Z"
+}

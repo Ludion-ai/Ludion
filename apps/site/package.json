@@ -5,7 +5,9 @@
   "type": "module",
   "scripts": {
     "build": "astro build",
-    "dev": "astro dev"
+    "dev": "astro dev",
+    "build:samples": "node scripts/samples.ts build",
+    "preview:samples": "node scripts/samples.ts preview"
   },
   "dependencies": {
     "@fontsource/ibm-plex-mono": "^5.3.0",

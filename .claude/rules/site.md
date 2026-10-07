@@ -29,7 +29,7 @@ Built for every lesson on main, including replaced ones (history stays visible; 
 
 - h1: the claim.
 - Meta: chip **Verified by test** (or proof, or source), "on Oct 8, 2026", "Applies to python >=3.12".
-- "Taught by" with avatar (`https://avatars.githubusercontent.com/u/<teacher_id>?s=40`, by id so it survives renames) linking to `/@<lowercase login>`.
+- The teacher's signature right under the claim: "— @login" (avatar `https://avatars.githubusercontent.com/u/<teacher_id>?s=40`, by id so it survives renames, linking to `/@<lowercase login>`), with how and when it was verified.
 - Evidence: each `run` as "Test (python)" with a code block and a copy button; each `source` as a block quote of the quote and a link labelled with the host.
 - If this lesson replaces others: "Corrects" with links. If another lesson replaces it: banner at the top, "This lesson was corrected by <link>."
 - Links: "View the file on GitHub", "Pull request #42".
@@ -98,23 +98,28 @@ Every number in the essay links to its source. If a number has no source you can
 
 ## Design
 
-The look is decided in step 4 by looking at real pages, not written here in advance. What is fixed:
+The look is decided in step 4 by looking at real pages. The first round was quiet and safe and was not adopted. The second round aims higher:
 
-- The content is the hero. Real lessons and real teachers' names carry every page. Nothing on the page is decoration without information.
-- Provenance is always visible: who taught it, when and how it was verified, and a link to where that can be checked.
-- One bold moment: a lesson turning from checking to verified. Everything else is quiet and exact.
-- Not used: gradients, glass effects, shaders, emoji, stock images or illustrations, testimonials, logos, made-up numbers.
-- Light and dark themes. A status is never shown by color alone (there is always a word), and every status chip meets WCAG AA contrast.
-- Motion only for the verified moment. Announce it with `aria-live="polite"` ("Verified: <claim, first 60 chars>"); under `prefers-reduced-motion` the change is instant. Hover changes color only.
-- Fonts are self-hosted (the CSP allows only `'self'`). Pick a family that also has a Japanese cut, because Japanese UI comes later.
+- The goal is that the site looks great at first sight. Safe is not the goal. It holds up next to the best developer tools, without resembling any particular site.
+- Gradients, light, depth, translucency, texture, and motion may be used on two conditions. They mean something: a gradient shows depth or an amount of light, never color for its own sake, and motion shows a change of state. And they never lower the readability or contrast of body text.
+- Not used: the usual AI-startup look (purple-to-blue glowing gradients, gradient-filled text, glass cards that mean nothing, noise sprinkled over the whole screen), off-the-shelf shader presets, emoji, stock images, made-up numbers.
+- Kept: WCAG 2.2 AA in both themes. Under `prefers-reduced-motion` nothing moves. Home JavaScript at most 60 KB gzipped.
+- The content is the hero, and provenance is always visible: who taught it, when and how it was verified, and where to check.
+- The verified state is the most eye-catching thing on a page; no decoration competes with it. A status is never shown by color alone (there is always a word). When a lesson turns verified, announce it with `aria-live="polite"` ("Verified: <claim, first 60 chars>").
+- The teacher's name is a signature on the claim: right under it, a line "— @login", with how and when it was verified.
+- Subject tags never share the status chip's shape.
+- Home headline "Teach it once.", and under it "Everyone's AI learns it in minutes. Your name stays on it." No buttons until `/start` exists.
+- The footer sits at the bottom of the screen even when the page is short.
+- Type: the Latin faces are chosen in earnest (no default serif that reads as Times at large sizes) and must sit well next to a Japanese face later. Fonts are self-hosted (the CSP allows only `'self'`). The wordmark is drawn, not just typed.
 - Lessons are lists, not card grids. Pages work down to 360 px wide.
 
-Step 4, in order:
+Step 4, round 2, in order:
 
-1. With the frontend-design skill, write a short design plan (palette for both themes, type, layout, the verified moment) using real lessons from `lessons/`, and review it against the list above before building.
-2. Apply it to the lesson page, the teacher page, and the home skeleton. Put the tokens in `apps/site/src/styles/tokens.css`.
-3. Capture Playwright screenshots at 390 px and 1280 px wide, light and dark. Critique them, fix what is off, and capture again.
-4. Show the final screenshots to the owner. When approved, replace this paragraph with a few lines recording what was chosen and why.
+1. Read the frontend-design skill and check each proposal against its list of traits common to AI-made designs. (Round 1 matched "a dark background with one bright green accent".)
+2. Build two proposals. A, "Ludion": a ludion is the little diver that rises and sinks in a bottle of water; a lesson rises to the surface when it is verified. A checking lesson sits a little deeper, darker and softer; a verified one surfaces, bright and sharp. Depth is a gradient, the surface is light. The home page replays the moment of teaching once with a real lesson, never presented as happening live. B: a different direction.
+3. Check both against sample data that never enters `lessons/` and never reaches production (`apps/site/samples/`, built only with `LUDION_SAMPLES=1`): short and 400-character claims, test, proof, and source, a corrected lesson, a long login, several teachers.
+4. Capture the home and lesson pages at 390 px and 1280 px, light and dark, plus a Playwright video of the motion. Critique and fix at least twice.
+5. The owner picks one. Then this section is replaced with a few lines recording what was chosen and why, and the tokens live in `apps/site/src/styles/tokens.css`.
 
 ## Budgets
 

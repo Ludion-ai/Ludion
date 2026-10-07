@@ -7,3 +7,4 @@ results.json
 .astro/
 test-results/
 playwright-report/
+dist-samples/

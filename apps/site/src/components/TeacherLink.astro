@@ -1,4 +1,6 @@
 ---
+import { siteData } from "../build/data.ts";
+
 interface Props {
   login: string;
   id: number;
@@ -9,7 +11,7 @@ interface Props {
 }
 const { login, id, href, size = 40, showAvatar = false } = Astro.props;
 // By id, so the avatar survives renames.
-const avatar = `https://avatars.githubusercontent.com/u/${id}?s=${size * 2}`;
+const avatar = (await siteData()).avatarOf(id, size);
 ---
 
 <span class="teacher">

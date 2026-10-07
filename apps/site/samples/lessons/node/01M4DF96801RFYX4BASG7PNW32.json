@@ -1,0 +1,17 @@
+{
+  "id": "01M4DF96801RFYX4BASG7PNW32",
+  "subject": "node",
+  "version": ">=22",
+  "claim": "Node.js 22 has a global WebSocket client, enabled by default; no package is needed.",
+  "evidence": [
+    {
+      "run": {
+        "runner": "node",
+        "code": "if (typeof WebSocket !== 'function') process.exit(1);\nconsole.log('ok');"
+      }
+    }
+  ],
+  "author": "github:alice-chen",
+  "author_id": 101,
+  "created_at": "2026-10-08T10:00:00Z"
+}

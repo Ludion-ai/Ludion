@@ -1,0 +1,17 @@
+{
+  "id": "01M3XZT2Z0CRNP4G4A3GC8WWHA",
+  "subject": "typescript",
+  "version": ">=5.0",
+  "claim": "TypeScript 5.0 made moduleResolution bundler the default for new projects.",
+  "evidence": [
+    {
+      "source": {
+        "url": "https://devblogs.microsoft.com/typescript/announcing-typescript-5-0/",
+        "quote": "--moduleResolution bundler"
+      }
+    }
+  ],
+  "author": "github:rn",
+  "author_id": 104,
+  "created_at": "2026-10-02T09:41:00Z"
+}

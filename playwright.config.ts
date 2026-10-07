@@ -6,6 +6,8 @@ const PORT = 8787;
 
 export default defineConfig({
   testDir: "e2e",
+  // e2e/samples runs against the design samples (playwright.samples.config.ts), never here.
+  testIgnore: ["samples/**"],
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   reporter: process.env.CI ? [["list"], ["github"]] : "list",
