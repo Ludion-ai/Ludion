@@ -25,7 +25,7 @@ They load when you touch matching files. Read the relevant file before you plan 
 ## The product is the moment of teaching
 
 1. In any MCP client, the user corrects their assistant: "That's wrong. Python 3.12 removed distutils."
-2. The assistant calls `ludion_teach`. Ludion checks the draft and returns a signing link.
+2. The assistant calls `ludion_teach`. Ludion checks the draft's format and returns a signing link.
 3. The user opens the link, signs in with GitHub once, and presses **Teach**. The assistant drafts; only the person signs.
 4. A pull request opens in the teacher's name. CI runs the evidence in an isolated container. A maintainer merges.
 5. Minutes later, every `ludion_ask` returns the lesson: *Taught by @alice. Verified by test on 2026-10-08.*
@@ -101,7 +101,7 @@ wrangler.jsonc       Worker "ludion"; assets dir apps/site/dist; secrets listed 
 Each step ends green: tests pass, and the step's check is demonstrated.
 
 1. `packages/core`, `tools/verify`, schema, example lesson. Check: `npm run verify -- lessons/` passes; Vitest passes.
-2. `verify.yml` and branch protection. Check: a PR with a failing test is blocked; a passing one is mergeable.
+2. `verify.yml`, `test.yml`, and branch protection. Check: a PR with a failing test is blocked; a passing one is mergeable.
 3. `apps/site` static build and `apps/worker` serving it. Deploy to `ludion.ai`. Check: `/lessons/<id>` and `/index.json` are live.
 4. `/mcp` with `ludion_ask`. Check: `claude mcp add --transport http ludion https://ludion.ai/mcp`, then ask about distutils and get the example lesson with its teacher.
 5. GitHub App, `/auth/*`, `/api/check`, `/api/teach`, `/teach`, and `ludion_teach`. Check: both acceptance tests pass with subject `ludion-selftest`; retract those lessons afterwards.
@@ -119,3 +119,4 @@ Each step ends green: tests pass, and the step's check is demonstrated.
 - Errors say what happened and what to do next, in plain words.
 - Names in user language: teach, ask, lesson, teacher, sign, verified, checking.
 - Commit messages and PR titles in English, imperative.
+- Every change goes through a pull request; never push to `main` directly (branch protection blocks it, admins included). After opening a PR, run `gh pr merge --auto --squash` so it merges by itself once the required checks (`verify`, `test`) pass.

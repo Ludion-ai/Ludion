@@ -41,8 +41,8 @@ One page per `teacher_id`, at the current login lowercased (see `lessons.md`). E
 States:
 
 1. Signed out, no draft: h1 "Teach Ludion", "Your GitHub name is shown on every lesson you teach.", button **Sign in with GitHub** (→ `/auth/login?next=/teach`).
-2. Signed out, with a draft in `#d=`: the draft as a preview card, and **Sign in with GitHub to sign this lesson**. Save the draft to `sessionStorage` key `ludion:draft` before redirecting, restore it after.
-3. Signed in: the form, prefilled if a draft exists, with a live preview card beside it (below it on narrow screens).
+2. Signed out, with a draft in `#d=`: the draft as a preview card, the line "Sources are checked after you sign in.", and **Sign in with GitHub to sign this lesson**. No check runs while signed out. Save the draft to `sessionStorage` key `ludion:draft` before redirecting, restore it after.
+3. Signed in: the form, prefilled if a draft exists, with a live preview card beside it (below it on narrow screens). When a draft from `#d=` (or restored from `sessionStorage`) opens while signed in, call `/api/check` once automatically and show the results, one line per source ("Quote found on <host>" or the `source_not_found` copy) and "CI will run this test" per test, above the **Teach** button. **Teach** is disabled while a check is running and after a failed check, until the draft is edited and checked again.
 4. Submitted: "Pull request #42 is open in your name." and a status chip polling `/api/pr/42` every 10 s. Verified: "Verified. Live for everyone in a few minutes." and the lesson link once it answers 200. Failed: "CI could not verify this lesson." with a link to the PR checks.
 
 Form:
@@ -61,7 +61,7 @@ Error copy, by API `error` code:
 | `account_too_new` | "GitHub accounts must be at least 30 days old to teach. This keeps spam out of Ludion." |
 | `invalid_draft` | Field messages from `errors[]`, shown under each field. |
 | `source_not_found` | "This source could not be confirmed. Link to a public https page and copy a sentence exactly as it appears there." (The API says why no further, on purpose.) |
-| `rate_limited` | "Too many checks from your network. Wait a minute and try again." |
+| `rate_limited` | "You've checked too many lessons in the last minute. Wait a minute and try again." |
 | `unknown_replaces` | "The lesson you're correcting isn't active anymore. Check its link." |
 | `daily_limit` | "You've taught 20 lessons today. Come back tomorrow." |
 | `github_error` | "GitHub didn't respond. Nothing was published. Try again in a minute." |

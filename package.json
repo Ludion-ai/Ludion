@@ -11,8 +11,10 @@
   ],
   "scripts": {
     "verify": "node tools/verify/src/cli.ts",
+    "verify:pr": "node tools/verify/src/pr-cli.ts",
     "test": "vitest run",
     "typecheck": "tsc -p tsconfig.json",
+    "build": "npm run build --workspaces --if-present",
     "gen:validator": "node packages/core/scripts/gen-validator.ts"
   },
   "devDependencies": {
