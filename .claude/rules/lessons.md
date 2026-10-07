@@ -91,7 +91,15 @@ Pure TypeScript. No Node-only or Worker-only APIs, so the site build, the Worker
 - `search.ts`: MiniSearch over `claim` (boost 2) and `subject` (boost 1), `prefix: true`, `fuzzy: 0.2`. `search(index, query, {subject?, k=5})`.
 - `teachers.ts`: `resolveLogins(ids, fetchFn, token?)` → `Map<id, login>` via `GET /user/{account_id}`; ids that fail are left out.
 - `index-builder.ts`: `buildIndex(lessons, gitInfo, logins, {org, repo})` → `Index`. Falls back to the stored `author` login for ids missing from `logins`.
-- `source-check.ts`: `checkSource(url, quote, fetchFn)`. Normalization for both page and quote: strip `<script>`, `<style>`, and tags; decode HTML entities; NFKC; lowercase; collapse whitespace; straighten quotes and dashes. Fetch rules: `https` only, 5-second timeout, at most 3 redirects, at most 2 MB read, `User-Agent: LudionBot/0.1 (+https://ludion.ai/bot)`.
+- `source-check.ts`: `checkSource(url, quote, fetchFn)` → `{found: true} | {found: false, reason}`. `reason` is for CI logs and the CLI; the Worker never forwards it (see `worker.md`).
+  - URL rules, `sourceUrlProblem(url)`, judged on the URL as parsed by `new URL()` (which rewrites decimal, hex, and octal IPv4 hosts to dotted form), before the first request and again for every redirect target:
+    - `https:` only, default port only (443), no user name or password.
+    - No IP-address hosts at all, public or private: refuse a host in dotted IPv4 form or starting with `[`.
+    - Drop one trailing dot, then refuse single-label names, `localhost`, and names equal to or ending in `.localhost`, `.local`, `.internal`, `.home.arpa`, `.test`, `.invalid`, `.example`, `.onion`.
+  - Redirects are followed by hand (`redirect: "manual"`), at most 3; the 4th is refused.
+  - Read only `Content-Type` `text/html`, `text/plain`, or `application/xhtml+xml`; anything else, or none, is refused. At most 2 MB, 5 seconds for the whole check, `User-Agent: LudionBot/0.1 (+https://ludion.ai/bot)`.
+  - Normalization for both page and quote: strip comments, `<script>`, `<style>`, and tags (inline tags without a space); decode HTML entities; NFKC; lowercase; collapse whitespace; straighten quotes and dashes.
+  - Name rules cannot see where DNS points. The `fetchFn` must refuse non-public addresses: `tools/verify` passes a fetch that checks and pins the resolved address (`ci.md`); the Worker's outbound `fetch` cannot reach private networks.
 - `label.ts`: `verifiedBy(lesson)`.
 
 Unit tests cover every function, including: a quote split across tags still matches; a replaced lesson leaves the active set; `formatLesson` round-trips the example byte for byte; a teacher who renamed their account shows the new login; a failed lookup falls back to the stored login.

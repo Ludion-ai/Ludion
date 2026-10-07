@@ -88,6 +88,32 @@ describe("checkSource", () => {
   it("refuses a redirect to http", async () => {
     const f = fakeFetch({ [url]: redirect("http://docs.example.com/plain") });
     expect(await checkSource(url, "anything", f)).toEqual({ found: false, reason: expect.stringContaining("not https") });
+    expect(f.calls).toHaveLength(1);
+  });
+
+  it("refuses a redirect to a private address", async () => {
+    const f = fakeFetch({ [url]: redirect("https://169.254.169.254/latest/meta-data/") });
+    expect(await checkSource(url, "anything", f)).toEqual({ found: false, reason: expect.stringContaining("will not fetch") });
+    expect(f.calls.map((c) => c.url)).toEqual([url]);
+  });
+
+  it("refuses a redirect to a private name", async () => {
+    const f = fakeFetch({ [url]: redirect("https://metadata.google.internal/") });
+    expect((await checkSource(url, "anything", f)).found).toBe(false);
+    expect(f.calls).toHaveLength(1);
+  });
+
+  it.each(["application/pdf", "image/png", "application/json", ""])("refuses content type %j", async (type) => {
+    const headers: Record<string, string> = type ? { "content-type": type } : {};
+    // A byte body, so Response adds no default content type.
+    const f = fakeFetch({ [url]: () => new Response(new TextEncoder().encode("quote text here"), { headers }) });
+    const r = await checkSource(url, "quote text here", f);
+    expect(r).toEqual({ found: false, reason: expect.stringContaining("is not a web page") });
+  });
+
+  it.each(["text/plain; charset=utf-8", "application/xhtml+xml", "TEXT/HTML"])("reads content type %j", async (type) => {
+    const f = fakeFetch({ [url]: () => new Response("quote text here", { headers: { "content-type": type } }) });
+    expect(await checkSource(url, "quote text here", f)).toEqual({ found: true });
   });
 
   it("reports HTTP errors", async () => {

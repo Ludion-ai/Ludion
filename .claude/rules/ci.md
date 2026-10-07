@@ -10,6 +10,8 @@ paths:
 
 Node CLI over `packages/core`. `npm run verify -- <files or dirs>` exits non-zero on any failure and prints one line per lesson: `passed | failed | skipped  <id>  <claim, first 60 chars>`, then the reason for anything not passed. Flags: `--run` executes `run` evidence (CI only), `--json <path>` writes machine-readable results.
 
+Source fetches (`src/safe-fetch.ts`) go through an undici `Agent` whose `connect.lookup` resolves the name itself (all addresses, and answers as a list when called with `all: true`), refuses the name if even one address is not public, and lets the socket connect to exactly the checked address. There is no second resolution, so DNS rebinding cannot swap in a private address. Not public: IPv4 `0/8`, `10/8`, `100.64/10`, `127/8`, `169.254/16`, `172.16/12`, `192.0.0/24`, `192.0.2/24`, `192.88.99/24`, `192.168/16`, `198.18/15`, `198.51.100/24`, `203.0.113/24`, `224/4`, `240/4`; IPv6 outside `2000::/3` (so `::1`, `fc00::/7`, `fe80::/10`, IPv4-mapped, NAT64, multicast), plus `2001::/23`, `2001:db8::/32`, `2002::/16`. Never pass the global `fetch` for source checks.
+
 ## verify.yml (required status check on main)
 
 Trigger: `pull_request` on paths `lessons/**`. Never `pull_request_target`.
@@ -25,7 +27,7 @@ Trigger: `pull_request` on paths `lessons/**`. Never `pull_request_target`.
   3. Author rule, checked by numeric id (read the PR from the event payload, `github.event.pull_request.user`). If the PR was opened by the Ludion App bot: the commit that adds the lesson must carry the trailer `Taught-by: <login> (<user id>)` (format in `worker.md`), where `<user id>` equals the lesson's `author_id` and `<login>` equals the login in its `author` (case-insensitive). Otherwise, a person opened the PR directly: the lesson's `author_id` must equal `pull_request.user.id`.
   4. `replaces` ids exist in the active set on `main`.
   5. Each `run` evidence in Docker: `--network none --memory 512m --cpus 1 --pids-limit 128 --read-only --tmpfs /tmp`, 30-second timeout. Images: `python:3.12-slim` (python, bash), `node:22-slim` (node). `lean`: label `needs-lean` and leave the check neutral until the Lean runner exists.
-  6. Each `source` evidence with `checkSource`.
+  6. Each `source` evidence with `checkSource` and the guarded fetch above.
 - Write results to `$GITHUB_STEP_SUMMARY` and upload `results.json` as an artifact.
 - Labels (`skipped`, `needs-lean`, `retract`) are set by a separate job `label` (needs `verify`, `pull-requests: write`) that only reads the artifact and never runs lesson code. On fork PRs the token is read-only; the `label` job then logs and exits 0.
 

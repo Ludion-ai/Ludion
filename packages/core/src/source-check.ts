@@ -84,28 +84,58 @@ async function readCapped(res: Response): Promise<string> {
   }
 }
 
-/** Fetch `url` (https only, 5 s, up to 3 redirects, 2 MB) and report whether `quote` appears on it. */
-export async function checkSource(url: string, quote: string, fetchFn: FetchFn): Promise<SourceResult> {
-  let current: URL;
-  try {
-    current = new URL(url);
-  } catch {
-    return { found: false, reason: `${url} is not a valid URL. Use a full https:// link.` };
+const BLOCKED_NAMES = ["localhost", "local", "internal", "home.arpa", "test", "invalid", "example", "onion"];
+const TEXT_TYPES = new Set(["text/html", "text/plain", "application/xhtml+xml"]);
+
+/**
+ * Why Ludion will not fetch this URL, or undefined if it may. Judged on the URL as parsed by `new URL()`,
+ * which already rewrites decimal, hex, and octal IPv4 hosts to dotted form.
+ * Names alone cannot show where DNS points; the caller's fetch must refuse private addresses too.
+ */
+export function sourceUrlProblem(url: URL): string | undefined {
+  if (url.protocol !== "https:") return `${url.href} is not https. Link to an https:// page.`;
+  if (url.username !== "" || url.password !== "") return "The link contains a user name or password. Link to a public page without them.";
+  if (url.port !== "") return `The link uses port ${url.port}. Link to a page on the default https port.`;
+  const host = url.hostname;
+  if (/^\d+\.\d+\.\d+\.\d+$/.test(host) || host.startsWith("[")) {
+    return `The link points to the IP address ${host}. Link to a page by its domain name.`;
   }
+  const name = host.replace(/\.$/, "");
+  if (!name.includes(".") || BLOCKED_NAMES.some((b) => name === b || name.endsWith(`.${b}`))) {
+    return `${host} is not a public domain name. Link to a page on the public web.`;
+  }
+  return undefined;
+}
+
+function parseUrl(raw: string, base?: URL): URL | undefined {
+  try {
+    return new URL(raw, base);
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Fetch `url` and report whether `quote` appears on it. Every hop is checked with sourceUrlProblem;
+ * redirects are followed by hand, at most 3; only text pages are read, at most 2 MB, within 5 seconds.
+ */
+export async function checkSource(url: string, quote: string, fetchFn: FetchFn): Promise<SourceResult> {
+  let current = parseUrl(url);
+  if (!current) return { found: false, reason: `${url} is not a valid URL. Use a full https:// link.` };
   const signal = AbortSignal.timeout(TIMEOUT_MS);
   for (let hop = 0; ; hop++) {
-    if (current.protocol !== "https:") {
-      return { found: false, reason: `${current.href} is not https. Link to an https:// page.` };
-    }
+    const problem = sourceUrlProblem(current);
+    if (problem) return { found: false, reason: hop === 0 ? problem : `${url} redirects to a page Ludion will not fetch: ${problem}` };
     let res: Response;
     try {
       res = await fetchFn(current.href, { redirect: "manual", signal, headers: { "User-Agent": USER_AGENT } });
-    } catch {
+    } catch (err) {
+      const cause = err instanceof Error && err.cause instanceof Error ? ` (${err.cause.message})` : "";
       return {
         found: false,
         reason: signal.aborted
           ? `${current.host} did not answer within 5 seconds. Try again later, or cite a page that loads faster.`
-          : `Could not reach ${current.host}. Check the URL.`,
+          : `Could not reach ${current.host}${cause}. Check the URL.`,
       };
     }
     if (res.status >= 300 && res.status < 400 && res.headers.has("location")) {
@@ -113,12 +143,19 @@ export async function checkSource(url: string, quote: string, fetchFn: FetchFn):
       if (hop >= MAX_REDIRECTS) {
         return { found: false, reason: `${url} redirects more than 3 times. Link to the final page instead.` };
       }
-      current = new URL(res.headers.get("location")!, current);
+      const next = parseUrl(res.headers.get("location")!, current);
+      if (!next) return { found: false, reason: `${url} redirects to an invalid address. Link to the final page instead.` };
+      current = next;
       continue;
     }
     if (!res.ok) {
       await res.body?.cancel().catch(() => {});
       return { found: false, reason: `${current.host} answered HTTP ${res.status} for ${current.href}. Check the URL.` };
+    }
+    const type = (res.headers.get("content-type") ?? "").split(";")[0]!.trim().toLowerCase();
+    if (!TEXT_TYPES.has(type)) {
+      await res.body?.cancel().catch(() => {});
+      return { found: false, reason: `${current.href} is not a web page (content type "${type || "none"}"). Cite an HTML or plain-text page.` };
     }
     let page: string;
     try {

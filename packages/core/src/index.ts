@@ -6,5 +6,5 @@ export { activeSet } from "./active.ts";
 export { search, type SearchOptions } from "./search.ts";
 export { buildIndex, storedLogin, type GitInfo, type BuildOptions } from "./index-builder.ts";
 export { resolveLogins, type FetchFn } from "./teachers.ts";
-export { checkSource, normalizeText, type SourceResult } from "./source-check.ts";
+export { checkSource, normalizeText, sourceUrlProblem, type SourceResult } from "./source-check.ts";
 export { verifiedBy } from "./label.ts";

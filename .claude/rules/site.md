@@ -60,7 +60,8 @@ Error copy, by API `error` code:
 | `signin_required` | "Sign in with GitHub to teach." |
 | `account_too_new` | "GitHub accounts must be at least 30 days old to teach. This keeps spam out of Ludion." |
 | `invalid_draft` | Field messages from `errors[]`, shown under each field. |
-| `source_not_found` | "That quote isn't on <host>. Copy a sentence exactly as it appears on the page." |
+| `source_not_found` | "This source could not be confirmed. Link to a public https page and copy a sentence exactly as it appears there." (The API says why no further, on purpose.) |
+| `rate_limited` | "Too many checks from your network. Wait a minute and try again." |
 | `unknown_replaces` | "The lesson you're correcting isn't active anymore. Check its link." |
 | `daily_limit` | "You've taught 20 lessons today. Come back tomorrow." |
 | `github_error` | "GitHub didn't respond. Nothing was published. Try again in a minute." |

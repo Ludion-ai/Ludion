@@ -7,6 +7,7 @@
     "ludion-verify": "./src/cli.ts"
   },
   "dependencies": {
-    "@ludion/core": "*"
+    "@ludion/core": "*",
+    "undici": "^8.11.2"
   }
 }

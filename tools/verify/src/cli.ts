@@ -4,6 +4,7 @@ import { writeFileSync } from "node:fs";
 import { parseArgs } from "node:util";
 import { runInDocker } from "./docker.ts";
 import { collectLessonFiles, loadBaseLessons } from "./files.ts";
+import { createSafeFetch } from "./safe-fetch.ts";
 import { summaryLine, verifyLesson, type LessonResult } from "./verify.ts";
 
 const USAGE = "Usage: npm run verify -- <lesson files or directories> [--run] [--json <path>]";
@@ -39,7 +40,7 @@ async function main(): Promise<number> {
     return 2;
   }
 
-  const ctx = { base: loadBaseLessons(root), fetchFn: fetch, run: values.run ? runInDocker : undefined };
+  const ctx = { base: loadBaseLessons(root), fetchFn: createSafeFetch(), run: values.run ? runInDocker : undefined };
   const results: LessonResult[] = new Array(files.length);
   let next = 0;
   await Promise.all(
