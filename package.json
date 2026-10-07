@@ -7,19 +7,21 @@
   },
   "workspaces": [
     "packages/*",
-    "tools/*"
+    "tools/*",
+    "apps/*"
   ],
   "scripts": {
     "verify": "node tools/verify/src/cli.ts",
     "verify:pr": "node tools/verify/src/pr-cli.ts",
     "test": "vitest run",
-    "typecheck": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json && tsc -p apps/worker/tsconfig.json",
     "build": "npm run build --workspaces --if-present",
     "gen:validator": "node packages/core/scripts/gen-validator.ts"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
     "typescript": "^7.0.2",
-    "vitest": "^5.0.3"
+    "vitest": "^5.0.3",
+    "wrangler": "^4.148.0"
   }
 }

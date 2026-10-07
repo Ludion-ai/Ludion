@@ -1,0 +1,29 @@
+---
+interface Props {
+  url: string;
+  quote: string;
+}
+const { url, quote } = Astro.props;
+const host = new URL(url).host;
+---
+
+<figure class="source">
+  <blockquote cite={url}>{quote}</blockquote>
+  <figcaption><a href={url} rel="noopener nofollow">{host}</a></figcaption>
+</figure>
+
+<style>
+  .source {
+    margin: 0 0 24px;
+  }
+  blockquote {
+    margin: 0 0 8px;
+    padding: 4px 0 4px 16px;
+    border-left: 3px solid var(--border);
+    color: var(--ink);
+  }
+  figcaption {
+    padding-left: 19px;
+    font-size: 15px;
+  }
+</style>

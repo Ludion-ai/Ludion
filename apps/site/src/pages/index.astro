@@ -1,0 +1,52 @@
+---
+// Placeholder home for step 3. The ask box, live feed, and /start link arrive in step 6.
+import Base from "../layouts/Base.astro";
+import LessonCard from "../components/LessonCard.astro";
+import { siteData } from "../build/data.ts";
+import { en } from "../strings/en.ts";
+
+const { index, teacherHref } = await siteData();
+const recent = index.lessons.slice(0, 5);
+---
+
+<Base title={en.home.title}>
+  <section class="hero prose">
+    <h1>{en.home.headline}</h1>
+    <p>{en.home.sub}</p>
+    <p><a href="/lessons/">{en.home.seeLessons}</a></p>
+  </section>
+  <h2>{en.home.recent}</h2>
+  <ul class="list">
+    {
+      recent.map((l) => (
+        <li>
+          <LessonCard
+            id={l.id}
+            claim={l.claim}
+            subject={l.subject}
+            version={l.version}
+            teacher={l.teacher}
+            teacherId={l.teacher_id}
+            teacherHref={teacherHref(l.teacher_id)}
+            verifiedBy={l.verified_by}
+            verifiedAt={l.verified_at}
+          />
+        </li>
+      ))
+    }
+  </ul>
+</Base>
+
+<style>
+  .hero {
+    margin-bottom: 48px;
+  }
+  .hero h1 {
+    font-size: 42px;
+  }
+  @media (max-width: 640px) {
+    .hero h1 {
+      font-size: 33px;
+    }
+  }
+</style>

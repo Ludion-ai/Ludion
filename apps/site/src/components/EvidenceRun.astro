@@ -1,0 +1,72 @@
+---
+import { en } from "../strings/en.ts";
+
+interface Props {
+  runner: string;
+  code: string;
+}
+const { runner, code } = Astro.props;
+const label = runner === "lean" ? en.lesson.proof : en.lesson.test(runner);
+---
+
+<figure class="run">
+  <figcaption>
+    <span>{label}</span>
+    <button type="button" class="copy" data-copied={en.lesson.copied}>{en.lesson.copy}</button>
+  </figcaption>
+  <pre><code>{code}</code></pre>
+</figure>
+
+<script>
+  for (const button of document.querySelectorAll<HTMLButtonElement>("button.copy")) {
+    const original = button.textContent;
+    button.addEventListener("click", async () => {
+      const code = button.closest("figure")?.querySelector("code")?.textContent ?? "";
+      try {
+        await navigator.clipboard.writeText(code);
+        button.textContent = button.dataset.copied ?? original;
+        setTimeout(() => (button.textContent = original), 2000);
+      } catch {
+        // Clipboard blocked; the code is still selectable.
+      }
+    });
+  }
+</script>
+
+<style>
+  .run {
+    margin: 0 0 24px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  figcaption {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+    font-size: 15px;
+    font-weight: 500;
+  }
+  .copy {
+    font: inherit;
+    font-size: 13px;
+    color: var(--cobalt);
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 2px 12px;
+    cursor: pointer;
+  }
+  .copy:hover {
+    color: var(--ink);
+  }
+  pre {
+    margin: 0;
+    padding: 16px;
+    background: var(--surface);
+    overflow-x: auto;
+    line-height: 1.5;
+  }
+</style>

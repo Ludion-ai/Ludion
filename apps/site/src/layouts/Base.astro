@@ -1,0 +1,87 @@
+---
+import "../styles/global.css";
+import { siteData } from "../build/data.ts";
+import { en } from "../strings/en.ts";
+
+interface Props {
+  title: string;
+  description?: string;
+}
+const { title, description = en.site.description } = Astro.props;
+const { index, config } = await siteData();
+const teacherCount = Object.keys(index.teachers).length;
+const canonical = new URL(Astro.url.pathname, config.site);
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical.href} />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="wrap bar">
+        <a class="wordmark" href="/">{en.site.name}</a>
+        <nav aria-label={en.nav.label}>
+          <a href="/lessons/">{en.nav.lessons}</a>
+        </nav>
+      </div>
+    </header>
+    <main class="wrap">
+      <slot />
+    </main>
+    <footer class="site-footer">
+      <div class="wrap">
+        <p>{en.footer.count(index.lessons.length, teacherCount)}</p>
+        <p class="muted">
+          {en.footer.license} <a href={`https://github.com/${config.org}/${config.repo}`}>{en.footer.github}</a>
+        </p>
+      </div>
+    </footer>
+  </body>
+</html>
+
+<style>
+  .site-header {
+    border-bottom: 1px solid var(--border);
+  }
+  .bar {
+    display: flex;
+    align-items: center;
+    gap: 32px;
+    min-height: 64px;
+  }
+  .wordmark {
+    color: var(--ink);
+    font-weight: 600;
+    font-size: 21px;
+    text-decoration: none;
+  }
+  nav {
+    display: flex;
+    gap: 24px;
+  }
+  nav a {
+    color: var(--text);
+    text-decoration: none;
+  }
+  nav a:hover {
+    color: var(--cobalt);
+  }
+  main {
+    padding-top: 48px;
+    padding-bottom: 64px;
+  }
+  .site-footer {
+    border-top: 1px solid var(--border);
+    padding: 24px 0 48px;
+    font-size: 15px;
+  }
+  .site-footer p {
+    margin: 0 0 8px;
+  }
+</style>

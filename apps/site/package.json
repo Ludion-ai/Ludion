@@ -1,0 +1,16 @@
+{
+  "name": "@ludion/site",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "astro build",
+    "dev": "astro dev"
+  },
+  "dependencies": {
+    "@fontsource/ibm-plex-mono": "^5.3.0",
+    "@fontsource/ibm-plex-sans": "^5.3.0",
+    "@ludion/core": "*",
+    "astro": "^7.3.6"
+  }
+}

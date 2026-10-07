@@ -9,6 +9,8 @@ Astro with `output: "static"`. Every page is prerendered from `lessons/` at buil
 
 ## Pages
 
+Built in step 3: `/lessons/<id>/`, `/lessons` (the static list), `/teachers/<login>/`, 404, `index.json`, and a placeholder home (headline, sub, recently verified). The nav shows only links whose pages exist; the rest (search on `/lessons`, Teach, Start, Why, the full home) arrive with steps 5 and 6.
+
 ### `/` Home
 
 - Header: wordmark "Ludion" (text), nav Lessons, Teach, Start, Why. Right: "Sign in" or the teacher's avatar linking to `/@<lowercase login>` (from `/api/session`).

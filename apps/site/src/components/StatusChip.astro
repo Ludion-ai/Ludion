@@ -1,0 +1,34 @@
+---
+interface Props {
+  status: "verified" | "checking" | "failed" | "closed";
+  label: string;
+}
+const { status, label } = Astro.props;
+---
+
+<span class:list={["chip", status]}>{label}</span>
+
+<style>
+  .chip {
+    display: inline-block;
+    border-radius: 999px;
+    padding: 0 12px;
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 24px;
+    white-space: nowrap;
+  }
+  .verified {
+    background: var(--verified-bg);
+    color: var(--verified-text);
+  }
+  .checking {
+    background: var(--checking-bg);
+    color: var(--checking-text);
+  }
+  .failed,
+  .closed {
+    background: var(--failed-bg);
+    color: var(--failed-text);
+  }
+</style>

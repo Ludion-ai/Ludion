@@ -1,0 +1,19 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "ludion",
+  "main": "apps/worker/src/index.ts",
+  "compatibility_date": "2026-10-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "routes": [{ "pattern": "ludion.ai", "custom_domain": true }],
+  "assets": {
+    "directory": "apps/site/dist",
+    "binding": "ASSETS",
+    "not_found_handling": "404-page",
+    "run_worker_first": ["/mcp", "/mcp/*", "/api/*", "/auth/*", "/@*"]
+  },
+  "vars": { "SITE_URL": "https://ludion.ai" },
+  "ratelimits": [
+    { "name": "SOURCE_CHECK_LIMITER", "namespace_id": "1001", "simple": { "limit": 10, "period": 60 } }
+  ],
+  "observability": { "enabled": true }
+}

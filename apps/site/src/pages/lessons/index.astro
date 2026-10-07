@@ -1,0 +1,34 @@
+---
+import Base from "../../layouts/Base.astro";
+import LessonCard from "../../components/LessonCard.astro";
+import { siteData } from "../../build/data.ts";
+import { en } from "../../strings/en.ts";
+
+const STATIC_LIMIT = 100;
+const { index, teacherHref } = await siteData();
+const shown = index.lessons.slice(0, STATIC_LIMIT);
+---
+
+<Base title={`${en.lessons.title} | Ludion`}>
+  <h1>{en.lessons.title}</h1>
+  <p class="muted">{index.lessons.length ? en.lessons.intro(shown.length, index.lessons.length) : en.lessons.empty}</p>
+  <ul class="list">
+    {
+      shown.map((l) => (
+        <li>
+          <LessonCard
+            id={l.id}
+            claim={l.claim}
+            subject={l.subject}
+            version={l.version}
+            teacher={l.teacher}
+            teacherId={l.teacher_id}
+            teacherHref={teacherHref(l.teacher_id)}
+            verifiedBy={l.verified_by}
+            verifiedAt={l.verified_at}
+          />
+        </li>
+      ))
+    }
+  </ul>
+</Base>

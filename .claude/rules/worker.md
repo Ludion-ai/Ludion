@@ -32,13 +32,14 @@ One Cloudflare Worker, `ludion`, built with Hono. It serves the prerendered site
   "main": "apps/worker/src/index.ts",
   "compatibility_date": "2026-10-01",
   "compatibility_flags": ["nodejs_compat"],
+  "routes": [{ "pattern": "ludion.ai", "custom_domain": true }],
   "assets": {
     "directory": "apps/site/dist",
     "binding": "ASSETS",
     "not_found_handling": "404-page",
     "run_worker_first": ["/mcp", "/mcp/*", "/api/*", "/auth/*", "/@*"]
   },
-  "vars": { "SITE_URL": "https://ludion.ai", "LESSONS_ORG": "<ORG>", "LESSONS_REPO": "ludion" },
+  "vars": { "SITE_URL": "https://ludion.ai" },
   "ratelimits": [
     { "name": "SOURCE_CHECK_LIMITER", "namespace_id": "1001", "simple": { "limit": 10, "period": 60 } }
   ],
@@ -46,9 +47,17 @@ One Cloudflare Worker, `ludion`, built with Hono. It serves the prerendered site
 }
 ```
 
-If the installed Wrangler rejects the array form of `run_worker_first`, set it to `true` and fall through to `env.ASSETS.fetch` for unmatched routes. Workers Builds: build command `npm ci && npm run build`, deploy command `npx wrangler deploy`. Optional build variable `GITHUB_READ_TOKEN` for teacher login lookups (see `lessons.md`); it is a build-time value, not a Worker secret.
+The lessons org and repo are not vars: the Worker imports `ludion.config.json` (bundled at deploy), so the org is written in one place only. If the installed Wrangler rejects the array form of `run_worker_first`, set it to `true` and fall through to `env.ASSETS.fetch` for unmatched routes. Workers Builds: build command `npm ci && npm run build`, deploy command `npx wrangler deploy`. Optional build variable `GITHUB_READ_TOKEN` for teacher login lookups (see `lessons.md`); it is a build-time value, not a Worker secret.
 
 Secrets (`wrangler secret put`; `.dev.vars` locally, gitignored; never logged): `GITHUB_APP_ID`, `GITHUB_APP_INSTALLATION_ID`, `GITHUB_APP_PRIVATE_KEY` (PKCS#8 PEM, see below), `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`, `SESSION_SECRET` (32+ random bytes, base64).
+
+### Preview builds never see production secrets
+
+Workers Builds also builds non-production branches and uploads them as preview versions. A Worker's secrets are shared by every version of that Worker, previews included, so a preview of `ludion` would run with production's secrets. Therefore:
+
+- Until step 5, `ludion` has no secrets, and previews may upload to it (default non-production deploy command `npx wrangler versions upload`).
+- From step 5, before the first production secret is set: previews go to a separate Worker, `ludion-preview` (`env.preview` in `wrangler.jsonc`, with its own `SITE_URL` and no custom domain; non-production deploy command `npx wrangler versions upload --env preview`). It gets its own secrets: a separate GitHub OAuth app (callback on the preview URL), a separate `SESSION_SECRET`, and App credentials that cannot write to the production repo. Production values are never set on it.
+- Build variables in Workers Builds apply to every branch, so only values that are safe in a preview build go there. `GITHUB_READ_TOKEN` is a dedicated read-only token for public data, used by no other system.
 
 ## GitHub App (created by hand from these settings)
 
@@ -190,4 +199,4 @@ The fragment (`#d=`) never reaches a server; the draft travels only in the link.
 - CORS: `/mcp` answers any origin. `/api/*` and `/auth/*` are same-origin only (no CORS headers).
 - Every response: `X-Content-Type-Options: nosniff`. API responses: `Content-Type: application/json; charset=utf-8`.
 - Logs: route, status, latency, request id. Never cookies, tokens, secrets, or authorization headers.
-- Tests: Vitest with `@cloudflare/vitest-pool-workers`, GitHub API mocked. Cover: session sign and verify, bad `state`, unsafe `next`, account too new, every `/api/teach` error row, branch cleanup on failure, feed status derivation, both MCP tools' exact output text, the 12,000-character limit, `/api/check` without a session gets `401`, the 11th request in a minute by one account across `/api/check` and `/api/teach` gets `429 rate_limited` while another account is unaffected, `ludion_teach` makes no outbound fetch, and a failed source (refused URL, HTTP 500 with a body, missing quote) returns only "This source could not be confirmed." with no status or body.
+- Tests: Vitest with `@cloudflare/vitest-pool-workers`, GitHub API mocked. (Step 3: `vitest-pool-workers` supports only Vitest 4 while the repo is on Vitest 5, so the step 3 tests run the Hono app in Node with a stand-in `ASSETS`. Settle this before step 4: pin Vitest 4 for the Worker project, or wait for support.) Cover: session sign and verify, bad `state`, unsafe `next`, account too new, every `/api/teach` error row, branch cleanup on failure, feed status derivation, both MCP tools' exact output text, the 12,000-character limit, `/api/check` without a session gets `401`, the 11th request in a minute by one account across `/api/check` and `/api/teach` gets `429 rate_limited` while another account is unaffected, `ludion_teach` makes no outbound fetch, and a failed source (refused URL, HTTP 500 with a body, missing quote) returns only "This source could not be confirmed." with no status or body.
