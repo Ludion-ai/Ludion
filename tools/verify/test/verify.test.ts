@@ -1,4 +1,6 @@
-import { readFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { formatLesson, type FetchFn, type Lesson } from "@ludion/core";
@@ -155,7 +157,19 @@ describe("cli helpers", () => {
   });
 
   it("collects lesson files from a directory, skipping the schema", () => {
-    expect(collectLessonFiles(["lessons/"], ROOT).map((f) => f.path)).toEqual([EXAMPLE_PATH]);
+    // Its own tree, so the test does not depend on which lessons are in the repo.
+    const root = mkdtempSync(join(tmpdir(), "ludion-verify-"));
+    try {
+      mkdirSync(join(root, "lessons", "python"), { recursive: true });
+      mkdirSync(join(root, "lessons", "node"), { recursive: true });
+      writeFileSync(join(root, "lessons", "lessons.schema.json"), "{}");
+      writeFileSync(join(root, "lessons", "python", "B.json"), "{}");
+      writeFileSync(join(root, "lessons", "node", "A.json"), "{}");
+      writeFileSync(join(root, "lessons", "node", "notes.txt"), "");
+      expect(collectLessonFiles(["lessons/"], root).map((f) => f.path)).toEqual(["lessons/node/A.json", "lessons/python/B.json"]);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
   });
 
   it("explains a path that does not exist", () => {
