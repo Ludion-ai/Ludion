@@ -1,0 +1,12 @@
+{
+  "name": "@ludion/worker",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "hono": "^4.13.13"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20261007.1"
+  }
+}

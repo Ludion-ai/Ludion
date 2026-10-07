@@ -1,0 +1,62 @@
+---
+import Base from "../../layouts/Base.astro";
+import LessonCard from "../../components/LessonCard.astro";
+import { siteData } from "../../build/data.ts";
+import { en } from "../../strings/en.ts";
+
+// One page per teacher id, at the current login lowercased. Served at /@<login> by the Worker.
+export async function getStaticPaths() {
+  const { teacherPages } = await siteData();
+  return [...teacherPages].map(([login, id]) => ({ params: { login }, props: { id } }));
+}
+
+const { id } = Astro.props as { id: number };
+const { index, loginOf, teacherHref } = await siteData();
+const login = loginOf(id);
+const summary = index.teachers[String(id)]!;
+const lessons = index.lessons.filter((l) => l.teacher_id === id);
+---
+
+<Base title={en.teacher.title(login)}>
+  <header class="teacher">
+    <img src={`https://avatars.githubusercontent.com/u/${id}?s=128`} alt="" width="64" height="64" />
+    <h1>@{login}</h1>
+  </header>
+  <p>{en.teacher.summary(summary.lessons, summary.subjects.length)}: {summary.subjects.join(", ")}</p>
+  <p><a href={`https://github.com/${login}`}>{en.teacher.profile}</a></p>
+  <ul class="list">
+    {
+      lessons.map((l) => (
+        <li>
+          <LessonCard
+            id={l.id}
+            claim={l.claim}
+            subject={l.subject}
+            version={l.version}
+            teacher={l.teacher}
+            teacherId={l.teacher_id}
+            teacherHref={teacherHref(l.teacher_id)}
+            verifiedBy={l.verified_by}
+            verifiedAt={l.verified_at}
+          />
+        </li>
+      ))
+    }
+  </ul>
+</Base>
+
+<style>
+  .teacher {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+  .teacher h1 {
+    margin: 0;
+  }
+  .teacher img {
+    border-radius: 50%;
+    background: var(--surface);
+  }
+</style>

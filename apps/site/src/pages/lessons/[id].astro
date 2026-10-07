@@ -1,0 +1,100 @@
+---
+import Base from "../../layouts/Base.astro";
+import StatusChip from "../../components/StatusChip.astro";
+import TeacherLink from "../../components/TeacherLink.astro";
+import EvidenceRun from "../../components/EvidenceRun.astro";
+import EvidenceSource from "../../components/EvidenceSource.astro";
+import { siteData, type LessonPage } from "../../build/data.ts";
+import { en, formatDate } from "../../strings/en.ts";
+
+// Every lesson on main, replaced ones included: history stays visible.
+export async function getStaticPaths() {
+  const { pages } = await siteData();
+  return pages.map((page) => ({ params: { id: page.lesson.id }, props: { page } }));
+}
+
+const { page } = Astro.props as { page: LessonPage };
+const { config, teacherHref } = await siteData();
+const { lesson } = page;
+const fileUrl = `https://github.com/${config.org}/${config.repo}/blob/main/lessons/${lesson.subject}/${lesson.id}.json`;
+---
+
+<Base title={`${lesson.claim} | Ludion`} description={lesson.claim}>
+  <article class="lesson prose">
+    {
+      page.correctedBy && (
+        <p class="banner" role="note">
+          {en.lesson.correctedBy} <a href={`/lessons/${page.correctedBy}/`}>{page.correctedBy}</a>.
+        </p>
+      )
+    }
+    <h1>{lesson.claim}</h1>
+    <p class="meta">
+      <StatusChip status="verified" label={en.lesson.verifiedBy[page.verified_by]} />
+      <time datetime={page.verified_at}>{en.lesson.on(formatDate(page.verified_at))}</time>
+      <span class="muted">{en.lesson.appliesTo(lesson.subject, lesson.version)}</span>
+    </p>
+    <p class="taught">
+      {en.lesson.taughtBy}
+      <TeacherLink login={page.teacher} id={lesson.author_id} href={teacherHref(lesson.author_id)} showAvatar />
+    </p>
+
+    <h2>{en.lesson.evidence}</h2>
+    {
+      lesson.evidence.map((e) =>
+        "run" in e ? <EvidenceRun runner={e.run.runner} code={e.run.code} /> : <EvidenceSource url={e.source.url} quote={e.source.quote} />,
+      )
+    }
+
+    {
+      page.corrects.length > 0 && (
+        <>
+          <h2>{en.lesson.corrects}</h2>
+          <ul>
+            {page.corrects.map((id) => (
+              <li>
+                <a href={`/lessons/${id}/`}>{id}</a>
+              </li>
+            ))}
+          </ul>
+        </>
+      )
+    }
+
+    <p class="links">
+      <a href={fileUrl}>{en.lesson.viewFile}</a>
+      {page.pr !== null && <a href={`https://github.com/${config.org}/${config.repo}/pull/${page.pr}`}>{en.lesson.pullRequest(page.pr)}</a>}
+    </p>
+  </article>
+</Base>
+
+<style>
+  .banner {
+    background: var(--checking-bg);
+    color: var(--checking-text);
+    border-radius: 6px;
+    padding: 12px 16px;
+    margin: 0 0 24px;
+  }
+  .banner a {
+    color: inherit;
+  }
+  .meta,
+  .taught {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 12px;
+    margin: 0 0 16px;
+  }
+  .taught {
+    margin-bottom: 32px;
+  }
+  .links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 24px;
+    margin-top: 32px;
+    font-size: 15px;
+  }
+</style>

@@ -14,5 +14,9 @@
     "resolveJsonModule": true,
     "skipLibCheck": true
   },
-  "include": ["packages/*/src", "packages/*/scripts", "packages/*/test", "tools/*/src", "tools/*/test", "vitest.config.ts"]
+  "include": [
+    "packages/*/src", "packages/*/scripts", "packages/*/test", "tools/*/src", "tools/*/test",
+    "apps/site/src/build", "apps/site/src/strings", "apps/site/src/pages/*.ts", "apps/site/test",
+    "vitest.config.ts"
+  ]
 }

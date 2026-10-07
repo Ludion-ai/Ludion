@@ -1,0 +1,9 @@
+---
+import Base from "../layouts/Base.astro";
+import { en } from "../strings/en.ts";
+---
+
+<Base title={`${en.notFound.title} | Ludion`}>
+  <h1>{en.notFound.body}</h1>
+  <p><a href="/lessons/">{en.notFound.search}</a>{en.notFound.rest}</p>
+</Base>
