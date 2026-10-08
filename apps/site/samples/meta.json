@@ -1,0 +1,58 @@
+{
+  "teachers": {
+    "101": "alice-chen",
+    "102": "kenji-watanabe",
+    "103": "maximilian-alexander-von-hohenzollern-x",
+    "104": "rn"
+  },
+  "git": {
+    "01M4DFB0V0NRHYDC727GQ2SCX2": {
+      "verified_at": "2026-10-08T10:48:00Z",
+      "pr": 61
+    },
+    "01M4DF96801RFYX4BASG7PNW32": {
+      "verified_at": "2026-10-08T10:47:00Z",
+      "pr": 60
+    },
+    "01M4AWRT20M89C4WD4MGHW44NM": {
+      "verified_at": "2026-10-07T10:45:00Z",
+      "pr": 58
+    },
+    "01M4AWPZF0MRY64MP2MGEY4C6T": {
+      "verified_at": "2026-10-07T10:44:00Z",
+      "pr": 57
+    },
+    "01M3XZT2Z0CRNP4G4A3GC8WWHA": {
+      "verified_at": "2026-10-02T10:28:00Z",
+      "pr": 41
+    },
+    "01M48A6K90CRNCQM4A30NYWWHM": {
+      "verified_at": "2026-10-06T10:42:00Z",
+      "pr": 55
+    },
+    "01M48A4RP0Y02R6GA8E0JRPGT8": {
+      "verified_at": "2026-10-06T10:41:00Z",
+      "pr": 54
+    },
+    "01M45QGQA05R28J43WC03EPGE2": {
+      "verified_at": "2026-10-05T10:37:00Z",
+      "pr": 50
+    },
+    "01M434YGH0Y8B86WQREG38P4FR": {
+      "verified_at": "2026-10-04T10:34:00Z",
+      "pr": 47
+    },
+    "01M40JC9R0W8V8CC7RWGK8CMZR": {
+      "verified_at": "2026-10-03T10:31:00Z",
+      "pr": 44
+    },
+    "01M40JAF50R8BGB48EX0HPRMFG": {
+      "verified_at": "2026-10-03T10:30:00Z",
+      "pr": 43
+    },
+    "01M3VDBHC058CTWWQEMGMT9MW6": {
+      "verified_at": "2026-10-01T10:27:00Z",
+      "pr": 40
+    }
+  }
+}

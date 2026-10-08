@@ -38,13 +38,35 @@ export interface SiteData {
   loginOf: (id: number) => string;
   /** Path of the teacher's page, or null if they have none. */
   teacherHref: (id: number) => string | null;
+  /** Avatar URL by id (survives renames). Sample builds use monograms, never real GitHub accounts. */
+  avatarOf: (id: number, size: number) => string;
+  /** True when built from apps/site/samples (LUDION_SAMPLES=1). */
+  samples: boolean;
 }
 
 const SIZE_WARNING = 5 * 1024 * 1024;
+
+// Sample lessons for checking the design (site.md, Design). They live outside lessons/, build only with
+// LUDION_SAMPLES=1 into dist-samples (astro.config.mjs), and never in a deploy build.
+const SAMPLES = process.env.LUDION_SAMPLES === "1";
+if (SAMPLES && (process.env.WORKERS_CI || process.env.CF_PAGES)) {
+  throw new Error("LUDION_SAMPLES=1 is set in a Cloudflare build. Sample lessons must never be deployed; unset it.");
+}
+
+function sampleMeta(root: string): { teachers: Record<string, string>; git: GitInfo } {
+  return JSON.parse(readFileSync(join(root, "apps/site/samples/meta.json"), "utf8"));
+}
+
+/** A data: URI avatar with the login's first letter, for fictional sample teachers. Gray only: the site has no hue. */
+function monogram(login: string, id: number): string {
+  const lightness = 22 + ((id * 7) % 4) * 6;
+  const letter = login.charAt(0).toUpperCase().replace(/[^A-Z0-9]/, "?");
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40"><rect width="40" height="40" fill="hsl(0 0% ${lightness}%)"/><text x="20" y="26.5" text-anchor="middle" font-family="sans-serif" font-size="18" font-weight="600" fill="#fff">${letter}</text></svg>`;
+return `data:image/svg+xml,${encodeURIComponent(svg)}`;
+}
 const git = (cwd: string, ...args: string[]) => execFileSync("git", args, { cwd, encoding: "utf8", maxBuffer: 256 * 1024 * 1024 });
 
-function readLessons(root: string): Lesson[] {
-  const dir = join(root, "lessons");
+function readLessons(dir: string): Lesson[] {
   const lessons: Lesson[] = [];
   for (const subject of readdirSync(dir, { withFileTypes: true })) {
     if (!subject.isDirectory()) continue;
@@ -70,11 +92,14 @@ function gitInfo(root: string): GitInfo {
 async function load(): Promise<SiteData> {
   const root = git(process.cwd(), "rev-parse", "--show-toplevel").trim();
   const config = JSON.parse(readFileSync(join(root, "ludion.config.json"), "utf8")) as Config;
-  const all = readLessons(root);
-  const info = gitInfo(root);
+  const samples = SAMPLES ? sampleMeta(root) : null;
+  const all = readLessons(join(root, samples ? "apps/site/samples/lessons" : "lessons"));
+  const info = samples ? samples.git : gitInfo(root);
 
   const ids = new Set(all.map((l) => l.author_id));
-  const resolved = await resolveLogins(ids, fetch, process.env.GITHUB_READ_TOKEN || undefined);
+  const resolved = samples
+    ? new Map(Object.entries(samples.teachers).map(([id, login]) => [Number(id), login]))
+    : await resolveLogins(ids, fetch, process.env.GITHUB_READ_TOKEN || undefined);
   for (const id of ids) {
     if (!resolved.has(id)) console.warn(`[ludion] Could not look up GitHub user ${id}; using the login stored in their newest lesson.`);
   }
@@ -114,6 +139,8 @@ async function load(): Promise<SiteData> {
     teacherPages: owners,
     loginOf: (id) => logins.get(id) ?? String(id),
     teacherHref: (id) => (pageOf.has(id) ? `/@${pageOf.get(id)}` : null),
+    avatarOf: (id, size) => (samples ? monogram(logins.get(id) ?? "?", id) : `https://avatars.githubusercontent.com/u/${id}?s=${size * 2}`),
+    samples: samples !== null,
   };
 }
 

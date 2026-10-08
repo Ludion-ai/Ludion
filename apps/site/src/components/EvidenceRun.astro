@@ -14,7 +14,7 @@ const label = runner === "lean" ? en.lesson.proof : en.lesson.test(runner);
     <span>{label}</span>
     <button type="button" class="copy" data-copied={en.lesson.copied}>{en.lesson.copy}</button>
   </figcaption>
-  <pre><code>{code}</code></pre>
+  <pre tabindex="0"><code>{code}</code></pre>
 </figure>
 
 <script>
@@ -35,38 +35,42 @@ const label = runner === "lean" ? en.lesson.proof : en.lesson.test(runner);
 
 <style>
   .run {
-    margin: 0 0 24px;
-    border: 1px solid var(--border);
-    border-radius: 6px;
+    margin: 0 0 20px;
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    background: var(--paper-2);
     overflow: hidden;
   }
   figcaption {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 8px 12px;
-    border-bottom: 1px solid var(--border);
-    font-size: 15px;
-    font-weight: 500;
+    gap: 16px;
+    padding: 6px 6px 6px 16px;
+    border-bottom: 1px solid var(--rule);
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--ink);
   }
   .copy {
     font: inherit;
     font-size: 13px;
-    color: var(--cobalt);
-    background: none;
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    padding: 2px 12px;
+    color: var(--ink);
+    background: var(--paper);
+    border: 1px solid var(--rule);
+    border-radius: 3px;
+    min-height: 32px;
+    padding: 0 12px;
     cursor: pointer;
   }
   .copy:hover {
-    color: var(--ink);
+    border-color: var(--ink);
   }
   pre {
     margin: 0;
     padding: 16px;
-    background: var(--surface);
+    color: var(--ink);
     overflow-x: auto;
-    line-height: 1.5;
+    line-height: 1.7;
   }
 </style>

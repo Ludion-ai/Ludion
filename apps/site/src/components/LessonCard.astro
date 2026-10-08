@@ -1,8 +1,8 @@
 ---
-// Compact card for lists. The full view is the lesson page itself.
-import StatusChip from "./StatusChip.astro";
-import TeacherLink from "./TeacherLink.astro";
-import { en, formatDate } from "../strings/en.ts";
+// A lesson in a list: one row of the readout. The claim, the teacher's signature with the seal, the subject.
+import Signature from "./Signature.astro";
+import SubjectTag from "./SubjectTag.astro";
+import Claim from "./Claim.astro";
 import type { VerifiedBy } from "@ludion/core";
 
 interface Props {
@@ -15,43 +15,49 @@ interface Props {
   teacherHref: string | null;
   verifiedBy: VerifiedBy;
   verifiedAt: string;
+  /** On the teacher's own page every row is theirs, so the "— @login" line is left out. */
+  hideTeacher?: boolean;
 }
-const p = Astro.props;
+const { hideTeacher = false, ...p } = Astro.props;
 ---
 
-<article class="card">
-  <p class="claim"><a href={`/lessons/${p.id}/`}>{p.claim}</a></p>
-  <p class="meta">
-    <StatusChip status="verified" label={en.lesson.verifiedBy[p.verifiedBy]} />
-    <TeacherLink login={p.teacher} id={p.teacherId} href={p.teacherHref} />
-    <span class="muted">{en.lesson.appliesTo(p.subject, p.version)}</span>
-    <time class="muted" datetime={p.verifiedAt}>{formatDate(p.verifiedAt)}</time>
-  </p>
+<article class="row">
+  <p class="claim text"><a href={`/lessons/${p.id}/`}><Claim text={p.claim} /></a></p>
+  <div class="under">
+    <Signature teacher={p.teacher} teacherId={p.teacherId} teacherHref={p.teacherHref} verifiedBy={p.verifiedBy} verifiedAt={p.verifiedAt} name={!hideTeacher} />
+    <SubjectTag subject={p.subject} version={p.version} />
+  </div>
 </article>
 
 <style>
-  .card {
-    padding: 16px 0;
-    border-bottom: 1px solid var(--border);
+  .row {
+    padding: 28px 0 30px;
+    border-top: 1px solid var(--rule);
   }
-  .claim {
-    margin: 0 0 8px;
-    color: var(--ink);
+  .text {
+    font-size: 26px;
+    line-height: 1.22;
+    margin: 0 0 16px;
+    max-width: 30em;
   }
-  .claim a {
+  .text a {
     color: inherit;
     text-decoration: none;
   }
-  .claim a:hover {
-    color: var(--cobalt);
+  .text a:hover {
     text-decoration: underline;
+    text-decoration-thickness: 2px;
   }
-  .meta {
+  .under {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 8px 16px;
-    margin: 0;
-    font-size: 15px;
+    justify-content: space-between;
+    gap: 12px 24px;
+  }
+  @media (max-width: 640px) {
+    .text {
+      font-size: 21px;
+    }
   }
 </style>

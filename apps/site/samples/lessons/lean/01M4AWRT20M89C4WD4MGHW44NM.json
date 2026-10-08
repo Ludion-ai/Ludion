@@ -1,0 +1,16 @@
+{
+  "id": "01M4AWRT20M89C4WD4MGHW44NM",
+  "subject": "lean",
+  "claim": "In Lean 4, n + 0 = n holds for every natural number n by definition, so rfl proves it.",
+  "evidence": [
+    {
+      "run": {
+        "runner": "lean",
+        "code": "theorem add_zero' (n : Nat) : n + 0 = n := rfl"
+      }
+    }
+  ],
+  "author": "github:maximilian-alexander-von-hohenzollern-x",
+  "author_id": 103,
+  "created_at": "2026-10-07T09:58:00Z"
+}

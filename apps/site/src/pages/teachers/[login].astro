@@ -11,52 +11,71 @@ export async function getStaticPaths() {
 }
 
 const { id } = Astro.props as { id: number };
-const { index, loginOf, teacherHref } = await siteData();
+const { index, loginOf, teacherHref, avatarOf } = await siteData();
 const login = loginOf(id);
 const summary = index.teachers[String(id)]!;
 const lessons = index.lessons.filter((l) => l.teacher_id === id);
 ---
 
-<Base title={en.teacher.title(login)}>
-  <header class="teacher">
-    <img src={`https://avatars.githubusercontent.com/u/${id}?s=128`} alt="" width="64" height="64" />
-    <h1>@{login}</h1>
-  </header>
-  <p>{en.teacher.summary(summary.lessons, summary.subjects.length)}: {summary.subjects.join(", ")}</p>
-  <p><a href={`https://github.com/${login}`}>{en.teacher.profile}</a></p>
-  <ul class="list">
-    {
-      lessons.map((l) => (
-        <li>
-          <LessonCard
-            id={l.id}
-            claim={l.claim}
-            subject={l.subject}
-            version={l.version}
-            teacher={l.teacher}
-            teacherId={l.teacher_id}
-            teacherHref={teacherHref(l.teacher_id)}
-            verifiedBy={l.verified_by}
-            verifiedAt={l.verified_at}
-          />
-        </li>
-      ))
-    }
-  </ul>
+<Base title={en.teacher.title(login)} canonicalPath={`/@${login.toLowerCase()}`}>
+  <div class="wrap">
+    <header class="teacher">
+      <img src={avatarOf(id, 64)} alt="" width="72" height="72" />
+      <div>
+        <h1>@{login}</h1>
+        <p class="summary">
+          <span>{en.teacher.summary(summary.lessons, summary.subjects.length)}</span>
+          <a href={`https://github.com/${login}`}>{en.teacher.profile}</a>
+        </p>
+      </div>
+    </header>
+    <ul class="list">
+      {
+        lessons.map((l) => (
+          <li>
+            <LessonCard
+              id={l.id}
+              claim={l.claim}
+              subject={l.subject}
+              version={l.version}
+              teacher={l.teacher}
+              teacherId={l.teacher_id}
+              teacherHref={teacherHref(l.teacher_id)}
+              verifiedBy={l.verified_by}
+              verifiedAt={l.verified_at}
+              hideTeacher
+            />
+          </li>
+        ))
+      }
+    </ul>
+  </div>
 </Base>
 
 <style>
   .teacher {
     display: flex;
     align-items: center;
-    gap: 16px;
-    margin-bottom: 16px;
-  }
-  .teacher h1 {
-    margin: 0;
+    gap: 20px;
+    margin-bottom: 40px;
   }
   .teacher img {
-    border-radius: 50%;
-    background: var(--surface);
+    border-radius: 3px;
+    flex: none;
+  }
+  h1 {
+    font-weight: 800;
+    font-size: clamp(30px, 5vw, 52px);
+    line-height: 1;
+    letter-spacing: -0.04em;
+    overflow-wrap: anywhere;
+  }
+  .summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 20px;
+    margin: 10px 0 0;
+    font-size: 15px;
+    color: var(--muted);
   }
 </style>

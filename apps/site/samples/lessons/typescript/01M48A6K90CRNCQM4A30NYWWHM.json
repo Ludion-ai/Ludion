@@ -1,0 +1,20 @@
+{
+  "id": "01M48A6K90CRNCQM4A30NYWWHM",
+  "subject": "typescript",
+  "version": ">=5.0",
+  "claim": "TypeScript 5.0 added moduleResolution bundler, but tsc --init does not choose it for you.",
+  "evidence": [
+    {
+      "source": {
+        "url": "https://devblogs.microsoft.com/typescript/announcing-typescript-5-0/",
+        "quote": "--moduleResolution bundler"
+      }
+    }
+  ],
+  "author": "github:kenji-watanabe",
+  "author_id": 102,
+  "replaces": [
+    "01M3XZT2Z0CRNP4G4A3GC8WWHA"
+  ],
+  "created_at": "2026-10-06T09:55:00Z"
+}
