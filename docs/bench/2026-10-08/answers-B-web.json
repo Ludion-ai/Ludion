@@ -1,0 +1,107 @@
+{
+  "label": "B-web",
+  "set": "B",
+  "condition": "web",
+  "context": null,
+  "model": "opus",
+  "spentUsd": 6.5762616000000005,
+  "skipped": [],
+  "answers": [
+    {
+      "id": "vitest-5-0-0-7-b",
+      "answer": "In Vitest browser mode, use the retrying `expect.element()` assertion with `toHaveTextContent`:\n\n```ts\nimport { page } from '@vitest/browser/context' // 'vitest/browser' in Vitest 4+\nimport { expect, test } from 'vitest'\n\ntest('shows greeting', async () => {\n  await expect.element(page.getByTestId('greeting')).toHaveTextContent('Hello world')\n})\n```\n\nWhen you pass a string, `toHaveTextContent` passes if the element's text contains it anywhere, so you don't need the full text. Whitespace is normalized before the check. For a case-insensitive or exact match, pass a regex such as `/hello world/i` or `/^Hello world$/`. Remember to `await` the `expect.element(...)` call, because it retries until the element matches or the timeout runs out.",
+      "toolCalls": [],
+      "costUsd": 0.0265706,
+      "turns": 1,
+      "isError": false,
+      "mcp": {}
+    },
+    {
+      "id": "vitest-5-0-0-6-b",
+      "answer": "Vitest browser mode supports three providers:\n\n- **Playwright** (`@vitest/browser-playwright`): runs tests in Chromium, Firefox or WebKit. The docs recommend it for CI and for most projects, because it supports parallel runs and uses the Chrome DevTools Protocol.\n- **WebdriverIO** (`@vitest/browser-webdriverio`): uses the WebDriver protocol and works with Chrome, Firefox, Edge and Safari.\n- **Preview** (`@vitest/browser-preview`): the default. It opens tests in your normal browser and simulates user events instead of driving the browser for real, so it isn't suitable for CI or headless runs.\n\nSince Vitest 4, each provider is a separate package that you import and pass to `browser.provider`, for example `provider: playwright()`. Older versions took a string like `'playwright'` instead. I answered from memory and didn't check the current Vitest docs, so a newer release may have changed this.",
+      "toolCalls": [],
+      "costUsd": 0.0289226,
+      "turns": 1,
+      "isError": false,
+      "mcp": {}
+    },
+    {
+      "id": "vitest-5-0-0-4-b",
+      "answer": "Yes, that's expected. Vitest looks for `vitest.config.*` or `vite.config.*` only in the directory you run it from (the project root, which is your cwd by default). It doesn't search parent directories, so running it inside `packages/foo` never finds the root config.\n\nYou can fix it in any of these ways:\n\n- **Point at the root config:** run `vitest --config ../../vitest.config.ts`.\n- **Add a package config that extends the root one:** create `packages/foo/vitest.config.ts` and use `mergeConfig(rootConfig, defineConfig({ test: { ... } }))`.\n- **Run from the repo root:** if the root config defines `test.projects` (formerly a workspace file), run `vitest --project foo` from the root.",
+      "toolCalls": [],
+      "costUsd": 0.029702600000000003,
+      "turns": 1,
+      "isError": false,
+      "mcp": {}
+    },
+    {
+      "id": "vitest-5-0-0-9-b",
+      "answer": "By default, `vitest --merge-reports` reads from the **`.vitest-reports`** folder in the project root. That's also where the `blob` reporter writes its output by default. For example, running `vitest run --reporter=blob --shard=1/3` creates `.vitest-reports/blob-1-3.json`. To merge from a different location, pass the path explicitly, as in `vitest --merge-reports=./path/to/blobs`. If you do that, set the blob reporter's `outputFile` option so it writes to the same place.",
+      "toolCalls": [],
+      "costUsd": 0.0245746,
+      "turns": 1,
+      "isError": false,
+      "mcp": {}
+    },
+    {
+      "id": "vitest-5-0-0-14-b",
+      "answer": "Yes. In Vitest's `test.projects` (formerly `workspace`), inline project configs **don't** inherit anything from the root config by default. Each inline project that should pick up your root settings, such as plugins, `resolve.alias`, `setupFiles` and `environment`, needs `extends: true`. Without it, that project only uses the options written inside its own block.\n\nSome options aren't affected by this. Global settings like `coverage`, `reporters` and `globalSetup` apply to the whole run from the root config either way, and projects can't override them.\n\nIf you're on an older version that uses `vitest.workspace` files, the same rule applies there. You can also point `extends` at a config file path instead of `true`.",
+      "toolCalls": [],
+      "costUsd": 0.025978599999999998,
+      "turns": 1,
+      "isError": false,
+      "mcp": {}
+    },
+    {
+      "id": "vitest-5-0-0-12-b",
+      "answer": "You've most likely upgraded to Vitest 5. Vitest 5 turned on `browser.locators.exact` by default (a breaking change in 5.0.0-beta.4, PR #10430). With that on, `getByText('Save')` needs a full, case-sensitive match, so it no longer finds \"Save changes\". In Vitest 4, `browser.locators.exact` defaulted to `false` (the option was added in 4.1.3), which is why substring matches used to work.\n\nYou can fix it in either of two ways:\n- For a single call, use `getByText('Save', { exact: false })`, or just match the full text with `getByText('Save changes')`.\n- To bring back the old behaviour everywhere, set `browser: { locators: { exact: false } }` in your Vitest config.\n\nSources:\n- [Vitest 5.0.0-beta.4 breaking changes](https://newreleases.io/project/npm/vitest/release/5.0.0-beta.4)\n- [Vitest docs: browser.locators config](https://vitest.dev/config/browser/locators)\n- [Vitest v4 docs: browser.locators config](https://v4.vitest.dev/config/browser/locators)",
+      "toolCalls": [
+        "WebSearch"
+      ],
+      "costUsd": 0.053497499999999996,
+      "turns": 2,
+      "isError": false,
+      "mcp": {}
+    },
+    {
+      "id": "vitest-5-0-0-17-b",
+      "answer": "Vitest has nothing like jest-when built in, but there's a community package called **`vitest-when`** (by mcous) that does the same job. You write `when(spy).calledWith(1, 2).thenReturn('result')`. It also has `thenResolve`, `thenReject`, `thenThrow` and `thenDo`, and works with `vi.fn()` and `vi.mocked(...)` functions. If you'd rather not add a dependency, you can use `vi.fn().mockImplementation((...args) => ...)` and branch on the arguments yourself. jest-when itself may also work, since Vitest's mocks are mostly Jest-compatible, but `vitest-when` is the better choice because it's built for Vitest and has proper types.",
+      "toolCalls": [],
+      "costUsd": 0.0254706,
+      "turns": 1,
+      "isError": false,
+      "mcp": {}
+    },
+    {
+      "id": "vitest-5-0-0-16-b",
+      "answer": "`vi.mock` isn't a normal runtime call. Vitest moves it to the top of the test file at compile time so the mock is registered before any `import` runs. Putting it inside `beforeEach` doesn't change that: it still runs once, before your tests, not before each test. Newer Vitest versions treat a non-top-level `vi.mock` as an error, while older ones only warned.\n\nThe other common cause is the factory function. If it uses variables declared in the `beforeEach` scope or elsewhere in the file, those variables don't exist yet when the moved call runs. That gives you a `ReferenceError` or a \"There was an error when mocking a module\" message. You can share values with the factory safely by creating them with `vi.hoisted()`.\n\nThe fix depends on what you need:\n- **Set up the mock once, change its behavior per test:** call `vi.mock(...)` at the top level. Then in `beforeEach`, use `vi.mocked(fn).mockReturnValue(...)` or `mockReset()`.\n- **Swap in a different mock module per test:** use `vi.doMock(...)`, which isn't moved. It only affects imports that happen after it, so call `vi.resetModules()` and then `await import(...)` the module inside the test or hook.",
+      "toolCalls": [],
+      "costUsd": 0.036946599999999996,
+      "turns": 1,
+      "isError": false,
+      "mcp": {}
+    },
+    {
+      "id": "vitest-5-0-0-13-b",
+      "answer": "In current Vitest (v5 and later), `testNamePattern` (`-t`) is matched against the test's full name. That's the enclosing `describe` names and the test name joined with **`\" > \"`** (space, greater-than, space), the same string the reporter prints. So an `adds` test inside a `math` suite is `math > adds`, and `-t 'math > adds'` matches it. `-t adds` also matches, because the pattern only has to match part of the name.\n\nThis changed in Vitest 5. Earlier versions joined the names with a single space (`math adds`) to match Jest. I had expected the space separator, so I checked the current docs. On Vitest 4 or older, use `-t 'math adds'` instead.\n\nSources:\n- [Vitest config: testNamePattern](https://vitest.dev/config/testnamepattern)\n- [Vitest guide: Test Filtering](https://vitest.dev/guide/filtering)",
+      "toolCalls": [
+        "WebFetch",
+        "WebSearch",
+        "WebFetch"
+      ],
+      "costUsd": 0.0733033,
+      "turns": 4,
+      "isError": false,
+      "mcp": {}
+    },
+    {
+      "id": "vitest-5-0-0-24-b",
+      "answer": "`vitest list` doesn't parse the files statically. It does a collect-only run.\n\n1. Vitest finds test files using your `include`/`exclude` globs and the rest of your config.\n2. It sends those files to its normal workers and imports each one through Vite's transform pipeline. So the code at the top level of each file runs, and so do your `describe` callbacks. Calls to `test`/`it` register tasks in the runner's collector. In this mode the runner stops once collection finishes, so test bodies and hooks like `beforeAll`/`beforeEach` never run.\n3. It prints the collected task tree. Filters such as `-t` and `.only`/`.skip` are applied to that tree. `--json` writes it as JSON.\n\n**Side effects still happen.** Any setup files and module-level code with side effects run during listing. If you only want the matching file paths, `vitest list --filesOnly` skips importing the files and stops after the glob step.\n\nThere's one exception: in typecheck mode, tests are found by parsing the file's syntax tree instead of importing it. I'm answering from memory and didn't check the source this session, so the details may differ between Vitest versions.",
+      "toolCalls": [],
+      "costUsd": 0.0323186,
+      "turns": 1,
+      "isError": false,
+      "mcp": {}
+    }
+  ]
+}

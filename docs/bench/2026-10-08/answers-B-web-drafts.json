@@ -1,0 +1,119 @@
+{
+  "label": "B-web-drafts",
+  "set": "B",
+  "condition": "web",
+  "context": "docs\\bench\\2026-10-08\\drafts.json",
+  "model": "opus",
+  "spentUsd": 7.4184436000000025,
+  "skipped": [],
+  "answers": [
+    {
+      "id": "vitest-5-0-0-4-b",
+      "answer": "Yes, that's expected if you're on Vitest 5. The v5.0.0 release notes list \"Don't lookup config file from ancestor directories\" (#10428) as a breaking change. Vitest now only looks for a config file in the directory you run it from. Earlier versions searched parent folders, which is why it used to find your root config.\n\nTo fix it, do one of these:\n- Run Vitest from the repo root.\n- Point at the config directly: `vitest --config ../../vitest.config.ts`\n- Add a `vitest.config.ts` in `packages/foo`. Combine it with the root config using `mergeConfig`, or use `test.projects` at the root.\n\nSource: [Vitest v5.0.0 release notes](https://github.com/vitest-dev/vitest/releases/tag/v5.0.0)",
+      "toolCalls": [
+        "WebFetch"
+      ],
+      "costUsd": 0.051916899999999995,
+      "turns": 2,
+      "isError": false,
+      "mcp": {}
+    },
+    {
+      "id": "vitest-5-0-0-7-b",
+      "answer": "In Vitest 5, use `toMatchTextContent` for a partial match: `await expect.element(page.getByTestId('msg')).toMatchTextContent('your phrase')`. `toHaveTextContent` is strict now, so it only passes when the text matches exactly. Locators also match text exactly by default in Vitest 5 (`locators.exact` is `true`), so to find the element by part of its text, pass `{ exact: false }`, as in `page.getByText('your phrase', { exact: false })`. On Vitest 4 or earlier, `toHaveTextContent('your phrase')` already does a partial match.\n\nThe v5.0.0 release notes list both changes, but they don't define \"strict\" exactly. If it matters, for example whitespace handling, check the matcher docs.\n\nSources:\n- [Vitest v5.0.0 release notes](https://github.com/vitest-dev/vitest/releases/tag/v5.0.0)",
+      "toolCalls": [
+        "WebFetch"
+      ],
+      "costUsd": 0.0521621,
+      "turns": 2,
+      "isError": false,
+      "mcp": {}
+    },
+    {
+      "id": "vitest-5-0-0-6-b",
+      "answer": "Before Vitest 5, browser mode had three providers: **Playwright** (`@vitest/browser-playwright`), **WebdriverIO** (`@vitest/browser-webdriverio`) and **preview** (`@vitest/browser-preview`). Preview opens your real browser but can't run headless or in CI.\n\n**Vitest 5.0.0 removed the WebdriverIO package**, which is listed as a breaking change (#10675) in the release notes. That leaves Playwright as the main provider; the release only mentions it in bug fixes. The notes don't mention the preview provider, so I'm assuming it's unchanged rather than confirmed. If you're on Vitest 5 and use WebdriverIO, you'll need to move to Playwright.\n\nSources:\n- [Vitest v5.0.0 release notes](https://github.com/vitest-dev/vitest/releases/tag/v5.0.0)",
+      "toolCalls": [
+        "WebFetch"
+      ],
+      "costUsd": 0.050803400000000005,
+      "turns": 2,
+      "isError": false,
+      "mcp": {}
+    },
+    {
+      "id": "vitest-5-0-0-9-b",
+      "answer": "In Vitest 5, `vitest --merge-reports` reads from `.vitest/blob/` by default, which is also where the `blob` reporter now writes its output. The v5.0.0 release notes list this as a breaking change. Before v5, the default folder was `.vitest-reports`. If your CI scripts point to that old folder, update them or pass the path explicitly, for example `vitest --merge-reports=./my-dir`.\n\nSources:\n- [Vitest v5.0.0 release notes](https://github.com/vitest-dev/vitest/releases/tag/v5.0.0)",
+      "toolCalls": [
+        "WebFetch"
+      ],
+      "costUsd": 0.0459912,
+      "turns": 2,
+      "isError": false,
+      "mcp": {}
+    },
+    {
+      "id": "vitest-5-0-0-13-b",
+      "answer": "It depends on the version. In Vitest 5 and later, `-t` / `testNamePattern` matches against the full test name with `>` between the nested `describe` names and the test name, for example `outer > inner > my test`. The v5.0.0 release notes list this as a breaking change: \"Use `>` as separator in `-t`\" (PR #10686). In Vitest 4 and earlier, the names are joined with spaces, for example `outer inner my test`. If you upgrade, any `-t` regex that spans suite and test names needs to change to the new separator.\n\nSources:\n- [Vitest v5.0.0 release notes](https://github.com/vitest-dev/vitest/releases/tag/v5.0.0)",
+      "toolCalls": [
+        "WebFetch"
+      ],
+      "costUsd": 0.0478764,
+      "turns": 2,
+      "isError": false,
+      "mcp": {}
+    },
+    {
+      "id": "vitest-5-0-0-12-b",
+      "answer": "This is a Vitest 5 breaking change. Browser mode now turns on `locators.exact` by default, so `getByText('Save')` only matches an element whose text is exactly \"Save\". It no longer finds \"Save changes\" through a partial match. The v5.0.0 release notes list this under browser breaking changes as \"Enable `locators.exact` by default\". They don't explain the option any further, so the exact-match behavior is what the option name and the old Testing Library semantics suggest.\n\nTo fix it, you can do any of these:\n- Use the full text: `getByText('Save changes')`.\n- Opt out for one call: `getByText('Save', { exact: false })`.\n- Use a regex: `getByText(/Save/)`.\n- Restore the old default for the whole project: set `test.browser.locators.exact: false` in your config.\n\nSource: [Vitest v5.0.0 release notes](https://github.com/vitest-dev/vitest/releases/tag/v5.0.0)",
+      "toolCalls": [
+        "WebFetch"
+      ],
+      "costUsd": 0.051228300000000004,
+      "turns": 2,
+      "isError": false,
+      "mcp": {}
+    },
+    {
+      "id": "vitest-5-0-0-14-b",
+      "answer": "It depends on your Vitest version. In Vitest 5, you don't need it. Inline projects in `test.projects` inherit the root config by default, and the v5.0.0 release notes list this as a breaking change (#10750). In Vitest 4 and earlier, you still need `extends: true` on each inline project.\n\nIf you're on Vitest 5 and still have `extends: true` in your config, consider removing it. It can bring in plugins a second time, and Vitest 5 now warns about duplicate plugins in inline projects.\n\nSource: [Vitest v5.0.0 release notes](https://github.com/vitest-dev/vitest/releases/tag/v5.0.0)",
+      "toolCalls": [
+        "WebFetch"
+      ],
+      "costUsd": 0.047732500000000004,
+      "turns": 2,
+      "isError": false,
+      "mcp": {}
+    },
+    {
+      "id": "vitest-5-0-0-16-b",
+      "answer": "`vi.mock` is hoisted. Vitest moves the call to the top of the file so the mock is registered before any `import` statements run. If you call it inside `beforeEach` or any other function, Vitest can't hoist it, and by the time the hook runs the real module has already been imported. Older versions only warned about this, but according to the Vitest 5.0.0 release notes, calling `vi.mock` or another hoisted method outside a module's top level now throws an error.\n\nTo fix it, move `vi.mock(...)` to the top level of the test file. To change what the mock does for each test, keep it at the top level and reset the behavior in `beforeEach`, for example with `vi.mocked(fn).mockReturnValue(...)`. If you actually need to mock a module at runtime, use `vi.doMock`, which isn't hoisted, and then `await import(...)` the module after calling it.",
+      "toolCalls": [],
+      "costUsd": 0.0386284,
+      "turns": 1,
+      "isError": false,
+      "mcp": {}
+    },
+    {
+      "id": "vitest-5-0-0-17-b",
+      "answer": "Yes, if you're on Vitest 5. The [v5.0.0 release notes](https://github.com/vitest-dev/vitest/releases/tag/v5.0.0) list a new `vi.when()` API. A bug fix for \"vi.when thenResolve\" in the same release suggests it uses jest-when-style chaining (`.thenReturn`, `.thenResolve`). The notes don't document the exact signature, though, so check the Vitest 5 API docs before you rely on it.\n\nOn Vitest 4 or earlier, you have two options:\n- **Built in:** use `vi.fn().mockImplementation((arg) => ...)` and branch on the arguments yourself.\n- **Library:** use the community package `vitest-when`, which offers `when(spy).calledWith(...).thenReturn(...)`.",
+      "toolCalls": [
+        "WebFetch"
+      ],
+      "costUsd": 0.0491399,
+      "turns": 2,
+      "isError": false,
+      "mcp": {}
+    },
+    {
+      "id": "vitest-5-0-0-24-b",
+      "answer": "In Vitest 5, `vitest list` reads each test file's source and parses it into an AST (syntax tree) instead of importing and running it. It then walks that tree for `describe`, `test` and `it` calls, plus forms like `test.describe` and their modifiers, and builds the list of suites and tests from those calls. The v5.0.0 release notes list this as a breaking change (\"Parse files statically in vitest list by default\", #11088). The same release moved the underlying `parseSpecifications` API out of experimental and shares the AST collection code with typechecking.\n\nBecause nothing runs, setup files, imports and side effects never execute, so listing is faster. The catch is that tests created at runtime can't be fully resolved this way. That includes tests made in loops, names computed from variables, and calls through computed members like `test[mode](...)`, which static collection ignores. The release notes don't say how to switch back to the old run-to-collect behavior, so check `vitest list --help` if you need it.\n\nSources:\n- [Vitest v5.0.0 release notes](https://github.com/vitest-dev/vitest/releases/tag/v5.0.0)",
+      "toolCalls": [
+        "WebFetch"
+      ],
+      "costUsd": 0.054990899999999995,
+      "turns": 2,
+      "isError": false,
+      "mcp": {}
+    }
+  ]
+}

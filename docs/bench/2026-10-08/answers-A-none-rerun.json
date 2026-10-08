@@ -1,0 +1,38 @@
+{
+  "label": "A-none-rerun",
+  "set": "A",
+  "condition": "none",
+  "context": null,
+  "model": "opus",
+  "spentUsd": 5.851866,
+  "skipped": [],
+  "answers": [
+    {
+      "id": "agents-0-24-0-6-a",
+      "answer": "The workspace is empty, so this is from my knowledge of Cloudflare's Agents SDK (`agents/react`), not from your code.\n\nAs far as I know, `useAgent` only uses WebSockets. It wraps PartySocket's `usePartySocket`, and its state sync and `call()`/RPC features depend on that persistent connection. If you want to talk to an agent without a WebSocket, use plain HTTP instead: call `agentFetch` from `agents/client` (or a normal `fetch`) to reach the agent's `onRequest` handler. That handler can return a streaming response such as SSE. Newer SDK versions may have changed this, so check the current `agents` docs or changelog if you need to be sure.",
+      "toolCalls": [],
+      "costUsd": 0.034791,
+      "turns": 1,
+      "isError": false,
+      "mcp": {}
+    },
+    {
+      "id": "agents-0-22-0-14-a",
+      "answer": "Pass it as the third argument's `storage` field: `new MCPClientManager(\"my-client\", \"1.0.0\", { storage: this.ctx.storage })` (any `DurableObjectStorage` instance works). The options type `MCPClientManagerOptions` (`packages/agents/src/mcp/client.ts:142`) requires `storage`, and the constructor throws if you leave it out (`client.ts:216`). You can also pass an optional `createAuthProvider: (callbackUrl) => AgentMcpOAuthProvider` if you want custom OAuth handling.",
+      "toolCalls": [],
+      "costUsd": 0.057075,
+      "turns": 1,
+      "isError": false,
+      "mcp": {}
+    },
+    {
+      "id": "agents-0-22-0-11-a",
+      "answer": "",
+      "toolCalls": [],
+      "costUsd": 0,
+      "turns": 0,
+      "isError": true,
+      "mcp": {}
+    }
+  ]
+}

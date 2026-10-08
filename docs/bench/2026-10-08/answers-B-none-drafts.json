@@ -1,0 +1,101 @@
+{
+  "label": "B-none-drafts",
+  "set": "B",
+  "condition": "none",
+  "context": "docs\\bench\\2026-10-08\\drafts.json",
+  "model": "opus",
+  "spentUsd": 6.927973600000001,
+  "skipped": [],
+  "answers": [
+    {
+      "id": "vitest-5-0-0-4-b",
+      "answer": "Yes, if you're on Vitest 5. Starting in 5.0, Vitest no longer searches parent directories for a config file. Running it from `packages/foo` only picks up a config in that folder.\n\nYou have three options:\n- Run Vitest from the repo root.\n- Point at the root config explicitly with `npx vitest --config ../../vitest.config.ts`.\n- Add a `vitest.config.ts` in `packages/foo` that imports and extends the root one using `mergeConfig`.\n\nIf you're on Vitest 4 or earlier, this behavior would be unexpected and worth a closer look. Check with `npx vitest --version`. (Source: the [v5.0.0 release notes](https://github.com/vitest-dev/vitest/releases/tag/v5.0.0).)",
+      "toolCalls": [],
+      "costUsd": 0.035108799999999996,
+      "turns": 1,
+      "isError": false,
+      "mcp": {}
+    },
+    {
+      "id": "vitest-5-0-0-6-b",
+      "answer": "Through Vitest 4, browser mode supports three providers: **Playwright** (`@vitest/browser-playwright`, recommended for CI and parallel runs), **WebdriverIO** (`@vitest/browser-webdriverio`), and **preview** (`@vitest/browser-preview`, which opens a real browser but can't simulate events programmatically, so it's meant for local development only).\n\nAccording to the Vitest 5.0.0 release notes (https://github.com/vitest-dev/vitest/releases/tag/v5.0.0), **Vitest 5 removed the WebdriverIO provider package**. On Vitest ≥5, your choices are therefore Playwright and preview. If you're upgrading a project that uses WebdriverIO, plan to switch it to Playwright.",
+      "toolCalls": [],
+      "costUsd": 0.0363048,
+      "turns": 1,
+      "isError": false,
+      "mcp": {}
+    },
+    {
+      "id": "vitest-5-0-0-7-b",
+      "answer": "In Vitest browser mode, use `expect.element(locator).toHaveTextContent('phrase')`. Through Vitest 4, this does a partial (substring) match:\n\n```ts\nawait expect.element(page.getByRole('heading')).toHaveTextContent('Welcome')\n```\n\nIf you're on **Vitest 5**, `toHaveTextContent` reportedly matches the full text strictly, and there's a new `toMatchTextContent('phrase')` for partial matches. Locators like `getByText` also default to exact matching in v5 (`locators.exact: true`). I haven't confirmed these v5 changes myself, so check the v5.0.0 release notes (https://github.com/vitest-dev/vitest/releases/tag/v5.0.0) if a substring assertion starts failing after an upgrade.",
+      "toolCalls": [],
+      "costUsd": 0.0353928,
+      "turns": 1,
+      "isError": false,
+      "mcp": {}
+    },
+    {
+      "id": "vitest-5-0-0-9-b",
+      "answer": "By default, `vitest --merge-reports` reads from **`.vitest/blob/`** in Vitest 5. That is also where the blob reporter writes by default, so the two work together without extra configuration (per the [v5.0.0 release notes](https://github.com/vitest-dev/vitest/releases/tag/v5.0.0)).\n\nIn Vitest 1–4, the default folder was **`.vitest-reports/`**. If you're upgrading and your CI copies or caches blob files from that path, update it. You can also pass a directory explicitly, as in `--merge-reports=<dir>`.",
+      "toolCalls": [],
+      "costUsd": 0.0338248,
+      "turns": 1,
+      "isError": false,
+      "mcp": {}
+    },
+    {
+      "id": "vitest-5-0-0-12-b",
+      "answer": "This is most likely the Vitest 5 browser-mode change: **locators now match text exactly by default** (`locators.exact` is `true`). `getByText('Save')` only finds an element whose text is exactly \"Save\", so it no longer matches \"Save changes.\"\n\nYou can fix it in either of these ways:\n\n- **Per locator:** `page.getByText('Save', { exact: false })`, or pass the full text with `getByText('Save changes')`.\n- **Globally:** set `locators.exact` back to `false` in your browser config. It is probably `test.browser.locators.exact: false`, but check the exact key against the docs.\n\nThis comes from the Vitest 5.0.0 release notes (https://github.com/vitest-dev/vitest/releases/tag/v5.0.0). I haven't checked your project, so confirm you're on vitest ≥5.0.0.",
+      "toolCalls": [],
+      "costUsd": 0.0357808,
+      "turns": 1,
+      "isError": false,
+      "mcp": {}
+    },
+    {
+      "id": "vitest-5-0-0-13-b",
+      "answer": "It depends on the version:\n\n- **Vitest 5 and later:** `-t` / `testNamePattern` matches against the full name with nested `describe` and `test` names joined by **` > `**, e.g. `math > add > handles negatives`. This change is listed in the [v5.0.0 release notes](https://github.com/vitest-dev/vitest/releases/tag/v5.0.0), per a Ludion lesson from @ludion-draft.\n- **Vitest 4 and earlier:** the names are joined with a **single space**, e.g. `math add handles negatives`.\n\nIf you're upgrading, update any `-t` patterns that span suite and test names. A pattern that matches only within one name is unaffected.",
+      "toolCalls": [],
+      "costUsd": 0.0338808,
+      "turns": 1,
+      "isError": false,
+      "mcp": {}
+    },
+    {
+      "id": "vitest-5-0-0-14-b",
+      "answer": "It depends on your Vitest version:\n\n- **Vitest 5+:** No. Inline projects in `test.projects` inherit the root config by default, so `extends: true` isn't needed.\n- **Vitest 3.x/4.x:** Yes. Inline projects don't inherit root settings unless you set `extends: true` on each one.\n\nIf you're upgrading to 5, existing `extends: true` entries become redundant. Any project that relied on *not* inheriting the root config now needs to override those settings explicitly. Run `npx vitest --version` to see which version you have.",
+      "toolCalls": [],
+      "costUsd": 0.0334208,
+      "turns": 1,
+      "isError": false,
+      "mcp": {}
+    },
+    {
+      "id": "vitest-5-0-0-17-b",
+      "answer": "Yes. According to a Ludion lesson (from @ludion-draft, checked against the v5.0.0 release notes), **Vitest 5 adds a built-in `vi.when()`** for mocks that return different results depending on the arguments they're called with. I haven't confirmed its exact API, so check the [v5.0.0 release notes](https://github.com/vitest-dev/vitest/releases/tag/v5.0.0) for the signature.\n\nOn Vitest 4 and earlier you have two options. You can use the community [`vitest-when`](https://github.com/mcous/vitest-when) package, which works much like jest-when. Or you can branch on the arguments yourself with `vi.fn().mockImplementation((arg) => arg === 'a' ? 1 : 2)`.",
+      "toolCalls": [],
+      "costUsd": 0.0350288,
+      "turns": 1,
+      "isError": false,
+      "mcp": {}
+    },
+    {
+      "id": "vitest-5-0-0-16-b",
+      "answer": "`vi.mock` is **hoisted**: Vitest moves it to the top of the file so the mock is registered before any `import` runs. Inside `beforeEach`, it can't be hoisted, so it would run after the module was already imported and silently do nothing. Vitest 5 now throws an error when `vi.mock` or another hoisted method is called anywhere other than the module's top level, so you see the problem immediately. (This is from the v5.0.0 release notes, via a Ludion lesson.)\n\nTo fix it:\n- **Move `vi.mock(...)` to the top level** of the test file, and in `beforeEach` change only the behavior, e.g. `vi.mocked(fn).mockReturnValue(...)` or `mockReset()`.\n- If you really need a different mock per test, use **`vi.doMock`** (not hoisted), call `vi.resetModules()`, and then `await import(...)` the module after mocking it.",
+      "toolCalls": [],
+      "costUsd": 0.0366448,
+      "turns": 1,
+      "isError": false,
+      "mcp": {}
+    },
+    {
+      "id": "vitest-5-0-0-24-b",
+      "answer": "In Vitest 5, `vitest list` **parses test files statically by default** instead of running them. It reads each file's source, builds a syntax tree, and looks for calls like `describe`, `test`/`it`, and modifiers such as `.skip`, `.only`, and `.each`. From those calls it reconstructs the suite and test hierarchy and names without importing the file or running any of its code.\n\nThe tradeoff is that static analysis only sees what is written literally in the source. Tests created at runtime may not be listed accurately, such as names built in loops, tests generated from imported data, or tests created through wrapper helpers.\n\nEarlier versions of Vitest collected tests by actually importing the files. That ran their top-level code but not the test bodies.\n\n(Source: Vitest 5.0.0 release notes, https://github.com/vitest-dev/vitest/releases/tag/v5.0.0)",
+      "toolCalls": [],
+      "costUsd": 0.0363248,
+      "turns": 1,
+      "isError": false,
+      "mcp": {}
+    }
+  ]
+}

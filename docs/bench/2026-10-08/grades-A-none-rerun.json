@@ -1,0 +1,25 @@
+{
+  "label": "A-none-rerun",
+  "model": "opus",
+  "spentUsd": 5.922867,
+  "grades": [
+    {
+      "id": "agents-0-22-0-14-a",
+      "grade": "wrong",
+      "why": "It presents the removed `storage` option as current and required, which is the stale behavior.",
+      "costUsd": 0.023979
+    },
+    {
+      "id": "agents-0-24-0-6-a",
+      "grade": "wrong",
+      "why": "It says useAgent only uses WebSockets (the stale behavior) and doesn't mention the capnweb transport option; the hedge doesn't fix that.",
+      "costUsd": 0.024951
+    },
+    {
+      "id": "agents-0-22-0-11-a",
+      "grade": "no_answer",
+      "why": "The answer is empty and does not address the question.",
+      "costUsd": 0.022071
+    }
+  ]
+}

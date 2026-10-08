@@ -80,14 +80,19 @@ Grade it:
 Reply with one line of JSON and nothing else: {"grade": "correct" | "wrong" | "no_answer", "why": "<one short sentence>"}`;
 
 export function parseGrade(text: string): { grade: "correct" | "wrong" | "no_answer"; why: string } | undefined {
-  const m = /\{[^{}]*"grade"\s*:\s*"(correct|wrong|no_answer)"[^{}]*\}/.exec(text);
-  if (!m) return undefined;
-  try {
-    const j = JSON.parse(m[0]) as { grade: "correct" | "wrong" | "no_answer"; why?: string };
-    return { grade: j.grade, why: j.why ?? "" };
-  } catch {
-    return { grade: m[1] as "correct" | "wrong" | "no_answer", why: "" };
+  // The JSON object from the first { to the last }: the "why" may itself contain braces.
+  const start = text.indexOf("{");
+  const end = text.lastIndexOf("}");
+  if (start >= 0 && end > start) {
+    try {
+      const j = JSON.parse(text.slice(start, end + 1)) as { grade?: string; why?: string };
+      if (j.grade === "correct" || j.grade === "wrong" || j.grade === "no_answer") return { grade: j.grade, why: j.why ?? "" };
+    } catch {
+      // Fall through to the grade alone.
+    }
   }
+  const m = /"grade"\s*:\s*"(correct|wrong|no_answer)"/.exec(text);
+  return m ? { grade: m[1] as "correct" | "wrong" | "no_answer", why: "" } : undefined;
 }
 
 async function run(questionsPath: string, outDir: string, label: string): Promise<void> {

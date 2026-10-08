@@ -59,6 +59,8 @@ describe("parseGrade", () => {
     expect(parseGrade('{"grade": "correct", "why": "States the new default."}')).toEqual({ grade: "correct", why: "States the new default." });
     expect(parseGrade('Here: {"grade":"no_answer","why":"Declines."} done')).toEqual({ grade: "no_answer", why: "Declines." });
     expect(parseGrade("I think it is right.")).toBeUndefined();
+    // Braces inside "why" (seen in a real judge reply).
+    expect(parseGrade('{"grade": "correct", "why": "Names this.dynamicAgents.{get,abort,delete,has,list} as the replacement."}')).toEqual({ grade: "correct", why: "Names this.dynamicAgents.{get,abort,delete,has,list} as the replacement." });
   });
 });
 

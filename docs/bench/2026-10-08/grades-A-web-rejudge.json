@@ -1,0 +1,13 @@
+{
+  "label": "A-web-rejudge",
+  "model": "opus",
+  "spentUsd": 5.956246,
+  "grades": [
+    {
+      "id": "agents-0-23-0-7-a",
+      "grade": "unparsed",
+      "why": "{\"grade\": \"correct\", \"why\": \"It says `subAgent()` and its sibling methods are deprecated in favor of `this.dynamicAgents.{get,abort,delete,has,list}` and still work by delegating to it; it omits the f",
+      "costUsd": 0.033379000000000006
+    }
+  ]
+}

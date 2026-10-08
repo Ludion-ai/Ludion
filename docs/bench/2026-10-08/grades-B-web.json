@@ -1,0 +1,67 @@
+{
+  "label": "B-web",
+  "model": "opus",
+  "spentUsd": 7.9153436000000035,
+  "grades": [
+    {
+      "id": "vitest-5-0-0-7-b",
+      "grade": "wrong",
+      "why": "It says toHaveTextContent with a string passes on substring containment, which is the stale behavior, and never mentions toMatchTextContent.",
+      "costUsd": 0.024463
+    },
+    {
+      "id": "vitest-5-0-0-6-b",
+      "grade": "wrong",
+      "why": "It presents @vitest/browser-webdriverio as a current provider, which is the stale answer; the package was removed in Vitest 5, and the hedge about not checking docs doesn't fix that.",
+      "costUsd": 0.024855
+    },
+    {
+      "id": "vitest-5-0-0-4-b",
+      "grade": "correct",
+      "why": "It says Vitest doesn't search parent directories for the config, matching the key, and doesn't present ancestor lookup as current.",
+      "costUsd": 0.023875
+    },
+    {
+      "id": "vitest-5-0-0-9-b",
+      "grade": "wrong",
+      "why": "It states the stale default folder .vitest-reports/ instead of the current .vitest/blob/.",
+      "costUsd": 0.023123
+    },
+    {
+      "id": "vitest-5-0-0-14-b",
+      "grade": "wrong",
+      "why": "It says inline projects don't inherit the root config unless `extends: true` is set, which is the stale behavior; the key says they inherit by default.",
+      "costUsd": 0.023767
+    },
+    {
+      "id": "vitest-5-0-0-12-b",
+      "grade": "correct",
+      "why": "It says locators.exact is now on by default, so text must match exactly, and it describes substring matching only as the old Vitest 4 behavior.",
+      "costUsd": 0.025051
+    },
+    {
+      "id": "vitest-5-0-0-17-b",
+      "grade": "wrong",
+      "why": "It says Vitest has nothing built in and recommends vitest-when or a manual mockImplementation, which is the stale answer; it misses Vitest 5's built-in vi.when().",
+      "costUsd": 0.024267
+    },
+    {
+      "id": "vitest-5-0-0-16-b",
+      "grade": "correct",
+      "why": "It says newer Vitest throws on a non-top-level vi.mock and that only older versions warned; its line about the call still being hoisted from beforeEach muddies this but doesn't replace the current fact.",
+      "costUsd": 0.035711
+    },
+    {
+      "id": "vitest-5-0-0-13-b",
+      "grade": "correct",
+      "why": "It states that current Vitest joins suite and test names with `>` and describes the space separator only as pre-v5 behavior.",
+      "costUsd": 0.024235
+    },
+    {
+      "id": "vitest-5-0-0-24-b",
+      "grade": "wrong",
+      "why": "It says `vitest list` imports and runs test files to collect tests, which is the outdated behavior, and denies the static parsing that is now the default.",
+      "costUsd": 0.024850999999999998
+    }
+  ]
+}
