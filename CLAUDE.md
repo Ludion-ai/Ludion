@@ -96,6 +96,13 @@ wrangler.jsonc       Worker "ludion"; assets dir apps/site/dist; secrets listed 
 - Step 6 needs a GitHub App. Claude Code prepares the settings in `worker.md`; a human clicks Create and installs it.
 - In Cloudflare: connect this repo to Workers Builds, and attach `ludion.ai` as the Worker's custom domain.
 
+## Cloudflare
+
+- Claude Code reaches Cloudflare through the Cloudflare API MCP server (OAuth) and wrangler.
+- Scope: the `ludion` Worker, its builds, and the `ludion.ai` zone. Do not touch anything else in the account (for example `chat-app-relay`).
+- Read freely. Change something only when the owner asked for that change in this conversation.
+- Never delete a resource or change DNS, routes, custom domains, or secrets unless the owner named that action. After any change, report what changed and how to undo it.
+
 ## Order of work
 
 Each step ends green: tests pass, and the step's check is demonstrated.
