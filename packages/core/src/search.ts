@@ -6,7 +6,9 @@ import type { Index, IndexEntry } from "./types.ts";
 //   - a strong word: an identifier (distutils), a version number (3.12), a flag (--discard-changes), a CSS
 //     pseudo-class (:has), a word in capitals or camelCase (RETURNING, moduleResolution), or any word not on the
 //     common-word list;
-//   - or, when the question has no strong word at all, at least two common words.
+//   - or, when the question has no strong word at all, at least two common words;
+//   - or a word the lesson writes as code (RETURNING), even in lowercase, plus one more word of the question.
+// A long question (a pasted log) is searched by its last error line and its strong words.
 // Subject names (python, git) never count: "What is Python?" finds nothing.
 // Checked by test/search-eval.test.ts (off-topic questions must find nothing; on-topic ones the right lesson in the top 3).
 
@@ -70,11 +72,14 @@ const COMMON = new Set(
   }),
 );
 
+/** Written as code: all capitals (RETURNING) or camelCase (moduleResolution). */
+const isCodeLike = (original: string) => /^[A-Z]{2,}$/.test(original) || /[a-z][A-Z]/.test(original);
+
 /** Strong unless it is a common word, a plain number, a single letter, or not in Latin script. */
 function isStrong(term: string, original: string): boolean {
   if (/^\d+(\.\d+)+$/.test(term) || /^[:-]/.test(term)) return true;
   if (!/^[a-z]{2,}$/.test(term)) return false;
-  if (/^[A-Z]{2,}$/.test(original) || /[a-z][A-Z]/.test(original)) return true;
+  if (isCodeLike(original)) return true;
   return !COMMON.has(term);
 }
 
@@ -83,9 +88,20 @@ interface Searcher {
   byId: Map<string, IndexEntry>;
   /** Words of every subject name: they never count as a match. */
   subjectTerms: Set<string>;
+  /** Per lesson id, the words its claim writes as code. */
+  codeTerms: Map<string, Set<string>>;
 }
 
 const searchers = new WeakMap<Index, Searcher>();
+
+/** Words a lesson writes as code: in capitals (RETURNING), camelCase (moduleResolution), or inside `backticks`. */
+function codeTermsOf(claim: string, subjectTerms: Set<string>): Set<string> {
+  const code = [
+    ...words(claim).filter(isCodeLike),
+    ...[...claim.matchAll(/`([^`]+)`/g)].flatMap((m) => words(m[1]!)),
+  ];
+  return new Set(code.map((w) => processTerm(w.toLowerCase())).filter((t): t is string => !!t && !subjectTerms.has(t)));
+}
 
 function searcherFor(index: Index): Searcher {
   let s = searchers.get(index);
@@ -95,7 +111,8 @@ function searcherFor(index: Index): Searcher {
     const subjectTerms = new Set(
       index.lessons.flatMap((l) => tokenize(l.subject).map(processTerm)).filter((t): t is string => !!t),
     );
-    s = { mini, byId: new Map(index.lessons.map((l) => [l.id, l])), subjectTerms };
+    const codeTerms = new Map(index.lessons.map((l) => [l.id, codeTermsOf(l.claim, subjectTerms)]));
+    s = { mini, byId: new Map(index.lessons.map((l) => [l.id, l])), subjectTerms, codeTerms };
     searchers.set(index, s);
   }
   return s;
@@ -106,18 +123,47 @@ export interface SearchOptions {
   k?: number;
 }
 
-export function search(index: Index, query: string, { subject, k = 5 }: SearchOptions = {}): IndexEntry[] {
-  const { mini, byId, subjectTerms } = searcherFor(index);
+/** Questions longer than this (a pasted log or traceback) are searched by their error line and strong words. */
+const LONG_QUESTION = 500;
+/** At most this many strong words from a long question, nearest the error first. */
+const MAX_FOCUS_WORDS = 20;
+/** A line that reports the error: "ModuleNotFoundError: ...", "Error: Cannot find module ...", "error[E0133]: ...". */
+const ERROR_LINE = /^\s*[\w.$]*(?:error|exception|warning)(?:\[\w+\])?\s*:/i;
 
-  // Sort the question's words into strong and common; subject names and stopwords drop out.
+/**
+ * What to search for. A short question as it is. A long one becomes its last error line plus its strong words, taken
+ * from the error line first and then from the end backwards, so the file paths and frames above don't drown it out.
+ */
+function focus(query: string, strongWord: (original: string) => boolean): string {
+  if (query.length <= LONG_QUESTION) return query;
+  const errorLine = query.split(/\r?\n/).findLast((l) => ERROR_LINE.test(l))?.trim() ?? "";
+  const picked = new Set<string>();
+  for (const w of [...words(errorLine), ...words(query).reverse()]) {
+    if (picked.size >= MAX_FOCUS_WORDS) break;
+    if (strongWord(w)) picked.add(w.toLowerCase());
+  }
+  const focused = [errorLine, ...picked].join(" ").trim();
+  return focused || query.slice(-LONG_QUESTION);
+}
+
+export function search(index: Index, query: string, { subject, k = 5 }: SearchOptions = {}): IndexEntry[] {
+  const { mini, byId, subjectTerms, codeTerms } = searcherFor(index);
+
+  /** The word's stem, and whether it is strong; null for stopwords and subject names, which never count. */
+  const classify = (original: string): { term: string; strong: boolean } | null => {
+    const term = processTerm(original.toLowerCase());
+    if (!term || subjectTerms.has(term)) return null;
+    return { term, strong: isStrong(term, original) };
+  };
+  const question = focus(query, (w) => classify(w)?.strong ?? false);
+
+  // Sort the question's words into strong and common.
   const strong = new Map<string, string>(); // stem → the word as typed, lowercased
   const common = new Set<string>();
-  for (const original of words(query)) {
-    const lower = original.toLowerCase();
-    const term = processTerm(lower);
-    if (!term || subjectTerms.has(term)) continue;
-    if (isStrong(term, original)) strong.set(term, lower);
-    else common.add(term);
+  for (const original of words(question)) {
+    const c = classify(original);
+    if (c?.strong) strong.set(c.term, original.toLowerCase());
+    else if (c) common.add(c.term);
   }
 
   const options = {
@@ -127,31 +173,34 @@ export function search(index: Index, query: string, { subject, k = 5 }: SearchOp
     fuzzy: (term: string) => (term.length >= 5 && !isExact(term) ? 0.2 : false),
     filter: subject ? (r: { id: string }) => byId.get(r.id)?.subject === subject : undefined,
   };
+  const results = mini.search(question, options);
+  const matched = new Set<string>();
 
-  let matched: Set<string>;
   if (strong.size > 0) {
     // A lesson must match one of the strong words, and what it matched in the lesson must not be a subject name or,
     // unless typed as code (RETURNING), a common word: "inst" finding "instead" doesn't count.
-    const hits = mini.search({ combineWith: "OR", queries: [...strong.values()] }, options);
-    matched = new Set(
-      hits
-        .filter((r) => r.terms.some((t) => !subjectTerms.has(t) && (!COMMON.has(t) || strong.has(t))))
-        .map((r) => r.id as string),
-    );
+    for (const r of mini.search({ combineWith: "OR", queries: [...strong.values()] }, options)) {
+      if (r.terms.some((t) => !subjectTerms.has(t) && (!COMMON.has(t) || strong.has(t)))) matched.add(r.id);
+    }
   } else {
-    if (common.size === 0) return [];
-    const hits = mini.search(query, options);
-    matched = new Set(
-      hits
-        .filter((r) => new Set(r.queryTerms.filter((t) => common.has(t))).size >= MIN_COMMON_MATCHES)
-        .map((r) => r.id as string),
-    );
+    // No strong word: at least two common words.
+    for (const r of results) {
+      if (new Set(r.queryTerms.filter((t) => common.has(t))).size >= MIN_COMMON_MATCHES) matched.add(r.id);
+    }
   }
 
-  // Rank by the whole question.
-  const results = mini.search(query, options).filter((r) => matched.has(r.id));
-  const top = results[0]?.score ?? 0;
-  return results
+  // A word the lesson writes as code (RETURNING) is strong for that lesson even when the question has it in lowercase,
+  // as long as the lesson matches another word of the question too: "sqlite returning" finds it, "how do I return" doesn't.
+  for (const r of results) {
+    const code = codeTerms.get(r.id)!;
+    const asked = new Set(r.queryTerms);
+    if (asked.size >= 2 && [...asked].some((q) => code.has(q) && r.terms.includes(q))) matched.add(r.id);
+  }
+
+  // Rank by the whole (focused) question.
+  const ranked = results.filter((r) => matched.has(r.id));
+  const top = ranked[0]?.score ?? 0;
+  return ranked
     .filter((r) => r.score >= top * MIN_RELATIVE_SCORE)
     .slice(0, k)
     .map((r) => byId.get(r.id)!);
