@@ -9,8 +9,10 @@ test.setTimeout(180_000);
 
 interface Entry { id: string; claim: string; verified_by: string; replaces: string[] }
 
-test("home and lesson pages at 390 and 1280, light and dark, with video", async ({ browser, request }) => {
-  const index = (await (await request.get("/index.json")).json()) as { lessons: Entry[] };
+test("home, lesson, list, and teacher pages at 390 and 1280, light and dark, with video", async ({ browser, request }) => {
+  const index = (await (await request.get("/index.json")).json()) as { lessons: Entry[]; teachers: Record<string, { login: string }> };
+  // The longest login, to see how a signature and a teacher page wrap. astro preview has no Worker, so use the built path.
+  const teacher = Object.values(index.teachers).map((t) => t.login).sort((a, b) => b.length - a.length)[0]!;
   const longest = [...index.lessons].sort((a, b) => b.claim.length - a.claim.length)[0]!;
   const proof = index.lessons.find((l) => l.verified_by === "proof")!;
   const source = index.lessons.find((l) => l.verified_by === "source" && l.replaces.length > 0) ?? index.lessons.find((l) => l.verified_by === "source")!;
@@ -20,6 +22,7 @@ test("home and lesson pages at 390 and 1280, light and dark, with video", async 
     "lesson-proof": `/lessons/${proof.id}/`,
     "lesson-source-corrects": `/lessons/${source.id}/`,
     lessons: "/lessons/",
+    teacher: `/teachers/${teacher.toLowerCase()}/`,
   };
   for (const width of [390, 1280]) {
     for (const colorScheme of ["light", "dark"] as const) {

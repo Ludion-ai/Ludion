@@ -1,7 +1,9 @@
 ---
-// Home: the promise, then a replay of how the newest real lesson passed. Its check runs line by line in a log,
-// a bar shows how far the run has got, and when it ends the seal turns from "Checking" to verified. A replay with
-// its date, never shown as live. CSS only, plays once; under reduced motion everything shows its final state.
+// Home: the promise, then a replay of how the newest real lesson passed. Its check prints line by line; when
+// exit 0 prints, the seal turns from "Checking" to verified. A replay with its date, never shown as live.
+// The rule above the replay is a water surface (src/scripts/water.js, WebGL2, home only): the lesson waits below it,
+// out of focus, and reaches the surface as the seal turns. Without WebGL2 the rule stays a plain 2 px line.
+// Under reduced motion everything shows its final state.
 import Base from "../layouts/Base.astro";
 import Claim from "../components/Claim.astro";
 import LessonCard from "../components/LessonCard.astro";
@@ -10,6 +12,7 @@ import SubjectTag from "../components/SubjectTag.astro";
 import { claimSize } from "../build/claim-size.ts";
 import { siteData } from "../build/data.ts";
 import { en, formatDate } from "../strings/en.ts";
+import "../styles/water.css";
 
 const { index, teacherHref } = await siteData();
 const [newest, ...rest] = index.lessons;
@@ -52,11 +55,7 @@ const runner = newest && "run" in newest.evidence[0]! ? newest.evidence[0]!.run.
               <a href={`/lessons/${newest.id}/`}><Claim text={newest.claim} /></a>
             </p>
             <p class="sign">
-              <span class="by">
-                <span aria-hidden="true">—</span>
-                <span class="visually-hidden">{en.lesson.taughtBy}</span>
-                {teacherHref(newest.teacher_id) ? <a href={teacherHref(newest.teacher_id)!}>@{newest.teacher}</a> : <span>@{newest.teacher}</span>}
-              </span>
+              <span class="by"><span class="visually-hidden">{en.lesson.taughtBy}</span><span aria-hidden="true">—</span>&nbsp;{teacherHref(newest.teacher_id) ? <a href={teacherHref(newest.teacher_id)!}>@{newest.teacher}</a> : <span>@{newest.teacher}</span>}</span>
             </p>
             <p class="state">
               <span class="states">
@@ -72,9 +71,7 @@ const runner = newest && "run" in newest.evidence[0]! ? newest.evidence[0]!.run.
             </p>
           </article>
           <figure class="log" aria-label={en.home.logTitle(newest.verified_by, runner)}>
-            <figcaption>{en.home.logTitle(newest.verified_by, runner)}</figcaption>
             <pre>{lines.map((l, i) => <span class:list={["line", l.kind]} style={`--i:${i}`}>{l.text}{"\n"}</span>)}</pre>
-            <div class="bar" aria-hidden="true"><span style={`--n:${lines.length}`} /></div>
           </figure>
         </div>
         <p class="caption">{en.home.replay(newest.verified_by, formatDate(newest.verified_at))}</p>
@@ -108,6 +105,10 @@ const runner = newest && "run" in newest.evidence[0]! ? newest.evidence[0]!.run.
     )
   }
 </Base>
+
+<script>
+  import "../scripts/water.js";
+</script>
 
 <style>
   .hero {
@@ -168,19 +169,20 @@ const runner = newest && "run" in newest.evidence[0]! ? newest.evidence[0]!.run.
   .sign {
     margin: 0 0 18px;
   }
+  /* One run of text: "—", a no-break space, the name. A long login wraps inside the name, never after the dash. */
   .by {
-    display: inline-flex;
-    gap: 8px;
+    display: block;
     font-size: 20px;
     font-weight: 600;
+    line-height: 1.35;
     color: var(--ink);
     overflow-wrap: anywhere;
   }
   .by a {
-    min-width: 0;
     color: inherit;
-    text-decoration: none;
-    background: linear-gradient(currentColor, currentColor) 0 100% / 100% 1px no-repeat;
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.18em;
   }
   .state {
     display: flex;
@@ -194,9 +196,14 @@ const runner = newest && "run" in newest.evidence[0]! ? newest.evidence[0]!.run.
   .states {
     display: inline-grid;
   }
+  /* Checking and verified are the same block: the outline fills in. Same width, so nothing beside it moves. */
   .was,
   .now {
     grid-area: 1 / 1;
+    display: flex;
+  }
+  .was :global(.seal) {
+    width: 100%;
   }
   .was {
     opacity: 0;
@@ -206,25 +213,13 @@ const runner = newest && "run" in newest.evidence[0]! ? newest.evidence[0]!.run.
     animation: pass 700ms cubic-bezier(0.2, 0.8, 0.2, 1) var(--done) backwards;
   }
 
-  /* The log is machine output, so it is mono; it stays quieter than the seal (not inverted). */
+  /* The log is the cause of the surfacing: plain mono lines, no window, no title, no progress bar. */
   .log {
     margin: 0;
-    border: 1px solid var(--rule);
-    background: var(--paper-2);
-    border-radius: 4px;
-    overflow: hidden;
-  }
-  figcaption {
-    padding: 10px 16px;
-    border-bottom: 1px solid var(--rule);
-    font-size: 13px;
-    font-weight: 700;
-    color: var(--ink);
   }
   pre {
     margin: 0;
-    padding: 14px 16px 16px;
-    min-height: 13.5em;
+    padding: 2px 0 0;
     line-height: 1.7;
     font-size: 13px;
     color: var(--text);
@@ -248,18 +243,6 @@ const runner = newest && "run" in newest.evidence[0]! ? newest.evidence[0]!.run.
     color: var(--ink);
     font-weight: 700;
   }
-  /* How far the run has got: the bar fills as lines arrive. */
-  .bar {
-    height: 3px;
-    background: var(--rule);
-  }
-  .bar span {
-    display: block;
-    height: 100%;
-    background: var(--ink);
-    transform-origin: left;
-    animation: run calc(0.25s + var(--n) * 0.38s) steps(24, end) backwards;
-  }
   .caption {
     margin: 28px 0 0;
     font-size: 14px;
@@ -269,9 +252,6 @@ const runner = newest && "run" in newest.evidence[0]! ? newest.evidence[0]!.run.
 
   @keyframes appear {
     from { opacity: 0; }
-  }
-  @keyframes run {
-    from { transform: scaleX(0); }
   }
   @keyframes hide {
     from { opacity: 1; }

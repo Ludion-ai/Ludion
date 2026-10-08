@@ -1,6 +1,8 @@
 ---
-// The seal: the one inverted block on a page. Verified shows its evidence mark beside the word (exit 0, proved,
-// quote found). Checking is the same block, outlined and dashed, still running. Subject tags never use this shape.
+// The seal. Verified shows its evidence mark beside the word (exit 0, proved, quote found). "solid" (inverted) is
+// used only where one lesson is the subject: the home replay and the lesson page. Lists use "outline": the same
+// block drawn with a solid ink line. Checking is the same block with a dashed gray line, still running.
+// Subject tags never use this shape.
 import { en } from "../strings/en.ts";
 import type { VerifiedBy } from "@ludion/core";
 
@@ -9,11 +11,12 @@ interface Props {
   label: string;
   by?: VerifiedBy;
   size?: "small" | "large";
+  tone?: "solid" | "outline";
 }
-const { status, label, by, size = "small" } = Astro.props;
+const { status, label, by, size = "small", tone = "solid" } = Astro.props;
 ---
 
-<span class:list={["seal", status, size]}>
+<span class:list={["seal", status, size, tone]}>
   <svg class="tick" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
     <path d="M2.8 8.6l3.3 3.3 7.1-7.6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="square"></path>
   </svg>
@@ -72,6 +75,14 @@ const { status, label, by, size = "small" } = Astro.props;
   .verified {
     background: var(--seal-bg);
     color: var(--seal-fg);
+  }
+  .verified.outline {
+    background: transparent;
+    color: var(--ink);
+    border-color: var(--ink);
+  }
+  .outline .mark {
+    border-left-color: color-mix(in srgb, var(--ink) 35%, transparent);
   }
   .checking {
     color: var(--checking-fg);

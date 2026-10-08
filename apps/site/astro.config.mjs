@@ -8,7 +8,9 @@ export default defineConfig({
   site: "https://ludion.ai",
   output: "static",
   outDir: samples ? "./dist-samples" : "./dist",
-  build: { format: "directory" },
+  // Stylesheets and scripts are always separate files (the CSP allows script-src 'self'; the home page's water.css
+  // and water.js must load as their own files).
+  build: { format: "directory", inlineStylesheets: "never" },
   vite: {
     // Never inline scripts: the CSP allows script-src 'self' only.
     build: { assetsInlineLimit: 0 },
