@@ -47,18 +47,13 @@ One Cloudflare Worker, `ludion`, built with Hono. It serves the prerendered site
 }
 ```
 
-The lessons org and repo are not vars: the Worker imports `ludion.config.json` (bundled at deploy), so the org is written in one place only. If the installed Wrangler rejects the array form of `run_worker_first`, set it to `true` and fall through to `env.ASSETS.fetch` for unmatched routes. Workers Builds: build command `npm ci && npm run build`, deploy command `npx wrangler deploy`. Optional build variable `GITHUB_READ_TOKEN` for teacher login lookups (see `lessons.md`); it is a build-time value, not a Worker secret.
+The lessons org and repo are not vars: the Worker imports `ludion.config.json` (bundled at deploy), so the org is written in one place only. If the installed Wrangler rejects the array form of `run_worker_first`, set it to `true` and fall through to `env.ASSETS.fetch` for unmatched routes. Deploys happen only in `.github/workflows/deploy.yml` (`npx wrangler deploy` from the repo's own wrangler, after typecheck, build, and tests; see `ci.md`). Workers Builds is not used. The build gets `GITHUB_READ_TOKEN` (the deploy job's own read-only token) for teacher login lookups (see `lessons.md`); it is a build-time value, not a Worker secret.
 
 Secrets (`wrangler secret put`; `.dev.vars` locally, gitignored; never logged): `GITHUB_APP_ID`, `GITHUB_APP_INSTALLATION_ID`, `GITHUB_APP_PRIVATE_KEY` (PKCS#8 PEM, see below), `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`, `SESSION_SECRET` (32+ random bytes, base64).
 
-### Preview builds never see production secrets
+### No preview deployments in v0
 
-Workers Builds also builds non-production branches and uploads them as preview versions. A Worker's secrets are shared by every version of that Worker, previews included, so a preview of `ludion` would run with production's secrets. Therefore:
-
-- Until step 6, `ludion` has no secrets, and previews may upload to it (default non-production deploy command `npx wrangler versions upload`).
-- From step 6, before the first production secret is set: previews go to a separate Worker, `ludion-preview` (`env.preview` in `wrangler.jsonc`, with its own `SITE_URL` and no custom domain; non-production deploy command `npx wrangler versions upload --env preview`). It gets its own secrets: a separate GitHub OAuth app (callback on the preview URL), a separate `SESSION_SECRET`, and App credentials that cannot write to the production repo. Production values are never set on it.
-- Build variables in Workers Builds apply to every branch, so only values that are safe in a preview build go there. `GITHUB_READ_TOKEN` is a dedicated read-only token for public data, used by no other system.
-
+Only `main` is ever deployed, by `deploy.yml`, to the one Worker `ludion`. There are no preview versions, preview Workers, or preview URLs: a Worker's secrets are shared by every version of it, so a preview would run with production's secrets, and v0 doesn't need previews to pass its acceptance tests. Branches are checked by CI (`verify`, `test`) and the design samples (`site.md`), never by deploying them. `wrangler.jsonc` has no `env` blocks.
 ## GitHub App (created by hand from these settings)
 
 - Name `Ludion` (or `Ludion Teach` if taken). Homepage `https://ludion.ai`. Callback URL `https://ludion.ai/auth/callback`.
