@@ -73,7 +73,7 @@ Built from the active set at site build time. Written to `apps/site/dist/index.j
 
 - `teacher_id` is the lesson's `author_id`. `teachers` is keyed by that id (as a string).
 - `teacher` is the current login for `teacher_id`, looked up at build time with `GET https://api.github.com/user/{account_id}`, once per distinct id per build. If the lookup fails (deleted account, rate limit, network), use the login from the `author` of that teacher's newest lesson and log a warning.
-- Lookups are unauthenticated by default (60 requests an hour). When distinct teachers approach that limit, set the Workers Builds build variable `GITHUB_READ_TOKEN`: a fine-grained token with public, read-only access and no repository permissions. The build sends it when present. It is never shipped in `dist/` or logged.
+- Lookups use `GITHUB_READ_TOKEN` when it is set: the deploy job passes its own read-only token (`deploy.yml`), so lookups aren't held to the unauthenticated limit of 60 requests an hour. Local builds without it are unauthenticated. The token is never shipped in `dist/` or logged.
 - Teacher pages live at the lowercase login: `/teachers/<lowercase login>/`, served at `/@<login>` in any case. If two ids end up with the same lowercase login (possible only when a lookup failed and someone else now holds that name), the id whose login came from the API gets the page; the other's lessons show the name without a link.
 - `verified_at` and `pr` come from `git log` of the file: the commit that added it. Squash merge messages end with `(#<number>)`; parse it. If the build clone is shallow, run `git fetch --unshallow` first.
 - Sort lessons by `verified_at`, newest first.
