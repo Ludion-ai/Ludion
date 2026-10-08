@@ -42,6 +42,42 @@ const OFF_TOPIC = [
   "Explain quantum entanglement simply",
   "How do I set up a PostgreSQL replica?",
   "How do I deploy a React app to Vercel?",
+  "How do I tune a sourdough starter?",
+];
+
+/** Questions that name only a subject. Matching a subject name alone never returns a lesson. */
+const SUBJECT_ONLY = [
+  "What is Python?",
+  "What is Rust?",
+  "Tell me about git",
+  "What is TypeScript?",
+  "How do I use Node.js?",
+  "What is SQLite?",
+  "Explain CSS",
+  "What is Cloudflare Workers?",
+];
+
+/**
+ * Questions that must find their lesson in the top 3, every time: error messages pasted as they are (with traceback
+ * lines), and questions that mix Japanese and English. Keyed by a phrase of the claim.
+ */
+const MUST_FIND: [string, string][] = [
+  ["setup.py fails with ModuleNotFoundError: No module named distutils", "removed the distutils module"],
+  [
+    `Traceback (most recent call last):\n  File "/home/user/project/setup.py", line 3, in <module>\n    from distutils.core import setup\nModuleNotFoundError: No module named 'distutils'`,
+    "removed the distutils module",
+  ],
+  [
+    `Traceback (most recent call last):\n  File "/usr/lib/python3.12/site-packages/numpy/__init__.py", line 1, in <module>\n    import distutils.util\nModuleNotFoundError: No module named 'distutils'`,
+    "removed the distutils module",
+  ],
+  ["ModuleNotFoundError: No module named 'cgi'", "removed cgi"],
+  ["error: extern blocks must be unsafe", "unsafe extern"],
+  ["Is distutils still in Python 3.12?", "removed the distutils module"],
+  ["distutilsはPython 3.12で削除された？", "removed the distutils module"],
+  ["Python 3.12でdistutilsが使えない", "removed the distutils module"],
+  ["Node 22でWebSocketは標準で使える？", "global WebSocket client"],
+  ["SQLiteでRETURNINGは使える？", "RETURNING on INSERT"],
 ];
 
 /** Two ways a person might ask about each active lesson, never the claim's own wording. Keyed by a phrase of the claim. */
@@ -66,18 +102,23 @@ describe("search quality", () => {
     expect(covered.map((l) => l.id).sort()).toEqual(index.lessons.map((l) => l.id).sort());
   });
 
-  it("finds nothing for off-topic questions, and the right lesson in the top 3 for on-topic ones", () => {
-    const offHits = OFF_TOPIC.map((q) => ({ q, got: search(index, q).map((l) => l.claim.slice(0, 50)) })).filter((r) => r.got.length > 0);
+  it("finds nothing for off-topic and subject-only questions, and the right lesson in the top 3 for on-topic ones", () => {
+    const short = (q: string) => q.split("\n").at(-1)!;
+    const findsSomething = (questions: string[]) =>
+      questions.map((q) => ({ q, got: search(index, q).map((l) => l.claim.slice(0, 50)) })).filter((r) => r.got.length > 0);
+    const offHits = findsSomething(OFF_TOPIC);
+    const subjectHits = findsSomething(SUBJECT_ONLY);
 
-    const onResults = Object.entries(ON_TOPIC).flatMap(([key, questions]) => {
+    const check = (q: string, key: string) => {
       const want = index.lessons.find((l) => l.claim.includes(key))!;
-      return questions.map((q) => {
-        const got = search(index, q, { k: 3 });
-        return { q, ok: got.some((l) => l.id === want.id), got: got.map((l) => l.claim.slice(0, 40)) };
-      });
-    });
+      const got = search(index, q, { k: 3 });
+      return { q: short(q), ok: got.some((l) => l.id === want.id), got: got.map((l) => l.claim.slice(0, 40)) };
+    };
+    const onResults = Object.entries(ON_TOPIC).flatMap(([key, questions]) => questions.map((q) => check(q, key)));
     const onHits = onResults.filter((r) => r.ok).length;
     const onRate = onHits / onResults.length;
+    const mustResults = MUST_FIND.map(([q, key]) => check(q, key));
+    const mustMisses = mustResults.filter((r) => !r.ok);
 
     // Written straight to stdout so the numbers show in every run, passing or not.
     process.stdout.write(
@@ -85,12 +126,18 @@ describe("search quality", () => {
         `Search quality over ${index.lessons.length} lessons:`,
         `  off-topic: ${OFF_TOPIC.length - offHits.length}/${OFF_TOPIC.length} found nothing (needs all)`,
         ...offHits.map((r) => `    returned something for "${r.q}": ${JSON.stringify(r.got)}`),
+        `  subject only: ${SUBJECT_ONLY.length - subjectHits.length}/${SUBJECT_ONLY.length} found nothing (needs all)`,
+        ...subjectHits.map((r) => `    returned something for "${r.q}": ${JSON.stringify(r.got)}`),
         `  on-topic: ${onHits}/${onResults.length} found the right lesson in the top 3 (${(onRate * 100).toFixed(0)}%, needs 90%)`,
         ...onResults.filter((r) => !r.ok).map((r) => `    missed "${r.q}": ${JSON.stringify(r.got)}`),
+        `  error messages and mixed Japanese: ${MUST_FIND.length - mustMisses.length}/${MUST_FIND.length} found the right lesson (needs all)`,
+        ...mustMisses.map((r) => `    missed "${r.q}": ${JSON.stringify(r.got)}`),
       ].join("\n") + "\n",
     );
 
     expect(offHits.map((r) => r.q), "off-topic questions must return nothing").toEqual([]);
+    expect(subjectHits.map((r) => r.q), "subject-only questions must return nothing").toEqual([]);
     expect(onRate, "on-topic questions must find the right lesson in the top 3").toBeGreaterThanOrEqual(0.9);
+    expect(mustMisses.map((r) => r.q), "error messages and mixed questions must find their lesson").toEqual([]);
   });
 });
