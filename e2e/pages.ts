@@ -9,6 +9,7 @@ export async function allPages(request: APIRequestContext): Promise<string[]> {
   return [
     "/",
     "/lessons/",
+    "/teach/",
     ...index.lessons.map((l) => `/lessons/${l.id}/`),
     ...Object.values(index.teachers).map((t) => `/@${t.login.toLowerCase()}`),
     "/no-such-page/",

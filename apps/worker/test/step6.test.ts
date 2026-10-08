@@ -4,9 +4,10 @@ import { exports } from "cloudflare:workers";
 import { describe, expect, it, vi } from "vitest";
 import { safeNext } from "../src/auth.ts";
 import { resetTokenCache } from "../src/github.ts";
+import { handleMcp } from "../src/mcp/server.ts";
 import { LINK_LIMIT, TEACH_DESCRIPTION, TOO_LONG, signingLink, teach, teachText } from "../src/mcp/teach.ts";
 import { fromBase64url, sign, verify } from "../src/session.ts";
-import { FakeNet, SESSION_SECRET, SITE, github, newUser, page, post, request, sessionCookie } from "./helpers.ts";
+import { BOT_ID, FakeNet, SESSION_SECRET, SITE, ctx, github, newUser, page, post, request, sessionCookie, testEnv } from "./helpers.ts";
 
 const PEP = "https://peps.python.org/pep-0632/";
 const QUOTE = "Code that imports distutils will no longer work from Python 3.12.";
@@ -201,8 +202,8 @@ describe("POST /api/teach", () => {
         `<!-- ludion {"id":"${body.id}","subject":"python","teacher":"Alice-Example","teacher_id":7654321} -->\n`,
     );
     expect(net.find("POST", `${repo}/issues/42/labels`)[0]!.body).toEqual({ labels: ["lesson"] });
-    const search = decodeURIComponent(net.find("GET", "https://api.github.com/search/issues")[0]!.url);
-    expect(search).toContain('repo:Ludion-ai/ludion is:pr in:body "Taught-by: Alice-Example (7654321)" created:>=');
+    expect(net.find("GET", `${repo}/pulls?`)[0]!.url).toBe(`${repo}/pulls?state=all&sort=created&direction=desc&per_page=100&page=1`);
+    expect(net.find("GET", "https://api.github.com/search")).toHaveLength(0);
     expect(net.find("DELETE", repo)).toHaveLength(0);
   });
 
@@ -217,7 +218,7 @@ describe("POST /api/teach", () => {
       ["invalid draft", () => post(github(new FakeNet()), "/api/teach", { ...draft, subject: "Not A Subject" }, user), 422, "invalid_draft"],
       ["source not found", () => post(github(page(new FakeNet(), PEP, "<p>nothing here</p>")), "/api/teach", draft, user), 422, "source_not_found"],
       ["unknown replaces", () => post(github(new FakeNet()), "/api/teach", { ...draft, evidence: [draft.evidence[0]], replaces: ["01K70000000000000000000000"] }, user), 422, "unknown_replaces"],
-      ["daily limit", () => post(github(pep(new FakeNet()), 20), "/api/teach", draft, user), 429, "daily_limit"],
+      ["daily limit", () => post(github(pep(new FakeNet()), 20, user.id), "/api/teach", draft, user), 429, "daily_limit"],
       ["GitHub down", () => post(pep(new FakeNet()), "/api/teach", draft, user), 502, "github_error"],
     ];
     for (const [name, run, status, error] of rows) {
@@ -319,14 +320,16 @@ describe("ludion_teach", () => {
     expect(teach(SITE, { ...draft, claim: "short" })).toEqual({ isError: true, text: "The draft is not valid yet:\n/claim: Write one sentence of 10 to 400 characters." });
   });
 
+  const mcpRequest = (name: string, args: unknown) =>
+    new Request(`${SITE}/mcp`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json, text/event-stream" },
+      body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/call", params: { name, arguments: args } }),
+    });
+
+  /** ludion_teach with teaching open: test secrets and a bot id. */
   async function mcpCall(name: string, args: unknown) {
-    const res = await exports.default.fetch(
-      new Request(`${SITE}/mcp`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Accept: "application/json, text/event-stream" },
-        body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/call", params: { name, arguments: args } }),
-      }),
-    );
+    const res = await handleMcp(mcpRequest(name, args), await testEnv(), ctx(), BOT_ID);
     const text = await res.text();
     return JSON.parse(text.split("\n").filter((l) => l.startsWith("data: ")).pop()!.slice(6));
   }
@@ -353,5 +356,11 @@ describe("ludion_teach", () => {
     spy.mockRestore();
     expect(result.isError).toBeFalsy();
     expect(result.content[0].text).toBe(teach(SITE, draft).text);
+  });
+
+  it("saves nothing while teaching is closed: the Worker as deployed, without secrets or a bot id", async () => {
+    const res = await exports.default.fetch(mcpRequest("ludion_teach", draft));
+    const result = JSON.parse((await res.text()).split("\n").filter((l) => l.startsWith("data: ")).pop()!.slice(6)).result;
+    expect(result).toMatchObject({ isError: true, content: [{ type: "text", text: "Teaching on Ludion opens soon. Nothing was saved." }] });
   });
 });

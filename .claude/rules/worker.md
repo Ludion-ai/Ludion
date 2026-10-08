@@ -54,6 +54,16 @@ Secrets (`wrangler secret put`; `.dev.vars` locally, gitignored; never logged): 
 ### No preview deployments in v0
 
 Only `main` is ever deployed, by `deploy.yml`, to the one Worker `ludion`. There are no preview versions, preview Workers, or preview URLs: a Worker's secrets are shared by every version of it, so a preview would run with production's secrets, and v0 doesn't need previews to pass its acceptance tests. Branches are checked by CI (`verify`, `test`) and the design samples (`site.md`), never by deploying them. `wrangler.jsonc` has no `env` blocks.
+### Closed until ready
+
+Teaching opens only when every secret above is set and well formed and `ludion.config.json` has `app_bot_id`. Until then:
+
+- `/api/*` and `/auth/*` answer `503 {"error": "teaching_not_open", "message": "Teaching on Ludion opens soon. Nothing was saved."}` and log why, naming what is missing, never a value.
+- `ludion_teach` returns `isError: true` with "Teaching on Ludion opens soon. Nothing was saved."
+- `/teach` says the same and offers no sign-in.
+
+Well formed means: `SESSION_SECRET` decodes to at least 32 bytes (signing with a shorter one also fails, with how to make one: `openssl rand -base64 32`), and `GITHUB_APP_PRIVATE_KEY` is not PKCS#1 (`BEGIN RSA PRIVATE KEY`). A PKCS#1 key fails with the conversion command below, at the gate and when the JWT is signed.
+
 ## GitHub App (created by hand from these settings)
 
 - Name `Ludion` (or `Ludion Teach` if taken). Homepage `https://ludion.ai`. Callback URL `https://ludion.ai/auth/callback`.
@@ -67,7 +77,7 @@ Only `main` is ever deployed, by `deploy.yml`, to the one Worker `ludion`. There
 ## Sign-in and session
 
 - `/auth/login?next=/teach`: `next` must start with `/` and not `//`; otherwise use `/`. Create a 32-byte random `state`. Set cookie `ludion_oauth` (signed, 10 min) holding `{state, next}`. Redirect to `https://github.com/login/oauth/authorize?client_id=…&redirect_uri=https://ludion.ai/auth/callback&state=…`.
-- `/auth/callback`: verify `state` against the cookie. Exchange the code at `https://github.com/login/oauth/access_token` (JSON). Call `GET https://api.github.com/user` once for `login`, `id`, `avatar_url`, `created_at`, then discard the user token; Ludion never stores it. If the account is younger than 30 days, redirect to `/teach?error=account_too_new`. Otherwise set the session and redirect to `next`. A missing or mismatched `state` (or no oauth cookie) answers `400 {"error": "bad_state", "message": "..."}` without calling GitHub; a failed code exchange or `/user` call redirects to `/teach?error=github_error`. The oauth cookie is scoped to `Path=/auth` and cleared on every callback.
+- `/auth/callback`: verify `state` against the cookie. Exchange the code at `https://github.com/login/oauth/access_token` (JSON). Call `GET https://api.github.com/user` once for `login`, `id`, `avatar_url`, `created_at`, then discard the user token; Ludion never stores it. If the account is younger than 30 days, or `created_at` is missing or not an ISO time (its age can't be read), redirect to `/teach?error=account_too_new`. Otherwise set the session and redirect to `next`. A missing or mismatched `state` (or no oauth cookie) answers `400 {"error": "bad_state", "message": "..."}` without calling GitHub; a failed code exchange or `/user` call redirects to `/teach?error=github_error`. The oauth cookie is scoped to `Path=/auth` and cleared on every callback.
 - `next` is also refused when it starts with `/\` (browsers read it as `//`) or contains control characters.
 - Session cookie `ludion_session`: `base64url(JSON{login, id, avatar_url, exp}) + "." + base64url(HMAC-SHA256(payload, SESSION_SECRET))`. 30 days. `HttpOnly; Secure; SameSite=Lax; Path=/`. Compare signatures in constant time.
 - CSRF: `POST /api/check`, `POST /api/teach`, and `POST /auth/logout` require `Origin` equal to `SITE_URL` and `Content-Type: application/json`.
@@ -91,7 +101,7 @@ Session required. Body: a draft. Steps, in order: session, `Origin`, JSON; rate 
 
 - **Only for signed-in people.** The Worker fetches sources only in `/api/check` and `/api/teach`, both behind a session. `ludion_teach` never fetches (see MCP).
 - **Rate limit per account, never per IP.** Remote MCP requests from claude.ai all arrive from Anthropic's cloud, so an IP key would make every claude.ai user share one budget. Each `/api/check` and `/api/teach` request calls `env.SOURCE_CHECK_LIMITER.limit({key: "user:<GitHub user id>"})` once; the two routes share the budget of 10 per account per minute. Over the limit → `429 rate_limited`. The binding counts per Cloudflare location and is approximate; that is acceptable.
-- **No leaks.** When a source fails for any reason (refused URL, fetch error, HTTP status, wrong content type, quote missing), the response says only `"This source could not be confirmed."` plus the URL the draft gave. Never the fetched page's status, headers, body, final URL, or `checkSource`'s `reason`. Log `reason` with the request id only.
+- **No leaks.** When a source fails for any reason (refused URL, fetch error, HTTP status, wrong content type, quote missing), the response says only `"This source could not be confirmed."` plus the URL the draft gave. Never the fetched page's status, headers, body, final URL, or `checkSource`'s `reason`. The reason is not logged either, because it quotes the draft's URL: log the request id and which source failed.
 - The Worker passes the platform `fetch` to `checkSource`; Workers' outbound requests cannot reach private networks, and `checkSource` already refuses IP hosts and private names on every hop.
 
 ## POST /api/teach
@@ -101,7 +111,7 @@ Session required. Body: a draft. Steps, in order:
 1. Session, `Origin`, JSON.
 2. Rate limit: one count on `SOURCE_CHECK_LIMITER` with key `user:<user id>`, shared with `/api/check`. Over → `429 rate_limited`.
 3. Validate the draft, check sources and `replaces`, exactly as `/api/check` does (without counting the limiter again).
-4. Daily limit: GitHub search `repo:<ORG>/<REPO> is:pr in:body "Taught-by: <login> (<user id>)" created:>=<now minus 24 h>`. 20 or more → `429 daily_limit`.
+4. Daily limit: list the repo's PRs through REST, newest first (`GET /repos/<ORG>/<REPO>/pulls?state=all&sort=created&direction=desc&per_page=100`, page by page, at most 10 pages), and stop at the first one created more than 24 hours ago. Count the PRs, open or closed, that were opened by `app_bot_id` and whose body has the line `Taught-by: <login> (<user id>)` for this teacher's user id. 20 or more → `429 daily_limit`. Not GitHub search: its index lags behind new PRs and it has its own rate limit.
 5. Build the lesson: `id = newId()`, `author = github:<login>`, `author_id = <user id>` (both from the session), `created_at = now`. Serialize with `formatLesson`.
 6. With the installation token: read `main`'s sha; create ref `refs/heads/teach/<subject>/<id>`; `PUT /contents/lessons/<subject>/<id>.json` on that branch with author `{name: <login>, email: <user id>+<login>@users.noreply.github.com}` and the message below; open the PR; add label `lesson`. If any GitHub call after the branch exists fails, delete the branch, then return `502`.
 
@@ -113,7 +123,7 @@ Teach <subject>: <claim, first 60 chars>
 Taught-by: <login> (<user id>)
 ```
 
-`<user id>` is the signer's GitHub numeric user id, e.g. `Taught-by: alice (1234567)`. Commit trailer, PR body line, and the daily-limit search all use this exact form.
+`<user id>` is the signer's GitHub numeric user id, e.g. `Taught-by: alice (1234567)`. Commit trailer, PR body line, and the daily count all use this exact form; the count matches the user id.
 
 PR title: the commit subject. PR body:
 
@@ -194,5 +204,5 @@ The fragment (`#d=`) never reaches a server; the draft travels only in the link.
 
 - CORS: `/mcp` answers any origin. `/api/*` and `/auth/*` are same-origin only (no CORS headers).
 - Every response: `X-Content-Type-Options: nosniff`. API responses: `Content-Type: application/json; charset=utf-8`.
-- Logs: route, status, latency, request id. Never cookies, tokens, secrets, or authorization headers.
+- Logs: route, status, latency, request id. Never cookies, tokens, secrets, or authorization headers. Never the text people send: no `ludion_ask` question, no draft (claim, code, quote, or source URL). A failed source logs only the request id and which source (1, 2, or 3).
 - Tests: Vitest with `@cloudflare/vitest-plugin` (the v1 name of `@cloudflare/vitest-pool-workers`; the old name stopped at 0.22, whose workerd cannot run this Worker's compatibility date), GitHub API mocked. (Vitest is pinned to 4 so these tests run inside workerd, with the real `ASSETS` binding over the built site; see Conventions in CLAUDE.md.) Cover: session sign and verify, bad `state`, unsafe `next`, account too new, every `/api/teach` error row, branch cleanup on failure, feed status derivation, both MCP tools' exact output text, the 12,000-character limit, `/api/check` without a session gets `401`, the 11th request in a minute by one account across `/api/check` and `/api/teach` gets `429 rate_limited` while another account is unaffected, `ludion_teach` makes no outbound fetch, and a failed source (refused URL, HTTP 500 with a body, missing quote) returns only "This source could not be confirmed." with no status or body.

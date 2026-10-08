@@ -5,6 +5,8 @@ import { createApp, type Env } from "../src/app.ts";
 import { sign, type Session } from "../src/session.ts";
 
 export const SITE = "https://ludion.ai";
+/** The Ludion App's bot account id in tests (ludion.config.json has none until the App exists). */
+export const BOT_ID = 9;
 
 function toPem(der: ArrayBuffer): string {
   let s = "";
@@ -82,13 +84,29 @@ export class FakeNet {
 
 const REPO = "https://api.github.com/repos/Ludion-ai/ludion";
 
-/** A GitHub that accepts a teaching PR, with `taught` PRs already in the last 24 hours. */
-export function github(net: FakeNet, taught = 0): FakeNet {
+/**
+ * PRs newest first, as GET /pulls?state=all&sort=created lists them: `taught` teaching PRs by the App for
+ * `teacherId` in the last 24 hours (some closed), then PRs that must not count: the App's PR for someone else,
+ * a person's PR quoting the teacher's trailer, and the App's PR for the teacher from 25 hours ago.
+ */
+export function pullsList(taught: number, teacherId: number, now = Date.now()): unknown[] {
+  const at = (hoursAgo: number) => new Date(now - hoursAgo * 3600_000).toISOString();
+  const trailer = (id: number) => `A claim.\n\nTaught-by: someone (${id})\n`;
+  return [
+    ...Array.from({ length: taught }, (_, i) => ({ created_at: at(1 + i * 0.1), user: { id: BOT_ID }, state: i % 2 ? "closed" : "open", body: trailer(teacherId) })),
+    { created_at: at(5), user: { id: BOT_ID }, state: "open", body: trailer(teacherId + 1) },
+    { created_at: at(6), user: { id: 1234 }, state: "open", body: trailer(teacherId) },
+    { created_at: at(25), user: { id: BOT_ID }, state: "closed", body: trailer(teacherId) },
+  ];
+}
+
+/** A GitHub that accepts a teaching PR, with `taught` PRs by `teacherId` already in the last 24 hours. */
+export function github(net: FakeNet, taught = 0, teacherId = 0): FakeNet {
   return net
     .on("POST https://api.github.com/app/installations/2002/access_tokens", () =>
       Response.json({ token: "installation-token", expires_at: new Date(Date.now() + 3600_000).toISOString() }, { status: 201 }),
     )
-    .on("GET https://api.github.com/search/issues", () => Response.json({ total_count: taught, items: [] }))
+    .on(`GET ${REPO}/pulls?`, () => Response.json(pullsList(taught, teacherId)))
     .on(`GET ${REPO}/git/ref/heads/main`, () => Response.json({ object: { sha: "mainsha" } }))
     .on(`POST ${REPO}/git/refs`, () => Response.json({ ref: "x" }, { status: 201 }))
     .on(`PUT ${REPO}/contents/`, () => Response.json({ content: {} }, { status: 201 }))
@@ -117,7 +135,7 @@ export const ctx = (): ExecutionContext =>
 
 /** Run one request through a fresh app wired to `net`. */
 export async function request(net: FakeNet, path: string, init: RequestInit = {}, now = () => Date.now()): Promise<Response> {
-  const app = createApp({ fetch: net.fetch, now });
+  const app = createApp({ fetch: net.fetch, now, appBotId: BOT_ID });
   return app.request(`${SITE}${path}`, init, await testEnv(), ctx());
 }
 

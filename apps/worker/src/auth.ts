@@ -69,7 +69,9 @@ export function mountAuth(app: Hono<AppEnv>, deps: Deps): void {
       return redirect("/teach?error=github_error", [clearOauth]);
     }
 
-    if (nowMs - Date.parse(profile.created_at) < ACCOUNT_MIN_AGE_MS) {
+    // An account whose age can't be read (missing, or not an ISO time) is refused like one that is too new.
+    const createdAt = typeof profile.created_at === "string" && /^\d{4}-\d{2}-\d{2}T/.test(profile.created_at) ? Date.parse(profile.created_at) : NaN;
+    if (!Number.isFinite(createdAt) || nowMs - createdAt < ACCOUNT_MIN_AGE_MS) {
       return redirect("/teach?error=account_too_new", [clearOauth]);
     }
     const session: Session = { login: profile.login, id: profile.id, avatar_url: profile.avatar_url, exp: Math.floor(nowMs / 1000) + SESSION_SECONDS };

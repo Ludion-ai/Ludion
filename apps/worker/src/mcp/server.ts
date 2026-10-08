@@ -6,6 +6,8 @@ import type { Env } from "../app.ts";
 import { lessonsIndex } from "../lessons-index.ts";
 import { ASK_DESCRIPTION, formatAsk, toAskLesson } from "./ask.ts";
 import { TEACH_DESCRIPTION, teach } from "./teach.ts";
+import { APP_BOT_ID } from "../config.ts";
+import { NOT_OPEN, teachingProblem } from "../ready.ts";
 
 export const SERVER_INSTRUCTIONS =
   "Ludion holds lessons that people taught and machines verified by test, proof, or cited source. Use ludion_ask before answering questions about specific software behavior, versions, or recent changes, and cite the teacher. Use ludion_teach only when the user asks to teach or corrects you with evidence.";
@@ -23,7 +25,7 @@ const askLesson = z.object({
 });
 
 /** One server per request (stateless). Tools read the deployed index.json through ASSETS. */
-export function createServer(env: Env): McpServer {
+export function createServer(env: Env, appBotId: number | undefined = APP_BOT_ID): McpServer {
   const server = new McpServer({ name: "ludion", version: "0.1.0" }, { instructions: SERVER_INSTRUCTIONS });
 
   server.registerTool(
@@ -65,6 +67,8 @@ export function createServer(env: Env): McpServer {
       annotations: { readOnlyHint: true, openWorldHint: false },
     },
     async (draft) => {
+      // Closed until teaching opens: nothing is drafted into a link nobody can sign.
+      if (teachingProblem(env, appBotId)) return { content: [{ type: "text", text: NOT_OPEN }], isError: true };
       const result = teach(env.SITE_URL, draft);
       return { content: [{ type: "text", text: result.text }], isError: result.isError };
     },
@@ -77,8 +81,8 @@ export function createServer(env: Env): McpServer {
  * /mcp: stateless Streamable HTTP. Answers any origin: the server is public, read-only, holds no session,
  * and accepts no credentials, so there is nothing for a cross-origin page to borrow (worker.md, Cross-cutting).
  */
-export function handleMcp(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
-  return createMcpHandler(() => createServer(env), {
+export function handleMcp(request: Request, env: Env, ctx: ExecutionContext, appBotId: number | undefined = APP_BOT_ID): Promise<Response> {
+  return createMcpHandler(() => createServer(env, appBotId), {
     route: "/mcp",
     corsOptions: { origin: "*" },
     allowedOriginHostnames: "*",

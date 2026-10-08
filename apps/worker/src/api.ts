@@ -55,9 +55,9 @@ async function checkDraft(body: unknown, env: Env, deps: Deps, check: boolean, r
   const results = await Promise.all(sources.map((s) => checkSource(s.url, s.quote, deps.fetch)));
   const missing = results.findIndex((r) => !r.found);
   if (missing >= 0) {
-    // Never forward the page's status, body, or checkSource's reason; log the reason with the request id only.
-    const r = results[missing]!;
-    console.log(JSON.stringify({ rid: requestId, source_check: "not_confirmed", reason: r.found ? "" : r.reason }));
+    // Never forward the page's status, body, or checkSource's reason. The log gets the request id and which
+    // source failed, never the reason: it quotes the draft's URL, and draft text is not logged.
+    console.log(JSON.stringify({ rid: requestId, source_check: "not_confirmed", source: missing + 1 }));
     return { error: failure(check, 422, "source_not_found", SOURCE_NOT_CONFIRMED, { url: sources[missing]!.url }) };
   }
   if (draft.replaces?.length) {
@@ -131,8 +131,8 @@ export function mountApi(app: Hono<AppEnv>, deps: Deps): void {
     let repo: Repo;
     try {
       repo = await repoClient(c.env, deps);
-      const since = new Date(deps.now() - 24 * 60 * 60 * 1000).toISOString().replace(/\.\d{3}Z$/, "Z");
-      if ((await repo.taughtSince(session.login, session.id, since)) >= DAILY_LIMIT) {
+      // appBotId is set: teaching is closed without it (ready.ts).
+      if ((await repo.taughtSince(session.id, deps.appBotId!, deps.now() - 24 * 60 * 60 * 1000)) >= DAILY_LIMIT) {
         return failure(false, 429, "daily_limit", "You've taught 20 lessons in the last 24 hours. Come back tomorrow.");
       }
     } catch (err) {

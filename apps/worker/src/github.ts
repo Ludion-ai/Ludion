@@ -1,4 +1,5 @@
-// GitHub App calls: installation token, daily-limit search, opening a teaching PR, PR status.
+// GitHub App calls: installation token, the daily count, opening a teaching PR, PR status.
+import { PKCS1_KEY } from "./ready.ts";
 import { base64url } from "./session.ts";
 
 export type FetchFn = (input: string | Request, init?: RequestInit) => Promise<Response>;
@@ -29,6 +30,7 @@ function pemToBytes(pem: string): Uint8Array {
 
 /** RS256 JWT for the App: iat now minus 60 s, exp now plus 9 min, iss app id. */
 export async function appJwt(creds: AppCredentials, nowSeconds: number): Promise<string> {
+  if (creds.privateKey.includes("BEGIN RSA PRIVATE KEY")) throw new Error(PKCS1_KEY);
   const key = await crypto.subtle.importKey("pkcs8", pemToBytes(creds.privateKey), { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" }, false, ["sign"]);
   const header = base64url(encoder.encode(JSON.stringify({ alg: "RS256", typ: "JWT" })));
   const payload = base64url(encoder.encode(JSON.stringify({ iat: nowSeconds - 60, exp: nowSeconds + 9 * 60, iss: creds.appId })));
@@ -91,14 +93,31 @@ export class Repo {
     return `/repos/${this.org}/${this.repo}`;
   }
 
-  /** PRs whose body carries this teacher's trailer, created since `sinceIso`. */
-  async taughtSince(login: string, userId: number, sinceIso: string): Promise<number> {
-    const q = `repo:${this.org}/${this.repo} is:pr in:body "Taught-by: ${login} (${userId})" created:>=${sinceIso}`;
-    const r = await this.call<{ total_count: number }>("GET", `/search/issues?q=${encodeURIComponent(q)}&per_page=1`);
-    return r.total_count;
+  /**
+   * Teaching PRs by this teacher in the last 24 hours, open or closed: opened by the App's bot (botId) with the
+   * teacher's Taught-by trailer (matched by user id) in the body. Lists PRs newest first through REST rather than
+   * search, whose index lags and is rate limited separately.
+   */
+  async taughtSince(userId: number, botId: number, sinceMs: number): Promise<number> {
+    const trailer = new RegExp(`^Taught-by: \\S+ \\(${userId}\\)$`, "m");
+    let count = 0;
+    for (let page = 1; page <= MAX_PR_PAGES; page++) {
+      const prs = await this.call<{ created_at: string; body: string | null; user: { id: number } | null }[]>(
+        "GET",
+        `${this.base}/pulls?state=all&sort=created&direction=desc&per_page=100&page=${page}`,
+      );
+      for (const pr of prs) {
+        if (Date.parse(pr.created_at) < sinceMs) return count;
+        if (pr.user?.id === botId && trailer.test(pr.body ?? "")) count++;
+      }
+      if (prs.length < 100) return count;
+    }
+    return count;
   }
 }
 
+/** At most this many pages of 100 PRs are read for the daily count (1,000 PRs in a day is far past any limit). */
+const MAX_PR_PAGES = 10;
 export interface TeachRequest {
   subject: string;
   id: string;

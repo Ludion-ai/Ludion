@@ -1,5 +1,6 @@
 // Signed cookies: base64url(JSON payload) + "." + base64url(HMAC-SHA256(payload, SESSION_SECRET)).
 // Signatures are checked with crypto.subtle.verify, which compares in constant time.
+import { SHORT_SESSION_SECRET, sessionSecretBytes } from "./ready.ts";
 
 export interface Session {
   login: string;
@@ -28,21 +29,13 @@ export function fromBase64url(text: string): Uint8Array {
   return Uint8Array.from(raw, (c) => c.charCodeAt(0));
 }
 
-function fromBase64(text: string): Uint8Array {
-  return Uint8Array.from(atob(text), (c) => c.charCodeAt(0));
-}
-
 const keys = new Map<string, Promise<CryptoKey>>();
 function hmacKey(secret: string): Promise<CryptoKey> {
   let key = keys.get(secret);
   if (!key) {
-    // SESSION_SECRET is 32+ random bytes, base64. Fall back to the raw text if it is not base64.
-    let bytes: Uint8Array;
-    try {
-      bytes = fromBase64(secret);
-    } catch {
-      bytes = encoder.encode(secret);
-    }
+    // SESSION_SECRET is 32+ random bytes, base64. Shorter keys are refused, never used.
+    const bytes = sessionSecretBytes(secret);
+    if (bytes.length < 32) throw new Error(SHORT_SESSION_SECRET);
     key = crypto.subtle.importKey("raw", bytes, { name: "HMAC", hash: "SHA-256" }, false, ["sign", "verify"]);
     keys.set(secret, key);
   }

@@ -1,8 +1,10 @@
-import { Hono } from "hono";
+import { Hono, type MiddlewareHandler } from "hono";
 import { mountApi } from "./api.ts";
 import { mountAuth } from "./auth.ts";
 import { defaultDeps, type Deps } from "./deps.ts";
+import { apiError } from "./http.ts";
 import { handleMcp } from "./mcp/server.ts";
+import { NOT_OPEN, teachingProblem } from "./ready.ts";
 
 export interface Env {
   ASSETS: Fetcher;
@@ -40,7 +42,17 @@ export function createApp(deps: Deps = defaultDeps): Hono<AppEnv> {
   });
 
   // MCP over Streamable HTTP, stateless; OPTIONS for CORS preflight from browser-based clients.
-  app.on(["GET", "POST", "DELETE", "OPTIONS"], "/mcp", (c) => handleMcp(c.req.raw, c.env, c.executionCtx as ExecutionContext));
+  app.on(["GET", "POST", "DELETE", "OPTIONS"], "/mcp", (c) => handleMcp(c.req.raw, c.env, c.executionCtx as ExecutionContext, deps.appBotId));
+
+  // Closed until every secret is set and the App's bot id is known (ready.ts).
+  const closedUntilReady: MiddlewareHandler<AppEnv> = async (c, next) => {
+    const problem = teachingProblem(c.env, deps.appBotId);
+    if (!problem) return next();
+    console.log(JSON.stringify({ rid: c.get("requestId"), teaching_not_open: problem }));
+    return apiError(503, "teaching_not_open", NOT_OPEN);
+  };
+  app.use("/api/*", closedUntilReady);
+  app.use("/auth/*", closedUntilReady);
 
   mountAuth(app, deps);
   mountApi(app, deps);

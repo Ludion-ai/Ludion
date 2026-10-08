@@ -42,9 +42,11 @@ One page per `teacher_id`, at the current login lowercased (see `lessons.md`). E
 
 States:
 
+0. Closed (the API answers `503 teaching_not_open`): "Teaching on Ludion opens soon. Nothing was saved." No sign-in button. A draft in `#d=` is still shown.
 1. Signed out, no draft: h1 "Teach Ludion", "Your GitHub name is shown on every lesson you teach.", button **Sign in with GitHub** (→ `/auth/login?next=/teach`).
 2. Signed out, with a draft in `#d=`: the draft as a preview card, the line "Sources are checked after you sign in.", and **Sign in with GitHub to sign this lesson**. No check runs while signed out. Save the draft to `sessionStorage` key `ludion:draft` before redirecting, restore it after.
 3. Signed in: the form, prefilled if a draft exists, with a live preview card beside it (below it on narrow screens). When a draft from `#d=` (or restored from `sessionStorage`) opens while signed in, call `/api/check` once automatically and show the results, one line per source ("Quote found on <host>" or the `source_not_found` copy) and "CI will run this test" per test, above the **Teach** button. **Teach** is disabled while a check is running and after a failed check, until the draft is edited and checked again.
+3a. Before **Teach** is pressed, the page shows the whole lesson as it will be signed: subject, version, the claim, and every piece of evidence in full (each test's code, each source's quote and full URL). Under it: "You are signing as @<login>." and the license and consent line from the dictionary (`en.teach.consent`; its wording is the owner's to decide, a placeholder until then). Draft text is set as text, never parsed as HTML.
 4. Submitted: "Pull request #42 is open in your name." and a status chip polling `/api/pr/42` every 10 s. Verified: "Verified. Live for everyone in a few minutes." and the lesson link once it answers 200. Failed: "CI could not verify this lesson." with a link to the PR checks.
 
 Form:
