@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { handleMcp } from "./mcp/server.ts";
 
 export interface Env {
   ASSETS: Fetcher;
@@ -17,6 +18,9 @@ export function createApp(): Hono<{ Bindings: Env }> {
     c.res = new Response(c.res.body, c.res);
     c.res.headers.set("X-Content-Type-Options", "nosniff");
   });
+
+  // MCP over Streamable HTTP, stateless; OPTIONS for CORS preflight from browser-based clients.
+  app.on(["GET", "POST", "DELETE", "OPTIONS"], "/mcp", (c) => handleMcp(c.req.raw, c.env, c.executionCtx as ExecutionContext));
 
   // /@<login> serves the teacher page at the lowercase login. Unknown teachers get the 404 page.
   app.get("*", async (c, next) => {

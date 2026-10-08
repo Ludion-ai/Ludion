@@ -86,7 +86,7 @@ apps/site/           Astro, output "static"; reads ../../lessons at build; emits
 apps/worker/         Hono + MCP handler; serves apps/site/dist as static assets
 tools/verify/        Node CLI used by CI and the nightly job
 wrangler.jsonc       Worker "ludion"; assets dir apps/site/dist; secrets listed in worker.md
-.github/workflows/   verify.yml, reverify.yml
+.github/workflows/   verify.yml, test.yml, reverify.yml
 ```
 
 ## Before you start (owner, by hand)

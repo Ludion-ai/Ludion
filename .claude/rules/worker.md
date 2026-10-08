@@ -12,7 +12,7 @@ One Cloudflare Worker, `ludion`, built with Hono. It serves the prerendered site
 
 | Route | Handler | Auth |
 | - | - | - |
-| `GET POST DELETE /mcp` | MCP over Streamable HTTP, stateless (`createMcpHandler` from `agents/mcp` + `McpServer` from `@modelcontextprotocol/sdk`) | none |
+| `GET POST DELETE /mcp` | MCP over Streamable HTTP, stateless (`createMcpHandler` from `agents/mcp/server` + `McpServer` from `@modelcontextprotocol/server`, the MCP SDK v2 at the exact version the installed `agents` requires; the `agents/mcp` + `@modelcontextprotocol/sdk` pair is now the legacy, sessionful path) | none |
 | `POST /api/check` | Validate a draft, check its sources | session |
 | `POST /api/teach` | Open the pull request for a signed lesson | session |
 | `GET /api/session` | `200 {login, avatar_url}` or `401` | session optional |
