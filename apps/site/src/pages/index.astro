@@ -1,52 +1,293 @@
 ---
-// Home skeleton. The ask box, live feed, and /start link arrive in step 7.
+// Home: the promise, then a replay of how the newest real lesson passed. Its check prints line by line; when
+// exit 0 prints, the seal turns from "Checking" to verified. A replay with its date, never shown as live.
+// The rule above the replay is a water surface (src/scripts/water.js, WebGL2, home only): the lesson waits below it,
+// out of focus, and reaches the surface as the seal turns. Without WebGL2 the rule stays a plain 2 px line.
+// Under reduced motion everything shows its final state.
 import Base from "../layouts/Base.astro";
+import Claim from "../components/Claim.astro";
 import LessonCard from "../components/LessonCard.astro";
+import StatusChip from "../components/StatusChip.astro";
+import SubjectTag from "../components/SubjectTag.astro";
+import { claimSize } from "../build/claim-size.ts";
 import { siteData } from "../build/data.ts";
-import { en } from "../strings/en.ts";
+import { en, formatDate } from "../strings/en.ts";
+import "../styles/water.css";
 
 const { index, teacherHref } = await siteData();
-const recent = index.lessons.slice(0, 5);
+const [newest, ...rest] = index.lessons;
+const recent = rest.slice(0, 6);
+
+// The log replays the newest lesson's first piece of evidence, as verify reports it.
+function logLines(): { text: string; kind: "cmd" | "dim" | "out" | "pass" }[] {
+  if (!newest) return [];
+  const e = newest.evidence[0]!;
+  const head = { text: "$ npm run verify:pr", kind: "cmd" as const };
+  const pass = { text: `passed  ${newest.id.slice(0, 10)}…  ${newest.claim.slice(0, 32)}${newest.claim.length > 32 ? "…" : ""}`, kind: "out" as const };
+  if ("source" in e) {
+    const host = new URL(e.source.url).host;
+    return [head, { text: `fetch https://${host}${new URL(e.source.url).pathname}`, kind: "dim" }, { text: `quote found: "${e.source.quote.slice(0, 40)}${e.source.quote.length > 40 ? "…" : ""}"`, kind: "dim" }, pass, { text: "exit 0", kind: "pass" }];
+  }
+  const runner = e.run.runner;
+  const image = runner === "node" ? "node:24-slim" : runner === "lean" ? "lean" : "python:3.14-slim";
+  const code = e.run.code.split("\n").slice(0, 4).map((l) => ({ text: `  ${l.slice(0, 58)}`, kind: "dim" as const }));
+  return [head, { text: `docker run --network none ${image}`, kind: "dim" }, ...code, pass, { text: runner === "lean" ? "proved, exit 0" : "exit 0", kind: "pass" }];
+}
+const lines = logLines();
+// The seal turns verified just after the run ends.
+const done = `${(0.25 + lines.length * 0.38 + 0.25).toFixed(2)}s`;
+const runner = newest && "run" in newest.evidence[0]! ? newest.evidence[0]!.run.runner : "";
 ---
 
 <Base title={en.home.title}>
-  <section class="hero prose">
+  <section class="hero wrap">
     <h1>{en.home.headline}</h1>
-    <p>{en.home.sub}</p>
-    <p><a href="/lessons/">{en.home.seeLessons}</a></p>
+    <p class="sub">{en.home.sub}</p>
   </section>
-  <h2>{en.home.recent}</h2>
-  <ul class="list">
-    {
-      recent.map((l) => (
-        <li>
-          <LessonCard
-            id={l.id}
-            claim={l.claim}
-            subject={l.subject}
-            version={l.version}
-            teacher={l.teacher}
-            teacherId={l.teacher_id}
-            teacherHref={teacherHref(l.teacher_id)}
-            verifiedBy={l.verified_by}
-            verifiedAt={l.verified_at}
-          />
-        </li>
-      ))
-    }
-  </ul>
+
+  {
+    newest && (
+      <section class="replay wrap" aria-labelledby="replay" style={`--done:${done}`}>
+        <h2 id="replay" class="visually-hidden">{en.home.replayTitle}</h2>
+        <div class="grid">
+          <article class="lesson">
+            <p class:list={["claim", "text", claimSize(newest.claim)]}>
+              <a href={`/lessons/${newest.id}/`}><Claim text={newest.claim} /></a>
+            </p>
+            <p class="sign">
+              <span class="by"><span class="visually-hidden">{en.lesson.taughtBy}</span><span aria-hidden="true">—</span>&nbsp;{teacherHref(newest.teacher_id) ? <a href={teacherHref(newest.teacher_id)!}>@{newest.teacher}</a> : <span>@{newest.teacher}</span>}</span>
+            </p>
+            <p class="state">
+              <span class="states">
+                <span class="was" aria-hidden="true">
+                  <StatusChip status="checking" label={en.home.checking} size="large" />
+                </span>
+                <span class="now">
+                  <StatusChip status="verified" label={en.lesson.verifiedBy[newest.verified_by]} by={newest.verified_by} size="large" />
+                </span>
+              </span>
+              <time datetime={newest.verified_at}>{formatDate(newest.verified_at)}</time>
+              <SubjectTag subject={newest.subject} version={newest.version} />
+            </p>
+          </article>
+          <figure class="log" aria-label={en.home.logTitle(newest.verified_by, runner)}>
+            <pre>{lines.map((l, i) => <span class:list={["line", l.kind]} style={`--i:${i}`}>{l.text}{"\n"}</span>)}</pre>
+          </figure>
+        </div>
+        <p class="caption">{en.home.replay(newest.verified_by, formatDate(newest.verified_at))}</p>
+      </section>
+    )
+  }
+
+  {
+    recent.length > 0 && (
+      <section class="recent wrap" aria-labelledby="recent">
+        <h2 id="recent">{en.home.recent}</h2>
+        <ul class="list">
+          {recent.map((l) => (
+            <li>
+              <LessonCard
+                id={l.id}
+                claim={l.claim}
+                subject={l.subject}
+                version={l.version}
+                teacher={l.teacher}
+                teacherId={l.teacher_id}
+                teacherHref={teacherHref(l.teacher_id)}
+                verifiedBy={l.verified_by}
+                verifiedAt={l.verified_at}
+              />
+            </li>
+          ))}
+        </ul>
+        <p class="all"><a href="/lessons/">{en.home.seeLessons}</a></p>
+      </section>
+    )
+  }
 </Base>
+
+<script>
+  import "../scripts/water.js";
+</script>
 
 <style>
   .hero {
-    margin-bottom: 48px;
+    padding-block: 16px 72px;
   }
-  .hero h1 {
-    font-size: 42px;
+  h1 {
+    font-weight: 820;
+    font-size: clamp(60px, 11.5vw, 156px);
+    line-height: 0.9;
+    letter-spacing: -0.058em;
+    word-spacing: 0.08em;
+    margin-left: -0.04em;
   }
-  @media (max-width: 640px) {
-    .hero h1 {
-      font-size: 33px;
+  .sub {
+    margin: 26px 0 0;
+    max-width: 26em;
+    font-size: clamp(19px, 2.2vw, 25px);
+    line-height: 1.4;
+    font-weight: 450;
+    color: var(--text);
+    letter-spacing: -0.01em;
+  }
+
+  .replay {
+    padding-block: 0;
+  }
+  .grid {
+    padding-top: 40px;
+    border-top: 2px solid var(--rule-strong);
+    display: grid;
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+    gap: 48px;
+    align-items: start;
+  }
+  @media (max-width: 900px) {
+    .grid {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 32px;
     }
+  }
+  .text {
+    margin: 0 0 18px;
+    line-height: 1.08;
+    letter-spacing: -0.032em;
+  }
+  .text.xl { font-size: clamp(34px, 4.8vw, 60px); }
+  .text.l { font-size: clamp(30px, 3.8vw, 46px); }
+  .text.m { font-size: clamp(25px, 2.8vw, 34px); line-height: 1.14; }
+  .text.s { font-size: clamp(21px, 2.2vw, 26px); line-height: 1.24; }
+  .text a {
+    color: inherit;
+    text-decoration: none;
+  }
+  .text a:hover {
+    text-decoration: underline;
+    text-decoration-thickness: 2px;
+  }
+  .sign {
+    margin: 0 0 18px;
+  }
+  /* One run of text: "—", a no-break space, the name. A long login wraps inside the name, never after the dash. */
+  .by {
+    display: block;
+    font-size: 20px;
+    font-weight: 600;
+    line-height: 1.35;
+    color: var(--ink);
+    overflow-wrap: anywhere;
+  }
+  .by a {
+    color: inherit;
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.18em;
+  }
+  .state {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px 18px;
+    margin: 0;
+    font-size: 14px;
+    color: var(--muted);
+  }
+  .states {
+    display: inline-grid;
+  }
+  /* Checking and verified are the same block: the outline fills in. Same width, so nothing beside it moves. */
+  .was,
+  .now {
+    grid-area: 1 / 1;
+    display: flex;
+  }
+  .was :global(.seal) {
+    width: 100%;
+  }
+  .was {
+    opacity: 0;
+    animation: hide 200ms linear var(--done) backwards;
+  }
+  .now {
+    animation: pass 700ms cubic-bezier(0.2, 0.8, 0.2, 1) var(--done) backwards;
+  }
+
+  /* The log is the cause of the surfacing: plain mono lines, no window, no title, no progress bar. */
+  .log {
+    margin: 0;
+  }
+  pre {
+    margin: 0;
+    padding: 2px 0 0;
+    line-height: 1.7;
+    font-size: 13px;
+    color: var(--text);
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+  .line {
+    animation: appear 1ms linear calc(0.25s + var(--i) * 0.38s) backwards;
+  }
+  .cmd {
+    color: var(--ink);
+    font-weight: 600;
+  }
+  .dim {
+    color: var(--muted);
+  }
+  .out {
+    color: var(--ink);
+  }
+  .pass {
+    color: var(--ink);
+    font-weight: 700;
+  }
+  .caption {
+    margin: 28px 0 0;
+    font-size: 14px;
+    color: var(--muted);
+    max-width: 46em;
+  }
+
+  @keyframes appear {
+    from { opacity: 0; }
+  }
+  @keyframes hide {
+    from { opacity: 1; }
+    to { opacity: 0; }
+  }
+  @keyframes pass {
+    from {
+      opacity: 0;
+      transform: scale(0.94);
+      filter: drop-shadow(0 0 0 transparent);
+    }
+    50% {
+      opacity: 1;
+      transform: scale(1.03);
+      filter: drop-shadow(0 0 14px var(--bloom));
+    }
+    to {
+      opacity: 1;
+      transform: none;
+      filter: drop-shadow(0 0 0 transparent);
+    }
+  }
+
+  .recent {
+    padding-top: 88px;
+  }
+  .recent h2 {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--ink);
+    margin-bottom: 14px;
+  }
+  .all {
+    margin: 0;
+    padding-top: 22px;
+    border-top: 1px solid var(--rule);
+    font-weight: 600;
   }
 </style>

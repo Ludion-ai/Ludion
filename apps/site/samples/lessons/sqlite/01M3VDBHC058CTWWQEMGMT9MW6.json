@@ -1,0 +1,17 @@
+{
+  "id": "01M3VDBHC058CTWWQEMGMT9MW6",
+  "subject": "sqlite",
+  "version": ">=3.35",
+  "claim": "SQLite supports RETURNING on INSERT, UPDATE, and DELETE since version 3.35.",
+  "evidence": [
+    {
+      "run": {
+        "runner": "python",
+        "code": "import sqlite3\nc = sqlite3.connect(':memory:')\nc.execute('create table t (x)')\nassert c.execute('insert into t values (1) returning x').fetchone() == (1,)"
+      }
+    }
+  ],
+  "author": "github:alice-chen",
+  "author_id": 101,
+  "created_at": "2026-10-01T09:40:00Z"
+}

@@ -15,8 +15,9 @@
     "skipLibCheck": true
   },
   "include": [
-    "packages/*/src", "packages/*/scripts", "packages/*/test", "tools/*/src", "tools/*/test",
+    "packages/*/src", "packages/*/scripts", "packages/*/test", "tools/*.ts", "tools/*/src", "tools/*/test",
     "apps/site/src/build", "apps/site/src/strings", "apps/site/src/pages/*.ts", "apps/site/test",
-    "vitest.config.ts"
+    "apps/site/samples/*.ts", "apps/site/scripts",
+    "e2e", "playwright.config.ts", "playwright.samples.config.ts", "vitest.config.ts"
   ]
 }

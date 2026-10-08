@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { buildIndex, resolveLogins, search, type Index } from "../src/index.ts";
+import { tokenize } from "../src/search.ts";
 import { example, fakeFetch, lesson } from "./helpers.ts";
 
 const opts = { org: "Ludion-ai", repo: "ludion", builtAt: new Date("2026-10-08T09:00:00.123Z") };
@@ -123,10 +124,56 @@ describe("search", () => {
 
   it("filters by subject and limits to k", () => {
     expect(search(index, "distutils", { subject: "node" })).toEqual([]);
-    expect(search(index, "node python", { k: 1 })).toHaveLength(1);
+    expect(search(index, "websocket distutils", { k: 1 })).toHaveLength(1);
+  });
+
+  it("never returns a lesson for a subject name alone", () => {
+    expect(search(index, "What is Python?")).toEqual([]);
+    expect(search(index, "node python")).toEqual([]);
+  });
+
+  it("finds a lesson from an error message pasted as it is", () => {
+    expect(search(index, "ModuleNotFoundError: No module named 'distutils'")[0]?.id).toBe(ex.id);
+  });
+
+  it("splits words where Latin meets Japanese, and between letters and digits", () => {
+    expect(tokenize("distutilsはPython 3.12で削除された？")).toEqual(["distutils", "は", "python", "3.12", "で", "削除", "された"]);
+    expect(tokenize("/usr/lib/python3.12/site-packages")).toEqual(["usr", "lib", "python", "3.12", "site", "packages"]);
+    expect(search(index, "Python 3.12でdistutilsが使えない")[0]?.id).toBe(ex.id);
+  });
+
+  it("searches a long paste by its last error line, so repeated frames above it don't outweigh it", () => {
+    const frames = Array.from({ length: 30 }, (_, i) => `  File "/srv/websocket_client/handler.py", line ${i + 1}, in <module>`);
+    const paste = ["Traceback (most recent call last):", ...frames, "ModuleNotFoundError: No module named 'distutils'"].join("\n");
+    expect(paste.length).toBeGreaterThan(1000);
+    expect(search(index, paste)[0]?.id).toBe(ex.id);
+  });
+
+  it("keeps flags and pseudo-classes whole", () => {
+    expect(tokenize("git switch --discard-changes, sort -V, CSS :has(), built-in")).toEqual(["git", "switch", "--discard-changes", "sort", "-v", "css", ":has", "built", "in"]);
   });
 
   it("returns nothing for an unrelated question", () => {
     expect(search(index, "kubernetes")).toEqual([]);
+  });
+
+  it("ignores common words, so they match nothing on their own", () => {
+    expect(search(index, "What is the capital of France?")).toEqual([]);
+    expect(search(index, "How do I use it?")).toEqual([]);
+  });
+
+  it("prefix-matches only words of 4+ characters: 'I' does not find 'instead'", () => {
+    expect(search(index, "I")).toEqual([]);
+    expect(search(index, "setu")[0]?.id).toBe(ex.id);
+  });
+
+  it("does not count a prefix match on a common word: 'inst' finding 'instead'", () => {
+    expect(search(index, "inst")).toEqual([]);
+  });
+
+  it("keeps a version number whole", () => {
+    expect(tokenize("Python 3.12 removed distutils (PEP 632)")).toEqual(["python", "3.12", "removed", "distutils", "pep", "632"]);
+    expect(search(index, "3.12")[0]?.id).toBe(ex.id);
+    expect(search(index, "3.1")).toEqual([]);
   });
 });

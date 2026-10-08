@@ -1,0 +1,67 @@
+/* Water under the home replay (design B, black and white). Home only, loaded as its own file. Applied only once
+   water.js has a WebGL2 context (html.has-water); without it the page is plain design B and the rule stays a 2 px line.
+   The canvas never paints a background (it blends; see water.js), and .replay must not become an isolated group. */
+html {
+  overflow-x: clip; /* the canvas bleeds to the window edges */
+}
+.has-water .replay {
+  position: relative;
+}
+canvas.water {
+  position: absolute;
+  top: -24px;
+  left: calc(50% - 50vw);
+  width: 100vw;
+  height: calc(100% + 64px);
+  z-index: 0;
+  display: block;
+  pointer-events: none;
+}
+.has-water .replay > :not(canvas, .visually-hidden) {
+  position: relative;
+  z-index: 1;
+}
+.has-water .grid {
+  border-top-color: transparent; /* the shader draws this rule as the surface */
+}
+
+/* The lesson waits below, out of focus, while it is checked; it reaches the surface as exit 0 prints (--done). */
+.has-water .lesson {
+  animation: rise calc(var(--done) - 0.3s) linear 0.3s both;
+}
+/* It stays deep while the check prints, drifting a little, and comes up in the last stretch, as exit 0 prints. */
+@keyframes rise {
+  from {
+    transform: translateY(64px);
+    filter: blur(7px);
+    opacity: 0.3;
+  }
+  70% {
+    transform: translateY(50px);
+    filter: blur(5px);
+    opacity: 0.42;
+    animation-timing-function: cubic-bezier(0.3, 0, 0.2, 1);
+  }
+  to {
+    transform: none;
+    filter: none;
+    opacity: 1;
+  }
+}
+.has-water .caption {
+  animation: cap-in 0.6s ease-out calc(var(--done) + 0.3s) both;
+}
+@keyframes cap-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .has-water .lesson,
+  .has-water .caption {
+    animation: none;
+  }
+}

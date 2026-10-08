@@ -1,0 +1,69 @@
+/* Proposal B, "Exit 0". A lesson is a claim that passed. The page reads like a precise instrument: ink on paper,
+   no accent color and no hue at all. The verified seal is the one inverted block on a page (paper on ink), and it carries the mark
+   of its evidence: exit 0, a proof, a found quote. Light is used only to show a run's progress and the moment it passes. */
+:root {
+  --paper: #ffffff;
+  --paper-2: #f3f3f3;
+  --ink: #0a0a0a;
+  --text: #262626;
+  --muted: #5c5c5c;
+  --rule: #e2e2e2;
+  --rule-strong: #0a0a0a;
+  --link: #0a0a0a;
+
+  /* Machine output panels: inverted. */
+  --log-bg: #0a0a0a;
+  --log-fg: #ededed;
+  --log-dim: #a3a3a3;
+  --log-line: #2a2a2a;
+
+  /* The seal: the only inverted block. */
+  --seal-bg: #0a0a0a;
+  --seal-fg: #ffffff;
+  /* No hue anywhere. Checking: a gray dashed outline and its word. Failed: a solid gray outline and its word. */
+  --checking-line: #8c8c8c;
+  --checking-fg: #575757;
+  --failed-line: #575757;
+  --failed-fg: #262626;
+  --bloom: rgb(10 10 10 / 0.35);
+
+  --font-ui: "Schibsted Grotesk Variable", "Hiragino Sans", "Yu Gothic UI", system-ui, sans-serif;
+  --font-code: "JetBrains Mono Variable", ui-monospace, monospace;
+
+  --page: 1200px;
+  --gutter: 32px;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper: #000000;
+    --paper-2: #121212;
+    --ink: #f5f5f5;
+    --text: #d4d4d4;
+    --muted: #9e9e9e;
+    --rule: #262626;
+    --rule-strong: #f5f5f5;
+    --link: #f5f5f5;
+
+    --log-bg: #111111;
+    --log-fg: #ededed;
+    --log-dim: #9e9e9e;
+    --log-line: #2e2e2e;
+
+    --seal-bg: #f5f5f5;
+    --seal-fg: #000000;
+    --checking-line: #7a7a7a;
+    --checking-fg: #a8a8a8;
+    --failed-line: #a8a8a8;
+    --failed-fg: #e0e0e0;
+    --bloom: rgb(255 255 255 / 0.45);
+    color-scheme: dark;
+  }
+}
+
+@media (max-width: 640px) {
+  :root {
+    --gutter: 18px;
+  }
+}

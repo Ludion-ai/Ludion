@@ -1,0 +1,17 @@
+---
+// A claim's text. Command-line flags and dotted names (--discard-changes, importlib.util) never break across
+// lines; everything else wraps normally. Rendered as text nodes only, never as HTML.
+interface Props {
+  text: string;
+}
+const { text } = Astro.props;
+const parts = text.split(/(--?[A-Za-z][\w-]*|\b[\w]+(?:\.[\w]+)+\b)/);
+---
+
+{parts.map((part, i) => (i % 2 === 1 ? <span class="nb">{part}</span> : part))}
+
+<style>
+  .nb {
+    white-space: nowrap;
+  }
+</style>

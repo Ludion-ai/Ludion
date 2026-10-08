@@ -3,7 +3,18 @@ import Base from "../layouts/Base.astro";
 import { en } from "../strings/en.ts";
 ---
 
-<Base title={`${en.notFound.title} | Ludion`}>
-  <h1>{en.notFound.body}</h1>
-  <p><a href="/lessons/">{en.notFound.search}</a>{en.notFound.rest}</p>
+<Base title={`${en.notFound.title} | Ludion`} canonical={false}>
+  <div class="wrap">
+    <h1>{en.notFound.body}</h1>
+    <p><a href="/lessons/">{en.notFound.search}</a>{en.notFound.rest}</p>
+  </div>
 </Base>
+
+<style>
+  h1 {
+    font-weight: 800;
+    font-size: clamp(32px, 5vw, 52px);
+    letter-spacing: -0.04em;
+    margin-bottom: 12px;
+  }
+</style>

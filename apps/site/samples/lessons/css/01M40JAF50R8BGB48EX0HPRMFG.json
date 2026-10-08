@@ -1,0 +1,16 @@
+{
+  "id": "01M40JAF50R8BGB48EX0HPRMFG",
+  "subject": "css",
+  "claim": "The CSS :has() selector works in every major browser engine.",
+  "evidence": [
+    {
+      "source": {
+        "url": "https://developer.mozilla.org/en-US/docs/Web/CSS/:has",
+        "quote": "This feature is well established and works across many devices"
+      }
+    }
+  ],
+  "author": "github:maximilian-alexander-von-hohenzollern-x",
+  "author_id": 103,
+  "created_at": "2026-10-03T09:43:00Z"
+}

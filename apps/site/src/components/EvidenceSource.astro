@@ -1,4 +1,6 @@
 ---
+import { en } from "../strings/en.ts";
+
 interface Props {
   url: string;
   quote: string;
@@ -8,22 +10,43 @@ const host = new URL(url).host;
 ---
 
 <figure class="source">
-  <blockquote cite={url}>{quote}</blockquote>
-  <figcaption><a href={url} rel="noopener nofollow">{host}</a></figcaption>
+  <figcaption>{en.lesson.source}</figcaption>
+  <blockquote cite={url}>
+    <p>{quote}</p>
+  </blockquote>
+  <p class="where"><a href={url} rel="noopener nofollow">{host}</a></p>
 </figure>
 
 <style>
   .source {
-    margin: 0 0 24px;
-  }
-  blockquote {
-    margin: 0 0 8px;
-    padding: 4px 0 4px 16px;
-    border-left: 3px solid var(--border);
-    color: var(--ink);
+    margin: 0 0 20px;
+    padding: 14px 16px 16px;
+    border: 1px solid var(--rule);
+    border-radius: 4px;
   }
   figcaption {
-    padding-left: 19px;
-    font-size: 15px;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--ink);
+    margin-bottom: 10px;
+  }
+  blockquote {
+    margin: 0;
+    padding-left: 14px;
+    border-left: 3px solid var(--ink);
+  }
+  blockquote p {
+    margin: 0;
+    font-size: 20px;
+    line-height: 1.35;
+    font-weight: 500;
+    color: var(--ink);
+    letter-spacing: -0.012em;
+  }
+  .where {
+    margin: 10px 0 0;
+    font-family: var(--font-code);
+    font-variant-ligatures: none;
+    font-size: 13px;
   }
 </style>

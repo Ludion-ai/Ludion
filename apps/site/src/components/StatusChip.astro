@@ -1,34 +1,107 @@
 ---
+// The seal. Verified shows its evidence mark beside the word (exit 0, proved, quote found). "solid" (inverted) is
+// used only where one lesson is the subject: the home replay and the lesson page. Lists use "outline": the same
+// block drawn with a solid ink line. Checking is the same block with a dashed gray line, still running.
+// Subject tags never use this shape.
+import { en } from "../strings/en.ts";
+import type { VerifiedBy } from "@ludion/core";
+
 interface Props {
   status: "verified" | "checking" | "failed" | "closed";
   label: string;
+  by?: VerifiedBy;
+  size?: "small" | "large";
+  tone?: "solid" | "outline";
 }
-const { status, label } = Astro.props;
+const { status, label, by, size = "small", tone = "solid" } = Astro.props;
 ---
 
-<span class:list={["chip", status]}>{label}</span>
+<span class:list={["seal", status, size, tone]}>
+  <svg class="tick" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+    <path d="M2.8 8.6l3.3 3.3 7.1-7.6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="square"></path>
+  </svg>
+  <span class="word">{label}</span>
+  {status === "verified" && by && <span class="mark">{en.lesson.mark[by]}</span>}
+</span>
 
 <style>
-  .chip {
-    display: inline-block;
-    border-radius: 999px;
-    padding: 0 12px;
+  .seal {
+    display: inline-flex;
+    align-items: stretch;
+    height: 28px;
+    border: 1.5px solid transparent;
+    border-radius: 3px;
     font-size: 13px;
-    font-weight: 500;
-    line-height: 24px;
+    font-weight: 700;
+    letter-spacing: 0;
     white-space: nowrap;
+    line-height: 1;
+  }
+  .large {
+    height: 40px;
+    font-size: 15px;
+  }
+  .tick,
+  .word,
+  .mark {
+    display: inline-flex;
+    align-items: center;
+  }
+  .tick {
+    width: 13px;
+    margin-left: 9px;
+  }
+  .large .tick {
+    width: 16px;
+    margin-left: 12px;
+  }
+  .word {
+    padding: 0 10px 0 7px;
+  }
+  .large .word {
+    padding: 0 14px 0 9px;
+  }
+  .mark {
+    padding: 0 9px;
+    border-left: 1px solid color-mix(in srgb, var(--seal-fg) 35%, transparent);
+    font-family: var(--font-code);
+    font-variant-ligatures: none;
+    font-weight: 500;
+    font-size: 0.92em;
+  }
+  .large .mark {
+    padding: 0 13px;
   }
   .verified {
-    background: var(--verified-bg);
-    color: var(--verified-text);
+    background: var(--seal-bg);
+    color: var(--seal-fg);
+  }
+  .verified.outline {
+    background: transparent;
+    color: var(--ink);
+    border-color: var(--ink);
+  }
+  .outline .mark {
+    border-left-color: color-mix(in srgb, var(--ink) 35%, transparent);
   }
   .checking {
-    background: var(--checking-bg);
-    color: var(--checking-text);
+    color: var(--checking-fg);
+    border-color: var(--checking-line);
+    border-style: dashed;
   }
   .failed,
   .closed {
-    background: var(--failed-bg);
-    color: var(--failed-text);
+    color: var(--failed-fg);
+    border-color: var(--failed-line);
+  }
+  .checking .tick,
+  .failed .tick,
+  .closed .tick {
+    display: none;
+  }
+  .checking .word,
+  .failed .word,
+  .closed .word {
+    padding-left: 10px;
   }
 </style>

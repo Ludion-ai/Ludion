@@ -1,0 +1,23 @@
+{
+  "id": "01M4AWPZF0MRY64MP2MGEY4C6T",
+  "subject": "git",
+  "version": ">=2.23",
+  "claim": "git switch and git restore, added in Git 2.23, split the two jobs of git checkout: switch changes branches and refuses to throw away local changes unless you pass --discard-changes, while restore brings back file contents from the index or from a commit without moving HEAD. Scripts that call git checkout with a path keep working, but the newer documentation teaches the two narrower commands first.",
+  "evidence": [
+    {
+      "run": {
+        "runner": "bash",
+        "code": "git switch --help >/dev/null 2>&1 || exit 1\ngit restore --help >/dev/null 2>&1 || exit 1\necho ok"
+      }
+    },
+    {
+      "source": {
+        "url": "https://git-scm.com/docs/git-switch",
+        "quote": "THIS COMMAND IS EXPERIMENTAL. THE BEHAVIOR MAY CHANGE."
+      }
+    }
+  ],
+  "author": "github:alice-chen",
+  "author_id": 101,
+  "created_at": "2026-10-07T09:57:00Z"
+}

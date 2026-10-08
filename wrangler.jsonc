@@ -15,26 +15,5 @@
   "ratelimits": [
     { "name": "SOURCE_CHECK_LIMITER", "namespace_id": "1001", "simple": { "limit": 10, "period": 60 } }
   ],
-  "observability": { "enabled": true },
-  // Previews never run with production's secrets: they deploy to their own Worker with their own secrets
-  // (worker.md, "Preview builds never see production secrets"). Workers Builds, non-production branches:
-  // npx wrangler versions upload --env preview
-  "env": {
-    "preview": {
-      "name": "ludion-preview",
-      "routes": [],
-      "workers_dev": true,
-      "assets": {
-        "directory": "apps/site/dist",
-        "binding": "ASSETS",
-        "not_found_handling": "404-page",
-        "run_worker_first": ["/mcp", "/mcp/*", "/api/*", "/auth/*", "/@*"]
-      },
-      // Set to the preview Worker's workers.dev URL before the first preview deploy.
-      "vars": { "SITE_URL": "https://ludion-preview.REPLACE-WITH-WORKERS-SUBDOMAIN.workers.dev" },
-      "ratelimits": [
-        { "name": "SOURCE_CHECK_LIMITER", "namespace_id": "1002", "simple": { "limit": 10, "period": 60 } }
-      ]
-    }
-  }
+  "observability": { "enabled": true }
 }

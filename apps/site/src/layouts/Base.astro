@@ -1,16 +1,23 @@
 ---
 import "../styles/global.css";
+import Wordmark from "../components/Wordmark.astro";
 import { siteData } from "../build/data.ts";
 import { en } from "../strings/en.ts";
 
 interface Props {
   title: string;
   description?: string;
+  /** False for pages without a URL of their own (404). */
+  canonical?: boolean;
+  /** The public path when it differs from the built one (teacher pages are linked as /@<login>). */
+  canonicalPath?: string;
 }
-const { title, description = en.site.description } = Astro.props;
+const { title, description = en.site.description, canonical = true, canonicalPath } = Astro.props;
 const { index, config } = await siteData();
 const teacherCount = Object.keys(index.teachers).length;
-const canonical = new URL(Astro.url.pathname, config.site);
+// The trailing-slash URL: the one without it only redirects (307).
+const path = canonicalPath ?? (Astro.url.pathname.endsWith("/") ? Astro.url.pathname : `${Astro.url.pathname}/`);
+const canonicalUrl = new URL(path, config.site).href;
 ---
 
 <!doctype html>
@@ -20,24 +27,25 @@ const canonical = new URL(Astro.url.pathname, config.site);
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{title}</title>
     <meta name="description" content={description} />
-    <link rel="canonical" href={canonical.href} />
+    {canonical && <link rel="canonical" href={canonicalUrl} />}
+    <meta name="color-scheme" content="light dark" />
   </head>
   <body>
     <header class="site-header">
       <div class="wrap bar">
-        <a class="wordmark" href="/">{en.site.name}</a>
+        <a class="home" href="/" aria-label={en.site.name}><Wordmark /></a>
         <nav aria-label={en.nav.label}>
-          <a href="/lessons/">{en.nav.lessons}</a>
+          <a href="/lessons/" aria-current={Astro.url.pathname.startsWith("/lessons") ? "page" : undefined}>{en.nav.lessons}</a>
         </nav>
       </div>
     </header>
-    <main class="wrap">
+    <main>
       <slot />
     </main>
     <footer class="site-footer">
-      <div class="wrap">
+      <div class="wrap foot">
         <p>{en.footer.count(index.lessons.length, teacherCount)}</p>
-        <p class="muted">
+        <p>
           {en.footer.license} <a href={`https://github.com/${config.org}/${config.repo}`}>{en.footer.github}</a>
         </p>
       </div>
@@ -47,41 +55,57 @@ const canonical = new URL(Astro.url.pathname, config.site);
 
 <style>
   .site-header {
-    border-bottom: 1px solid var(--border);
+    border-bottom: 1px solid var(--rule);
   }
   .bar {
     display: flex;
     align-items: center;
+    justify-content: space-between;
     gap: 32px;
     min-height: 64px;
   }
-  .wordmark {
-    color: var(--ink);
-    font-weight: 600;
-    font-size: 21px;
+  .home {
+    display: inline-flex;
+    padding: 6px 0;
     text-decoration: none;
-  }
-  nav {
-    display: flex;
-    gap: 24px;
   }
   nav a {
-    color: var(--text);
+    font-size: 15px;
+    font-weight: 600;
     text-decoration: none;
+    padding: 8px 0;
   }
-  nav a:hover {
-    color: var(--cobalt);
+  nav a:hover,
+  nav a[aria-current="page"] {
+    text-decoration: underline;
+    text-decoration-thickness: 2px;
+    text-underline-offset: 0.45em;
   }
   main {
-    padding-top: 48px;
-    padding-bottom: 64px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding-top: 56px;
+  }
+  main > :global(:last-child) {
+    padding-bottom: 96px;
   }
   .site-footer {
-    border-top: 1px solid var(--border);
-    padding: 24px 0 48px;
-    font-size: 15px;
+    border-top: 1px solid var(--rule);
+    font-size: 14px;
+    color: var(--muted);
   }
-  .site-footer p {
-    margin: 0 0 8px;
+  .foot {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 8px 32px;
+    padding-block: 24px 32px;
+  }
+  .foot p {
+    margin: 0;
+  }
+  .foot a {
+    color: var(--ink);
   }
 </style>

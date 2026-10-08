@@ -1,9 +1,12 @@
 ---
 import Base from "../../layouts/Base.astro";
+import Claim from "../../components/Claim.astro";
+import Signature from "../../components/Signature.astro";
 import StatusChip from "../../components/StatusChip.astro";
-import TeacherLink from "../../components/TeacherLink.astro";
+import SubjectTag from "../../components/SubjectTag.astro";
 import EvidenceRun from "../../components/EvidenceRun.astro";
 import EvidenceSource from "../../components/EvidenceSource.astro";
+import { claimSize } from "../../build/claim-size.ts";
 import { siteData, type LessonPage } from "../../build/data.ts";
 import { en, formatDate } from "../../strings/en.ts";
 
@@ -14,87 +17,173 @@ export async function getStaticPaths() {
 }
 
 const { page } = Astro.props as { page: LessonPage };
-const { config, teacherHref } = await siteData();
+const { config, teacherHref, pages } = await siteData();
+// Corrections are shown by their claims, not their ids.
+const claimOf = new Map(pages.map((p) => [p.lesson.id, p.lesson.claim]));
 const { lesson } = page;
-const fileUrl = `https://github.com/${config.org}/${config.repo}/blob/main/lessons/${lesson.subject}/${lesson.id}.json`;
+const repo = `https://github.com/${config.org}/${config.repo}`;
 ---
 
 <Base title={`${lesson.claim} | Ludion`} description={lesson.claim}>
-  <article class="lesson prose">
+  <article class="lesson wrap">
     {
       page.correctedBy && (
         <p class="banner" role="note">
-          {en.lesson.correctedBy} <a href={`/lessons/${page.correctedBy}/`}>{page.correctedBy}</a>.
+          {en.lesson.correctedBy} <a href={`/lessons/${page.correctedBy}/`}>{claimOf.get(page.correctedBy) ?? page.correctedBy}</a>
         </p>
       )
     }
-    <h1>{lesson.claim}</h1>
-    <p class="meta">
-      <StatusChip status="verified" label={en.lesson.verifiedBy[page.verified_by]} />
-      <time datetime={page.verified_at}>{en.lesson.on(formatDate(page.verified_at))}</time>
-      <span class="muted">{en.lesson.appliesTo(lesson.subject, lesson.version)}</span>
-    </p>
-    <p class="taught">
-      {en.lesson.taughtBy}
-      <TeacherLink login={page.teacher} id={lesson.author_id} href={teacherHref(lesson.author_id)} showAvatar />
-    </p>
+    <div class="top">
+      <div>
+        <h1 class:list={["claim", claimSize(lesson.claim)]}><Claim text={lesson.claim} /></h1>
+        <Signature
+          teacher={page.teacher}
+          teacherId={lesson.author_id}
+          teacherHref={teacherHref(lesson.author_id)}
+          verifiedBy={page.verified_by}
+          verifiedAt={page.verified_at}
+          avatar
+          size="large"
+          seal={false}
+        />
+      </div>
+      <aside class="result" aria-label={en.lesson.verifiedBy[page.verified_by]}>
+        <StatusChip status="verified" label={en.lesson.verifiedBy[page.verified_by]} by={page.verified_by} size="large" />
+        <dl>
+          <div><dt>{en.record.verified}</dt><dd><time datetime={page.verified_at}>{formatDate(page.verified_at)}</time></dd></div>
+          <div><dt>{en.record.appliesTo}</dt><dd><SubjectTag subject={lesson.subject} version={lesson.version} /></dd></div>
+          <div>
+            <dt>{en.record.check}</dt>
+            <dd class="links">
+              <a href={`${repo}/blob/main/lessons/${lesson.subject}/${lesson.id}.json`}>{en.lesson.viewFile}</a>
+              {page.pr !== null && <a href={`${repo}/pull/${page.pr}`}>{en.lesson.pullRequest(page.pr)}</a>}
+            </dd>
+          </div>
+        </dl>
+      </aside>
+    </div>
 
-    <h2>{en.lesson.evidence}</h2>
-    {
-      lesson.evidence.map((e) =>
-        "run" in e ? <EvidenceRun runner={e.run.runner} code={e.run.code} /> : <EvidenceSource url={e.source.url} quote={e.source.quote} />,
-      )
-    }
-
-    {
-      page.corrects.length > 0 && (
-        <>
-          <h2>{en.lesson.corrects}</h2>
-          <ul>
-            {page.corrects.map((id) => (
-              <li>
-                <a href={`/lessons/${id}/`}>{id}</a>
-              </li>
-            ))}
-          </ul>
-        </>
-      )
-    }
-
-    <p class="links">
-      <a href={fileUrl}>{en.lesson.viewFile}</a>
-      {page.pr !== null && <a href={`https://github.com/${config.org}/${config.repo}/pull/${page.pr}`}>{en.lesson.pullRequest(page.pr)}</a>}
-    </p>
+    <section class="evidence" aria-labelledby="evidence">
+      <h2 id="evidence">{en.lesson.evidence}</h2>
+      {
+        lesson.evidence.map((e) =>
+          "run" in e ? (
+            <EvidenceRun runner={e.run.runner} code={e.run.code} />
+          ) : (
+            <EvidenceSource url={e.source.url} quote={e.source.quote} />
+          ),
+        )
+      }
+      {
+        page.corrects.length > 0 && (
+          <div class="corrects">
+            <h2>{en.lesson.corrects}</h2>
+            <ul class="corrected">
+              {page.corrects.map((id) => (
+                <li>
+                  <a href={`/lessons/${id}/`}>{claimOf.get(id) ?? id}</a>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )
+      }
+    </section>
   </article>
 </Base>
 
 <style>
-  .banner {
-    background: var(--checking-bg);
-    color: var(--checking-text);
-    border-radius: 6px;
-    padding: 12px 16px;
-    margin: 0 0 24px;
+  .top {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 320px;
+    gap: 56px;
+    align-items: start;
+    padding-bottom: 56px;
+    border-bottom: 2px solid var(--rule-strong);
   }
-  .banner a {
-    color: inherit;
+  @media (max-width: 900px) {
+    .top {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 32px;
+    }
   }
-  .meta,
-  .taught {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 8px 12px;
-    margin: 0 0 16px;
+  h1 {
+    line-height: 1.04;
+    letter-spacing: -0.036em;
+    margin-bottom: 28px;
   }
-  .taught {
-    margin-bottom: 32px;
+  h1.xl { font-size: clamp(38px, 6vw, 76px); }
+  h1.l { font-size: clamp(32px, 4.6vw, 56px); }
+  h1.m { font-size: clamp(27px, 3.4vw, 40px); line-height: 1.1; }
+  h1.s { font-size: clamp(22px, 2.5vw, 30px); line-height: 1.2; letter-spacing: -0.024em; }
+  /* The result panel: the seal and the record that backs it. */
+  .result {
+    border-top: 2px solid var(--rule-strong);
+    padding-top: 18px;
+  }
+  dl {
+    margin: 22px 0 0;
+    font-size: 14px;
+  }
+  dl > div {
+    display: grid;
+    grid-template-columns: 96px minmax(0, 1fr);
+    gap: 12px;
+    padding: 10px 0;
+    border-top: 1px solid var(--rule);
+  }
+  dt {
+    color: var(--muted);
+  }
+  dd {
+    margin: 0;
+    color: var(--ink);
   }
   .links {
     display: flex;
-    flex-wrap: wrap;
-    gap: 8px 24px;
-    margin-top: 32px;
-    font-size: 15px;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .evidence {
+    padding-top: 40px;
+  }
+  .evidence h2 {
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 18px;
+  }
+  .corrects h2 {
+    margin-top: 28px;
+  }
+  .corrected {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .corrected li {
+    padding: 12px 0;
+    border-top: 1px solid var(--rule);
+    font-size: 18px;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+  }
+  /* The lessons this one corrects: struck through, since they no longer hold. */
+  .corrected a {
+    color: var(--muted);
+    text-decoration-line: line-through;
+  }
+  .corrected a:hover {
+    color: var(--ink);
+    text-decoration-line: line-through underline;
+  }
+  .banner {
+    margin: 0 0 28px;
+    padding: 10px 14px;
+    border: 1.5px dashed var(--checking-line);
+    border-radius: 3px;
+    color: var(--checking-fg);
+  }
+  .banner a {
+    color: inherit;
   }
 </style>

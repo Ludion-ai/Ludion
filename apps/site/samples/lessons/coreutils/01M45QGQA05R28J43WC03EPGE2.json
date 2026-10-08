@@ -1,0 +1,16 @@
+{
+  "id": "01M45QGQA05R28J43WC03EPGE2",
+  "subject": "coreutils",
+  "claim": "GNU sort -V puts version 1.10 after 1.9, unlike plain sort.",
+  "evidence": [
+    {
+      "run": {
+        "runner": "bash",
+        "code": "out=$(printf '1.10\\n1.9\\n' | sort -V | tr '\\n' ' ')\n[ \"$out\" = '1.9 1.10 ' ] || exit 1"
+      }
+    }
+  ],
+  "author": "github:maximilian-alexander-von-hohenzollern-x",
+  "author_id": 103,
+  "created_at": "2026-10-05T09:50:00Z"
+}

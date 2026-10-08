@@ -1,0 +1,17 @@
+{
+  "id": "01M4DFB0V0NRHYDC727GQ2SCX2",
+  "subject": "python",
+  "version": ">=3.13",
+  "claim": "Python 3.13 removed cgi.",
+  "evidence": [
+    {
+      "source": {
+        "url": "https://peps.python.org/pep-0594/",
+        "quote": "Remove the cgi module"
+      }
+    }
+  ],
+  "author": "github:kenji-watanabe",
+  "author_id": 102,
+  "created_at": "2026-10-08T10:01:00Z"
+}
