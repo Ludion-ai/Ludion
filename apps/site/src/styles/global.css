@@ -1,8 +1,5 @@
-@import "@fontsource/ibm-plex-sans/latin-400.css";
-@import "@fontsource/ibm-plex-sans/latin-500.css";
-@import "@fontsource/ibm-plex-sans/latin-600.css";
-@import "@fontsource/ibm-plex-mono/latin-400.css";
-@import "@fontsource/zen-old-mincho/latin-400.css";
+@import "@fontsource-variable/schibsted-grotesk/wght.css";
+@import "@fontsource-variable/jetbrains-mono/wght.css";
 @import "./tokens.css";
 
 *,
@@ -13,87 +10,88 @@
 
 html {
   -webkit-text-size-adjust: 100%;
+  background: var(--paper);
 }
 
 body {
   margin: 0;
-  background: var(--bg);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--paper);
   color: var(--text);
   font-family: var(--font-ui);
-  font-size: var(--size-body);
-  line-height: 1.6;
+  font-size: 17px;
+  line-height: 1.55;
 }
 
 h1,
 h2,
 h3 {
   color: var(--ink);
-  font-weight: 600;
-  line-height: 1.25;
-  margin: 0 0 var(--space-4);
+  margin: 0;
+  font-weight: 700;
+  line-height: 1.1;
 }
 
-h2 {
-  font-size: var(--size-body);
-}
-
-/* A claim is a sentence someone wrote: the serif is reserved for it. */
 .claim {
-  font-family: var(--font-claim);
-  font-weight: 400;
+  font-family: var(--font-ui);
+  font-weight: 560;
   color: var(--ink);
-  letter-spacing: 0;
+  letter-spacing: -0.022em;
+  text-wrap: pretty;
 }
 
 a {
   color: var(--link);
-  text-underline-offset: 0.18em;
+  text-underline-offset: 0.2em;
   text-decoration-thickness: 1px;
 }
 
 a:hover {
-  color: var(--ink);
+  text-decoration-thickness: 2px;
 }
 
 :focus-visible {
-  outline: 2px solid var(--focus);
-  outline-offset: 2px;
-  border-radius: 2px;
+  outline: 2px solid var(--ink);
+  outline-offset: 3px;
 }
 
+/* No programming ligatures: >= and -- must read as the characters someone would type. */
 code,
 pre {
   font-family: var(--font-code);
-  font-size: 14.5px;
+  font-size: 14px;
+  font-variant-ligatures: none;
 }
 
 .wrap {
-  max-width: var(--page);
+  width: 100%;
+  max-width: calc(var(--page) + var(--gutter) * 2);
   margin: 0 auto;
-  padding: 0 var(--gutter);
+  padding-inline: var(--gutter);
 }
 
-.muted {
-  color: var(--muted);
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
 }
 
-/* The register: one ruled line per entry. */
-.register {
+.list {
   list-style: none;
   margin: 0;
   padding: 0;
-  border-top: 1px solid var(--rule);
-}
-
-.register > li {
-  border-bottom: 1px solid var(--rule);
 }
 
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
   *::after {
-    transition-duration: 0s !important;
-    animation-duration: 0s !important;
+    animation: none !important;
+    transition: none !important;
   }
 }

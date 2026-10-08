@@ -1,0 +1,73 @@
+---
+// The teacher signs the claim: "— @login", then how (the seal) and when it was verified.
+// The dash and the name are one run of text joined by a no-break space, so a long login wraps inside the name
+// and the dash never sits alone at the end of a line.
+import StatusChip from "./StatusChip.astro";
+import { siteData } from "../build/data.ts";
+import { en, formatDate } from "../strings/en.ts";
+import type { VerifiedBy } from "@ludion/core";
+
+interface Props {
+  teacher: string;
+  teacherId: number;
+  teacherHref: string | null;
+  verifiedBy: VerifiedBy;
+  verifiedAt: string;
+  avatar?: boolean;
+  size?: "small" | "large";
+  /** Leave the seal out (the lesson page shows it on its own). */
+  seal?: boolean;
+  /** "outline" in lists; the inverted seal is only for the replay and the lesson page. */
+  tone?: "solid" | "outline";
+  /** Leave out "— @login" (the teacher's own page). */
+  name?: boolean;
+}
+const { seal = true, tone = "outline", name = true, ...p } = Astro.props;
+const { avatarOf } = await siteData();
+---
+
+<p class:list={["signature", p.size ?? "small"]}>
+  {name && <span class="by">
+    {p.avatar && <img src={avatarOf(p.teacherId, 28)} alt="" width="28" height="28" />}<span class="visually-hidden">{en.lesson.taughtBy}</span><span aria-hidden="true">—</span>&nbsp;{p.teacherHref ? <a href={p.teacherHref}>@{p.teacher}</a> : <span>@{p.teacher}</span>}
+  </span>}
+  {seal && <StatusChip status="verified" label={en.lesson.verifiedBy[p.verifiedBy]} by={p.verifiedBy} size={p.size} tone={tone} />}
+  <time datetime={p.verifiedAt}>{seal ? formatDate(p.verifiedAt) : en.lesson.on(formatDate(p.verifiedAt))}</time>
+</p>
+
+<style>
+  .signature {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px 16px;
+    margin: 0;
+    font-size: 14px;
+    color: var(--muted);
+  }
+  .by {
+    display: block;
+    max-width: 100%;
+    font-size: 17px;
+    font-weight: 600;
+    line-height: 1.35;
+    color: var(--ink);
+    overflow-wrap: anywhere;
+  }
+  .large .by {
+    font-size: 20px;
+  }
+  .by a {
+    color: inherit;
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.18em;
+  }
+  .by a:hover {
+    text-decoration-thickness: 2px;
+  }
+  .by img {
+    border-radius: 2px;
+    vertical-align: -0.35em;
+    margin-right: 8px;
+  }
+</style>

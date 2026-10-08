@@ -98,29 +98,27 @@ Every number in the essay links to its source. If a number has no source you can
 
 ## Design
 
-The look is decided in step 4 by looking at real pages. The first round was quiet and safe and was not adopted. The second round aims higher:
+Chosen in step 4 (three rounds, owner's pick): design B, "Exit 0", with one idea from proposal A, the lesson that rises to the surface, redrawn in black and white. Tokens live in `apps/site/src/styles/tokens.css`.
 
-- The goal is that the site looks great at first sight. Safe is not the goal. It holds up next to the best developer tools, without resembling any particular site.
-- Gradients, light, depth, translucency, texture, and motion may be used on two conditions. They mean something: a gradient shows depth or an amount of light, never color for its own sake, and motion shows a change of state. And they never lower the readability or contrast of body text.
-- Not used: the usual AI-startup look (purple-to-blue glowing gradients, gradient-filled text, glass cards that mean nothing, noise sprinkled over the whole screen), off-the-shelf shader presets, emoji, stock images, made-up numbers.
-- Kept: WCAG 2.2 AA in both themes. Under `prefers-reduced-motion` nothing moves. Home JavaScript at most 60 KB gzipped.
+- **Why B:** a lesson is a claim that passed its check, and the page reads like a precise instrument. Ink on paper, no hue anywhere, so the one inverted block (the verified seal) is what the eye finds first. It holds up next to developer tools without borrowing anyone's look.
+- **What came from A:** the ludion, the diver that rises in a bottle of water. On the home page the rule above the replay is a water surface (one WebGL2 shader, `src/scripts/water.js`, home only, about 3 KB gzipped). The newest real lesson waits below it, out of focus, while its check prints; when `exit 0` prints, the seal turns over, the lesson reaches the surface, and one ring runs out from the seal. Light is white, water a gray tint; the canvas never paints a background (screen in dark, multiply in light). It is a replay with its date, never shown as live. Reduced motion: one still frame. Without WebGL2 the rule is a plain 2 px line.
+- **Type:** Schibsted Grotesk throughout, large and tight; JetBrains Mono only for machine output, with ligatures off so `>=` and `--` read as typed. Japanese will pair with a gothic face. The wordmark is lowercase "ludion", drawn as outlines (`apps/site/scripts/wordmark.py`, a static instance made with fontTools' `varLib.instancer`), the i's dot a circle floating a little higher: the ludion.
+- **The seal** names its evidence: `exit 0`, `proved`, `quote found`. Inverted only where one lesson is the subject (the home replay and the lesson page); lists use the same block outlined. Checking is the same block with a gray dashed line and its word; failed a solid gray line and its word.
+- **Rejected:** round 1 (a quiet slate page with one bright green accent: a common AI-made look) and proposal A in color (a blue water column with serif claims; its idea survives above).
+
+Rules that stay:
+
+- Gradients, light, depth, translucency, texture, and motion only when they mean something (depth, an amount of light, a change of state), and never at the cost of body text's readability or contrast.
+- Not used: the usual AI-startup look (purple-to-blue glowing gradients, gradient-filled text, glass cards that mean nothing, noise over the whole screen), off-the-shelf shader presets, emoji, stock images, made-up numbers. No hue.
+- WCAG 2.2 AA in both themes. Under `prefers-reduced-motion` nothing moves. Home JavaScript at most 60 KB gzipped. Text over the water is contrast-tested (`e2e/water.spec.ts`), because axe can't see a canvas.
 - The content is the hero, and provenance is always visible: who taught it, when and how it was verified, and where to check.
-- The verified state is the most eye-catching thing on a page; no decoration competes with it. A status is never shown by color alone (there is always a word). When a lesson turns verified, announce it with `aria-live="polite"` ("Verified: <claim, first 60 chars>").
-- The teacher's name is a signature on the claim: right under it, a line "— @login", with how and when it was verified.
-- Subject tags never share the status chip's shape.
+- The verified state is the most eye-catching thing on a page. A status is never shown by color alone (there is always a word). When a lesson turns verified, announce it with `aria-live="polite"` ("Verified: <claim, first 60 chars>").
+- The teacher's name is a signature on the claim: right under it, "— @login", with how and when it was verified. On the teacher's own page the rows leave it out. The dash and the name never split across lines.
+- Subject tags never share the seal's shape; they read like the directory they are (`python/ >=3.12`).
 - Home headline "Teach it once.", and under it "Everyone's AI learns it in minutes. Your name stays on it." No buttons until `/start` exists.
-- The footer sits at the bottom of the screen even when the page is short.
-- Type: the Latin faces are chosen in earnest (no default serif that reads as Times at large sizes) and must sit well next to a Japanese face later. Fonts are self-hosted (the CSP allows only `'self'`). The wordmark is drawn, not just typed.
-- Lessons are lists, not card grids. Pages work down to 360 px wide.
-
-Step 4, round 2, in order:
-
-1. Read the frontend-design skill and check each proposal against its list of traits common to AI-made designs. (Round 1 matched "a dark background with one bright green accent".)
-2. Build two proposals. A, "Ludion": a ludion is the little diver that rises and sinks in a bottle of water; a lesson rises to the surface when it is verified. A checking lesson sits a little deeper, darker and softer; a verified one surfaces, bright and sharp. Depth is a gradient, the surface is light. The home page replays the moment of teaching once with a real lesson, never presented as happening live. B: a different direction.
-3. Check both against sample data that never enters `lessons/` and never reaches production (`apps/site/samples/`, built only with `LUDION_SAMPLES=1`): short and 400-character claims, test, proof, and source, a corrected lesson, a long login, several teachers.
-4. Capture the home and lesson pages at 390 px and 1280 px, light and dark, plus a Playwright video of the motion. Critique and fix at least twice.
-5. The owner picks one. Then this section is replaced with a few lines recording what was chosen and why, and the tokens live in `apps/site/src/styles/tokens.css`.
-
+- The footer sits at the bottom of the screen even when the page is short. Lessons are lists, not card grids. Pages work down to 360 px wide.
+- Fonts are self-hosted (the CSP allows only `'self'`). Scripts and stylesheets are separate files.
+- Design changes are checked against the sample lessons in `apps/site/samples/` (built only with `LUDION_SAMPLES=1`, into `dist-samples`, never deployed), with screenshots at 390 px and 1280 px in both themes.
 ## Budgets
 
 - Home JavaScript at most 60 KB gzipped. `index.json` loads only on ask-box focus or on `/lessons`.

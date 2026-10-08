@@ -10,36 +10,41 @@ const shown = index.lessons.slice(0, STATIC_LIMIT);
 ---
 
 <Base title={`${en.lessons.title} | Ludion`}>
-  <h1>{en.lessons.title}</h1>
-  <p class="muted count">{index.lessons.length ? en.lessons.intro(shown.length, index.lessons.length) : en.lessons.empty}</p>
-  <ul class="register">
-    {
-      shown.map((l) => (
-        <li>
-          <LessonCard
-            id={l.id}
-            claim={l.claim}
-            subject={l.subject}
-            version={l.version}
-            teacher={l.teacher}
-            teacherId={l.teacher_id}
-            teacherHref={teacherHref(l.teacher_id)}
-            verifiedBy={l.verified_by}
-            verifiedAt={l.verified_at}
-          />
-        </li>
-      ))
-    }
-  </ul>
+  <div class="wrap">
+    <h1>{en.lessons.title}</h1>
+    <p class="count">{index.lessons.length ? en.lessons.intro(shown.length, index.lessons.length) : en.lessons.empty}</p>
+    <ul class="list">
+      {
+        shown.map((l) => (
+          <li>
+            <LessonCard
+              id={l.id}
+              claim={l.claim}
+              subject={l.subject}
+              version={l.version}
+              teacher={l.teacher}
+              teacherId={l.teacher_id}
+              teacherHref={teacherHref(l.teacher_id)}
+              verifiedBy={l.verified_by}
+              verifiedAt={l.verified_at}
+            />
+          </li>
+        ))
+      }
+    </ul>
+  </div>
 </Base>
 
 <style>
   h1 {
-    font-size: var(--size-title);
-    margin-bottom: var(--space-2);
+    font-weight: 820;
+    font-size: clamp(48px, 8vw, 104px);
+    line-height: 0.92;
+    letter-spacing: -0.055em;
   }
   .count {
-    font-size: var(--size-meta);
-    margin: 0 0 var(--space-6);
+    margin: 16px 0 36px;
+    font-size: 15px;
+    color: var(--muted);
   }
 </style>

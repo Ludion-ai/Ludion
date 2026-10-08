@@ -57,12 +57,12 @@ function sampleMeta(root: string): { teachers: Record<string, string>; git: GitI
   return JSON.parse(readFileSync(join(root, "apps/site/samples/meta.json"), "utf8"));
 }
 
-/** A data: URI avatar with the login's first letter, for fictional sample teachers. */
+/** A data: URI avatar with the login's first letter, for fictional sample teachers. Gray only: the site has no hue. */
 function monogram(login: string, id: number): string {
-  const hue = (id * 47) % 360;
+  const lightness = 22 + ((id * 7) % 4) * 6;
   const letter = login.charAt(0).toUpperCase().replace(/[^A-Z0-9]/, "?");
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40"><rect width="40" height="40" fill="hsl(${hue} 35% 42%)"/><text x="20" y="26.5" text-anchor="middle" font-family="sans-serif" font-size="18" font-weight="600" fill="#fff">${letter}</text></svg>`;
-  return `data:image/svg+xml,${encodeURIComponent(svg)}`;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40"><rect width="40" height="40" fill="hsl(0 0% ${lightness}%)"/><text x="20" y="26.5" text-anchor="middle" font-family="sans-serif" font-size="18" font-weight="600" fill="#fff">${letter}</text></svg>`;
+return `data:image/svg+xml,${encodeURIComponent(svg)}`;
 }
 const git = (cwd: string, ...args: string[]) => execFileSync("git", args, { cwd, encoding: "utf8", maxBuffer: 256 * 1024 * 1024 });
 

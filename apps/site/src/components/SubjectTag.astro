@@ -1,0 +1,26 @@
+---
+// A subject is a directory (lessons/<subject>/), so it reads like one: "python/", with the version after it.
+// Plain text with a slash, never the seal's block.
+interface Props {
+  subject: string;
+  version?: string | null;
+}
+const { subject, version } = Astro.props;
+---
+
+<span class="tag"><span class="subject">{subject}/</span>{version && <span class="version">{version}</span>}</span>
+
+<style>
+  .tag {
+    display: inline-flex;
+    gap: 8px;
+    font-family: var(--font-code);
+    font-variant-ligatures: none;
+    font-size: 13px;
+    color: var(--muted);
+  }
+  .subject {
+    color: var(--ink);
+    font-weight: 600;
+  }
+</style>

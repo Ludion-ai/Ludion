@@ -1,0 +1,24 @@
+---
+// "ludion" in Schibsted Grotesk, heavy and tight, drawn as outlines (apps/site/scripts/wordmark.py). The i's dot is
+// a circle that floats a little higher than a dot would: the ludion, the diver at the surface.
+// Decorative to assistive tech; the link around it carries the name.
+import svg from "../assets/wordmark.svg?raw";
+
+interface Props {
+  height?: number;
+}
+const { height = 26 } = Astro.props;
+---
+
+<span class="wordmark" style={`--wm-h:${height}px`} set:html={svg} />
+
+<style>
+  .wordmark {
+    display: inline-flex;
+    color: var(--ink);
+  }
+  .wordmark :global(svg) {
+    height: var(--wm-h);
+    width: auto;
+  }
+</style>
