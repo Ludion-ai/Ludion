@@ -105,7 +105,7 @@ describe("/mcp", () => {
     expect(tool.description).toBe(ASK_DESCRIPTION);
     expect(tool.annotations).toEqual({ readOnlyHint: true, openWorldHint: false });
     expect(tool.inputSchema.required).toEqual(["question"]);
-    expect(tool.inputSchema.properties.question).toMatchObject({ type: "string", minLength: 1, maxLength: 500 });
+    expect(tool.inputSchema.properties.question).toMatchObject({ type: "string", minLength: 1, maxLength: 8000 });
     expect(tool.inputSchema.properties.subject).toMatchObject({ type: "string" });
     expect(tool.inputSchema.properties.k).toMatchObject({ type: "integer", minimum: 1, maximum: 10 });
   });
@@ -144,8 +144,14 @@ describe("/mcp", () => {
     expect((await ask({ question: "distutils", k: 1 })).body.result.structuredContent.lessons.length).toBeLessThanOrEqual(1);
   });
 
+  it("takes a question of up to 8,000 characters, such as a whole traceback", async () => {
+    const question = `${"  File \"/srv/app/handler.py\", line 1, in <module>\n".repeat(150)}ModuleNotFoundError: No module named 'distutils'`.slice(-8000);
+    const { body } = await ask({ question });
+    expect(body.result.content[0].text).toContain("distutils");
+  });
+
   it("refuses input outside the schema", async () => {
-    for (const args of [{ question: "" }, { question: "x".repeat(501) }, { question: "distutils", k: 11 }, { question: "distutils", k: 0 }, {}]) {
+    for (const args of [{ question: "" }, { question: "x".repeat(8001) }, { question: "distutils", k: 11 }, { question: "distutils", k: 0 }, {}]) {
       const { body } = await ask(args);
       const failed = body.error !== undefined || body.result?.isError === true;
       expect(failed, JSON.stringify(args)).toBe(true);

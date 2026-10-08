@@ -33,7 +33,7 @@ export function createServer(env: Env): McpServer {
         question: z
           .string()
           .min(1)
-          .max(500)
+          .max(8000)
           .describe("The user's question or the exact error message, in English. Include the library or tool name and its version if you know them."),
         subject: z.string().optional(),
         k: z.number().int().min(1).max(10).optional(),

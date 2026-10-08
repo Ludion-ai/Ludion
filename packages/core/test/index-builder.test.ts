@@ -142,6 +142,13 @@ describe("search", () => {
     expect(search(index, "Python 3.12でdistutilsが使えない")[0]?.id).toBe(ex.id);
   });
 
+  it("searches a long paste by its last error line, so repeated frames above it don't outweigh it", () => {
+    const frames = Array.from({ length: 30 }, (_, i) => `  File "/srv/websocket_client/handler.py", line ${i + 1}, in <module>`);
+    const paste = ["Traceback (most recent call last):", ...frames, "ModuleNotFoundError: No module named 'distutils'"].join("\n");
+    expect(paste.length).toBeGreaterThan(1000);
+    expect(search(index, paste)[0]?.id).toBe(ex.id);
+  });
+
   it("keeps flags and pseudo-classes whole", () => {
     expect(tokenize("git switch --discard-changes, sort -V, CSS :has(), built-in")).toEqual(["git", "switch", "--discard-changes", "sort", "-v", "css", ":has", "built", "in"]);
   });

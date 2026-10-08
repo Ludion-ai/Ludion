@@ -43,6 +43,11 @@ const OFF_TOPIC = [
   "How do I set up a PostgreSQL replica?",
   "How do I deploy a React app to Vercel?",
   "How do I tune a sourdough starter?",
+  // Words some lesson writes as code (RETURNING, INSERT, DELETE, HEAD), asked about something else.
+  "How do I delete a file?",
+  "How do I return a value from a function?",
+  "Should I insert a new paragraph here?",
+  "My head hurts after debugging",
 ];
 
 /** Questions that name only a subject. Matching a subject name alone never returns a lesson. */
@@ -56,6 +61,39 @@ const SUBJECT_ONLY = [
   "Explain CSS",
   "What is Cloudflare Workers?",
 ];
+
+/** A whole pip log pasted as the question: over 1,000 characters, the error on the last line. */
+const LONG_TRACEBACK = `Collecting legacy-thing==0.4.1
+  Downloading legacy-thing-0.4.1.tar.gz (48 kB)
+  Preparing metadata (setup.py) ... error
+  error: subprocess-exited-with-error
+
+  × python setup.py egg_info did not run successfully.
+  │ exit code: 1
+  ╰─> [18 lines of output]
+      Traceback (most recent call last):
+        File "<string>", line 2, in <module>
+        File "<pip-setuptools-caller>", line 34, in <module>
+        File "/tmp/pip-install-k2x9w8fq/legacy-thing_5d1c0b7e/setup.py", line 5, in <module>
+          from legacy_build.helpers import configure
+        File "/tmp/pip-install-k2x9w8fq/legacy-thing_5d1c0b7e/legacy_build/helpers.py", line 12, in <module>
+          from legacy_build.compat import find_compiler
+        File "/tmp/pip-install-k2x9w8fq/legacy-thing_5d1c0b7e/legacy_build/compat.py", line 3, in <module>
+          import numpy.version
+        File "/home/user/.venv/lib/python3.12/site-packages/numpy/version.py", line 9, in <module>
+          from numpy.core.multiarray import _get_ndarray_c_version
+        File "/home/user/.venv/lib/python3.12/site-packages/numpy/core/__init__.py", line 22, in <module>
+          from . import multiarray
+        File "/tmp/pip-install-k2x9w8fq/legacy-thing_5d1c0b7e/legacy_build/compiler.py", line 7, in <module>
+          from distutils.ccompiler import new_compiler
+      ModuleNotFoundError: No module named 'distutils'
+      [end of output]
+
+  note: This error originates from a subprocess, and is likely not a problem with pip.
+error: metadata-generation-failed
+
+× Encountered error while generating package metadata.
+╰─> See above for output.`;
 
 /**
  * Questions that must find their lesson in the top 3, every time: error messages pasted as they are (with traceback
@@ -78,6 +116,8 @@ const MUST_FIND: [string, string][] = [
   ["Python 3.12でdistutilsが使えない", "removed the distutils module"],
   ["Node 22でWebSocketは標準で使える？", "global WebSocket client"],
   ["SQLiteでRETURNINGは使える？", "RETURNING on INSERT"],
+  ["sqlite returning", "RETURNING on INSERT"],
+  [LONG_TRACEBACK, "removed the distutils module"],
 ];
 
 /** Two ways a person might ask about each active lesson, never the claim's own wording. Keyed by a phrase of the claim. */
