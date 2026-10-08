@@ -1,0 +1,283 @@
+{
+  "label": "A-web",
+  "model": "opus",
+  "spentUsd": 5.764718500000003,
+  "grades": [
+    {
+      "id": "wrangler-4-124-0-4-a",
+      "grade": "wrong",
+      "why": "It says --latest uses today's date as the compatibility date, which is the stale behavior, rather than the bundled workerd's release date.",
+      "costUsd": 0.024482999999999998
+    },
+    {
+      "id": "wrangler-4-111-0-0-a",
+      "grade": "wrong",
+      "why": "It presents `--legacy-env=false` and `legacy_env = false` as working ways to deploy service environments, but the key says these were removed and the field now raises an error.",
+      "costUsd": 0.025407
+    },
+    {
+      "id": "wrangler-4-121-0-6-a",
+      "grade": "wrong",
+      "why": "It gives the stale WRANGLER_SEND_METRICS/telemetry disable approach and never mentions that DO_NOT_TRACK=1 now disables telemetry.",
+      "costUsd": 0.025063
+    },
+    {
+      "id": "wrangler-4-122-0-2-a",
+      "grade": "correct",
+      "why": "It says to set both `no_nodejs_compat` and `no_nodejs_compat_v2` on dates from 2026-08-04 onward and rejects the old 'off by default' behavior.",
+      "costUsd": 0.026727
+    },
+    {
+      "id": "wrangler-4-121-0-7-a",
+      "grade": "correct",
+      "why": "It gives `wrangler d1 create <name> --jurisdiction=us` for a US-jurisdiction D1 database and does not claim the US option is unavailable.",
+      "costUsd": 0.024487
+    },
+    {
+      "id": "wrangler-4-118-0-8-a",
+      "grade": "correct",
+      "why": "It states traces and console logs go to the Local Explorer Observability tab by default and that setting X_LOCAL_OBSERVABILITY=false opts out, presenting the opt-in behavior only as past.",
+      "costUsd": 0.027778999999999998
+    },
+    {
+      "id": "wrangler-4-129-1-9-a",
+      "grade": "correct",
+      "why": "It states a single 64 MiB uncompressed limit replacing the old 3/10 MB compressed limits, and notes that Wrangler's uncompressed total is what counts while gzip is only for reference.",
+      "costUsd": 0.025503
+    },
+    {
+      "id": "wrangler-4-141-0-10-a",
+      "grade": "wrong",
+      "why": "It says there is no setting to delay the restart, which is the stale claim, and it omits the code update strategy option and the deferred 5-minute default.",
+      "costUsd": 0.026594999999999997
+    },
+    {
+      "id": "wrangler-4-145-0-11-a",
+      "grade": "wrong",
+      "why": "It presents the stale `wrangler r2 sql query` as current and explicitly dismisses `wrangler basin sql` as outdated, contrary to the key.",
+      "costUsd": 0.027459
+    },
+    {
+      "id": "wrangler-4-116-0-16-a",
+      "grade": "correct",
+      "why": "It says the command is no longer alpha and reports bundle sizes plus a local timing/CPU summary; the CPU profile is mentioned as an addition, not as the only output.",
+      "costUsd": 0.025591000000000003
+    },
+    {
+      "id": "wrangler-4-127-0-17-a",
+      "grade": "wrong",
+      "why": "It says Workflows have no per-workflow concurrency setting and only account limits apply, which is the stale answer, and it never mentions `workflows[].concurrency.limit`.",
+      "costUsd": 0.027391
+    },
+    {
+      "id": "wrangler-4-125-0-19-a",
+      "grade": "wrong",
+      "why": "It states the stale behavior that Workers can only receive HTTP and cannot accept inbound raw TCP, missing the new `connect` trigger and `connect(socket, env, ctx)` handler in wrangler dev.",
+      "costUsd": 0.026563000000000003
+    },
+    {
+      "id": "wrangler-4-148-0-24-a",
+      "grade": "wrong",
+      "why": "It says `versions secret bulk` cannot delete secrets and points to `wrangler versions secret delete`, which is the stale behavior, instead of saying a `null` value deletes the secret.",
+      "costUsd": 0.025155
+    },
+    {
+      "id": "wrangler-4-113-0-21-a",
+      "grade": "wrong",
+      "why": "It says the feature is still in beta, contradicting the key that automatic provisioning is generally available.",
+      "costUsd": 0.025783
+    },
+    {
+      "id": "agents-0-27-0-2-a",
+      "grade": "wrong",
+      "why": "It says there is no official terminal client and suggests building one, missing `npx agents tui <url>` and effectively stating the stale behavior.",
+      "costUsd": 0.025747
+    },
+    {
+      "id": "wrangler-4-117-0-20-a",
+      "grade": "correct",
+      "why": "It clearly gives `/cdn-cgi/local/` as the current path and mentions `/cdn-cgi/handler/scheduled` only as a caveat, not as the current answer.",
+      "costUsd": 0.030470999999999998
+    },
+    {
+      "id": "agents-0-27-0-0-a",
+      "grade": "wrong",
+      "why": "It correctly drops `agents/channels` but says Channels come from `@cloudflare/think`, never mentioning the current `agents/experimental/channels` entry point.",
+      "costUsd": 0.026787
+    },
+    {
+      "id": "agents-0-25-0-3-a",
+      "grade": "correct",
+      "why": "It says the first RPC on a newUniqueId()/idFromString() stub fails and that Agents should be addressed by name, matching the key without presenting the stale behavior as current.",
+      "costUsd": 0.029011
+    },
+    {
+      "id": "agents-0-24-0-6-a",
+      "grade": "wrong",
+      "why": "It says useAgent only uses WebSockets with no transport option, which is the stale behavior; the key says a `transport` option supports \"cf-websocket\" or \"capnweb\".",
+      "costUsd": 0.026855
+    },
+    {
+      "id": "agents-0-24-0-5-a",
+      "grade": "correct",
+      "why": "It says queued callbacks run from the alarm loop and getCurrentAgent() returns the agent but connection and request are undefined, which matches the key.",
+      "costUsd": 0.025799000000000002
+    },
+    {
+      "id": "agents-0-23-0-7-a",
+      "grade": "correct",
+      "why": "It says `subAgent()` and its sibling methods are deprecated in favor of `this.dynamicAgents.{get,abort,delete,has,list}` and still work by delegating to it; it omits the facets-as-isolation point but presents nothing stale as current.",
+      "costUsd": 0.033379000000000006
+    },
+    {
+      "id": "agents-0-22-0-12-a",
+      "grade": "correct",
+      "why": "It states the second argument is the `Schedule` object for the task and does not describe the stale raw storage row with an unparsed JSON payload.",
+      "costUsd": 0.025135
+    },
+    {
+      "id": "agents-0-22-0-11-a",
+      "grade": "correct",
+      "why": "It states the 50ms default throttle with `throttle: false` or a number to adjust, and describes per-chunk rendering only as past behavior (though it cites 0.22.0 while the source is 0.27.0).",
+      "costUsd": 0.028599000000000003
+    },
+    {
+      "id": "agents-0-22-0-9-a",
+      "grade": "correct",
+      "why": "It says Agent now extends DurableObject directly, with the PartyServer runtime vendored into agents/lifecycle, and treats the Server chain as old behavior only; its version detail (0.22.0) goes beyond the key but doesn't contradict it.",
+      "costUsd": 0.027299
+    },
+    {
+      "id": "agents-0-21-0-16-a",
+      "grade": "correct",
+      "why": "It directs the user to wrapAISDK() from agents/observability/ai for both v6 and v7 and does not present createAISDKTelemetry() as current, though it says it couldn't find it rather than explicitly stating it was removed.",
+      "costUsd": 0.027915
+    },
+    {
+      "id": "agents-0-22-0-13-a",
+      "grade": "correct",
+      "why": "It says a plain Durable Object can use `Scheduler` from `agents/schedules` as a Lifecycle capability with `set()`/`every()`, and does not claim scheduling is Agent-only.",
+      "costUsd": 0.026855
+    },
+    {
+      "id": "agents-0-20-0-19-a",
+      "grade": "wrong",
+      "why": "It says the client sends an `initialize` request first, which is the outdated behavior, and never mentions probing with `server/discover`.",
+      "costUsd": 0.026935
+    },
+    {
+      "id": "agents-0-19-0-21-a",
+      "grade": "correct",
+      "why": "It states agents, ai-chat, codemode and think support both AI SDK v6 and v7 with the peer range `ai@^6 || ^7`, and it doesn't present v5/v6-only as current.",
+      "costUsd": 0.027319
+    },
+    {
+      "id": "agents-0-20-0-18-a",
+      "grade": "correct",
+      "why": "It says createMcpHandler accepts a factory returning a v2 McpServer/Server from @modelcontextprotocol/server and points v1 servers to createLegacyMcpHandler, framing direct v1 use only as deprecated rather than current.",
+      "costUsd": 0.031735
+    },
+    {
+      "id": "vitest-5-0-0-4-a",
+      "grade": "wrong",
+      "why": "It says Vitest walks up parent directories to find the config, which is the stale behavior; Vitest 5 no longer does this.",
+      "costUsd": 0.023991
+    },
+    {
+      "id": "vitest-5-0-0-3-a",
+      "grade": "correct",
+      "why": "It says unawaited async assertions fail the test in current Vitest and treats the warning-only behavior as old, though it attributes the change to v4 rather than v5.",
+      "costUsd": 0.029627
+    },
+    {
+      "id": "vitest-5-0-0-6-a",
+      "grade": "wrong",
+      "why": "It presents @vitest/browser-webdriverio as the current provider for Vitest 4+, but the key says the WebdriverIO provider package was removed in Vitest 5.",
+      "costUsd": 0.024903
+    },
+    {
+      "id": "vitest-5-0-0-5-a",
+      "grade": "wrong",
+      "why": "It treats @vitest/runner as still installable and suggests adding it for standalone tooling, but never says the package is no longer published separately.",
+      "costUsd": 0.025875
+    },
+    {
+      "id": "vitest-5-0-0-7-a",
+      "grade": "wrong",
+      "why": "It describes the stale behavior where toHaveTextContent matches a substring, instead of stating that it now matches strictly and that toMatchTextContent is used for partial matching.",
+      "costUsd": 0.024219
+    },
+    {
+      "id": "agents-0-22-0-14-a",
+      "grade": "correct",
+      "why": "It says there is no `storage` option, that storage comes from the Lifecycle/Durable Object it is installed on, and that a separate DurableObjectStorage can't be substituted; it mentions the old storage argument only as past behavior.",
+      "costUsd": 0.027851
+    },
+    {
+      "id": "vitest-5-0-0-9-a",
+      "grade": "wrong",
+      "why": "It states the stale default .vitest-reports/ instead of the current .vitest/blob/ for both the blob reporter and --merge-reports.",
+      "costUsd": 0.023570999999999998
+    },
+    {
+      "id": "vitest-5-0-0-12-a",
+      "grade": "wrong",
+      "why": "It claims locators match substrings by default, which is the stale behavior; the key says exact matching is now the default.",
+      "costUsd": 0.023795
+    },
+    {
+      "id": "vitest-5-0-0-13-a",
+      "grade": "wrong",
+      "why": "It says describe and test titles are joined with spaces, which is the stale behavior; the current separator is `>`.",
+      "costUsd": 0.024103
+    },
+    {
+      "id": "vitest-5-0-0-14-a",
+      "grade": "wrong",
+      "why": "It states the stale behavior that inline projects don't inherit the root config unless `extends: true` is set, contradicting the key.",
+      "costUsd": 0.023099
+    },
+    {
+      "id": "vitest-5-0-0-15-a",
+      "grade": "correct",
+      "why": "It states that expect.poll fails with a timeout error when the callback never resolves, which matches the key, and it does not present the stale keep-waiting behavior as current.",
+      "costUsd": 0.024343
+    },
+    {
+      "id": "vitest-5-0-0-16-a",
+      "grade": "wrong",
+      "why": "It says vi.mock inside a function or block only warns and is still hoisted, which is the stale behavior; current Vitest throws an error.",
+      "costUsd": 0.023643
+    },
+    {
+      "id": "vitest-5-0-0-17-a",
+      "grade": "wrong",
+      "why": "It claims Vitest has no built-in argument-conditional mocking and recommends mockImplementation, which is the stale answer, instead of mentioning Vitest 5's vi.when().",
+      "costUsd": 0.024255
+    },
+    {
+      "id": "vitest-5-0-0-24-a",
+      "grade": "wrong",
+      "why": "It says `vitest list` imports and runs test files to collect tests, which is the stale behavior; the key says it parses files statically by default.",
+      "costUsd": 0.023431
+    },
+    {
+      "id": "vitest-5-0-0-20-a",
+      "grade": "correct",
+      "why": "The answer states that `-p` is the shorthand for `--project`, which matches the key, and does not claim there is no alias.",
+      "costUsd": 0.023347
+    },
+    {
+      "id": "vitest-5-0-0-18-a",
+      "grade": "correct",
+      "why": "It names the `--repeats` CLI option for rerunning tests and mentions the per-test `repeats` option only as an alternative, not as the only way.",
+      "costUsd": 0.023879
+    }
+  ],
+  "replaced": {
+    "ids": [
+      "agents-0-23-0-7-a"
+    ],
+    "why": "The judge's first reply didn't parse; judged again (grades-A-web-rejudge.json)."
+  }
+}

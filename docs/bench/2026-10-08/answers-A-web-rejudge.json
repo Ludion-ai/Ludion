@@ -1,0 +1,23 @@
+{
+  "label": "A-web-rejudge",
+  "set": "A",
+  "condition": "web",
+  "context": null,
+  "model": "opus",
+  "spentUsd": 3.4509605000000003,
+  "skipped": [],
+  "answers": [
+    {
+      "id": "agents-0-23-0-7-a",
+      "answer": "Not for new code. As of Agents SDK v0.23.0, `subAgent()` and the related methods (`abortSubAgent`, `deleteSubAgent`, `hasSubAgent`, `listSubAgents`) are marked `@deprecated`. They still work exactly as before because they now delegate to the new API. The replacement is the `this.dynamicAgents` facade, which has `get`, `abort`, `delete`, `has` and `list`. The release notes don't map old methods to new ones explicitly, but going by the names, `subAgent()` probably becomes `this.dynamicAgents.get()`. Existing code doesn't need an urgent rewrite, but you should plan to migrate. `/sub/` URLs, `useAgent({ sub })`, `parentAgent()` and `onBeforeSubAgent` haven't changed. The types are now named `DynamicAgentClass` and `DynamicAgentStub`, and `SubAgentClass` and `SubAgentStub` remain as aliases.\n\nSources:\n- [cloudflare/agents release agents@0.23.0 (GitHub)](https://github.com/cloudflare/agents/releases/tag/agents@0.23.0)\n- [agents@0.23.0 release mirror (newreleases.io)](https://newreleases.io/project/github/cloudflare/agents/release/agents@0.23.0)\n- [Sub-agents API reference (Cloudflare docs)](https://developers.cloudflare.com/agents/api-reference/sub-agents/index.md)",
+      "toolCalls": [
+        "WebSearch",
+        "WebFetch"
+      ],
+      "costUsd": 0.06466380000000001,
+      "turns": 3,
+      "isError": false,
+      "mcp": {}
+    }
+  ]
+}

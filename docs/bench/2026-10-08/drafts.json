@@ -1,0 +1,152 @@
+[
+  {
+    "change": "vitest-5-0-0-4",
+    "subject": "vitest",
+    "version": ">=5.0.0",
+    "kind": "changed",
+    "claim": "Vitest 5 no longer looks for a config file in parent directories, so run it from the folder that has the config or pass --config.",
+    "evidence": [
+      {
+        "source": {
+          "url": "https://github.com/vitest-dev/vitest/releases/tag/v5.0.0",
+          "quote": "Don't lookup config file from ancestor directories"
+        }
+      }
+    ]
+  },
+  {
+    "change": "vitest-5-0-0-6",
+    "subject": "vitest",
+    "version": ">=5.0.0",
+    "kind": "removed",
+    "claim": "Vitest 5 removed the WebdriverIO browser provider package, so browser mode can no longer use WebdriverIO as its provider.",
+    "evidence": [
+      {
+        "source": {
+          "url": "https://github.com/vitest-dev/vitest/releases/tag/v5.0.0",
+          "quote": "Remove webdriverio package"
+        }
+      }
+    ]
+  },
+  {
+    "change": "vitest-5-0-0-7",
+    "subject": "vitest",
+    "version": ">=5.0.0",
+    "kind": "changed",
+    "claim": "In Vitest 5, toHaveTextContent matches an element's text strictly; use the new toMatchTextContent for a partial match.",
+    "evidence": [
+      {
+        "source": {
+          "url": "https://github.com/vitest-dev/vitest/releases/tag/v5.0.0",
+          "quote": "toHaveTextContent is strict, add toMatchTextContent as alternative"
+        }
+      }
+    ]
+  },
+  {
+    "change": "vitest-5-0-0-9",
+    "subject": "vitest",
+    "version": ">=5.0.0",
+    "kind": "changed",
+    "claim": "In Vitest 5, the blob reporter writes to .vitest/blob/ by default, and --merge-reports reads from .vitest/blob/ by default.",
+    "evidence": [
+      {
+        "source": {
+          "url": "https://github.com/vitest-dev/vitest/releases/tag/v5.0.0",
+          "quote": "blob reporter and --merge-reports default to .vitest/blob/"
+        }
+      }
+    ]
+  },
+  {
+    "change": "vitest-5-0-0-12",
+    "subject": "vitest",
+    "version": ">=5.0.0",
+    "kind": "changed",
+    "claim": "In Vitest 5 browser mode, locators match text exactly by default (locators.exact is true), so a partial text match no longer finds the element.",
+    "evidence": [
+      {
+        "source": {
+          "url": "https://github.com/vitest-dev/vitest/releases/tag/v5.0.0",
+          "quote": "Enable locators.exact by default"
+        }
+      }
+    ]
+  },
+  {
+    "change": "vitest-5-0-0-13",
+    "subject": "vitest",
+    "version": ">=5.0.0",
+    "kind": "changed",
+    "claim": "In Vitest 5, the name that -t (testNamePattern) matches joins nested describe and test names with > instead of spaces.",
+    "evidence": [
+      {
+        "source": {
+          "url": "https://github.com/vitest-dev/vitest/releases/tag/v5.0.0",
+          "quote": "Use > as separator in -t"
+        }
+      }
+    ]
+  },
+  {
+    "change": "vitest-5-0-0-14",
+    "subject": "vitest",
+    "version": ">=5.0.0",
+    "kind": "changed",
+    "claim": "In Vitest 5, inline projects in test.projects inherit the root config by default, without extends: true.",
+    "evidence": [
+      {
+        "source": {
+          "url": "https://github.com/vitest-dev/vitest/releases/tag/v5.0.0",
+          "quote": "Inline projects extend the root config by default"
+        }
+      }
+    ]
+  },
+  {
+    "change": "vitest-5-0-0-16",
+    "subject": "vitest",
+    "version": ">=5.0.0",
+    "kind": "changed",
+    "claim": "Vitest 5 throws an error when vi.mock or another hoisted method is called outside the module's top level, for example inside a function or a hook.",
+    "evidence": [
+      {
+        "source": {
+          "url": "https://github.com/vitest-dev/vitest/releases/tag/v5.0.0",
+          "quote": "Throw an error if hoistable methods are outside the top level scope"
+        }
+      }
+    ]
+  },
+  {
+    "change": "vitest-5-0-0-17",
+    "subject": "vitest",
+    "version": ">=5.0.0",
+    "kind": "added",
+    "claim": "Vitest 5 adds `vi.when()` for mocks that return different results depending on the arguments they are called with.",
+    "evidence": [
+      {
+        "source": {
+          "url": "https://github.com/vitest-dev/vitest/releases/tag/v5.0.0",
+          "quote": "Create vi.when()"
+        }
+      }
+    ]
+  },
+  {
+    "change": "vitest-5-0-0-24",
+    "subject": "vitest",
+    "version": ">=5.0.0",
+    "kind": "changed",
+    "claim": "In Vitest 5, vitest list collects tests by parsing the files statically by default, instead of running them.",
+    "evidence": [
+      {
+        "source": {
+          "url": "https://github.com/vitest-dev/vitest/releases/tag/v5.0.0",
+          "quote": "Parse files statically in vitest list by default"
+        }
+      }
+    ]
+  }
+]

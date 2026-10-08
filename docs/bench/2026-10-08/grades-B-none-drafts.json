@@ -1,0 +1,67 @@
+{
+  "label": "B-none-drafts",
+  "model": "opus",
+  "spentUsd": 8.161321600000004,
+  "grades": [
+    {
+      "id": "vitest-5-0-0-4-b",
+      "grade": "correct",
+      "why": "It states that Vitest 5 no longer searches parent directories for a config file and only attributes the old behavior to earlier versions.",
+      "costUsd": 0.023963
+    },
+    {
+      "id": "vitest-5-0-0-6-b",
+      "grade": "correct",
+      "why": "It states WebdriverIO was removed in Vitest 5 and limits WebdriverIO to Vitest 4 and earlier, not presenting it as current.",
+      "costUsd": 0.024087
+    },
+    {
+      "id": "vitest-5-0-0-9-b",
+      "grade": "correct",
+      "why": "It states .vitest/blob/ as the current default for both --merge-reports and the blob reporter, and mentions .vitest-reports/ only as the old default.",
+      "costUsd": 0.023674999999999998
+    },
+    {
+      "id": "vitest-5-0-0-7-b",
+      "grade": "correct",
+      "why": "It limits the substring behavior to Vitest 4 and says that in v5 toHaveTextContent is strict and toMatchTextContent handles partial matches, though with hedging.",
+      "costUsd": 0.029855000000000003
+    },
+    {
+      "id": "vitest-5-0-0-12-b",
+      "grade": "correct",
+      "why": "It states that browser-mode locators now match exactly by default (locators.exact true) and does not present substring matching as current.",
+      "costUsd": 0.024027
+    },
+    {
+      "id": "vitest-5-0-0-14-b",
+      "grade": "correct",
+      "why": "It states that inline projects inherit the root config by default in Vitest 5+, and it attributes the extends: true requirement only to older versions rather than presenting it as current.",
+      "costUsd": 0.023531
+    },
+    {
+      "id": "vitest-5-0-0-13-b",
+      "grade": "correct",
+      "why": "It states that `>` is the current separator from Vitest 5 on, and presents the space separator only as the older pre-v5 behavior.",
+      "costUsd": 0.023763
+    },
+    {
+      "id": "vitest-5-0-0-17-b",
+      "grade": "correct",
+      "why": "It states that Vitest 5 adds vi.when() for argument-conditional mocks and only presents mockImplementation as the option for Vitest 4 and earlier, not as current behavior.",
+      "costUsd": 0.024363000000000003
+    },
+    {
+      "id": "vitest-5-0-0-16-b",
+      "grade": "correct",
+      "why": "It states that Vitest 5 throws when vi.mock or other hoisted methods are called outside the module's top level, and does not present the old warn-and-hoist behavior as current.",
+      "costUsd": 0.024755
+    },
+    {
+      "id": "vitest-5-0-0-24-b",
+      "grade": "correct",
+      "why": "It states that vitest list parses files statically by default, and it describes executing files only as the behavior of earlier versions.",
+      "costUsd": 0.023959
+    }
+  ]
+}

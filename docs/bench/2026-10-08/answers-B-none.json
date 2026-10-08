@@ -1,0 +1,101 @@
+{
+  "label": "B-none",
+  "set": "B",
+  "condition": "none",
+  "context": null,
+  "model": "opus",
+  "spentUsd": 6.218976,
+  "skipped": [],
+  "answers": [
+    {
+      "id": "vitest-5-0-0-7-b",
+      "answer": "Use the retrying `expect.element` assertion with `toHaveTextContent`. A string argument matches as a **substring**, so it checks that the text contains the phrase:\n\n```ts\nimport { page } from 'vitest/browser' // '@vitest/browser/context' in older versions\n\nawait expect.element(page.getByTestId('message')).toHaveTextContent('order confirmed')\n```\n\nYou can pass a regex for case-insensitive or pattern matching, e.g. `toHaveTextContent(/order confirmed/i)`. `expect.element` keeps retrying until the assertion passes or times out, so it handles text that renders asynchronously.",
+      "toolCalls": [],
+      "costUsd": 0.023795,
+      "turns": 1,
+      "isError": false,
+      "mcp": {}
+    },
+    {
+      "id": "vitest-5-0-0-6-b",
+      "answer": "Vitest browser mode supports three providers:\n\n- **Playwright** (`@vitest/browser-playwright`) runs Chromium, Firefox, and WebKit. It is the recommended choice for CI and parallel runs.\n- **WebdriverIO** (`@vitest/browser-webdriverio`) runs Chrome, Firefox, Edge, and Safari through the WebDriver protocol.\n- **Preview** (`@vitest/browser-preview`) opens tests in your own local browser. It only simulates user events, so it's meant for local development, not CI.\n\nIn Vitest 4 you import the provider package and pass it to `test.browser.provider` (for example, `provider: playwright()`). Older versions used a string such as `'playwright'` instead.",
+      "toolCalls": [],
+      "costUsd": 0.025950999999999995,
+      "turns": 1,
+      "isError": false,
+      "mcp": {}
+    },
+    {
+      "id": "vitest-5-0-0-4-b",
+      "answer": "Yes, that's expected. Vitest looks for `vitest.config.*` (or `vite.config.*`) only in the directory you run it from; it doesn't walk up to parent directories. So inside `packages/foo` it finds no config, or only the package's own config, and the root one is never loaded.\n\nYou have three ways to get the root settings:\n\n- **Run from the root with projects:** list your packages under `test.projects` in the root config and run `vitest --project foo`. Projects only inherit root options if you set `extends: true`.\n- **Merge in a package config:** in `packages/foo/vitest.config.ts`, call `mergeConfig(rootConfig, defineConfig({...}))` to reuse the root settings.\n- **Point at it directly:** run `vitest --config ../../vitest.config.ts`. Relative paths like `include` and `setupFiles` resolve against that config's `root`, so check they still match.",
+      "toolCalls": [],
+      "costUsd": 0.027850999999999997,
+      "turns": 1,
+      "isError": false,
+      "mcp": {}
+    },
+    {
+      "id": "vitest-5-0-0-9-b",
+      "answer": "`vitest --merge-reports` reads from the `.vitest-reports` folder by default, relative to the project root. That's the same folder the `blob` reporter writes to by default, so running shards with `--reporter=blob` and then `--merge-reports` works without any extra configuration. If your blob files are somewhere else, pass the directory explicitly, e.g. `vitest --merge-reports=./my-reports`.",
+      "toolCalls": [],
+      "costUsd": 0.020727000000000002,
+      "turns": 1,
+      "isError": false,
+      "mcp": {}
+    },
+    {
+      "id": "vitest-5-0-0-12-b",
+      "answer": "Most likely you're now going through **Testing Library's** `getByText` (e.g. `screen.getByText` from `@testing-library/dom` or `@testing-library/react`) instead of Vitest browser mode's `page.getByText`. Testing Library matches strings **exactly against the full trimmed text** by default, so `'Save'` won't match `\"Save changes\"`. Vitest's browser-mode locators use Playwright-style semantics, where a string is a **case-insensitive substring** match. To get the old behavior back, use `getByText('Save', { exact: false })` or a regex like `getByText(/save/i)`. Better still, use `getByRole('button', { name: /save/i })`, which targets the button directly.\n\nIf you didn't switch libraries and this broke after a version bump, show me the import and the Vitest/Testing Library versions and I'll confirm which matcher is in play.",
+      "toolCalls": [],
+      "costUsd": 0.030438999999999997,
+      "turns": 1,
+      "isError": false,
+      "mcp": {}
+    },
+    {
+      "id": "vitest-5-0-0-13-b",
+      "answer": "Vitest matches `testNamePattern` against the test's **full name**, which is the names of the enclosing `describe` blocks and the test name **joined by a single space**. For example, `describe('math', () => test('adds', ...))` gets the full name `math adds`, so `-t \"math adds\"` matches it.\n\nThe ` > ` separator you see in reporter output is only for display. A pattern like `math > adds` won't match.\n\nThis is based on my recollection of Vitest's runner internals (`getTaskFullName`), not a check of the current source. If you're on a recent version, confirm it against your release.",
+      "toolCalls": [],
+      "costUsd": 0.027699,
+      "turns": 1,
+      "isError": false,
+      "mcp": {}
+    },
+    {
+      "id": "vitest-5-0-0-14-b",
+      "answer": "Yes. Inline project configs in `test.projects` don't inherit anything from the root config by default. Each one is treated as standalone. Adding `extends: true` to a project merges the root config's options (plugins, `test.setupFiles`, `environment`, aliases, etc.) into it, and that project's own options override the root's.\n\nA few options are global no matter what, such as `reporters`, `coverage`, and other root-only settings. Those always come from the root config and don't need `extends`.",
+      "toolCalls": [],
+      "costUsd": 0.022747,
+      "turns": 1,
+      "isError": false,
+      "mcp": {}
+    },
+    {
+      "id": "vitest-5-0-0-17-b",
+      "answer": "Not built in. Vitest's `vi.fn()` has the same API as Jest's (`mockReturnValue`, `mockImplementation`, etc.), but nothing that matches on arguments. The usual choice is the community package **`vitest-when`**. It's inspired by jest-when and `testdouble.js`:\n\n```ts\nimport { when } from 'vitest-when'\n\nconst fn = vi.fn()\nwhen(fn).calledWith(1, 2).thenReturn(3)\nwhen(fn).calledWith(expect.any(String)).thenResolve('ok')\n```\n\nWithout a library, you can write `fn.mockImplementation((a, b) => (a === 1 && b === 2 ? 3 : undefined))`. That works for simple cases.",
+      "toolCalls": [],
+      "costUsd": 0.024931000000000002,
+      "turns": 1,
+      "isError": false,
+      "mcp": {}
+    },
+    {
+      "id": "vitest-5-0-0-16-b",
+      "answer": "`vi.mock` isn't a normal runtime call. Vitest's transform **hoists** it to the top of the file, above your `import` statements, so the mock is registered before the module is first loaded. Inside `beforeEach` it can't be hoisted cleanly, because it's nested in a function and may reference variables from that scope. By the time `beforeEach` runs, the real module has already been imported, so registering a mock there would do nothing. Vitest throws (or warns, depending on version) instead of failing silently.\n\nHow to fix it:\n- **Static mock:** put `vi.mock('./mod')` at the top level of the file. In `beforeEach`, change its behavior with `vi.mocked(fn).mockReturnValue(...)` or `mockImplementation`, and reset it with `vi.clearAllMocks()` or `vi.resetAllMocks()`.\n- **Mock that differs per test:** use `vi.doMock('./mod', ...)`, which is not hoisted. Call `vi.resetModules()` first, then load the module with `await import('./mod')` after the `doMock` call.\n- **Shared variables in the factory:** create them with `vi.hoisted(() => ...)` so they exist when the hoisted mock runs.",
+      "toolCalls": [],
+      "costUsd": 0.030338999999999998,
+      "turns": 1,
+      "isError": false,
+      "mcp": {}
+    },
+    {
+      "id": "vitest-5-0-0-24-b",
+      "answer": "`vitest list` doesn't statically parse your files. It runs Vitest's normal **collection phase** and stops before the **run phase**.\n\n- **Collection:** Each test file is imported in a worker, through Vite's transform pipeline, just like a real run. Top-level code and `describe` callbacks execute, and each `test`/`it` call registers itself in the task tree.\n- **What's skipped:** Vitest never invokes the test bodies or hooks like `beforeAll`/`beforeEach`.\n- **Side effects:** Any top-level side effects in your test files (imports, setup files, module-level code) still run.\n- **Output:** The resulting tree of suite and test names is printed, or written as JSON with `--json`.\n- **`--filesOnly`:** This skips importing entirely and just reports which files match the include globs.",
+      "toolCalls": [],
+      "costUsd": 0.028251,
+      "turns": 1,
+      "isError": false,
+      "mcp": {}
+    }
+  ]
+}

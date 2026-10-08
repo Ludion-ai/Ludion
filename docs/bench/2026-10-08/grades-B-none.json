@@ -1,0 +1,67 @@
+{
+  "label": "B-none",
+  "model": "opus",
+  "spentUsd": 7.661145600000003,
+  "grades": [
+    {
+      "id": "vitest-5-0-0-6-b",
+      "grade": "wrong",
+      "why": "It presents @vitest/browser-webdriverio as a current provider, which is the stale answer, instead of saying the WebdriverIO package was removed in Vitest 5.",
+      "costUsd": 0.024099000000000002
+    },
+    {
+      "id": "vitest-5-0-0-9-b",
+      "grade": "wrong",
+      "why": "It states the stale default .vitest-reports/ instead of the current .vitest/blob/.",
+      "costUsd": 0.022795000000000003
+    },
+    {
+      "id": "vitest-5-0-0-4-b",
+      "grade": "correct",
+      "why": "It says Vitest doesn't walk up to parent directories for a config, which matches the key, and it doesn't present the stale behavior as current.",
+      "costUsd": 0.024355
+    },
+    {
+      "id": "vitest-5-0-0-7-b",
+      "grade": "wrong",
+      "why": "It claims toHaveTextContent with a string matches as a substring, which is the stale behavior, and never mentions toMatchTextContent.",
+      "costUsd": 0.023943
+    },
+    {
+      "id": "vitest-5-0-0-12-b",
+      "grade": "wrong",
+      "why": "It claims Vitest browser-mode locators match case-insensitive substrings by default (the stale behavior) and blames Testing Library instead of locators.exact now defaulting to true.",
+      "costUsd": 0.024599
+    },
+    {
+      "id": "vitest-5-0-0-14-b",
+      "grade": "wrong",
+      "why": "It says inline projects don't inherit the root config unless `extends: true` is set, which is the stale behavior; per the key they now inherit by default.",
+      "costUsd": 0.023194999999999997
+    },
+    {
+      "id": "vitest-5-0-0-17-b",
+      "grade": "wrong",
+      "why": "It says Vitest has no built-in argument matching and recommends vitest-when or mockImplementation, which is the stale answer; it never mentions Vitest 5's `vi.when()`.",
+      "costUsd": 0.024287
+    },
+    {
+      "id": "vitest-5-0-0-13-b",
+      "grade": "wrong",
+      "why": "It states the stale behavior (names joined by a space) as current and explicitly says a `>` pattern won't match.",
+      "costUsd": 0.023323
+    },
+    {
+      "id": "vitest-5-0-0-16-b",
+      "grade": "correct",
+      "why": "It says Vitest throws because vi.mock is a hoisted call that must be at the module top level, and mentions warning only as older-version behavior.",
+      "costUsd": 0.028235
+    },
+    {
+      "id": "vitest-5-0-0-24-b",
+      "grade": "wrong",
+      "why": "It explicitly denies static parsing and says vitest list imports/executes test files to collect names, which is the stale behavior.",
+      "costUsd": 0.023871
+    }
+  ]
+}
