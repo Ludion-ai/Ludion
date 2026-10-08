@@ -61,8 +61,9 @@ async function targets(page: Page): Promise<Target[]> {
 
 for (const colorScheme of ["light", "dark"] as const) {
   test(`text over the water keeps its contrast (${colorScheme})`, async ({ browser }) => {
-    test.setTimeout(120_000);
-    const context = await browser.newContext({ viewport: { width: 1280, height: 900 }, colorScheme });
+    // CI renders WebGL in software, so keep each screenshot small (only the text area) and allow time.
+    test.setTimeout(240_000);
+    const context = await browser.newContext({ viewport: { width: 1280, height: 1100 }, colorScheme });
     const page = await context.newPage();
     await page.clock.install({ time: 0 });
     await page.goto("/");
@@ -76,14 +77,22 @@ for (const colorScheme of ["light", "dark"] as const) {
 
     // Hide the text, keep the layout: only the water and the page remain under each box.
     await page.addStyleTag({ content: ".replay .grid, .replay .caption { visibility: hidden !important; }" });
+    // One clip around all the text, in page coordinates (the replay sits in the first screen at this size).
+    const left = Math.floor(Math.min(...boxes.map((b) => b.rect.x)));
+    const top = Math.floor(Math.min(...boxes.map((b) => b.rect.y)));
+    const right = Math.ceil(Math.max(...boxes.map((b) => b.rect.x + b.rect.width)));
+    const bottom = Math.ceil(Math.max(...boxes.map((b) => b.rect.y + b.rect.height)));
+    expect(bottom, "the replay must fit in the first screen for this test").toBeLessThanOrEqual(1100);
+    const clip = { x: left, y: top, width: right - left, height: bottom - top };
     const worst = new Map<string, number>();
     for (let moment = 0; moment < MOMENTS; moment++) {
       await page.clock.runFor(STEP_MS);
-      const shot = PNG.sync.read(await page.screenshot({ fullPage: true }));
+      const shot = PNG.sync.read(await page.screenshot({ clip }));
       for (const box of boxes) {
         let min = Infinity;
-        const x0 = Math.max(0, Math.floor(box.rect.x)), x1 = Math.min(shot.width, Math.ceil(box.rect.x + box.rect.width));
-        const y0 = Math.max(0, Math.floor(box.rect.y)), y1 = Math.min(shot.height, Math.ceil(box.rect.y + box.rect.height));
+        const bx = box.rect.x - left, by = box.rect.y - top;
+        const x0 = Math.max(0, Math.floor(bx)), x1 = Math.min(shot.width, Math.ceil(bx + box.rect.width));
+        const y0 = Math.max(0, Math.floor(by)), y1 = Math.min(shot.height, Math.ceil(by + box.rect.height));
         for (let y = y0; y < y1; y += 2) {
           for (let x = x0; x < x1; x += 2) {
             const i = (y * shot.width + x) * 4;
