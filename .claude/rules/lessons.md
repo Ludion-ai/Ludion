@@ -36,6 +36,19 @@ Subject naming: the canonical lowercase name of the thing. npm `@scope/name` bec
 - **Verified across versions**, also derived: the lesson has a pinned `run` that passes on one version and a pinned `run` of the same language that fails as expected on another (for example `import distutils` passes on `python@3.11` and fails with `No module named 'distutils'` on `python@3.12`). Pages and `ludion_ask` then show both versions: "Verified across versions: fails on python 3.12, passes on python 3.11." CI checks pinned runners, `expect`, and `error` from step 8 on; until then `verify` refuses lessons that use them.
 - The new fields are optional, so every lesson already merged stays valid and unchanged.
 
+### Claims are plain facts
+
+A claim reaches other people's assistants word for word, so the schema refuses anything in it that isn't a plain statement about its subject:
+
+- Invisible or layout characters: control characters (newlines and tabs included), zero-width characters, bidirectional controls, tag characters, variation selectors, and line or paragraph separators.
+- URLs (`scheme://`, `www.`, `mailto:`). Links belong in a `source`.
+- Command lines: a pipe into a shell or interpreter (`| sh`, `| bash`, `| iex`, …), `curl` or `wget` into a pipe, `rm` with `-rf` or `-fr`, and `$(…)`.
+- Instructions to an AI or the reader: "ignore previous instructions" and its variants; a claim that starts with `system:`, `assistant:`, `user:`, `developer:`, or `human:`; "you are an AI / assistant / language model"; "do not tell the user"; "AI reading this"; "new instructions:".
+
+Allowed: identifiers in backticks (`RETURNING`) and migration advice ("use setuptools instead"). The subject is also a directory and branch name, so the schema refuses `..`, a trailing `.` or `-`, a `.lock` ending, and the Windows device names `con`, `prn`, `aux`, `nul`, `com0`–`com9`, `lpt0`–`lpt9` (with or without an extension).
+
+These checks live in the schema, not in code, because `verify` validates every PR against the base branch's schema (a PR can't loosen them) and the Worker checks drafts with the same schema. Each has a plain-language message and tests (`test/claim-guards.test.ts`), and every real and sample lesson must still pass.
+
 ### Rules
 
 - Immutable. A merged lesson file is never edited. Correct it with a new lesson whose `replaces` lists the old id. Retract it by deleting the file.

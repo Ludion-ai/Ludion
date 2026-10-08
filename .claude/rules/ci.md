@@ -54,7 +54,7 @@ Trigger: `pull_request`, every PR, no path filter (a path filter would leave PRs
   4. `replaces` ids exist in the active set on the base branch (read with `git show origin/<base>:<path>`).
   5. Each `run` evidence in Docker, as in Runners. `lean`: label `needs-lean`; the check does not fail on it until the Lean runner exists.
   6. Each `source` evidence with `checkSource` and the guarded fetch above.
-- Write results to `$GITHUB_STEP_SUMMARY` and upload `results.json` as an artifact.
+- Write results to `$GITHUB_STEP_SUMMARY` and upload `results.json` as an artifact. For each added lesson that is valid, the summary also shows the reviewer exactly what `ludion_ask` will return for it (`formatAsk` from `packages/core`), with every character a reader can't see written as `⟨U+XXXX⟩`, then four checks to tick before merging: the claim states only a fact about the subject; the evidence checks that fact; nothing in it instructs an AI or the reader; the version range is right.
 - Labels (`skipped`, `needs-lean`, `retract`) are set by a separate job `label` (needs `verify`, runs unless cancelled, `pull-requests: write`) that only reads the artifact and never runs lesson code. On fork PRs the token is read-only; the `label` job then logs and exits 0. No artifact (no lesson changes) → nothing to do.
 
 ## test.yml (required check `test`)

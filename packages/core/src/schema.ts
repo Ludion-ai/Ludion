@@ -32,6 +32,17 @@ const EVIDENCE_MESSAGES: Record<string, string> = {
   "source/quote": "Paste an exact sentence from the page: 8 to 300 characters.",
 };
 
+/** In the order of the claim's allOf in lessons.schema.json. */
+const CLAIM_GUARDS = [
+  "Remove invisible characters and line breaks: a claim is one line of plain text.",
+  "Remove the link from the claim. Put it in a source, with a sentence quoted from the page.",
+  "Remove the command line (a pipe into a shell, curl or wget into a pipe, rm -rf, or $(...)). Say what changed; runnable code goes in a test.",
+  "Remove the instructions to an AI or to the reader. A claim states a fact about its subject.",
+];
+
+const SUBJECT_GUARD =
+  "This subject can't be a directory or branch name: no '..', no '.' or '-' at the end, no '.lock' ending, and not con, prn, aux, nul, com0-9, or lpt0-9.";
+
 const EVIDENCE_SHAPE = 'Each piece of evidence is either a test, {"run": {"runner", "code"}}, or a source, {"source": {"url", "quote"}}.';
 
 /** Which oneOf branch an evidence item meant to be: 0 for run, 1 for source, undefined if unclear. */
@@ -77,6 +88,12 @@ function messageFor(err: AjvError, data: unknown): FieldError | undefined {
     if (rest === "run" && err.keyword === "if") return undefined;
     return { path, message: EVIDENCE_MESSAGES[rest] ?? EVIDENCE_SHAPE };
   }
+
+  if (path === "/claim") {
+    const guard = /^#\/properties\/claim\/allOf\/(\d)\//.exec(err.schemaPath)?.[1];
+    if (guard !== undefined && CLAIM_GUARDS[Number(guard)]) return { path, message: CLAIM_GUARDS[Number(guard)]! };
+  }
+  if (path === "/subject" && err.keyword === "not") return { path, message: SUBJECT_GUARD };
 
   const top = "/" + (path.split("/")[1] ?? "");
   return { path, message: FIELD_MESSAGES[top] ?? `This value is not valid: ${err.message ?? err.keyword}.` };

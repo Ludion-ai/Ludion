@@ -1,4 +1,4 @@
-import { activeSet, checkSource, formatLesson, validateLesson, type BaseRunner, type FetchFn, type Lesson, type LessonValidator } from "@ludion/core";
+import { activeSet, checkSource, formatAsk, formatLesson, toAskLesson, validateLesson, verifiedBy, type BaseRunner, type FetchFn, type Lesson, type LessonValidator } from "@ludion/core";
 import type { RunFn } from "./docker.ts";
 
 export type Status = "passed" | "failed" | "skipped";
@@ -11,6 +11,10 @@ export interface LessonResult {
   status: Status;
   reasons: string[];
   labels: Label[];
+  /** What ludion_ask would return for this lesson once merged, word for word. Absent if the file is not a valid lesson. */
+  askText?: string;
+  subject?: string;
+  version?: string | null;
 }
 
 export interface LessonFile {
@@ -27,6 +31,8 @@ export interface VerifyContext {
   run?: RunFn;
   /** Schema to validate against. Absent: the precompiled one. CI passes the base branch's schema. */
   validate?: LessonValidator;
+  /** When "now" is, for the date in askText. Absent: the current time. */
+  now?: string;
 }
 
 function firstDifference(actual: string, expected: string): string {
@@ -72,6 +78,9 @@ export async function verifyLesson(file: LessonFile, ctx: VerifyContext): Promis
     return result;
   }
   const lesson = valid.lesson;
+  result.askText = askTextFor(lesson, ctx.now ?? new Date().toISOString());
+  result.subject = lesson.subject;
+  result.version = lesson.version ?? null;
   const canonical = formatLesson(lesson);
   if (file.text !== canonical) {
     fail(`The file is not in canonical form: ${firstDifference(file.text, canonical)}. Keys go in schema order with 2-space indent, LF line endings, and a trailing newline.`);
@@ -116,6 +125,12 @@ export async function verifyLesson(file: LessonFile, ctx: VerifyContext): Promis
     }),
   );
   return result;
+}
+
+/** The ludion_ask answer this lesson would give if merged now: its teacher is the login it was signed with. */
+function askTextFor(lesson: Lesson, now: string): string {
+  const entry = { ...lesson, teacher: lesson.author.replace(/^github:/, ""), teacher_id: lesson.author_id, verified_by: verifiedBy(lesson), verified_at: now };
+  return formatAsk([toAskLesson({ ...entry, version: lesson.version ?? undefined }, "https://ludion.ai")]);
 }
 
 export function summaryLine(r: LessonResult): string {
