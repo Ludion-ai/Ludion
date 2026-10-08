@@ -1,0 +1,202 @@
+[
+  {
+    "id": "q01",
+    "library": "wrangler",
+    "question": "My wrangler config has no compatibility_date. What date does Wrangler use for my Worker?",
+    "change": {
+      "version": "4.124.0",
+      "date": "2026-08-18",
+      "url": "https://raw.githubusercontent.com/cloudflare/workers-sdk/wrangler@4.148.0/packages/wrangler/CHANGELOG.md"
+    }
+  },
+  {
+    "id": "q02",
+    "library": "wrangler",
+    "question": "Do I need to add nodejs_compat to compatibility_flags to use node:crypto in a new Cloudflare Worker?",
+    "change": {
+      "version": "4.122.0",
+      "date": "2026-08-12",
+      "url": "https://raw.githubusercontent.com/cloudflare/workers-sdk/wrangler@4.148.0/packages/wrangler/CHANGELOG.md"
+    }
+  },
+  {
+    "id": "q03",
+    "library": "wrangler",
+    "question": "How do I log in to wrangler inside a dev container where the localhost callback can't be reached?",
+    "change": {
+      "version": "4.119.0",
+      "date": "2026-08-05",
+      "url": "https://raw.githubusercontent.com/cloudflare/workers-sdk/wrangler@4.148.0/packages/wrangler/CHANGELOG.md"
+    }
+  },
+  {
+    "id": "q04",
+    "library": "wrangler",
+    "question": "How do I serve my Workers static assets under /docs without moving the files on disk?",
+    "change": {
+      "version": "4.148.0",
+      "date": "2026-10-06",
+      "url": "https://raw.githubusercontent.com/cloudflare/workers-sdk/wrangler@4.148.0/packages/wrangler/CHANGELOG.md"
+    }
+  },
+  {
+    "id": "q05",
+    "library": "agents",
+    "question": "How do I scaffold a new Cloudflare agent project with npx agents init?",
+    "change": {
+      "version": "0.22.0",
+      "date": "2026-08-27",
+      "url": "https://raw.githubusercontent.com/cloudflare/agents/agents@0.27.0/packages/agents/CHANGELOG.md"
+    }
+  },
+  {
+    "id": "q06",
+    "library": "agents",
+    "question": "In the Cloudflare Agents SDK, how do I turn off WebSocket hibernation for my agent?",
+    "change": {
+      "version": "0.22.0",
+      "date": "2026-08-27",
+      "url": "https://raw.githubusercontent.com/cloudflare/agents/agents@0.27.0/packages/agents/CHANGELOG.md"
+    }
+  },
+  {
+    "id": "q07",
+    "library": "agents",
+    "question": "Is this.getQueue() in a Cloudflare Agent synchronous, and what fields does a QueueItem have?",
+    "change": {
+      "version": "0.24.0",
+      "date": "2026-09-18",
+      "url": "https://raw.githubusercontent.com/cloudflare/agents/agents@0.27.0/packages/agents/CHANGELOG.md"
+    }
+  },
+  {
+    "id": "q08",
+    "library": "agents",
+    "question": "How do I stop AIChatAgent from resuming interrupted chats? Does chatRecovery: false work?",
+    "change": {
+      "version": "0.22.0",
+      "date": "2026-08-27",
+      "url": "https://raw.githubusercontent.com/cloudflare/agents/agents@0.27.0/packages/agents/CHANGELOG.md"
+    }
+  },
+  {
+    "id": "q09",
+    "library": "@cloudflare/vitest-plugin",
+    "question": "How do I set up @cloudflare/vitest-pool-workers in a new project's vitest.config.ts?",
+    "change": {
+      "version": "1.0.0",
+      "date": "2026-08-20",
+      "url": "https://raw.githubusercontent.com/cloudflare/workers-sdk/@cloudflare/vitest-plugin@1.3.7/packages/vitest-plugin/CHANGELOG.md"
+    }
+  },
+  {
+    "id": "q10",
+    "library": "@cloudflare/vitest-plugin",
+    "question": "How do I mock outbound fetch in Cloudflare Workers Vitest tests with fetchMock?",
+    "change": {
+      "version": "0.20.0",
+      "date": "2026-07-31",
+      "url": "https://raw.githubusercontent.com/cloudflare/workers-sdk/@cloudflare/vitest-plugin@1.3.7/packages/vitest-plugin/CHANGELOG.md"
+    }
+  },
+  {
+    "id": "q11",
+    "library": "@cloudflare/vitest-plugin",
+    "question": "Can I use MSW to mock requests in Cloudflare Workers Vitest tests, and which version do I need?",
+    "change": {
+      "version": "0.22.0",
+      "date": "2026-08-18",
+      "url": "https://raw.githubusercontent.com/cloudflare/workers-sdk/@cloudflare/vitest-plugin@1.3.7/packages/vitest-plugin/CHANGELOG.md"
+    }
+  },
+  {
+    "id": "q12",
+    "library": "@cloudflare/vitest-plugin",
+    "question": "How do I silence the verbose workerd logs when I run Vitest for my Worker?",
+    "change": {
+      "version": "0.19.0",
+      "date": "2026-07-28",
+      "url": "https://raw.githubusercontent.com/cloudflare/workers-sdk/@cloudflare/vitest-plugin@1.3.7/packages/vitest-plugin/CHANGELOG.md"
+    }
+  },
+  {
+    "id": "q13",
+    "library": "MCP TypeScript SDK (v2)",
+    "question": "Can I reuse one McpServer instance across requests in a stateless Streamable HTTP server with the MCP TypeScript SDK?",
+    "change": {
+      "version": "2.3.0",
+      "date": "2026-10-02",
+      "url": "https://raw.githubusercontent.com/modelcontextprotocol/typescript-sdk/@modelcontextprotocol/server@2.3.1/packages/server/CHANGELOG.md"
+    }
+  },
+  {
+    "id": "q14",
+    "library": "MCP TypeScript SDK (v2)",
+    "question": "What is the largest request body the MCP TypeScript SDK's Streamable HTTP server accepts?",
+    "change": {
+      "version": "2.1.0",
+      "date": "2026-09-23",
+      "url": "https://raw.githubusercontent.com/modelcontextprotocol/typescript-sdk/@modelcontextprotocol/server@2.3.1/packages/server/CHANGELOG.md"
+    }
+  },
+  {
+    "id": "q15",
+    "library": "MCP TypeScript SDK (v2)",
+    "question": "Is the MCP TypeScript SDK ESM-only, or can I require('@modelcontextprotocol/server')?",
+    "change": {
+      "version": "2.0.0",
+      "date": "2026-07-27",
+      "url": "https://raw.githubusercontent.com/modelcontextprotocol/typescript-sdk/@modelcontextprotocol/server@2.3.1/packages/server/CHANGELOG.md"
+    }
+  },
+  {
+    "id": "q16",
+    "library": "MCP TypeScript SDK (v2)",
+    "question": "Does the MCP TypeScript SDK's HTTP client follow redirects to a different host?",
+    "change": {
+      "version": "2.3.0",
+      "date": "2026-10-02",
+      "url": "https://raw.githubusercontent.com/modelcontextprotocol/typescript-sdk/@modelcontextprotocol/client@2.3.1/packages/client/CHANGELOG.md"
+    }
+  },
+  {
+    "id": "q17",
+    "library": "vitest",
+    "question": "What Node.js version does the latest Vitest require?",
+    "change": {
+      "version": "5.0.0",
+      "date": "2026-09-03",
+      "url": "https://github.com/vitest-dev/vitest/releases/tag/v5.0.0"
+    }
+  },
+  {
+    "id": "q18",
+    "library": "vitest",
+    "question": "How do I make the tests in a describe block run one after another with Vitest's sequential option?",
+    "change": {
+      "version": "5.0.0",
+      "date": "2026-09-03",
+      "url": "https://github.com/vitest-dev/vitest/releases/tag/v5.0.0"
+    }
+  },
+  {
+    "id": "q19",
+    "library": "vitest",
+    "question": "Does Vitest clear mock call history between tests by default?",
+    "change": {
+      "version": "5.0.0",
+      "date": "2026-09-03",
+      "url": "https://github.com/vitest-dev/vitest/releases/tag/v5.0.0"
+    }
+  },
+  {
+    "id": "q20",
+    "library": "vitest",
+    "question": "Where does Vitest's junit reporter write its file by default?",
+    "change": {
+      "version": "5.0.0",
+      "date": "2026-09-03",
+      "url": "https://github.com/vitest-dev/vitest/releases/tag/v5.0.0"
+    }
+  }
+]
