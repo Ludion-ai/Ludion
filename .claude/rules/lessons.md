@@ -88,7 +88,11 @@ Pure TypeScript. No Node-only or Worker-only APIs, so the site build, the Worker
 - `ulid.ts`: `newId(now = Date.now())`.
 - `format.ts`: `formatLesson`.
 - `active.ts`: `activeSet(lessons)`.
-- `search.ts`: MiniSearch over `claim` (boost 2) and `subject` (boost 1), `prefix: true`, `fuzzy: 0.2`. `search(index, query, {subject?, k=5})`.
+- `search.ts`: MiniSearch over `claim` (boost 2) and `subject` (boost 1). `search(index, query, {subject?, k=5})`. It returns a lesson only when the question's meaningful words match it; an empty result means ludion_ask answers with its no-match text.
+  - Words: lowercase; version numbers such as `3.12` stay one word; common English words (the, a, is, how, do, I, use, what, …) are dropped from questions and lessons alike; a light stemmer strips plural -s, then -ing or -ed.
+  - Prefix matching only for words of 4+ characters, fuzzy matching (0.2) only for 5+, neither for version numbers.
+  - A lesson must match at least half of the question's meaningful words, and results scoring under half of the best one are dropped.
+  - These thresholds are set by `test/search-eval.test.ts`, over the sample and real lessons: 15 off-topic questions must all find nothing, and two natural phrasings per lesson must find the right one in the top 3 at least 90% of the time. The test prints both numbers. Add questions when lessons are added; re-run it before changing a threshold.
 - `teachers.ts`: `resolveLogins(ids, fetchFn, token?)` → `Map<id, login>` via `GET /user/{account_id}`; ids that fail are left out.
 - `index-builder.ts`: `buildIndex(lessons, gitInfo, logins, {org, repo})` → `Index`. Falls back to the stored `author` login for ids missing from `logins`.
 - `source-check.ts`: `checkSource(url, quote, fetchFn)` → `{found: true} | {found: false, reason}`. `reason` is for CI logs and the CLI; the Worker never forwards it (see `worker.md`).
