@@ -159,6 +159,9 @@ The index: fetch `index.json` through `env.ASSETS`, build the MiniSearch index f
 
 ### ludion_ask
 
+This is the read path: assistants find lessons by calling `ludion_ask` on their own, prompted only by the server's `instructions` and the tool's description (CLAUDE.md, step 10; `docs/experiments/e1/`). Changing either wording changes how often it is called, so rerun experiment 1 after any change to them.
+
+
 - Input: `question` (string, 1 to 8,000, so a whole traceback fits; description, exactly: "The user's question or the exact error message, in English. Include the library or tool name and its version if you know them."), `subject` (optional string), `k` (optional int, 1 to 10, default 5).
 - Description, exactly: "Search lessons that people taught Ludion and machines verified by test, proof, or cited source. Use before answering questions about specific software behavior, APIs, versions, tools, or anything that may have changed recently. Each result names its teacher; cite them."
 - Annotations: `readOnlyHint: true`, `openWorldHint: false`.

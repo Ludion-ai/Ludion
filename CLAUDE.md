@@ -120,7 +120,7 @@ Each step ends green: tests pass, and the step's check is demonstrated.
 7. FreshBench v0 and choosing the wedge (`bench.md`). Check: per-library scores with no tools and with web search are in `docs/bench/`, and the wedge libraries are chosen with reasons.
 8. Version-pinned runners and differential verification: pinned runners (`python@3.12`), `expect` and `error`, and the "verified across versions" label (`lessons.md`, `ci.md`). Check: a lesson that passes on one version and fails as expected on another is verified across versions and shows both.
 9. Seed lessons from the FreshBench questions the agent got wrong. Target 200. Claude Code drafts them in PRs opened from the owner's account; the owner reads each one and merges it, and that merge is the signature. Check: each passes CI.
-10. The read path: how assistants come to use Ludion. Decided after experiment 1 (spec to come).
+10. The read path: `ludion_ask` as it is, with the server's instructions and the tool's description, and nothing more (no CLAUDE.md line, no CLI, no hook). Experiment 1 decided it: `ludion_ask` was called, first, in 20 of 20 runs without help (`docs/experiments/e1/`). Check: before launch, repeat experiment 1 with Claude Code's default tools and questions that come up mid-task (an error after an upgrade); if `ludion_ask` is called in under half the runs, try the one-line rule, then a hook that matches errors after a failed command, in that order.
 11. The site: home live feed, `/start`, `/why`, `/<subject>`, and a tombstone page for each retracted lesson. Check: axe finds no violations and Lighthouse accessibility is at least 95 on every page.
 12. `reverify.yml`. Check: a lesson whose source quote disappears gets a deletion PR.
 13. The value test (acceptance test 2).
