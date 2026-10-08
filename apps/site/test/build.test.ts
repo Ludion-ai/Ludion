@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { parseAddedLog } from "../src/build/git-info.ts";
 import { teacherPages } from "../src/build/teacher-pages.ts";
@@ -41,5 +42,14 @@ describe("teacherPages", () => {
 
   it("gives the page to no one when neither login came from the API", () => {
     expect(teacherPages(new Map([[1, "sam"], [2, "Sam"]]), new Set())).toEqual(new Map());
+  });
+});
+
+describe("_headers", () => {
+  it("sends HSTS for a year on every static asset, without includeSubDomains or preload", () => {
+    const text = readFileSync(new URL("../public/_headers", import.meta.url), "utf8");
+    const all = text.split(/^\/index\.json$/m)[0]!;
+    expect(all.startsWith("/*\n")).toBe(true);
+    expect(all).toContain("  Strict-Transport-Security: max-age=31536000\n");
   });
 });

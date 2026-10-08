@@ -9,7 +9,7 @@ export default defineConfig({
       {
         test: {
           name: "node",
-          include: ["packages/*/test/**/*.test.ts", "tools/*/test/**/*.test.ts", "apps/site/test/**/*.test.ts"],
+          include: ["packages/*/test/**/*.test.ts", "tools/*/test/**/*.test.ts", "apps/site/test/**/*.test.ts", ".claude/hooks/*.test.ts"],
         },
       },
       {

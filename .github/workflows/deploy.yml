@@ -46,6 +46,15 @@ jobs:
 
       - run: npm test
 
+      # A rerun of an old run would deploy an old commit over a newer one. Deploy only main's newest commit.
+      - name: Make sure this is main's newest commit
+        run: |
+          git fetch --quiet origin main
+          if [ "$(git rev-parse HEAD)" != "$(git rev-parse origin/main)" ]; then
+            echo "::error::This run is for an old commit ($(git rev-parse --short HEAD)); main is now at $(git rev-parse --short origin/main). Deploy main's newest commit with: gh workflow run deploy.yml --ref main"
+            exit 1
+          fi
+
       - name: Deploy
         run: npx wrangler deploy
         env:

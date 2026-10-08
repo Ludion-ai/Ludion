@@ -134,6 +134,7 @@ Rules that stay:
   Referrer-Policy: strict-origin-when-cross-origin
   X-Content-Type-Options: nosniff
   Permissions-Policy: camera=(), microphone=(), geolocation=()
+  Strict-Transport-Security: max-age=31536000
 /index.json
   Cache-Control: public, max-age=60
   Access-Control-Allow-Origin: *

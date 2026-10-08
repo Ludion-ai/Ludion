@@ -57,10 +57,11 @@ Trigger: `pull_request`, every PR. Job `test`, `permissions: contents: read`, No
 
 Production is deployed only by `.github/workflows/deploy.yml`. Not Workers Builds (disconnected), not a hand-run `wrangler deploy`, and no preview deployments in v0 (`worker.md`).
 
-- Trigger: `push` to `main`, and `workflow_dispatch` to run it by hand (for example after a failed run: `gh run rerun <id>`).
+- Trigger: `push` to `main`, and `workflow_dispatch` to run it by hand.
+- To deploy again, start a new run from main (`gh workflow run deploy.yml --ref main`), never a rerun of an old run: a rerun deploys that run's commit. Right before `wrangler deploy` the job fetches `origin/main` and fails if `HEAD` isn't main's newest commit, saying how to deploy main's newest commit.
 - Job `deploy` in the GitHub environment `production`, which only `main` may deploy from. Its secrets: `CLOUDFLARE_API_TOKEN` (set by the owner in GitHub's settings, never by Claude Code) and `CLOUDFLARE_ACCOUNT_ID`.
 - `permissions: contents: read`. `concurrency: deploy-production` with `cancel-in-progress: false`: one deploy at a time, and a running deploy is never cancelled.
-- Steps: checkout with `fetch-depth: 0` (verified_at and pr come from git history), Node from `.node-version`, `npm ci`, `npm run typecheck`, `npm run build`, `npm test` (build first: the Worker tests serve the built site), `npx wrangler deploy` with the repo's own wrangler. No `wrangler-action`. Every action is pinned to a commit SHA, with the tag in a comment.
+- Steps: checkout with `fetch-depth: 0` (verified_at and pr come from git history), Node from `.node-version`, `npm ci`, `npm run typecheck`, `npm run build`, `npm test` (build first: the Worker tests serve the built site), the newest-commit check, `npx wrangler deploy` with the repo's own wrangler. No `wrangler-action`. Every action is pinned to a commit SHA, with the tag in a comment.
 - Then `node tools/check-production.ts` checks production and fails the job if any check fails: `index.json`'s `built_at` becomes newer than the job's start within 2 minutes; `/mcp` answers `initialize` with 200; `ludion_ask` about distutils returns a lesson with "Taught by @".
 ## Branch protection on main
 
