@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { buildIndex, resolveLogins, search, type Index } from "../src/index.ts";
+import { tokenize } from "../src/search.ts";
 import { example, fakeFetch, lesson } from "./helpers.ts";
 
 const opts = { org: "Ludion-ai", repo: "ludion", builtAt: new Date("2026-10-08T09:00:00.123Z") };
@@ -128,5 +129,21 @@ describe("search", () => {
 
   it("returns nothing for an unrelated question", () => {
     expect(search(index, "kubernetes")).toEqual([]);
+  });
+
+  it("ignores common words, so they match nothing on their own", () => {
+    expect(search(index, "What is the capital of France?")).toEqual([]);
+    expect(search(index, "How do I use it?")).toEqual([]);
+  });
+
+  it("prefix-matches only words of 4+ characters: 'I' does not find 'instead'", () => {
+    expect(search(index, "I")).toEqual([]);
+    expect(search(index, "inst")[0]?.id).toBe(ex.id);
+  });
+
+  it("keeps a version number whole", () => {
+    expect(tokenize("Python 3.12 removed distutils (PEP 632)")).toEqual(["python", "3.12", "removed", "distutils", "pep", "632"]);
+    expect(search(index, "3.12")[0]?.id).toBe(ex.id);
+    expect(search(index, "3.1")).toEqual([]);
   });
 });
