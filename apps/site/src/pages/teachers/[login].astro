@@ -43,6 +43,7 @@ const lessons = index.lessons.filter((l) => l.teacher_id === id);
               teacherHref={teacherHref(l.teacher_id)}
               verifiedBy={l.verified_by}
               verifiedAt={l.verified_at}
+              hideTeacher
             />
           </li>
         ))

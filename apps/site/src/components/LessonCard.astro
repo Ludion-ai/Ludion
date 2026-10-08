@@ -15,14 +15,16 @@ interface Props {
   teacherHref: string | null;
   verifiedBy: VerifiedBy;
   verifiedAt: string;
+  /** On the teacher's own page every row is theirs, so the "— @login" line is left out. */
+  hideTeacher?: boolean;
 }
-const p = Astro.props;
+const { hideTeacher = false, ...p } = Astro.props;
 ---
 
 <article class="row">
   <p class="claim text"><a href={`/lessons/${p.id}/`}><Claim text={p.claim} /></a></p>
   <div class="under">
-    <Signature teacher={p.teacher} teacherId={p.teacherId} teacherHref={p.teacherHref} verifiedBy={p.verifiedBy} verifiedAt={p.verifiedAt} />
+    <Signature teacher={p.teacher} teacherId={p.teacherId} teacherHref={p.teacherHref} verifiedBy={p.verifiedBy} verifiedAt={p.verifiedAt} name={!hideTeacher} />
     <SubjectTag subject={p.subject} version={p.version} />
   </div>
 </article>
