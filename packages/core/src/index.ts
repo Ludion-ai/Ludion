@@ -9,3 +9,4 @@ export { buildIndex, storedLogin, type GitInfo, type BuildOptions } from "./inde
 export { resolveLogins, type FetchFn } from "./teachers.ts";
 export { checkSource, normalizeText, sourceUrlProblem, type SourceResult } from "./source-check.ts";
 export { verifiedBy } from "./label.ts";
+export { ASK_HEADER, NO_MATCH, formatAsk, lessonUrl, toAskLesson, type AskLesson, type AskSource } from "./ask-text.ts";
