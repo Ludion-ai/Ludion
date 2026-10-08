@@ -27,6 +27,14 @@ One image per runner, each on the current stable release:
 
 Code arrives on stdin. Docker flags: `--network none --memory 512m --cpus 1 --pids-limit 128 --read-only --tmpfs /tmp`, 30-second timeout. Images are pulled before any run starts, so pulling never counts against the timeout.
 
+Pinned runners run one exact version, for claims about that version and for pairs that pass on one version and fail on another (`lessons.md`, "Verified across versions"). Same command and Docker flags as their language above; checked by `verify` from step 8 on.
+
+| Runner | Image |
+| - | - |
+| `python@3.9` … `python@3.14` | `python:<version>-slim` |
+| `node@18`, `node@20`, `node@22`, `node@24` | `node:<version>-slim` |
+
+A pinned runner stays in the list after its version reaches end of life, as long as some lesson uses it. Adding one is a schema change (`lessons.schema.json` lists them).
 A lesson that depends on a version says so in `version` and prints `skip: <why>` when the runner cannot test it (for example, an older runtime). When a new stable release comes out, move the image to it; lessons that break show up in `reverify.yml`. Choosing an image per `version` comes later.
 
 ## verify.yml (required check `verify`)

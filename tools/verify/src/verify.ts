@@ -1,4 +1,4 @@
-import { activeSet, checkSource, formatLesson, validateLesson, type FetchFn, type Lesson, type LessonValidator } from "@ludion/core";
+import { activeSet, checkSource, formatLesson, validateLesson, type BaseRunner, type FetchFn, type Lesson, type LessonValidator } from "@ludion/core";
 import type { RunFn } from "./docker.ts";
 
 export type Status = "passed" | "failed" | "skipped";
@@ -100,12 +100,17 @@ export async function verifyLesson(file: LessonFile, ctx: VerifyContext): Promis
         if (!r.found) fail(`${where} (source): ${r.reason}`);
         return;
       }
+      if (e.run.runner.includes("@") || e.run.expect !== undefined) {
+        fail(`${where} (${e.run.runner}): pinned runners and "expect" are in the lesson format, but CI checks them only from step 8 on. Use an unpinned runner and leave out "expect" and "error" for now.`);
+        return;
+      }
       if (e.run.runner === "lean") {
         skip(`${where} (lean): the Lean runner does not exist yet. A human decides.`, "needs-lean");
         return;
       }
       if (!ctx.run) return;
-      const r = await ctx.run(e.run.runner, e.run.code);
+      const runner = e.run.runner as Exclude<BaseRunner, "lean">;
+      const r = await ctx.run(runner, e.run.code);
       if (r.status === "failed") fail(`${where} (${e.run.runner}): ${r.reason}`);
       if (r.status === "skipped") skip(`${where} (${e.run.runner}): ${r.reason}`, "skipped");
     }),

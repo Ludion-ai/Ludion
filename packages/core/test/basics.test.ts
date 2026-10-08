@@ -19,6 +19,13 @@ describe("formatLesson", () => {
     expect(formatLesson(l)).toContain('"runner": "bash",\n        "code": "exit 0"');
   });
 
+  it("puts kind after version, and expect and error after code", () => {
+    const l = lesson({ version: ">=3.12", evidence: [{ run: { error: "No module named", expect: "fail", code: "import distutils", runner: "python@3.11" } }] });
+    const text = formatLesson({ ...l, kind: "removed" });
+    expect(Object.keys(JSON.parse(text))).toEqual(["id", "subject", "version", "kind", "claim", "evidence", "author", "author_id", "created_at"]);
+    expect(text).toContain('"runner": "python@3.11",\n        "code": "import distutils",\n        "expect": "fail",\n        "error": "No module named"');
+  });
+
   it("ends with exactly one newline and uses 2-space indent", () => {
     const text = formatLesson(lesson());
     expect(text.endsWith("}\n")).toBe(true);

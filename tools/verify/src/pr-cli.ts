@@ -4,7 +4,7 @@
 import { execFileSync } from "node:child_process";
 import { appendFileSync, readFileSync, writeFileSync } from "node:fs";
 import { parseArgs } from "node:util";
-import type { Lesson, LessonValidator, Runner } from "@ludion/core";
+import type { BaseRunner, Lesson, LessonValidator } from "@ludion/core";
 import { compileLessonSchema } from "./base-schema.ts";
 import { pullImages, runInDocker } from "./docker.ts";
 import { parseNameStatus, planChanges, verifyPullRequest, type PullRequestAuthor } from "./pr.ts";
@@ -28,13 +28,17 @@ function baseLessons(baseRef: string, validate: LessonValidator): Lesson[] {
   return lessons;
 }
 
-function runnersIn(files: LessonFile[], validate: LessonValidator): Exclude<Runner, "lean">[] {
-  const runners = new Set<Exclude<Runner, "lean">>();
+function runnersIn(files: LessonFile[], validate: LessonValidator): Exclude<BaseRunner, "lean">[] {
+  const runners = new Set<Exclude<BaseRunner, "lean">>();
   for (const f of files) {
     try {
       const v = validate(JSON.parse(f.text));
       if (!v.ok) continue;
-      for (const e of v.lesson.evidence) if ("run" in e && e.run.runner !== "lean") runners.add(e.run.runner);
+      for (const e of v.lesson.evidence) {
+        // Pinned runners are refused until step 8 (verify.ts), so they need no image yet.
+        const r = "run" in e ? e.run.runner : undefined;
+        if (r === "python" || r === "bash" || r === "node") runners.add(r);
+      }
     } catch {
       // Reported when verified.
     }

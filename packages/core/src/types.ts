@@ -1,15 +1,33 @@
-export type Runner = "python" | "bash" | "node" | "lean";
+/** The runners on the current stable image of each language (ci.md, Runners). */
+export type BaseRunner = "python" | "bash" | "node" | "lean";
+/** Runners pinned to one version (ci.md, Pinned runners). */
+export type PinnedRunner =
+  | "python@3.9" | "python@3.10" | "python@3.11" | "python@3.12" | "python@3.13" | "python@3.14"
+  | "node@18" | "node@20" | "node@22" | "node@24";
+export type Runner = BaseRunner | PinnedRunner;
 
-export type RunEvidence = { run: { runner: Runner; code: string } };
+export type RunEvidence = {
+  run: {
+    runner: Runner;
+    code: string;
+    /** pass (the default): exits 0. fail: exits non-zero and its output contains `error`. */
+    expect?: "pass" | "fail";
+    /** With expect fail only: a sentence the output must contain. */
+    error?: string;
+  };
+};
 export type SourceEvidence = { source: { url: string; quote: string } };
 export type Evidence = RunEvidence | SourceEvidence;
 
 export type VerifiedBy = "test" | "proof" | "source";
 
+export type Kind = "removed" | "added" | "changed" | "deprecated" | "behaves";
+
 export interface Lesson {
   id: string;
   subject: string;
   version?: string | null;
+  kind?: Kind;
   claim: string;
   evidence: Evidence[];
   /** `github:<login>` at signing time. Display only. */

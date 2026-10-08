@@ -10,6 +10,7 @@
     "id": {"type": "string", "pattern": "^[0-9A-HJKMNP-TV-Z]{26}$", "description": "ULID"},
     "subject": {"type": "string", "pattern": "^[a-z0-9][a-z0-9.-]{0,63}$", "description": "Directory name. A library, a tool, a field."},
     "version": {"type": ["string", "null"], "description": "Version range the claim holds for, e.g. >=3.12"},
+    "kind": {"type": "string", "enum": ["removed", "added", "changed", "deprecated", "behaves"], "description": "What kind of change the claim records. Optional."},
     "claim": {"type": "string", "minLength": 10, "maxLength": 400, "description": "One sentence, as the teacher wrote it."},
     "evidence": {
       "type": "array",
@@ -20,8 +21,16 @@
           {
             "type": "object", "required": ["run"], "additionalProperties": false,
             "properties": {"run": {"type": "object", "required": ["runner", "code"], "additionalProperties": false,
-              "properties": {"runner": {"type": "string", "enum": ["python", "bash", "node", "lean"]},
-                             "code": {"type": "string", "maxLength": 8000, "description": "Exits 0 iff the claim holds. Exit 0 with 'skip:' on stdout if the runner cannot test it."}}}}
+              "properties": {"runner": {"type": "string", "enum": ["python", "bash", "node", "lean",
+                                                  "python@3.9", "python@3.10", "python@3.11", "python@3.12", "python@3.13", "python@3.14",
+                                                  "node@18", "node@20", "node@22", "node@24"],
+                                         "description": "A runner from ci.md. Pinned runners (python@3.12) run that exact version."},
+                             "code": {"type": "string", "maxLength": 8000, "description": "Exits 0 iff the claim holds. Exit 0 with 'skip:' on stdout if the runner cannot test it."},
+                             "expect": {"type": "string", "enum": ["pass", "fail"], "description": "pass (the default): the code exits 0. fail: it exits non-zero and its output contains error."},
+                             "error": {"type": "string", "minLength": 8, "maxLength": 300, "description": "With expect fail only: a sentence the output must contain."}},
+              "if": {"required": ["expect"], "properties": {"expect": {"const": "fail"}}},
+              "then": {"properties": {"error": true}, "required": ["error"]},
+              "else": {"not": {"properties": {"error": true}, "required": ["error"]}}}}
           },
           {
             "type": "object", "required": ["source"], "additionalProperties": false,

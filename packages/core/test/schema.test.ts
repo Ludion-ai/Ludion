@@ -56,6 +56,28 @@ describe("validateLesson", () => {
   });
 });
 
+describe("optional change fields (kind, pinned runners, expect, error)", () => {
+  const run = (over: Record<string, unknown>) => lesson({ evidence: [{ run: { runner: "python@3.11", code: "import distutils", ...over } } as never] });
+
+  it("accepts a kind, a pinned runner, and an expected failure with its error", () => {
+    expect(validateLesson({ ...lesson(), kind: "removed" }).ok).toBe(true);
+    expect(validateLesson(run({})).ok).toBe(true);
+    expect(validateLesson(run({ expect: "fail", error: "No module named 'distutils'" })).ok).toBe(true);
+    expect(validateLesson(run({ expect: "pass" })).ok).toBe(true);
+  });
+
+  it("explains each mistake in plain words", () => {
+    const messages = (data: unknown) => {
+      const r = validateLesson(data);
+      return r.ok ? [] : r.errors.map((e) => e.message);
+    };
+    expect(messages({ ...lesson(), kind: "fixed" })).toEqual([expect.stringContaining("removed, added, changed, deprecated, or behaves")]);
+    expect(messages(run({ runner: "python@2.7" }))).toEqual([expect.stringContaining("python@3.12")]);
+    expect(messages(run({ expect: "fail" }))).toEqual([expect.stringContaining('needs "error"')]);
+    expect(messages(run({ error: "No module named distutils" }))).toEqual([expect.stringContaining('only with "expect": "fail"')]);
+  });
+});
+
 describe("generated validator", () => {
   it("is up to date with lessons.schema.json (run npm run gen:validator if this fails)", () => {
     const committed = readFileSync(fileURLToPath(new URL("../src/generated/validate-lesson.js", import.meta.url)), "utf8");

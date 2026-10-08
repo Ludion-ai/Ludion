@@ -120,6 +120,15 @@ describe("verifyLesson", () => {
     expect(s).toMatchObject({ status: "skipped", labels: ["skipped"] });
   });
 
+  it("refuses pinned runners and expect until CI checks them (step 8), without running them", async () => {
+    const mustNotRun: RunFn = async () => { throw new Error("must not run"); };
+    for (const run of [{ runner: "python@3.12" as const, code: "x" }, { runner: "python" as const, code: "x", expect: "pass" as const }]) {
+      const r = await verifyLesson(fileOf(sourceOnly({ evidence: [{ run }] })), ctx({ run: mustNotRun }));
+      expect(r.status).toBe("failed");
+      expect(r.reasons[0]).toContain("only from step 8 on");
+    }
+  });
+
   it("labels lean evidence needs-lean without running it", async () => {
     const lean = sourceOnly({ evidence: [{ run: { runner: "lean", code: "theorem t : 1 = 1 := rfl" } }] });
     const r = await verifyLesson(fileOf(lean), ctx({ run: async () => { throw new Error("must not run"); } }));

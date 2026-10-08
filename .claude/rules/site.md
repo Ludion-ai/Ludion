@@ -81,7 +81,7 @@ One essay, 500 to 700 words, prose only, no subheadings. Title: "The internet lo
 
 1. For 25 years people wrote the web and machines read it. Now people ask models, and fewer write.
 2. Models learn once and freeze. The corrections people make every day vanish inside private chats, and what the next model learns arrives months later, with no names on it.
-3. Wikipedia gave the encyclopedia an edit button. Ludion gives models one.
+3. Wikipedia gave the encyclopedia an edit button. Ludion gives models a changelog: what changed, checked by a machine, signed by a person, and read when they answer. It does not change any model's weights, and the essay never says it does.
 4. How it works: a lesson is one sentence with evidence; machines check it; the person signs; main is truth; every assistant can use it within minutes; the name stays.
 5. What Ludion will not do: serve anything unverified, let an AI publish in your name, or own the knowledge (lessons are CC BY-SA).
 6. End: "Teach it once."
@@ -115,7 +115,7 @@ Rules that stay:
 - The verified state is the most eye-catching thing on a page. A status is never shown by color alone (there is always a word). When a lesson turns verified, announce it with `aria-live="polite"` ("Verified: <claim, first 60 chars>").
 - The teacher's name is a signature on the claim: right under it, "— @login", with how and when it was verified. On the teacher's own page the rows leave it out. The dash and the name never split across lines.
 - Subject tags never share the seal's shape; they read like the directory they are (`python/ >=3.12`).
-- Home headline "Teach it once.", and under it "Everyone's AI learns it in minutes. Your name stays on it." No buttons until `/start` exists.
+- Home headline "Teach it once.", and under it "Everyone's AI reads it within minutes. Your name stays on it." (Ludion is a changelog for AI: copy never says a lesson goes into a model's weights.) No buttons until `/start` exists.
 - The footer sits at the bottom of the screen even when the page is short. Lessons are lists, not card grids. Pages work down to 360 px wide.
 - Fonts are self-hosted (the CSP allows only `'self'`). Scripts and stylesheets are separate files.
 - Design changes are checked against the sample lessons in `apps/site/samples/` (built only with `LUDION_SAMPLES=1`, into `dist-samples`, never deployed), with screenshots at 390 px and 1280 px in both themes.

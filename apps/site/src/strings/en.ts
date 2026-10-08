@@ -2,7 +2,7 @@
 export const en = {
   site: {
     name: "Ludion",
-    description: "Ludion is a public, writable AI model. People teach it, machines verify every lesson, and every assistant can use it.",
+    description: "Ludion is a changelog for AI. People teach it what changed, machines verify every lesson, and every assistant can read it.",
   },
   nav: {
     label: "Main",
@@ -11,7 +11,7 @@ export const en = {
   home: {
     title: "Ludion: teach it once",
     headline: "Teach it once.",
-    sub: "Everyone's AI learns it in minutes. Your name stays on it.",
+    sub: "Everyone's AI reads it within minutes. Your name stays on it.",
     replayTitle: "How a lesson passes",
     checking: "Checking",
     replay: (by: "test" | "proof" | "source", date: string) =>

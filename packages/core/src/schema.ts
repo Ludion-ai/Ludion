@@ -12,6 +12,7 @@ const FIELD_MESSAGES: Record<string, string> = {
   "/id": "The id must be a ULID: 26 characters of Crockford base32 (0-9, A-Z without I, L, O, U).",
   "/subject": "Write the subject in lowercase, like python or wrangler: letters, digits, dots, and dashes, up to 64 characters.",
   "/version": "Write the version as text, for example >=3.12, or leave it out.",
+  "/kind": "Choose a kind: removed, added, changed, deprecated, or behaves, or leave it out.",
   "/claim": "Write one sentence of 10 to 400 characters.",
   "/evidence": "Give 1 to 3 pieces of evidence: a test or a source.",
   "/author": "The author must be github:<login> of the account that signed.",
@@ -22,7 +23,9 @@ const FIELD_MESSAGES: Record<string, string> = {
 
 const EVIDENCE_MESSAGES: Record<string, string> = {
   run: 'A test needs "runner" (python, bash, node, or lean) and "code" (up to 8000 characters) that exits 0 only if the claim is true.',
-  "run/runner": "Choose a runner: python, bash, node, or lean.",
+  "run/runner": "Choose a runner: python, bash, node, or lean, or one pinned to a version, such as python@3.12 or node@22.",
+  "run/expect": 'Set "expect" to "pass" (the default) or "fail".',
+  "run/error": "Write the error as a sentence of 8 to 300 characters that the test's output must contain.",
   "run/code": "Test code must be text of at most 8000 characters that exits 0 only if the claim is true.",
   source: 'A source needs "url" and "quote".',
   "source/url": "The source URL must start with https://.",
@@ -65,6 +68,13 @@ function messageFor(err: AjvError, data: unknown): FieldError | undefined {
     if (err.keyword === "additionalProperties") {
       return { path, message: `Remove "${String(err.params.additionalProperty)}". ${EVIDENCE_MESSAGES[rest] ?? EVIDENCE_SHAPE}` };
     }
+    if (rest === "run" && err.keyword === "required" && err.params.missingProperty === "error") {
+      return { path, message: 'A test with "expect": "fail" needs "error": a sentence its output must contain.' };
+    }
+    if (rest === "run" && err.keyword === "not") {
+      return { path, message: '"error" goes only with "expect": "fail". Remove it, or set "expect": "fail".' };
+    }
+    if (rest === "run" && err.keyword === "if") return undefined;
     return { path, message: EVIDENCE_MESSAGES[rest] ?? EVIDENCE_SHAPE };
   }
 
