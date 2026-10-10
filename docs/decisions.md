@@ -68,7 +68,7 @@ These describe the system as built through 2026-10-08 and stay true unless a v2 
 
 ### Infrastructure
 
-- One Cloudflare Worker, `ludion` (Hono), serving the prerendered Astro site from `apps/site/dist` as static assets, `/index.json`, and `/mcp`. Custom domain `ludion.ai` in `wrangler.jsonc`. `run_worker_first` covers `/mcp`, `/mcp/*`, `/@*`, and also `/api/*` and `/auth/*`; `/@<login>` serves `/teachers/<lowercase login>/` from the assets, or the 404 page. (`/api/*`, `/auth/*`, and the `SOURCE_CHECK_LIMITER` binding were removed with format 1.)
+- One Cloudflare Worker, `ludion` (Hono), serving the prerendered Astro site from `apps/site/dist` as static assets, `/index.json`, and `/mcp`. Custom domain `ludion.ai` in `wrangler.jsonc`. `run_worker_first` covers `/mcp`, `/mcp/*`, and `/@*`; `/@<login>` serves `/teachers/<lowercase login>/` from the assets, or the 404 page. (`/api/*`, `/auth/*`, and the `SOURCE_CHECK_LIMITER` binding were removed with format 1.)
 - No content database (no KV, D1, or R2): GitHub is the database, and the index is rebuilt with every deploy.
 - **Deploys** happen only in `.github/workflows/deploy.yml`:
   - Triggers: every push to `main`, and `workflow_dispatch`.
