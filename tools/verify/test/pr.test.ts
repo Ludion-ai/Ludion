@@ -73,7 +73,7 @@ describe("compileLessonSchema (the base branch's schema)", () => {
     const results = await verifyPullRequest(
       { added: [path], deleted: [], problems: [] },
       [{ path, text }],
-      { base: [], fetchFn: async () => new Response(""), author: alice, commitMessageFor: () => null, validate: compileLessonSchema(JSON.stringify(schema)) },
+      { base: [], fetchFn: async () => new Response(""), author: alice, validate: compileLessonSchema(JSON.stringify(schema)) },
     );
     expect(results[0]!.status).toBe("failed");
     expect(results[0]!.reasons[0]).toMatch(/^\/author_id:/);
@@ -82,33 +82,17 @@ describe("compileLessonSchema (the base branch's schema)", () => {
 
 describe("authorProblem", () => {
   it("accepts a person's own lesson, by id, whatever the login's case", () => {
-    expect(authorProblem(lesson, alice, undefined, null)).toBeUndefined();
+    expect(authorProblem(lesson, alice)).toBeUndefined();
   });
 
-  it("refuses a lesson in someone else's name, even with a matching login", () => {
+  it("refuses a lesson whose author_id is someone else's", () => {
     const mallory = { id: 666, login: "Alice", type: "User" };
-    expect(authorProblem(lesson, mallory, undefined, null)).toMatch(/author_id is 1001, but the pull request was opened by @Alice \(666\)/);
+    expect(authorProblem(lesson, mallory)).toMatch(/author_id is 1001, but the pull request was opened by @Alice \(666\)/);
   });
 
-  it("accepts the App when the trailer matches id and login (case-insensitive)", () => {
-    expect(authorProblem(lesson, app, 9, "Teach x: y\n\nTaught-by: alice (1001)\n")).toBeUndefined();
-  });
-
-  it("refuses the App when the trailer is missing or names someone else", () => {
-    expect(authorProblem(lesson, app, 9, "Teach x: y\n")).toMatch(/no "Taught-by/);
-    expect(authorProblem(lesson, app, 9, "Taught-by: alice (1002)")).toMatch(/must match/);
-    expect(authorProblem(lesson, app, 9, "Taught-by: bob (1001)")).toMatch(/must match/);
-    expect(authorProblem(lesson, app, 9, "Taught-by: alice")).toMatch(/no "Taught-by/);
-  });
-
-  it("knows the App by id, not by name", () => {
-    const impostor = { id: 10, login: "ludion[bot]", type: "Bot" };
-    expect(authorProblem(lesson, impostor, 9, "Taught-by: alice (1001)")).toMatch(/\(10\), which is not the Ludion App/);
-  });
-
-  it("refuses any other bot, and every bot while no App is configured", () => {
-    expect(authorProblem(lesson, { id: 5, login: "dependabot[bot]", type: "Bot" }, 9, "Taught-by: alice (1001)")).toMatch(/not the Ludion App/);
-    expect(authorProblem(lesson, app, undefined, "Taught-by: alice (1001)")).toMatch(/not the Ludion App/);
+  it("refuses every bot: lessons come from the teacher's own account", () => {
+    expect(authorProblem(lesson, app)).toMatch(/a bot\. Lessons come from the teacher's own GitHub account/);
+    expect(authorProblem(lesson, { id: 1001, login: "alice[bot]", type: "Bot" })).toMatch(/a bot/);
   });
 });
 
@@ -119,7 +103,6 @@ describe("verifyPullRequest", () => {
     fetchFn,
     run: async () => ({ kind: "done" as const, exitCode: 0, stdout: "", stderr: "", timedOut: false }),
     author: alice,
-    commitMessageFor: () => null,
     ...over,
   });
 

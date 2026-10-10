@@ -4,7 +4,6 @@ import { handleMcp } from "./mcp/server.ts";
 export interface Env {
   ASSETS: Fetcher;
   SITE_URL: string;
-  SOURCE_CHECK_LIMITER: RateLimit;
 }
 
 const TEACHER_PATH = /^\/@([A-Za-z0-9-]{1,39})\/?$/;
