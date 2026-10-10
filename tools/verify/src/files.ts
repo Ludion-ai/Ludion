@@ -3,7 +3,7 @@ import { join, relative, sep } from "node:path";
 import { validateLesson, type Lesson } from "@ludion/core";
 import type { LessonFile } from "./verify.ts";
 
-const NOT_LESSONS = new Set(["lessons.schema.json"]);
+const NOT_LESSONS = new Set(["lessons.schema.json", "lessons-v0.schema.json"]);
 
 function walk(dir: string, out: string[]): void {
   for (const entry of readdirSync(dir, { withFileTypes: true })) {

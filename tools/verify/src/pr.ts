@@ -21,7 +21,8 @@ export interface ChangePlan {
 }
 
 const LESSON_PATH = /^lessons\/[^/]+\/[^/]+\.json$/;
-const SCHEMA_PATH = "lessons/lessons.schema.json";
+/** The schemas: format 1 for new lessons, and format 0 frozen for the lessons already on main. */
+const SCHEMA_PATHS = new Set(["lessons/lessons.schema.json", "lessons/lessons-v0.schema.json"]);
 export const IMMUTABLE = "Lessons are immutable. Add a new lesson that replaces this one instead.";
 export const LESSON_FILES_ONLY = "A lesson pull request can change only lesson files in lessons/.";
 export const STRAY_FILE = "Only lesson files go in lessons/<subject>/.";
@@ -46,7 +47,7 @@ export function planChanges(changes: Change[]): ChangePlan {
   const lessonChanges = changes.filter((c) => LESSON_PATH.test(c.path));
   if (lessonChanges.length === 0) {
     for (const { path } of changes) {
-      if (path.startsWith("lessons/") && path !== SCHEMA_PATH) plan.problems.push({ path, reason: STRAY_FILE });
+      if (path.startsWith("lessons/") && !SCHEMA_PATHS.has(path)) plan.problems.push({ path, reason: STRAY_FILE });
     }
     return plan;
   }

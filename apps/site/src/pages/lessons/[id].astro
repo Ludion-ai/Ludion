@@ -8,7 +8,8 @@ import EvidenceRun from "../../components/EvidenceRun.astro";
 import EvidenceSource from "../../components/EvidenceSource.astro";
 import { claimSize } from "../../build/claim-size.ts";
 import { siteData, type LessonPage } from "../../build/data.ts";
-import { en, formatDate } from "../../strings/en.ts";
+import { en, formatDate, testLabel } from "../../strings/en.ts";
+import { asTest } from "@ludion/core";
 
 // Every lesson on main, replaced ones included: history stays visible.
 export async function getStaticPaths() {
@@ -66,13 +67,10 @@ const repo = `https://github.com/${config.org}/${config.repo}`;
     <section class="evidence" aria-labelledby="evidence">
       <h2 id="evidence">{en.lesson.evidence}</h2>
       {
-        lesson.evidence.map((e) =>
-          "run" in e ? (
-            <EvidenceRun runner={e.run.runner} code={e.run.code} />
-          ) : (
-            <EvidenceSource url={e.source.url} quote={e.source.quote} />
-          ),
-        )
+        lesson.evidence.map((e) => {
+          const t = asTest(e);
+          return t ? <EvidenceRun runner={testLabel(t)} code={t.code} /> : "source" in e && <EvidenceSource url={e.source.url} quote={e.source.quote} />;
+        })
       }
       {
         page.corrects.length > 0 && (

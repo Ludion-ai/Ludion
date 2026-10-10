@@ -4,7 +4,7 @@
 import { execFileSync } from "node:child_process";
 import { appendFileSync, readFileSync, writeFileSync } from "node:fs";
 import { parseArgs } from "node:util";
-import type { Lesson, LessonValidator, Runner } from "@ludion/core";
+import type { Lesson, LessonValidator } from "@ludion/core";
 import { compileLessonSchema } from "./base-schema.ts";
 import { pullImages, runInDocker } from "./docker.ts";
 import { parseNameStatus, planChanges, verifyPullRequest, type PullRequestAuthor } from "./pr.ts";
@@ -28,18 +28,22 @@ function baseLessons(baseRef: string, validate: LessonValidator): Lesson[] {
   return lessons;
 }
 
-function runnersIn(files: LessonFile[], validate: LessonValidator): Exclude<Runner, "lean">[] {
-  const runners = new Set<Exclude<Runner, "lean">>();
+/** The runners and runtimes the added lessons' tests need, so their images are pulled before any timed run. */
+function runtimesIn(files: LessonFile[], validate: LessonValidator): string[] {
+  const runtimes = new Set<string>();
   for (const f of files) {
     try {
       const v = validate(JSON.parse(f.text));
       if (!v.ok) continue;
-      for (const e of v.lesson.evidence) if ("run" in e && e.run.runner !== "lean") runners.add(e.run.runner);
+      for (const e of v.lesson.evidence as Lesson["evidence"]) {
+        if ("run" in e && e.run.runner !== "lean") runtimes.add(e.run.runner);
+        if ("test" in e) runtimes.add(e.test.runtime);
+      }
     } catch {
       // Reported when verified.
     }
   }
-  return [...runners];
+  return [...runtimes];
 }
 
 async function main(): Promise<number> {
@@ -65,7 +69,7 @@ async function main(): Promise<number> {
   const plan = planChanges(parseNameStatus(git("diff", "--no-renames", "--name-status", `${baseRef}...HEAD`)));
   const added: LessonFile[] = plan.added.map((path) => ({ path, text: readFileSync(path, "utf8") }));
 
-  const pullFailures = pullImages(runnersIn(added, validate));
+  const pullFailures = pullImages(runtimesIn(added, validate));
   for (const f of pullFailures) console.error(f);
 
   const results = await verifyPullRequest(plan, added, {

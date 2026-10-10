@@ -1,21 +1,26 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { formatLesson, validateLesson, type FetchFn, type Lesson } from "@ludion/core";
+import { formatLesson, validateLesson, type FetchFn, type LessonV1 } from "@ludion/core";
 import { compileLessonSchema } from "../src/base-schema.ts";
 import { authorProblem, IMMUTABLE, LESSON_FILES_ONLY, parseNameStatus, planChanges, STRAY_FILE, verifyPullRequest, type PullRequestContext } from "../src/pr.ts";
 import { labelsOf, stepSummary } from "../src/report.ts";
 
-const lesson: Lesson = {
+const lesson: LessonV1 = {
+  format: 1,
   id: "01K70000000000000000000001",
-  subject: "ludion-selftest",
-  claim: "One plus one equals two in Python.",
-  evidence: [{ run: { runner: "python", code: "assert 1 + 1 == 2" } }],
+  subject: "python",
+  package: { ecosystem: "runtime", name: "python" },
+  versions: ">=3.0",
+  kind: "behavior",
+  symbol: "int.__add__",
+  signal: "loud",
+  evidence: [{ test: { runtime: "python@3.12", code: "assert 1 + 1 == 2" } }],
   author: "github:Alice",
   author_id: 1001,
   created_at: "2026-10-07T00:00:00Z",
 };
-const path = `lessons/ludion-selftest/${lesson.id}.json`;
+const path = `lessons/python/${lesson.id}.json`;
 const SCHEMA_PATH = fileURLToPath(new URL("../../../lessons/lessons.schema.json", import.meta.url));
 const alice = { id: 1001, login: "alice", type: "User" };
 const app = { id: 9, login: "ludion[bot]", type: "Bot" };
@@ -112,7 +117,7 @@ describe("verifyPullRequest", () => {
   const ctx = (over: Partial<PullRequestContext> = {}): PullRequestContext => ({
     base: [],
     fetchFn,
-    run: async () => ({ status: "passed" }),
+    run: async () => ({ kind: "done" as const, exitCode: 0, stdout: "", stderr: "", timedOut: false }),
     author: alice,
     commitMessageFor: () => null,
     ...over,
@@ -124,9 +129,9 @@ describe("verifyPullRequest", () => {
   });
 
   it("fails a lesson whose test fails", async () => {
-    const run = async () => ({ status: "failed" as const, reason: "The test exited with code 1, so the claim did not hold." });
+    const run = async () => ({ kind: "done" as const, exitCode: 1, stdout: "", stderr: "", timedOut: false });
     const results = await verifyPullRequest({ added: [path], deleted: [], problems: [] }, [{ path, text: formatLesson(lesson) }], ctx({ run }));
-    expect(results[0]).toMatchObject({ status: "failed", reasons: ["evidence 1 (python): The test exited with code 1, so the claim did not hold."] });
+    expect(results[0]).toMatchObject({ status: "failed", reasons: ["evidence 1 (python@3.12): The test exited with code 1, so the fact did not hold."] });
   });
 
   it("fails a lesson opened by someone who is not its author", async () => {

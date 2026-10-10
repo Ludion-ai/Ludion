@@ -2,7 +2,7 @@
 // Run: node apps/site/samples/generate.ts  (rewrites samples/lessons and samples/meta.json)
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { formatLesson, type Lesson } from "@ludion/core";
+import { formatLesson, type LessonV0 } from "@ludion/core";
 
 const out = fileURLToPath(new URL(".", import.meta.url));
 
@@ -14,7 +14,7 @@ const teachers: Record<number, string> = {
   104: "rn",
 };
 
-type Sample = Omit<Lesson, "id" | "author" | "author_id" | "created_at"> & { teacher: number; day: number; key: string; pr: number };
+type Sample = Omit<LessonV0, "id" | "author" | "author_id" | "created_at"> & { teacher: number; day: number; key: string; pr: number };
 
 const LONG =
   "git switch and git restore, added in Git 2.23, split the two jobs of git checkout: switch changes branches and refuses to throw away local changes unless you pass --discard-changes, while restore brings back file contents from the index or from a commit without moving HEAD. Scripts that call git checkout with a path keep working, but the newer documentation teaches the two narrower commands first.";
@@ -67,7 +67,7 @@ const git: Record<string, { verified_at: string; pr: number }> = {};
 for (const s of samples) {
   const id = ids.get(s.key)!;
   const created = new Date(Date.UTC(2026, 9, s.day, 9, s.pr));
-  const lesson: Lesson = {
+  const lesson: LessonV0 = {
     id,
     subject: s.subject,
     ...(s.version ? { version: s.version } : {}),

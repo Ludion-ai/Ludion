@@ -1,4 +1,5 @@
 // Every UI string. Japanese will be a translation of this file, not a refactor.
+import type { VerifiedBy } from "@ludion/core";
 export const en = {
   site: {
     name: "Ludion",
@@ -14,9 +15,9 @@ export const en = {
     sub: "Everyone's AI learns it in minutes. Your name stays on it.",
     replayTitle: "How a lesson passes",
     checking: "Checking",
-    replay: (by: "test" | "proof" | "source", date: string) =>
-      `A replay of how this lesson passed: ${by === "test" ? "CI ran its test" : by === "proof" ? "Lean checked its proof" : "its quote was found on the source page"}, and it was verified on ${date}.`,
-    logTitle: (by: "test" | "proof" | "source", runner: string) => (by === "source" ? "Source check" : by === "proof" ? "Proof check (lean)" : `Test (${runner})`),
+    replay: (by: VerifiedBy, date: string) =>
+      `A replay of how this lesson passed: ${by === "test" ? "CI ran its test" : by === "differential" ? "CI ran its tests on two versions" : by === "proof" ? "Lean checked its proof" : "its quote was found on the source page"}, and it was verified on ${date}.`,
+    logTitle: (by: VerifiedBy, runner: string) => (by === "source" ? "Source check" : by === "proof" ? "Proof check (lean)" : `Test (${runner})`),
     recent: "Recently verified",
     seeLessons: "See all lessons",
   },
@@ -27,14 +28,14 @@ export const en = {
     empty: "No lessons yet.",
   },
   lesson: {
-    verifiedBy: { test: "Verified by test", proof: "Verified by proof", source: "Verified by source" },
+    verifiedBy: { test: "Verified by test", differential: "Verified across versions", proof: "Verified by proof", source: "Verified by source" },
     on: (date: string) => `on ${date}`,
     appliesTo: (subject: string, version?: string | null) => `Applies to ${subject}${version ? ` ${version}` : ""}`,
     taughtBy: "Taught by",
     evidence: "Evidence",
     test: (runner: string) => `Test (${runner})`,
     proof: "Proof (Lean)",
-    mark: { test: "exit 0", proof: "proved", source: "quote found" },
+    mark: { test: "exit 0", differential: "pass / fail", proof: "proved", source: "quote found" },
     source: "Source",
     copy: "Copy",
     copied: "Copied",
@@ -69,6 +70,10 @@ export const en = {
     rest: " or teach one.",
   },
 };
+
+/** "node@24, vitest@5.0.3" or "python, expected to fail". The heading of a test on a lesson page. */
+export const testLabel = (t: { runtime: string; packages?: Record<string, string>; expect?: "pass" | "fail" }): string =>
+  [t.runtime, ...Object.entries(t.packages ?? {}).map(([n, v]) => `${n}@${v}`)].join(", ") + (t.expect === "fail" ? ", expected to fail" : "");
 
 const dateFormat = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });
 /** "Oct 8, 2026" */
