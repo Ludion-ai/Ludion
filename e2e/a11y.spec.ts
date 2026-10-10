@@ -1,4 +1,4 @@
-// axe on every page, light and dark (docs/decisions.md, Budgets). Runs in `test` on every PR.
+// axe on every page, light and dark (docs/decisions.md, Site). Runs in `test` on every PR.
 import { AxeBuilder } from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
 import { allPages } from "./pages.ts";

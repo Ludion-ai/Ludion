@@ -1,5 +1,5 @@
 # Required check "verify". Runs on every PR; finishes at once when no lesson changed.
-# Lesson code runs only here, with a read-only token, no secrets, and no network (see .claude/rules/ci.md).
+# Lesson code runs only here, with a read-only token, no secrets, and no network (docs/decisions.md, CI).
 name: verify
 
 on:

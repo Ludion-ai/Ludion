@@ -1,5 +1,5 @@
 // Runs one question through Claude Code headless (`claude -p`) in a new empty folder, with a configuration that
-// exists only for the run (docs/decisions.md, Conditions), and returns what it said and which tools it called.
+// exists only for the run (docs/decisions.md, Bench), and returns what it said and which tools it called.
 import { spawn } from "node:child_process";
 import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";

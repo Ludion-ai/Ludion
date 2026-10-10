@@ -1,5 +1,5 @@
 // Runs many agent runs a few at a time, saving each run's raw log, and stops before a run that could cross the
-// spending cap (docs/decisions.md, Budget).
+// spending cap (docs/decisions.md, Bench).
 import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 import { runAgent, type AgentRun, type RunOptions } from "./agent.ts";

@@ -38,7 +38,7 @@ const arg = (name: string, fallback?: string) => {
 };
 const readJson = <T>(path: string): T => JSON.parse(readFileSync(path, "utf8")) as T;
 
-/** Drafts shown to the agent the way ludion_ask shows lessons (docs/decisions.md, MCP), so the test measures the lessons. */
+/** Drafts shown to the agent the way ludion_ask shows lessons (docs/decisions.md, Search and MCP), so the test measures the lessons. */
 export function contextFor(drafts: Draft[], today = new Date().toISOString().slice(0, 10)): string {
   const blocks = drafts.map((d, i) =>
     [

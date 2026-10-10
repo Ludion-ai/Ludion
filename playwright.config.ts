@@ -1,4 +1,4 @@
-// End-to-end checks against the built site served by `wrangler dev` (docs/decisions.md, test.yml).
+// End-to-end checks against the built site served by `wrangler dev` (docs/decisions.md, CI).
 // Build first: npm run build. Then: npm run test:e2e.
 import { defineConfig, devices } from "@playwright/test";
 

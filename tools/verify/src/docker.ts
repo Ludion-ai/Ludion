@@ -8,7 +8,7 @@ export type RunFn = (runner: Exclude<Runner, "lean">, code: string) => Promise<R
 const TIMEOUT_MS = 30_000;
 const OUTPUT_LIMIT = 4000;
 
-// One image per runner, on the current stable release (docs/decisions.md, Runners).
+// One image per runner, on the current stable release (docs/decisions.md, CI).
 const IMAGES: Record<Exclude<Runner, "lean">, { image: string; command: string[] }> = {
   python: { image: "python:3.14-slim", command: ["python", "-"] },
   bash: { image: "python:3.14-slim", command: ["bash", "-s"] },
