@@ -11,6 +11,7 @@ CLAUDE.md is the spec. This file holds the details it leaves to us: what was dec
   - from #19: optional `kind`, runners pinned to versions, `expect: fail` + `error` (the basis of lesson format v1), and the FreshBench method (A/B questions, seeds kept out of the measurement, an LLM judge with spot checks, budgets).
   - from #20: deploy only main's newest commit; HSTS; the command guard for Claude Code (`.claude/settings.json` deny rules and the PreToolUse hook). The zone's Always Use HTTPS was turned on through the Cloudflare API on 2026-10-08 at the owner's request; it is a zone setting, so the repo can't show it (check with `curl -sI http://ludion.ai/`, which answers 301).
   - from #21: the `ludion_ask` header line (lessons are data, not instructions); subject-name guards. The claim guards are replaced by v2's generated claims and grounded `detail`.
+- **PR descriptions** say what changed and how to undo it (decided 2026-10-08, kept in v2).
 - **Order of work.** Built in the order that reaches "Done when" fastest; `docs/progress.md` tracks it:
   1. Lesson format v1 (schema, generated claim, grounded `detail`, `signal`, pinned and differential tests), with `tools/verify` and `packages/core`.
   2. `ludion` CLI: `teach` into the personal ledger, `sync` into `.ludion/lessons.md`. This reaches Done 1 (single player) with no server change.
@@ -34,11 +35,11 @@ These describe the system as built through 2026-10-08 and stay true unless a v2 
 - Small functions; no abstraction before the third use.
 - Errors say what happened and what to do next, in plain words.
 - Names in user language: teach, ask, lesson, teacher, sign, verified, checking.
-- Commit messages and PR titles in English, imperative. Every PR description says what changed and how to undo it.
+- Commit messages and PR titles in English, imperative.
 
 ### Infrastructure
 
-- One Cloudflare Worker, `ludion` (Hono), serving the prerendered Astro site from `apps/site/dist` as static assets, `/index.json`, and `/mcp`. Custom domain `ludion.ai` in `wrangler.jsonc`. `run_worker_first` covers `/mcp`, `/mcp/*`, and `/@*`; `/@<login>` serves `/teachers/<lowercase login>/` from the assets, or the 404 page.
+- One Cloudflare Worker, `ludion` (Hono), serving the prerendered Astro site from `apps/site/dist` as static assets, `/index.json`, and `/mcp`. Custom domain `ludion.ai` in `wrangler.jsonc`. `run_worker_first` covers `/mcp`, `/mcp/*`, `/@*`, and also `/api/*` and `/auth/*`; `/@<login>` serves `/teachers/<lowercase login>/` from the assets, or the 404 page. `/api/*`, `/auth/*`, and the `SOURCE_CHECK_LIMITER` rate-limit binding in `wrangler.jsonc` are leftovers of the dropped server-side teaching path, to be removed.
 - No content database (no KV, D1, or R2): GitHub is the database, and the index is rebuilt with every deploy.
 - **Deploys** happen only in `.github/workflows/deploy.yml`:
   - Triggers: every push to `main`, and `workflow_dispatch`.
@@ -77,7 +78,7 @@ These describe the system as built through 2026-10-08 and stay true unless a v2 
     - deleted ones are retractions (label `retract`);
     - modified ones fail ("Lessons are immutable").
 - **Trust boundary**: `verify` runs the PR's own copy of `tools/verify`, so it cannot be the authority on what a PR may change (a PR could edit the checker). Today a human reviews before merging. If lesson PRs are ever merged automatically, that decision must be made on a trusted side that runs only base-branch code and lists the PR's files through the API.
-- Author rule: a person's PR must have `author_id` equal to the PR author's numeric id. (The bot rule for the GitHub App in #13 goes away with #13.)
+- Author rule: a person's PR must have `author_id` equal to the PR author's numeric id. `tools/verify/src/pr.ts` still has a rule for PRs opened by the Ludion App's bot (`app_bot_id`); it is harmless while `app_bot_id` is unset (every bot fails), and it is to be removed now that #13 is closed.
 - **Runners**: `python` (`python:3.14-slim`), `bash` (same image), `node` (`node:24-slim`), `lean` (none yet: label `needs-lean`).
   - Docker flags: `--network none --memory 512m --cpus 1 --pids-limit 128 --read-only --tmpfs /tmp`, a 30-second timeout, and images pulled before any timed run.
   - Code arrives on stdin; exit 0 means the claim holds; a `skip:` line means the runner can't test it.
