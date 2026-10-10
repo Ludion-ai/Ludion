@@ -1,4 +1,4 @@
-// dist/index.json: the active set, rebuilt with every deploy. See lessons.md.
+// dist/index.json: the active set, rebuilt with every deploy. See docs/decisions.md.
 import { siteData } from "../build/data.ts";
 
 export async function GET(): Promise<Response> {

@@ -128,7 +128,7 @@ describe("verifyLesson", () => {
 });
 
 describe("docker", () => {
-  it("isolates the run exactly as ci.md says", () => {
+  it("isolates the run exactly as docs/decisions.md says", () => {
     expect(dockerArgs("python", "n")).toEqual([
       "run", "--rm", "-i", "--name", "n",
       "--network", "none", "--memory", "512m", "--cpus", "1", "--pids-limit", "128", "--read-only", "--tmpfs", "/tmp",

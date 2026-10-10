@@ -1,4 +1,4 @@
-// Writes the sample lessons used to check the design (site.md, Design). Never part of lessons/ or production.
+// Writes the sample lessons used to check the design (docs/decisions.md, Design). Never part of lessons/ or production.
 // Run: node apps/site/samples/generate.ts  (rewrites samples/lessons and samples/meta.json)
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";

@@ -1,4 +1,4 @@
-# The only way production is deployed (ci.md). Runs on every push to main and by hand.
+# The only way production is deployed (docs/decisions.md). Runs on every push to main and by hand.
 # Actions are pinned to commit SHAs; wrangler comes from the repo's own dependencies.
 name: deploy
 
@@ -41,7 +41,7 @@ jobs:
       - name: Build
         run: npm run build
         env:
-          # Read-only, this job only: looks up teachers' current logins by id (lessons.md).
+          # Read-only, this job only: looks up teachers' current logins by id (docs/decisions.md).
           GITHUB_READ_TOKEN: ${{ github.token }}
 
       - run: npm test

@@ -34,7 +34,7 @@ export function toAskLesson(entry: IndexEntry, siteUrl: string): AskLesson {
   };
 }
 
-/** The exact text of a ludion_ask result: one block per lesson (worker.md, MCP). */
+/** The exact text of a ludion_ask result: one block per lesson (docs/decisions.md, MCP). */
 export function formatAsk(lessons: AskLesson[]): string {
   if (lessons.length === 0) return NO_MATCH;
   return lessons

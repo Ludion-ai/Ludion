@@ -46,7 +46,7 @@ export interface SiteData {
 
 const SIZE_WARNING = 5 * 1024 * 1024;
 
-// Sample lessons for checking the design (site.md, Design). They live outside lessons/, build only with
+// Sample lessons for checking the design (docs/decisions.md, Design). They live outside lessons/, build only with
 // LUDION_SAMPLES=1 into dist-samples (astro.config.mjs), and never in a deploy build.
 const SAMPLES = process.env.LUDION_SAMPLES === "1";
 if (SAMPLES && (process.env.WORKERS_CI || process.env.CF_PAGES)) {
