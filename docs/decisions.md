@@ -127,9 +127,8 @@ These describe the system as built through 2026-10-08 and stay true unless a v2 
 - Budgets:
   - WCAG 2.2 AA in both themes;
   - axe (`wcag2a`, `wcag2aa`, `wcag21a`, `wcag21aa`, `wcag22aa`) finds nothing on any page;
-  - Lighthouse accessibility at least 95;
   - home JavaScript at most 60 KB gzipped;
-  - LCP at most 1.5 s on a mid-range phone over 4G, CLS at most 0.05.
+  - targets that no test or workflow checks yet: Lighthouse accessibility at least 95, LCP at most 1.5 s on a mid-range phone over 4G, CLS at most 0.05. axe and the 60 KB budget are enforced (`e2e/`).
 - Headers (`apps/site/public/_headers`): CSP `default-src 'self'` (avatars from `avatars.githubusercontent.com`), `frame-ancestors 'none'`, `nosniff`, `strict-origin-when-cross-origin`, and a locked-down `Permissions-Policy`. Canonical links use the trailing slash.
 
 ### Bench
