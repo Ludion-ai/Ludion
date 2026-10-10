@@ -1,4 +1,4 @@
-// /mcp inside workerd, against the built site's index.json. Asserts the exact text worker.md specifies.
+// /mcp inside workerd, against the built site's index.json. Asserts the exact text docs/decisions.md specifies.
 import { exports } from "cloudflare:workers";
 import { describe, expect, it } from "vitest";
 import { ASK_DESCRIPTION, NO_MATCH, formatAsk, type AskLesson } from "../src/mcp/ask.ts";

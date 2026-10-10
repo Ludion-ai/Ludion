@@ -1,6 +1,6 @@
 // The home page's water: text contrast over the canvas, and the home JavaScript budget.
 // axe can't see text drawn over a canvas, so this measures it directly: hide the text, step the water's clock,
-// screenshot, and take the worst background pixel under each text box (site.md, Budgets; water.js).
+// screenshot, and take the worst background pixel under each text box (docs/decisions.md, Site; water.js).
 import { expect, test, type Page } from "@playwright/test";
 import { PNG } from "pngjs";
 import { gzipSync } from "node:zlib";

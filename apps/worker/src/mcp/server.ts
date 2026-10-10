@@ -53,7 +53,7 @@ export function createServer(env: Env): McpServer {
 
 /**
  * /mcp: stateless Streamable HTTP. Answers any origin: the server is public, read-only, holds no session,
- * and accepts no credentials, so there is nothing for a cross-origin page to borrow (worker.md, Cross-cutting).
+ * and accepts no credentials, so there is nothing for a cross-origin page to borrow (docs/decisions.md, Search and MCP).
  */
 export function handleMcp(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
   return createMcpHandler(() => createServer(env), {

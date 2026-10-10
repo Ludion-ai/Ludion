@@ -1,7 +1,7 @@
 /**
  * Which teacher id owns which page. Pages live at the lowercase login. If two ids end up with the same
  * lowercase login (possible only when a lookup failed and someone else now holds that name), the id whose
- * login came from the API gets the page; if neither did, neither gets one. See lessons.md.
+ * login came from the API gets the page; if neither did, neither gets one. See docs/decisions.md.
  */
 export function teacherPages(logins: Map<number, string>, resolved: Set<number>): Map<string, number> {
   const byName = new Map<string, number[]>();

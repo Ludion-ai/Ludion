@@ -1,5 +1,5 @@
-// The Ludion Worker: serves the prerendered site and owns every dynamic route (worker.md).
-// Serves static assets, /@<login>, and /mcp (step 5); /api and /auth arrive in step 6.
+// The Ludion Worker: serves the prerendered site and owns every dynamic route (docs/decisions.md).
+// Serves static assets, /@<login>, and /mcp. Teaching happens on the teacher's machine (CLAUDE.md), not here.
 import { createApp } from "./app.ts";
 
 export default createApp();

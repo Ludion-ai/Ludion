@@ -1,6 +1,6 @@
 # FreshBench v0: 2026-10-08
 
-The first FreshBench run (`.claude/rules/bench.md`, added in #19). The window is the 90 days before 2026-10-08: 2026-07-10 to 2026-10-08.
+The first FreshBench run, following the method proposed in #19 (`bench.md` there, never merged; the method is now in `docs/decisions.md`, Bench). One change's answer key here is known to be wrong (WebdriverIO, `vitest-5-0-0-6`, in both the A and B sets), so every vitest score and every overall score below includes one question graded against a wrong key. It is to be fixed against primary sources and the scores recomputed (`docs/progress.md`). The window is the 90 days before 2026-10-08: 2026-07-10 to 2026-10-08.
 
 ## Libraries, and why these three
 

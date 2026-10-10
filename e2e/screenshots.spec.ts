@@ -1,4 +1,4 @@
-// Design screenshots for review (site.md, step 4). Not part of CI: runs only when SCREENSHOTS_DIR is set.
+// Design screenshots for review (docs/decisions.md, Site). Not part of CI: runs only when SCREENSHOTS_DIR is set.
 //   SCREENSHOTS_DIR=<folder> npm run test:e2e -- screenshots
 import { test } from "@playwright/test";
 import { join } from "node:path";
