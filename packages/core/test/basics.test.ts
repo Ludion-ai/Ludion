@@ -75,9 +75,9 @@ describe("verifiedBy", () => {
   const run = (runner: "python" | "lean") => ({ run: { runner, code: "x" } });
   const source = { source: { url: "https://example.com/", quote: "something" } };
   it("labels lean as proof, other runs as test, else source", () => {
-    expect(verifiedBy({ evidence: [run("python"), run("lean")] })).toBe("proof");
-    expect(verifiedBy({ evidence: [source, run("python")] })).toBe("test");
-    expect(verifiedBy({ evidence: [source] })).toBe("source");
+    expect(verifiedBy(lesson({ evidence: [run("python"), run("lean")] }))).toBe("proof");
+    expect(verifiedBy(lesson({ evidence: [source, run("python")] }))).toBe("test");
+    expect(verifiedBy(lesson({ evidence: [source] }))).toBe("source");
     expect(verifiedBy(example())).toBe("test");
   });
 });

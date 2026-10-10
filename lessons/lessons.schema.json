@@ -1,16 +1,213 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://ludion.ai/lessons.schema.json",
-  "title": "Ludion lesson (v0)",
-  "description": "One taught unit of knowledge. Immutable. Lives at lessons/<subject>/<id>.json. If it is on main, it was verified.",
+  "title": "Ludion lesson (format 1)",
+  "description": "One verified change in one package. The sentence assistants read is generated from these fields (packages/core claim.ts); the only free text is a short, grounded detail. Immutable. Lives at lessons/<subject>/<id>.json.",
   "type": "object",
-  "required": ["id", "subject", "claim", "evidence", "author", "author_id", "created_at"],
+  "required": [
+    "format",
+    "id",
+    "subject",
+    "package",
+    "versions",
+    "kind",
+    "symbol",
+    "signal",
+    "evidence",
+    "author",
+    "author_id",
+    "created_at"
+  ],
   "additionalProperties": false,
   "properties": {
-    "id": {"type": "string", "pattern": "^[0-9A-HJKMNP-TV-Z]{26}$", "description": "ULID"},
-    "subject": {"type": "string", "pattern": "^[a-z0-9][a-z0-9.-]{0,63}$", "description": "Directory name. A library, a tool, a field."},
-    "version": {"type": ["string", "null"], "description": "Version range the claim holds for, e.g. >=3.12"},
-    "claim": {"type": "string", "minLength": 10, "maxLength": 400, "description": "One sentence, as the teacher wrote it."},
+    "format": {
+      "const": 1
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[0-9A-HJKMNP-TV-Z]{26}$",
+      "description": "ULID"
+    },
+    "subject": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9.-]{0,63}$",
+      "description": "Directory name, derived from the package: npm @scope/name becomes scope.name; a runtime is its name (node, python).",
+      "not": {
+        "anyOf": [
+          {
+            "type": "string",
+            "pattern": "\\.\\."
+          },
+          {
+            "type": "string",
+            "pattern": "[.-]$"
+          },
+          {
+            "type": "string",
+            "pattern": "\\.lock$"
+          },
+          {
+            "type": "string",
+            "pattern": "^(?:con|prn|aux|nul|com[0-9]|lpt[0-9])(?:\\.|$)"
+          }
+        ]
+      }
+    },
+    "package": {
+      "type": "object",
+      "required": [
+        "ecosystem",
+        "name"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "ecosystem": {
+          "type": "string",
+          "enum": [
+            "npm",
+            "pypi",
+            "runtime"
+          ],
+          "description": "Where the package comes from; runtime for node or python itself."
+        },
+        "name": {
+          "type": "string",
+          "pattern": "^(@[a-z0-9][a-z0-9._-]*/)?[a-z0-9][a-z0-9._-]{0,213}$",
+          "description": "The name as the lockfile writes it, e.g. vitest, @cloudflare/vitest-plugin, node."
+        }
+      }
+    },
+    "versions": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64,
+      "pattern": "^[<>=~^0-9xX*. |-]+$",
+      "description": "Semver range of the package where the fact holds, e.g. >=5.0.0."
+    },
+    "kind": {
+      "type": "string",
+      "enum": [
+        "removed",
+        "renamed",
+        "deprecated",
+        "added",
+        "default",
+        "behavior"
+      ],
+      "description": "What changed: removed, renamed, deprecated, added, a default value, or behavior (what a call does or returns)."
+    },
+    "symbol": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 120,
+      "description": "The API, option, command, or flag that changed, as written in code: toHaveTextContent, test.projects, vitest list, --merge-reports.",
+      "allOf": [
+        {
+          "type": "string",
+          "pattern": "^[^\\u0000-\\u001F\\u007F-\\u009F\\u00AD\\u061C\\u180E\\u200B-\\u200F\\u2028-\\u202E\\u2060-\\u206F\\uFE00-\\uFE0F\\uFEFF\\u{E0000}-\\u{E007F}\\u{E0100}-\\u{E01EF}]*$",
+          "description": "One line of plain text: no control, zero-width, bidirectional, tag, or variation-selector characters."
+        },
+        {
+          "not": {
+            "type": "string",
+            "pattern": "(?:\\b[A-Za-z][A-Za-z0-9+.-]*://|\\b[Ww][Ww][Ww]\\.|\\b[Mm][Aa][Ii][Ll][Tt][Oo]:)"
+          },
+          "description": "No URLs: links belong in a source."
+        },
+        {
+          "not": {
+            "type": "string",
+            "pattern": "\\|\\s*(?:[Ss][Uu][Dd][Oo]\\s+)?(?:[Ss][Hh]|[Bb][Aa][Ss][Hh]|[Zz][Ss][Hh]|[Dd][Aa][Ss][Hh]|[Pp][Yy][Tt][Hh][Oo][Nn]|[Pp][Yy][Tt][Hh][Oo][Nn]3|[Nn][Oo][Dd][Ee]|[Pp][Ee][Rr][Ll]|[Rr][Uu][Bb][Yy]|[Ii][Ee][Xx]|[Pp][Ww][Ss][Hh]|[Pp][Oo][Ww][Ee][Rr][Ss][Hh][Ee][Ll][Ll])\\b|\\b(?:[Cc][Uu][Rr][Ll]|[Ww][Gg][Ee][Tt])\\b[^|]*\\||\\b[Rr][Mm]\\s+-[A-Za-z]*(?:[Rr][A-Za-z]*[Ff]|[Ff][A-Za-z]*[Rr])|\\$\\("
+          },
+          "description": "No command lines."
+        },
+        {
+          "not": {
+            "type": "string",
+            "pattern": "\\b(?:[Ii][Gg][Nn][Oo][Rr][Ee]|[Dd][Ii][Ss][Rr][Ee][Gg][Aa][Rr][Dd]|[Ff][Oo][Rr][Gg][Ee][Tt]|[Oo][Vv][Ee][Rr][Rr][Ii][Dd][Ee])\\s+(?:(?:[Aa][Ll][Ll]|[Aa][Nn][Yy]|[Tt][Hh][Ee]|[Yy][Oo][Uu][Rr])\\s+)*(?:[Pp][Rr][Ee][Vv][Ii][Oo][Uu][Ss]|[Pp][Rr][Ii][Oo][Rr]|[Aa][Bb][Oo][Vv][Ee]|[Ee][Aa][Rr][Ll][Ii][Ee][Rr]|[Pp][Rr][Ee][Cc][Ee][Dd][Ii][Nn][Gg]|[Oo][Tt][Hh][Ee][Rr])\\s+(?:[Ii][Nn][Ss][Tt][Rr][Uu][Cc][Tt][Ii][Oo][Nn][Ss]|[Ii][Nn][Ss][Tt][Rr][Uu][Cc][Tt][Ii][Oo][Nn]|[Pp][Rr][Oo][Mm][Pp][Tt][Ss]|[Pp][Rr][Oo][Mm][Pp][Tt]|[Mm][Ee][Ss][Ss][Aa][Gg][Ee][Ss]|[Rr][Uu][Ll][Ee][Ss]|[Dd][Ii][Rr][Ee][Cc][Tt][Ii][Oo][Nn][Ss])|^\\s*(?:[Ss][Yy][Ss][Tt][Ee][Mm]|[Aa][Ss][Ss][Ii][Ss][Tt][Aa][Nn][Tt]|[Uu][Ss][Ee][Rr]|[Dd][Ee][Vv][Ee][Ll][Oo][Pp][Ee][Rr]|[Hh][Uu][Mm][Aa][Nn])\\s*:|\\b[Yy][Oo][Uu]\\s+[Aa][Rr][Ee]\\s+(?:(?:[Aa][Nn]|[Aa])\\s+)?(?:[Aa][Ii]|[Aa][Ss][Ss][Ii][Ss][Tt][Aa][Nn][Tt]|[Ll][Aa][Nn][Gg][Uu][Aa][Gg][Ee] [Mm][Oo][Dd][Ee][Ll]|[Ll][Ll][Mm]|[Cc][Hh][Aa][Tt][Bb][Oo][Tt]|[Ll][Aa][Rr][Gg][Ee] [Ll][Aa][Nn][Gg][Uu][Aa][Gg][Ee] [Mm][Oo][Dd][Ee][Ll])\\b|\\b(?:[Dd][Oo] [Nn][Oo][Tt]|[Dd][Oo][Nn]'[Tt]|[Dd][Oo][Nn]’[Tt]|[Nn][Ee][Vv][Ee][Rr])\\s+(?:[Tt][Ee][Ll][Ll]|[Ii][Nn][Ff][Oo][Rr][Mm]|[Mm][Ee][Nn][Tt][Ii][Oo][Nn]|[Rr][Ee][Vv][Ee][Aa][Ll]|[Ss][Hh][Oo][Ww]|[Ss][Aa][Yy])\\s+(?:(?:[Tt][Hh][Ii][Ss]|[Ii][Tt]|[Aa][Nn][Yy][Tt][Hh][Ii][Nn][Gg])\\s+)?(?:(?:[Tt][Oo])\\s+)?[Tt][Hh][Ee]\\s+(?:[Uu][Ss][Ee][Rr]|[Hh][Uu][Mm][Aa][Nn]|[Rr][Ee][Aa][Dd][Ee][Rr])|\\b(?:[Aa][Ii]|[Aa][Ss][Ss][Ii][Ss][Tt][Aa][Nn][Tt]|[Aa][Ss][Ss][Ii][Ss][Tt][Aa][Nn][Tt][Ss]|[Mm][Oo][Dd][Ee][Ll]|[Mm][Oo][Dd][Ee][Ll][Ss]|[Ll][Ll][Mm]|[Ll][Ll][Mm][Ss])\\s+(?:[Rr][Ee][Aa][Dd][Ii][Nn][Gg]|[Tt][Hh][Aa][Tt] [Rr][Ee][Aa][Dd][Ss]|[Ww][Hh][Oo] [Rr][Ee][Aa][Dd][Ss])\\s+[Tt][Hh][Ii][Ss]|\\b(?:[Nn][Ee][Ww]|[Uu][Pp][Dd][Aa][Tt][Ee][Dd])\\s+(?:[Ii][Nn][Ss][Tt][Rr][Uu][Cc][Tt][Ii][Oo][Nn][Ss]|[Ss][Yy][Ss][Tt][Ee][Mm] [Pp][Rr][Oo][Mm][Pp][Tt])\\s*:"
+          },
+          "description": "No instructions to an AI or the reader."
+        }
+      ],
+      "pattern": "^[A-Za-z0-9_@$.:/<>()\\[\\]{}=*#,+-]+(?: [A-Za-z0-9_@$.:/<>()\\[\\]{}=*#,+-]+){0,5}$"
+    },
+    "replacement": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 120,
+      "description": "What to use instead, as written in code (required for renamed).",
+      "allOf": [
+        {
+          "type": "string",
+          "pattern": "^[^\\u0000-\\u001F\\u007F-\\u009F\\u00AD\\u061C\\u180E\\u200B-\\u200F\\u2028-\\u202E\\u2060-\\u206F\\uFE00-\\uFE0F\\uFEFF\\u{E0000}-\\u{E007F}\\u{E0100}-\\u{E01EF}]*$",
+          "description": "One line of plain text: no control, zero-width, bidirectional, tag, or variation-selector characters."
+        },
+        {
+          "not": {
+            "type": "string",
+            "pattern": "(?:\\b[A-Za-z][A-Za-z0-9+.-]*://|\\b[Ww][Ww][Ww]\\.|\\b[Mm][Aa][Ii][Ll][Tt][Oo]:)"
+          },
+          "description": "No URLs: links belong in a source."
+        },
+        {
+          "not": {
+            "type": "string",
+            "pattern": "\\|\\s*(?:[Ss][Uu][Dd][Oo]\\s+)?(?:[Ss][Hh]|[Bb][Aa][Ss][Hh]|[Zz][Ss][Hh]|[Dd][Aa][Ss][Hh]|[Pp][Yy][Tt][Hh][Oo][Nn]|[Pp][Yy][Tt][Hh][Oo][Nn]3|[Nn][Oo][Dd][Ee]|[Pp][Ee][Rr][Ll]|[Rr][Uu][Bb][Yy]|[Ii][Ee][Xx]|[Pp][Ww][Ss][Hh]|[Pp][Oo][Ww][Ee][Rr][Ss][Hh][Ee][Ll][Ll])\\b|\\b(?:[Cc][Uu][Rr][Ll]|[Ww][Gg][Ee][Tt])\\b[^|]*\\||\\b[Rr][Mm]\\s+-[A-Za-z]*(?:[Rr][A-Za-z]*[Ff]|[Ff][A-Za-z]*[Rr])|\\$\\("
+          },
+          "description": "No command lines."
+        },
+        {
+          "not": {
+            "type": "string",
+            "pattern": "\\b(?:[Ii][Gg][Nn][Oo][Rr][Ee]|[Dd][Ii][Ss][Rr][Ee][Gg][Aa][Rr][Dd]|[Ff][Oo][Rr][Gg][Ee][Tt]|[Oo][Vv][Ee][Rr][Rr][Ii][Dd][Ee])\\s+(?:(?:[Aa][Ll][Ll]|[Aa][Nn][Yy]|[Tt][Hh][Ee]|[Yy][Oo][Uu][Rr])\\s+)*(?:[Pp][Rr][Ee][Vv][Ii][Oo][Uu][Ss]|[Pp][Rr][Ii][Oo][Rr]|[Aa][Bb][Oo][Vv][Ee]|[Ee][Aa][Rr][Ll][Ii][Ee][Rr]|[Pp][Rr][Ee][Cc][Ee][Dd][Ii][Nn][Gg]|[Oo][Tt][Hh][Ee][Rr])\\s+(?:[Ii][Nn][Ss][Tt][Rr][Uu][Cc][Tt][Ii][Oo][Nn][Ss]|[Ii][Nn][Ss][Tt][Rr][Uu][Cc][Tt][Ii][Oo][Nn]|[Pp][Rr][Oo][Mm][Pp][Tt][Ss]|[Pp][Rr][Oo][Mm][Pp][Tt]|[Mm][Ee][Ss][Ss][Aa][Gg][Ee][Ss]|[Rr][Uu][Ll][Ee][Ss]|[Dd][Ii][Rr][Ee][Cc][Tt][Ii][Oo][Nn][Ss])|^\\s*(?:[Ss][Yy][Ss][Tt][Ee][Mm]|[Aa][Ss][Ss][Ii][Ss][Tt][Aa][Nn][Tt]|[Uu][Ss][Ee][Rr]|[Dd][Ee][Vv][Ee][Ll][Oo][Pp][Ee][Rr]|[Hh][Uu][Mm][Aa][Nn])\\s*:|\\b[Yy][Oo][Uu]\\s+[Aa][Rr][Ee]\\s+(?:(?:[Aa][Nn]|[Aa])\\s+)?(?:[Aa][Ii]|[Aa][Ss][Ss][Ii][Ss][Tt][Aa][Nn][Tt]|[Ll][Aa][Nn][Gg][Uu][Aa][Gg][Ee] [Mm][Oo][Dd][Ee][Ll]|[Ll][Ll][Mm]|[Cc][Hh][Aa][Tt][Bb][Oo][Tt]|[Ll][Aa][Rr][Gg][Ee] [Ll][Aa][Nn][Gg][Uu][Aa][Gg][Ee] [Mm][Oo][Dd][Ee][Ll])\\b|\\b(?:[Dd][Oo] [Nn][Oo][Tt]|[Dd][Oo][Nn]'[Tt]|[Dd][Oo][Nn]’[Tt]|[Nn][Ee][Vv][Ee][Rr])\\s+(?:[Tt][Ee][Ll][Ll]|[Ii][Nn][Ff][Oo][Rr][Mm]|[Mm][Ee][Nn][Tt][Ii][Oo][Nn]|[Rr][Ee][Vv][Ee][Aa][Ll]|[Ss][Hh][Oo][Ww]|[Ss][Aa][Yy])\\s+(?:(?:[Tt][Hh][Ii][Ss]|[Ii][Tt]|[Aa][Nn][Yy][Tt][Hh][Ii][Nn][Gg])\\s+)?(?:(?:[Tt][Oo])\\s+)?[Tt][Hh][Ee]\\s+(?:[Uu][Ss][Ee][Rr]|[Hh][Uu][Mm][Aa][Nn]|[Rr][Ee][Aa][Dd][Ee][Rr])|\\b(?:[Aa][Ii]|[Aa][Ss][Ss][Ii][Ss][Tt][Aa][Nn][Tt]|[Aa][Ss][Ss][Ii][Ss][Tt][Aa][Nn][Tt][Ss]|[Mm][Oo][Dd][Ee][Ll]|[Mm][Oo][Dd][Ee][Ll][Ss]|[Ll][Ll][Mm]|[Ll][Ll][Mm][Ss])\\s+(?:[Rr][Ee][Aa][Dd][Ii][Nn][Gg]|[Tt][Hh][Aa][Tt] [Rr][Ee][Aa][Dd][Ss]|[Ww][Hh][Oo] [Rr][Ee][Aa][Dd][Ss])\\s+[Tt][Hh][Ii][Ss]|\\b(?:[Nn][Ee][Ww]|[Uu][Pp][Dd][Aa][Tt][Ee][Dd])\\s+(?:[Ii][Nn][Ss][Tt][Rr][Uu][Cc][Tt][Ii][Oo][Nn][Ss]|[Ss][Yy][Ss][Tt][Ee][Mm] [Pp][Rr][Oo][Mm][Pp][Tt])\\s*:"
+          },
+          "description": "No instructions to an AI or the reader."
+        }
+      ],
+      "pattern": "^[A-Za-z0-9_@$.:/<>()\\[\\]{}=*#,+-]+(?: [A-Za-z0-9_@$.:/<>()\\[\\]{}=*#,+-]+){0,5}$"
+    },
+    "signal": {
+      "type": "string",
+      "enum": [
+        "loud",
+        "silent"
+      ],
+      "description": "loud: code written for the old behavior fails with an error. silent: it still runs and does the wrong thing."
+    },
+    "detail": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 160,
+      "description": "At most one short sentence of what the fields can't say. Every meaningful word must appear in the evidence.",
+      "allOf": [
+        {
+          "type": "string",
+          "pattern": "^[^\\u0000-\\u001F\\u007F-\\u009F\\u00AD\\u061C\\u180E\\u200B-\\u200F\\u2028-\\u202E\\u2060-\\u206F\\uFE00-\\uFE0F\\uFEFF\\u{E0000}-\\u{E007F}\\u{E0100}-\\u{E01EF}]*$",
+          "description": "One line of plain text: no control, zero-width, bidirectional, tag, or variation-selector characters."
+        },
+        {
+          "not": {
+            "type": "string",
+            "pattern": "(?:\\b[A-Za-z][A-Za-z0-9+.-]*://|\\b[Ww][Ww][Ww]\\.|\\b[Mm][Aa][Ii][Ll][Tt][Oo]:)"
+          },
+          "description": "No URLs: links belong in a source."
+        },
+        {
+          "not": {
+            "type": "string",
+            "pattern": "\\|\\s*(?:[Ss][Uu][Dd][Oo]\\s+)?(?:[Ss][Hh]|[Bb][Aa][Ss][Hh]|[Zz][Ss][Hh]|[Dd][Aa][Ss][Hh]|[Pp][Yy][Tt][Hh][Oo][Nn]|[Pp][Yy][Tt][Hh][Oo][Nn]3|[Nn][Oo][Dd][Ee]|[Pp][Ee][Rr][Ll]|[Rr][Uu][Bb][Yy]|[Ii][Ee][Xx]|[Pp][Ww][Ss][Hh]|[Pp][Oo][Ww][Ee][Rr][Ss][Hh][Ee][Ll][Ll])\\b|\\b(?:[Cc][Uu][Rr][Ll]|[Ww][Gg][Ee][Tt])\\b[^|]*\\||\\b[Rr][Mm]\\s+-[A-Za-z]*(?:[Rr][A-Za-z]*[Ff]|[Ff][A-Za-z]*[Rr])|\\$\\("
+          },
+          "description": "No command lines."
+        },
+        {
+          "not": {
+            "type": "string",
+            "pattern": "\\b(?:[Ii][Gg][Nn][Oo][Rr][Ee]|[Dd][Ii][Ss][Rr][Ee][Gg][Aa][Rr][Dd]|[Ff][Oo][Rr][Gg][Ee][Tt]|[Oo][Vv][Ee][Rr][Rr][Ii][Dd][Ee])\\s+(?:(?:[Aa][Ll][Ll]|[Aa][Nn][Yy]|[Tt][Hh][Ee]|[Yy][Oo][Uu][Rr])\\s+)*(?:[Pp][Rr][Ee][Vv][Ii][Oo][Uu][Ss]|[Pp][Rr][Ii][Oo][Rr]|[Aa][Bb][Oo][Vv][Ee]|[Ee][Aa][Rr][Ll][Ii][Ee][Rr]|[Pp][Rr][Ee][Cc][Ee][Dd][Ii][Nn][Gg]|[Oo][Tt][Hh][Ee][Rr])\\s+(?:[Ii][Nn][Ss][Tt][Rr][Uu][Cc][Tt][Ii][Oo][Nn][Ss]|[Ii][Nn][Ss][Tt][Rr][Uu][Cc][Tt][Ii][Oo][Nn]|[Pp][Rr][Oo][Mm][Pp][Tt][Ss]|[Pp][Rr][Oo][Mm][Pp][Tt]|[Mm][Ee][Ss][Ss][Aa][Gg][Ee][Ss]|[Rr][Uu][Ll][Ee][Ss]|[Dd][Ii][Rr][Ee][Cc][Tt][Ii][Oo][Nn][Ss])|^\\s*(?:[Ss][Yy][Ss][Tt][Ee][Mm]|[Aa][Ss][Ss][Ii][Ss][Tt][Aa][Nn][Tt]|[Uu][Ss][Ee][Rr]|[Dd][Ee][Vv][Ee][Ll][Oo][Pp][Ee][Rr]|[Hh][Uu][Mm][Aa][Nn])\\s*:|\\b[Yy][Oo][Uu]\\s+[Aa][Rr][Ee]\\s+(?:(?:[Aa][Nn]|[Aa])\\s+)?(?:[Aa][Ii]|[Aa][Ss][Ss][Ii][Ss][Tt][Aa][Nn][Tt]|[Ll][Aa][Nn][Gg][Uu][Aa][Gg][Ee] [Mm][Oo][Dd][Ee][Ll]|[Ll][Ll][Mm]|[Cc][Hh][Aa][Tt][Bb][Oo][Tt]|[Ll][Aa][Rr][Gg][Ee] [Ll][Aa][Nn][Gg][Uu][Aa][Gg][Ee] [Mm][Oo][Dd][Ee][Ll])\\b|\\b(?:[Dd][Oo] [Nn][Oo][Tt]|[Dd][Oo][Nn]'[Tt]|[Dd][Oo][Nn]’[Tt]|[Nn][Ee][Vv][Ee][Rr])\\s+(?:[Tt][Ee][Ll][Ll]|[Ii][Nn][Ff][Oo][Rr][Mm]|[Mm][Ee][Nn][Tt][Ii][Oo][Nn]|[Rr][Ee][Vv][Ee][Aa][Ll]|[Ss][Hh][Oo][Ww]|[Ss][Aa][Yy])\\s+(?:(?:[Tt][Hh][Ii][Ss]|[Ii][Tt]|[Aa][Nn][Yy][Tt][Hh][Ii][Nn][Gg])\\s+)?(?:(?:[Tt][Oo])\\s+)?[Tt][Hh][Ee]\\s+(?:[Uu][Ss][Ee][Rr]|[Hh][Uu][Mm][Aa][Nn]|[Rr][Ee][Aa][Dd][Ee][Rr])|\\b(?:[Aa][Ii]|[Aa][Ss][Ss][Ii][Ss][Tt][Aa][Nn][Tt]|[Aa][Ss][Ss][Ii][Ss][Tt][Aa][Nn][Tt][Ss]|[Mm][Oo][Dd][Ee][Ll]|[Mm][Oo][Dd][Ee][Ll][Ss]|[Ll][Ll][Mm]|[Ll][Ll][Mm][Ss])\\s+(?:[Rr][Ee][Aa][Dd][Ii][Nn][Gg]|[Tt][Hh][Aa][Tt] [Rr][Ee][Aa][Dd][Ss]|[Ww][Hh][Oo] [Rr][Ee][Aa][Dd][Ss])\\s+[Tt][Hh][Ii][Ss]|\\b(?:[Nn][Ee][Ww]|[Uu][Pp][Dd][Aa][Tt][Ee][Dd])\\s+(?:[Ii][Nn][Ss][Tt][Rr][Uu][Cc][Tt][Ii][Oo][Nn][Ss]|[Ss][Yy][Ss][Tt][Ee][Mm] [Pp][Rr][Oo][Mm][Pp][Tt])\\s*:"
+          },
+          "description": "No instructions to an AI or the reader."
+        }
+      ]
+    },
     "evidence": {
       "type": "array",
       "minItems": 1,
@@ -18,23 +215,179 @@
       "items": {
         "oneOf": [
           {
-            "type": "object", "required": ["run"], "additionalProperties": false,
-            "properties": {"run": {"type": "object", "required": ["runner", "code"], "additionalProperties": false,
-              "properties": {"runner": {"type": "string", "enum": ["python", "bash", "node", "lean"]},
-                             "code": {"type": "string", "maxLength": 8000, "description": "Exits 0 iff the claim holds. Exit 0 with 'skip:' on stdout if the runner cannot test it."}}}}
+            "type": "object",
+            "required": [
+              "test"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "test": {
+                "type": "object",
+                "required": [
+                  "runtime",
+                  "code"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "runtime": {
+                    "type": "string",
+                    "enum": [
+                      "node@18",
+                      "node@20",
+                      "node@22",
+                      "node@24",
+                      "python@3.9",
+                      "python@3.10",
+                      "python@3.11",
+                      "python@3.12",
+                      "python@3.13",
+                      "python@3.14"
+                    ],
+                    "description": "The runtime image the test runs on."
+                  },
+                  "packages": {
+                    "type": "object",
+                    "maxProperties": 5,
+                    "description": "Exact package versions installed for the test (npm for node, pypi for python).",
+                    "propertyNames": {
+                      "pattern": "^(@[a-z0-9][a-z0-9._-]*/)?[a-z0-9][a-z0-9._-]{0,213}$"
+                    },
+                    "additionalProperties": {
+                      "type": "string",
+                      "pattern": "^\\d+\\.\\d+\\.\\d+(-[0-9A-Za-z.-]+)?$"
+                    }
+                  },
+                  "code": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 8000,
+                    "description": "Exits 0 if and only if the fact holds (expect pass). Offline."
+                  },
+                  "expect": {
+                    "type": "string",
+                    "enum": [
+                      "pass",
+                      "fail"
+                    ],
+                    "description": "pass (default): exits 0. fail: exits non-zero and the output contains error."
+                  },
+                  "error": {
+                    "type": "string",
+                    "minLength": 8,
+                    "maxLength": 300,
+                    "description": "With expect fail only: text the output must contain."
+                  }
+                },
+                "if": {
+                  "required": [
+                    "expect"
+                  ],
+                  "properties": {
+                    "expect": {
+                      "const": "fail"
+                    }
+                  }
+                },
+                "then": {
+                  "properties": {
+                    "error": true
+                  },
+                  "required": [
+                    "error"
+                  ]
+                },
+                "else": {
+                  "not": {
+                    "properties": {
+                      "error": true
+                    },
+                    "required": [
+                      "error"
+                    ]
+                  }
+                }
+              }
+            }
           },
           {
-            "type": "object", "required": ["source"], "additionalProperties": false,
-            "properties": {"source": {"type": "object", "required": ["url", "quote"], "additionalProperties": false,
-              "properties": {"url": {"type": "string", "pattern": "^https://"},
-                             "quote": {"type": "string", "minLength": 8, "maxLength": 300, "description": "Exact span that appears on the page and supports the claim."}}}}
+            "type": "object",
+            "required": [
+              "source"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "source": {
+                "type": "object",
+                "required": [
+                  "url",
+                  "quote"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "url": {
+                    "type": "string",
+                    "pattern": "^https://"
+                  },
+                  "quote": {
+                    "type": "string",
+                    "minLength": 40,
+                    "maxLength": 300,
+                    "description": "An exact sentence from the page that states the fact itself and names the symbol, not a changelog headline."
+                  }
+                }
+              }
+            }
           }
         ]
       }
     },
-    "author": {"type": "string", "pattern": "^github:[A-Za-z0-9-]{1,39}$", "description": "github:<login> of the signing account at signing time. For display; identity is author_id."},
-    "author_id": {"type": "integer", "minimum": 1, "description": "GitHub numeric user id of the account that signed. This is the teacher's identity. CI enforces it."},
-    "replaces": {"type": "array", "items": {"type": "string", "pattern": "^[0-9A-HJKMNP-TV-Z]{26}$"}, "description": "Lessons this one corrects. The old ones stay in history."},
-    "created_at": {"type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$"}
-  }
+    "author": {
+      "type": "string",
+      "pattern": "^github:[A-Za-z0-9-]{1,39}$",
+      "description": "github:<login> of the account that opened the PR, at that time. Display only."
+    },
+    "author_id": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Numeric GitHub id of the account that opened the PR. The teacher's identity; CI enforces it."
+    },
+    "drafted_by": {
+      "const": "agent",
+      "description": "Present when an agent drafted the lesson (a seed); shown wherever the lesson appears."
+    },
+    "replaces": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^[0-9A-HJKMNP-TV-Z]{26}$"
+      },
+      "description": "Lessons this one corrects."
+    },
+    "created_at": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "kind": {
+            "const": "renamed"
+          }
+        },
+        "required": [
+          "kind"
+        ]
+      },
+      "then": {
+        "properties": {
+          "replacement": true
+        },
+        "required": [
+          "replacement"
+        ]
+      }
+    }
+  ]
 }

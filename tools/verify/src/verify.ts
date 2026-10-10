@@ -1,5 +1,5 @@
-import { activeSet, checkSource, formatLesson, validateLesson, type FetchFn, type Lesson, type LessonValidator } from "@ludion/core";
-import type { RunFn } from "./docker.ts";
+import { activeSet, checkSource, claimOf, formatLesson, isV1, quotesMissingSymbol, subjectFor, ungroundedWords, validateLesson, type FetchFn, type Lesson, type LessonValidator } from "@ludion/core";
+import { interpretRun, type RunFn } from "./docker.ts";
 
 export type Status = "passed" | "failed" | "skipped";
 export type Label = "skipped" | "needs-lean" | "retract";
@@ -25,7 +25,7 @@ export interface VerifyContext {
   fetchFn: FetchFn;
   /** Executes run evidence. Absent: run evidence is not executed (local use). */
   run?: RunFn;
-  /** Schema to validate against. Absent: the precompiled one. CI passes the base branch's schema. */
+  /** Schema to validate against. Absent: the precompiled ones (format 1, or format 0 for old files). CI passes the base branch's format 1 schema, so a new lesson must be format 1. */
   validate?: LessonValidator;
 }
 
@@ -72,15 +72,28 @@ export async function verifyLesson(file: LessonFile, ctx: VerifyContext): Promis
     return result;
   }
   const lesson = valid.lesson;
+  result.claim = claimOf(lesson);
   const canonical = formatLesson(lesson);
   if (file.text !== canonical) {
     fail(`The file is not in canonical form: ${firstDifference(file.text, canonical)}. Keys go in schema order with 2-space indent, LF line endings, and a trailing newline.`);
   }
 
-  // 2. Path.
+  // 2. Path. A format 1 lesson's subject comes from its package.
   const expected = `lessons/${lesson.subject}/${lesson.id}.json`;
   if (file.path !== expected && !file.path.endsWith(`/${expected}`)) {
     fail(`The file must be at ${expected} (subject and id decide the path), not ${file.path}.`);
+  }
+  if (isV1(lesson) && lesson.subject !== subjectFor(lesson.package)) {
+    fail(`The subject for package ${lesson.package.name} is ${subjectFor(lesson.package)}, not ${lesson.subject}.`);
+  }
+
+  // 3. Format 1: the only free text is grounded, and sources state the fact by naming the symbol.
+  if (isV1(lesson)) {
+    const words = ungroundedWords(lesson);
+    if (words.length) fail(`The detail uses words the evidence doesn't contain: ${words.join(", ")}. Use the evidence's own words, or leave the detail out.`);
+    for (const quote of quotesMissingSymbol(lesson)) {
+      fail(`The quote "${quote.slice(0, 80)}" doesn't name ${lesson.symbol}. Quote a sentence that states the fact itself, not a headline.`);
+    }
   }
 
   // 4. replaces must name lessons in the active set on main.
@@ -93,21 +106,23 @@ export async function verifyLesson(file: LessonFile, ctx: VerifyContext): Promis
 
   // 5 and 6. Evidence.
   await Promise.all(
-    lesson.evidence.map(async (e, i) => {
+    (lesson.evidence as Lesson["evidence"]).map(async (e, i) => {
       const where = `evidence ${i + 1}`;
       if ("source" in e) {
         const r = await checkSource(e.source.url, e.source.quote, ctx.fetchFn);
         if (!r.found) fail(`${where} (source): ${r.reason}`);
         return;
       }
-      if (e.run.runner === "lean") {
+      if ("run" in e && e.run.runner === "lean") {
         skip(`${where} (lean): the Lean runner does not exist yet. A human decides.`, "needs-lean");
         return;
       }
       if (!ctx.run) return;
-      const r = await ctx.run(e.run.runner, e.run.code);
-      if (r.status === "failed") fail(`${where} (${e.run.runner}): ${r.reason}`);
-      if (r.status === "skipped") skip(`${where} (${e.run.runner}): ${r.reason}`, "skipped");
+      const spec = "run" in e ? { runtime: e.run.runner, code: e.run.code } : { runtime: e.test.runtime, code: e.test.code, packages: e.test.packages };
+      const label = "run" in e ? e.run.runner : e.test.runtime + (e.test.packages ? ` ${Object.entries(e.test.packages).map(([n, v]) => `${n}@${v}`).join(" ")}` : "");
+      const r = interpretRun(await ctx.run(spec), "test" in e ? e.test.expect : "pass", "test" in e ? e.test.error : undefined);
+      if (r.status === "failed") fail(`${where} (${label}): ${r.reason}`);
+      if (r.status === "skipped") skip(`${where} (${label}): ${r.reason}`, "skipped");
     }),
   );
   return result;

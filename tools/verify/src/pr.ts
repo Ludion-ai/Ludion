@@ -21,7 +21,8 @@ export interface ChangePlan {
 }
 
 const LESSON_PATH = /^lessons\/[^/]+\/[^/]+\.json$/;
-const SCHEMA_PATH = "lessons/lessons.schema.json";
+/** The schemas: format 1 for new lessons, and format 0 frozen for the lessons already on main. */
+const SCHEMA_PATHS = new Set(["lessons/lessons.schema.json", "lessons/lessons-v0.schema.json"]);
 export const IMMUTABLE = "Lessons are immutable. Add a new lesson that replaces this one instead.";
 export const LESSON_FILES_ONLY = "A lesson pull request can change only lesson files in lessons/.";
 export const STRAY_FILE = "Only lesson files go in lessons/<subject>/.";
@@ -46,7 +47,7 @@ export function planChanges(changes: Change[]): ChangePlan {
   const lessonChanges = changes.filter((c) => LESSON_PATH.test(c.path));
   if (lessonChanges.length === 0) {
     for (const { path } of changes) {
-      if (path.startsWith("lessons/") && path !== SCHEMA_PATH) plan.problems.push({ path, reason: STRAY_FILE });
+      if (path.startsWith("lessons/") && !SCHEMA_PATHS.has(path)) plan.problems.push({ path, reason: STRAY_FILE });
     }
     return plan;
   }
@@ -61,24 +62,13 @@ export function planChanges(changes: Change[]): ChangePlan {
   return plan;
 }
 
-const TRAILER = /^Taught-by: ([A-Za-z0-9-]{1,39}) \((\d+)\)[ \t]*$/m;
-
 /**
- * Why this lesson may not come from this PR's author, or undefined. Identity is the numeric id,
- * for the teacher and for the App's bot account alike.
+ * Why this lesson may not come from this PR's author, or undefined. A public lesson is a pull request opened by the
+ * teacher's own GitHub account (CLAUDE.md, "The person signs"): identity is the numeric id, and no bot may open one.
  */
-export function authorProblem(lesson: Lesson, author: PullRequestAuthor, appBotId: number | undefined, commitMessage: string | null): string | undefined {
+export function authorProblem(lesson: Lesson, author: PullRequestAuthor): string | undefined {
   if (author.type === "Bot") {
-    if (appBotId === undefined || author.id !== appBotId) {
-      return `This pull request was opened by ${author.login} (${author.id}), which is not the Ludion App. Lessons come from the person who signed them or from the Ludion App.`;
-    }
-    const m = commitMessage ? TRAILER.exec(commitMessage) : null;
-    if (!m) return 'The commit that adds this lesson has no "Taught-by: <login> (<user id>)" trailer.';
-    const [, login, id] = m;
-    if (Number(id) !== lesson.author_id || login!.toLowerCase() !== storedLogin(lesson.author).toLowerCase()) {
-      return `The commit says "Taught-by: ${login} (${id})", but the lesson's author is ${lesson.author} (${lesson.author_id}). They must match.`;
-    }
-    return undefined;
+    return `This pull request was opened by ${author.login} (${author.id}), a bot. Lessons come from the teacher's own GitHub account: run ludion teach --public.`;
   }
   if (lesson.author_id !== author.id) {
     return `This lesson's author_id is ${lesson.author_id}, but the pull request was opened by @${author.login} (${author.id}). Teach lessons in your own name.`;
@@ -88,10 +78,6 @@ export function authorProblem(lesson: Lesson, author: PullRequestAuthor, appBotI
 
 export interface PullRequestContext extends VerifyContext {
   author: PullRequestAuthor;
-  /** `app_bot_id` from ludion.config.json on the base branch. */
-  appBotId?: number;
-  /** Message of the PR commit that added this path, or null. */
-  commitMessageFor: (path: string) => string | null;
 }
 
 export async function verifyPullRequest(plan: ChangePlan, addedFiles: LessonFile[], ctx: PullRequestContext): Promise<LessonResult[]> {
@@ -113,7 +99,7 @@ export async function verifyPullRequest(plan: ChangePlan, addedFiles: LessonFile
     }
     const valid = validate(parsed);
     if (valid.ok) {
-      const problem = authorProblem(valid.lesson, ctx.author, ctx.appBotId, ctx.commitMessageFor(file.path));
+      const problem = authorProblem(valid.lesson, ctx.author);
       if (problem) {
         result.status = "failed";
         result.reasons.push(problem);

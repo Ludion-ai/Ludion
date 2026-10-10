@@ -4,7 +4,7 @@
 import { execFileSync } from "node:child_process";
 import { appendFileSync, readFileSync, writeFileSync } from "node:fs";
 import { parseArgs } from "node:util";
-import type { Lesson, LessonValidator, Runner } from "@ludion/core";
+import { validateLesson, type Lesson, type LessonValidator } from "@ludion/core";
 import { compileLessonSchema } from "./base-schema.ts";
 import { pullImages, runInDocker } from "./docker.ts";
 import { parseNameStatus, planChanges, verifyPullRequest, type PullRequestAuthor } from "./pr.ts";
@@ -14,12 +14,13 @@ import type { LessonFile } from "./verify.ts";
 
 const git = (...args: string[]) => execFileSync("git", args, { encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
 
-function baseLessons(baseRef: string, validate: LessonValidator): Lesson[] {
+/** main's lessons in either format (format 0 files stay valid), for the replaces check. */
+function baseLessons(baseRef: string): Lesson[] {
   const paths = git("ls-tree", "-r", "--name-only", baseRef, "--", "lessons/").split("\n").filter((p) => /^lessons\/[^/]+\/[^/]+\.json$/.test(p));
   const lessons: Lesson[] = [];
   for (const p of paths) {
     try {
-      const v = validate(JSON.parse(git("show", `${baseRef}:${p}`)));
+      const v = validateLesson(JSON.parse(git("show", `${baseRef}:${p}`)));
       if (v.ok) lessons.push(v.lesson);
     } catch {
       // A broken file on the base branch is not this PR's problem.
@@ -28,18 +29,22 @@ function baseLessons(baseRef: string, validate: LessonValidator): Lesson[] {
   return lessons;
 }
 
-function runnersIn(files: LessonFile[], validate: LessonValidator): Exclude<Runner, "lean">[] {
-  const runners = new Set<Exclude<Runner, "lean">>();
+/** The runners and runtimes the added lessons' tests need, so their images are pulled before any timed run. */
+function runtimesIn(files: LessonFile[], validate: LessonValidator): string[] {
+  const runtimes = new Set<string>();
   for (const f of files) {
     try {
       const v = validate(JSON.parse(f.text));
       if (!v.ok) continue;
-      for (const e of v.lesson.evidence) if ("run" in e && e.run.runner !== "lean") runners.add(e.run.runner);
+      for (const e of v.lesson.evidence as Lesson["evidence"]) {
+        if ("run" in e && e.run.runner !== "lean") runtimes.add(e.run.runner);
+        if ("test" in e) runtimes.add(e.test.runtime);
+      }
     } catch {
       // Reported when verified.
     }
   }
-  return [...runners];
+  return [...runtimes];
 }
 
 async function main(): Promise<number> {
@@ -55,27 +60,23 @@ async function main(): Promise<number> {
     return 2;
   }
   const baseRef = `origin/${pr.base.ref}`;
-  const headSha: string = pr.head.sha;
   const author: PullRequestAuthor = { id: pr.user.id, login: pr.user.login, type: pr.user.type };
-  // The rules come from the base branch, never from the PR: a PR cannot add its own bot or loosen the schema.
-  const config = JSON.parse(git("show", `${baseRef}:ludion.config.json`)) as { app_bot_id?: number };
+  // The schema comes from the base branch, never from the PR: a PR cannot loosen what it is checked against.
   const validate = compileLessonSchema(git("show", `${baseRef}:lessons/lessons.schema.json`));
 
   // Every file the PR changes, not only lessons/: a lesson PR may change nothing else.
   const plan = planChanges(parseNameStatus(git("diff", "--no-renames", "--name-status", `${baseRef}...HEAD`)));
   const added: LessonFile[] = plan.added.map((path) => ({ path, text: readFileSync(path, "utf8") }));
 
-  const pullFailures = pullImages(runnersIn(added, validate));
+  const pullFailures = pullImages(runtimesIn(added, validate));
   for (const f of pullFailures) console.error(f);
 
   const results = await verifyPullRequest(plan, added, {
-    base: baseLessons(baseRef, validate),
+    base: baseLessons(baseRef),
     fetchFn: createSafeFetch(),
     run: runInDocker,
     validate,
     author,
-    appBotId: config.app_bot_id,
-    commitMessageFor: (path) => git("log", "--diff-filter=A", "--format=%B", "-n", "1", `${baseRef}..${headSha}`, "--", path) || null,
   });
 
   printResults(results);

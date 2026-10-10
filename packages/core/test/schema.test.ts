@@ -41,7 +41,7 @@ describe("validateLesson", () => {
   it("explains evidence of no known kind", () => {
     const r = validateLesson({ ...lesson(), evidence: [{ proof: "trust me" }] });
     expect(r.ok).toBe(false);
-    if (!r.ok) expect(r.errors).toEqual([{ path: "/evidence/0", message: expect.stringContaining('either a test, {"run"') }]);
+    if (!r.ok) expect(r.errors).toEqual([{ path: "/evidence/0", message: expect.stringContaining("Each piece of evidence is either a test") }]);
   });
 
   it("rejects unknown fields by name", () => {

@@ -1,4 +1,5 @@
 ---
+import { asTest } from "@ludion/core";
 // Home: the promise, then a replay of how the newest real lesson passed. Its check prints line by line; when
 // exit 0 prints, the seal turns from "Checking" to verified. A replay with its date, never shown as live.
 // The rule above the replay is a water surface (src/scripts/water.js, WebGL2, home only): the lesson waits below it,
@@ -28,15 +29,16 @@ function logLines(): { text: string; kind: "cmd" | "dim" | "out" | "pass" }[] {
     const host = new URL(e.source.url).host;
     return [head, { text: `fetch https://${host}${new URL(e.source.url).pathname}`, kind: "dim" }, { text: `quote found: "${e.source.quote.slice(0, 40)}${e.source.quote.length > 40 ? "…" : ""}"`, kind: "dim" }, pass, { text: "exit 0", kind: "pass" }];
   }
-  const runner = e.run.runner;
-  const image = runner === "node" ? "node:24-slim" : runner === "lean" ? "lean" : "python:3.14-slim";
-  const code = e.run.code.split("\n").slice(0, 4).map((l) => ({ text: `  ${l.slice(0, 58)}`, kind: "dim" as const }));
+  const test = asTest(e)!;
+  const runner = test.runtime;
+  const image = runner === "lean" ? "lean" : runner.includes("@") ? runner.replace("@", ":") + "-slim" : runner === "node" ? "node:24-slim" : "python:3.14-slim";
+  const code = test.code.split("\n").slice(0, 4).map((l) => ({ text: `  ${l.slice(0, 58)}`, kind: "dim" as const }));
   return [head, { text: `docker run --network none ${image}`, kind: "dim" }, ...code, pass, { text: runner === "lean" ? "proved, exit 0" : "exit 0", kind: "pass" }];
 }
 const lines = logLines();
 // The seal turns verified just after the run ends.
 const done = `${(0.25 + lines.length * 0.38 + 0.25).toFixed(2)}s`;
-const runner = newest && "run" in newest.evidence[0]! ? newest.evidence[0]!.run.runner : "";
+const runner = newest ? (asTest(newest.evidence[0]!)?.runtime ?? "") : "";
 ---
 
 <Base title={en.home.title}>
