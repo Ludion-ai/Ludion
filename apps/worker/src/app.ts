@@ -7,6 +7,8 @@ export interface Env {
   SOURCE_CHECK_LIMITER: RateLimit;
 }
 
+export const HSTS = "max-age=31536000";
+
 const TEACHER_PATH = /^\/@([A-Za-z0-9-]{1,39})\/?$/;
 
 export function createApp(): Hono<{ Bindings: Env }> {
@@ -17,6 +19,8 @@ export function createApp(): Hono<{ Bindings: Env }> {
     // Responses from env.ASSETS have immutable headers; copy before adding ours.
     c.res = new Response(c.res.body, c.res);
     c.res.headers.set("X-Content-Type-Options", "nosniff");
+    // HTTPS only, for a year. No includeSubDomains or preload: they are hard to undo (worker.md).
+    c.res.headers.set("Strict-Transport-Security", HSTS);
   });
 
   // MCP over Streamable HTTP, stateless; OPTIONS for CORS preflight from browser-based clients.

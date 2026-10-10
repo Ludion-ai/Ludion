@@ -65,4 +65,10 @@ describe("worker", () => {
       expect((await get(path)).headers.get("X-Content-Type-Options"), path).toBe("nosniff");
     }
   });
+
+  it("sends HSTS for a year on every response, without includeSubDomains or preload", async () => {
+    for (const path of ["/", "/index.json", "/mcp", "/@nobody-has-this-login-0"]) {
+      expect((await get(path)).headers.get("Strict-Transport-Security"), path).toBe("max-age=31536000");
+    }
+  });
 });
